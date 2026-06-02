@@ -293,6 +293,10 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .eggrun-banner:active{transform:scale(.97)}
 .eggrun-banner:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(29,27,58,.4)}
 .eggrun-banner::after{content:'';position:absolute;right:-20px;top:-20px;width:80px;height:80px;background:rgba(255,255,255,.04);border-radius:50%}
+.eggrun-banner.locked{background:linear-gradient(130deg,#2a2a2a 0%,#383838 100%);border-color:#555;cursor:default;}
+.eggrun-banner.locked:hover,.eggrun-banner.locked:active{transform:none!important;box-shadow:none!important;}
+@keyframes erGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.4)}60%{box-shadow:0 0 0 10px rgba(255,215,0,0)}}
+.eggrun-banner.ready{background:linear-gradient(130deg,#3A2800 0%,#6B4500 100%);border-color:#FFD700;animation:erGlow 1.8s ease-in-out infinite;}
 
 </style>
 </head>
@@ -385,14 +389,12 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 
   <!-- EGG RUN -->
   <div style="width:100%;max-width:480px;padding:10px 20px 0">
-    <div class="eggrun-banner" onclick="startWorld('eggrun')">
+    <div id="er-banner" class="eggrun-banner" onclick="onEggRunClick()">
       <canvas id="er-home-canvas" width="44" height="52" style="border-radius:8px;flex-shrink:0"></canvas>
-      <div style="flex:1;min-width:0">
+      <div id="er-banner-body" style="flex:1;min-width:0">
         <div style="font-family:'Fredoka One',cursive;font-size:16px;color:#fff;margin-bottom:2px">🏃 Egg Run</div>
         <div style="font-size:11px;color:rgba(255,255,255,.65)">วิ่ง เก็บ ring หลบหิน!</div>
-        <div style="font-size:11px;color:#FFD700;margin-top:4px" id="er-best-txt">Best: 0m · 💛 0</div>
       </div>
-      <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">แตะเพื่อเล่น →</div>
     </div>
   </div>
 
@@ -473,6 +475,8 @@ function defaultState() {
     items: { food:2, star:0, ribbon:0, potion:0 },
     xpBoost: 1, xpBoostEnd: 0,
     thaiMastery: {}, thSpellLevel: 1,
+    dailyRounds: 0, lastPlayDate: '',
+    eggRunLives: 3, lastRunDate: '',
   };
 }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
@@ -1030,10 +1034,7 @@ function updateHomeEgg() {
   document.getElementById('home-streak').textContent = STATE.streak+(STATE.streak>=3?'🔥':'');
   document.getElementById('home-rounds').textContent = STATE.rounds;
   document.getElementById('home-badges').textContent = STATE.badges+'⭐';
-  const erBestEl=document.getElementById('er-best-txt');
-  if(erBestEl) erBestEl.textContent='Best: '+(STATE.erBestDist||0)+'m · 💛'+(STATE.erBestRings||0);
-  const erHomeCvs=document.getElementById('er-home-canvas');
-  if(erHomeCvs) drawEgg(erHomeCvs, buildEggStats());
+  updateEggRunBanner();
 }
 
 function updateWorldXP() {
@@ -1363,6 +1364,7 @@ function thShowResult(){
   document.getElementById('th-rxp').textContent='+'+STATE.xpThai;
   document.getElementById('th-rstr').textContent=thStreak+'🔥';
   STATE.streak = Math.max(STATE.streak, thStreak);
+  checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
   document.getElementById('th-result').style.display='flex';
   document.getElementById('th-result').classList.add('show');
@@ -1592,10 +1594,73 @@ function spShowResult() {
   document.getElementById('sp-rxp').textContent='+'+spXP;
   document.getElementById('sp-rstr').textContent=spStreak+'🔥';
   STATE.streak=Math.max(STATE.streak,spStreak);
+  checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
   document.getElementById('sp-result').style.display='flex';
   document.getElementById('sp-result').classList.add('show');
   saveState(STATE); updateHomeEgg();
+}
+
+// ============================================================
+// DAILY REWARD HELPERS
+// ============================================================
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+
+function checkDailyReset(){
+  const t=todayStr();
+  if((STATE.lastPlayDate||'')!==t){STATE.dailyRounds=0;STATE.lastPlayDate=t;saveState(STATE);}
+}
+
+function checkLivesReset(){
+  const t=todayStr();
+  if((STATE.lastRunDate||'')!==t){STATE.eggRunLives=3;STATE.lastRunDate=t;saveState(STATE);}
+}
+
+function onEggRunClick(){
+  checkDailyReset(); checkLivesReset();
+  if((STATE.dailyRounds||0)<10){showToast('เรียนให้ครบ 10 ด่านก่อนนะ! 📚');return;}
+  startWorld('eggrun');
+}
+
+function updateEggRunBanner(){
+  const banner=document.getElementById('er-banner');
+  const body=document.getElementById('er-banner-body');
+  const cvs=document.getElementById('er-home-canvas');
+  if(!banner||!body) return;
+  checkDailyReset(); checkLivesReset();
+  const dr=STATE.dailyRounds||0;
+  const lives=STATE.eggRunLives||0;
+  const THRESH=10;
+  const unlocked=dr>=THRESH;
+  const best=(STATE.erBestDist||0);
+  const bestR=(STATE.erBestRings||0);
+  banner.classList.toggle('locked',!unlocked);
+  banner.classList.toggle('ready',unlocked&&lives>0);
+  if(!unlocked){
+    const pct=Math.round(dr/THRESH*100);
+    body.innerHTML=`
+      <div style="font-family:'Fredoka One',cursive;font-size:15px;color:rgba(255,255,255,.45);margin-bottom:3px">🏃 Egg Run 🔒</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4)">เรียนอีก ${THRESH-dr} ด่านเพื่อ Unlock</div>
+      <div style="margin-top:6px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden">
+        <div style="height:4px;background:rgba(255,255,255,.4);border-radius:4px;width:${pct}%;transition:width .4s"></div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">${dr}/${THRESH} ด่าน</div>`;
+    if(cvs){cvs.style.opacity='0.3';drawEgg(cvs,buildEggStats());}
+  } else if(lives<=0){
+    body.innerHTML=`
+      <div style="font-family:'Fredoka One',cursive;font-size:15px;color:rgba(255,255,255,.5);margin-bottom:3px">🏃 Egg Run 🌙</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4)">มาเรียนพรุ่งนี้เพื่อเล่นอีกครั้ง!</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">Best: ${best}m · 💛${bestR}</div>`;
+    if(cvs){cvs.style.opacity='0.3';drawEgg(cvs,buildEggStats());}
+    banner.classList.remove('ready'); banner.classList.add('locked');
+  } else {
+    const hearts='❤️'.repeat(lives)+'🖤'.repeat(Math.max(0,3-lives));
+    body.innerHTML=`
+      <div style="font-family:'Fredoka One',cursive;font-size:16px;color:#FFD700;margin-bottom:2px">🏃 Egg Run</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.9)">Egg Run พร้อมแล้ว! 🥚⚡</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:4px">${hearts} · Best: ${best}m</div>`;
+    if(cvs){cvs.style.opacity='1';drawEgg(cvs,buildEggStats());}
+  }
 }
 
 // ============================================================
@@ -1609,6 +1674,24 @@ const ER_GRAV=0.55, ER_GY=0.74;
 
 function buildEggRunGame(c) {
   if(erAnim){cancelAnimationFrame(erAnim);erAnim=null;}
+  checkLivesReset();
+  const livesNow=STATE.eggRunLives||0;
+  // No lives screen
+  if(livesNow<=0){
+    c.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;padding:32px 20px;text-align:center;font-family:Mitr,sans-serif">
+      <div style="font-size:64px;margin-bottom:12px">🌙</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--text);margin-bottom:8px">หมดชีวิตแล้ว!</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:24px">มาเรียนพรุ่งนี้เพื่อเล่นอีกครั้ง!</div>
+      <button onclick="goHome()" style="background:var(--purple-l);color:var(--purple-d);border:none;border-radius:12px;padding:12px 28px;font-family:Mitr,sans-serif;font-size:15px;font-weight:600;cursor:pointer">🏠 กลับหน้าหลัก</button>
+    </div>`;
+    return;
+  }
+  // Deduct 1 life
+  STATE.eggRunLives=livesNow-1;
+  STATE.lastRunDate=todayStr();
+  saveState(STATE);
+  const livesLeft=STATE.eggRunLives;
+  const hearts='❤️'.repeat(livesLeft)+'🖤'.repeat(Math.max(0,3-livesLeft));
   const cW=Math.min(window.innerWidth,480);
   const cH=Math.max(220,Math.min(300,window.innerHeight-140));
   c.innerHTML='';
@@ -1616,7 +1699,7 @@ function buildEggRunGame(c) {
   wrap.style.cssText='width:100%;max-width:480px;display:flex;flex-direction:column;align-items:stretch;';
   const hud=document.createElement('div');
   hud.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:6px 16px 4px;font-family:Mitr,sans-serif;';
-  hud.innerHTML='<span style="font-size:13px;color:var(--text)">📏 <span id="er-dist">0</span>m</span><span style="font-size:12px;color:var(--muted)">แตะ/space = กระโดด</span><span style="font-size:13px;color:#B8860B">💛 <span id="er-rings">0</span></span>';
+  hud.innerHTML='<span style="font-size:13px;color:var(--text)">📏 <span id="er-dist">0</span>m</span><span style="font-size:13px" id="er-lives">'+hearts+'</span><span style="font-size:13px;color:#B8860B">💛 <span id="er-rings">0</span></span>';
   const cvs=document.createElement('canvas');
   cvs.width=cW; cvs.height=cH;
   cvs.style.cssText='display:block;touch-action:none;cursor:pointer;border-radius:12px;';
@@ -1794,9 +1877,18 @@ function erDrawGameOver(){
   const btnY=H/2+52;
   ctx.fillStyle='rgba(255,255,255,0.14)';ctx.fillRect(W/2-72,btnY-18,144,34);
   ctx.fillStyle='#fff';ctx.font="14px Mitr,sans-serif";ctx.fillText('▶ เล่นอีกครั้ง',W/2,btnY+2);
-  const onRestart=()=>{erCanvas.removeEventListener('click',onRestart);erCanvas.removeEventListener('touchstart',onRestart);erInit();erLoop();};
-  erCanvas.addEventListener('click',onRestart,{once:true});
-  erCanvas.addEventListener('touchstart',onRestart,{once:true,passive:true});
+  const livesLeft=STATE.eggRunLives||0;
+  const livesY=H/2+(newBest?52:itemMsg?52:36);
+  if(livesLeft>0){
+    ctx.fillStyle='rgba(255,255,255,0.14)';ctx.fillRect(W/2-72,livesY-18,144,34);
+    ctx.fillStyle='#fff';ctx.font="14px Mitr,sans-serif";ctx.fillText('▶ เล่นอีกครั้ง (❤️×'+livesLeft+')',W/2,livesY+2);
+    const onRestart=()=>{erCanvas.removeEventListener('click',onRestart);erCanvas.removeEventListener('touchstart',onRestart);buildEggRunGame(document.getElementById('game-container'));};
+    erCanvas.addEventListener('click',onRestart,{once:true});
+    erCanvas.addEventListener('touchstart',onRestart,{once:true,passive:true});
+  } else {
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(W/2-100,livesY-18,200,34);
+    ctx.fillStyle='rgba(255,255,255,.5)';ctx.font="13px Mitr,sans-serif";ctx.fillText('🌙 มาเรียนพรุ่งนี้เพื่อเล่นอีกครั้ง',W/2,livesY+2);
+  }
   updateHomeEgg();
 }
 
@@ -1921,6 +2013,7 @@ function mShowResult(){
   document.getElementById('m-rc').textContent=mScore+'/10';
   document.getElementById('m-rxp').textContent='+'+mXP;document.getElementById('m-rstr').textContent=mStreak+'🔥';
   STATE.streak = Math.max(STATE.streak, mStreak);
+  checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
   document.getElementById('m-result').style.display='flex';document.getElementById('m-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
@@ -2096,6 +2189,7 @@ function enShowResult(){
   document.getElementById('en-rc').textContent=enScore+'/10';
   document.getElementById('en-rxp').textContent='+'+enXP;document.getElementById('en-rstr').textContent=enStreak+'🔥';
   STATE.streak = Math.max(STATE.streak, enStreak);
+  checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
   document.getElementById('en-result').style.display='flex';document.getElementById('en-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
@@ -2413,6 +2507,7 @@ function generateRecommendations() {
   return recs.slice(0,4);
 }
 decayHappiness();
+checkDailyReset(); checkLivesReset();
 if (STATE.hatching) { STATE.hatching = false; saveState(STATE); }
 if (!STATE.items) STATE.items = {food:2,star:0,ribbon:0,potion:0};
 // Fix rounds: if rounds > correctAnswers it means old counting (per question)

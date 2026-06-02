@@ -1,0 +1,102 @@
+import React, { useRef, useState, useEffect } from 'react'
+import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { TOWER_COLORS } from '../../config/gameConfig.js'
+import { playTone } from '../../lib/audio.js'
+import { spawnConfetti } from '../../components/Toasts.jsx'
+
+export default function EggTower() {
+  const { dispatch, eggProgressData } = useAppState()
+  const canvasRef = useRef(null)
+  const gsRef = useRef(null)
+  const animRef = useRef(null)
+  const runRef = useRef(false)
+  const [score, setScore] = useState(0)
+  const [dead, setDead] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const stage = eggProgressData.stage
+    const baseW = Math.round(canvas.width * (.45 + stage * .03))
+    const gs = {
+      blocks: [{ x: canvas.width/2 - baseW/2, y: canvas.height-30, w: baseW, h: 20, color: TOWER_COLORS[0] }],
+      current: { x: canvas.width/2 - baseW/2, y: canvas.height - 52, w: baseW, h: 20, color: TOWER_COLORS[1] },
+      swingX: canvas.width/2, swingDir: 1, score: 0,
+    }
+    gsRef.current = gs; runRef.current = true
+    const loop = () => {
+      if (!runRef.current) return
+      const spd = 2 + gs.score * .15
+      gs.swingX += gs.swingDir * spd
+      if (gs.swingX > canvas.width - gs.current.w*.3 || gs.swingX < gs.current.w*.3) gs.swingDir *= -1
+      gs.current.x = gs.swingX - gs.current.w/2
+      gs.current.y = canvas.height - gs.blocks.length * 22 - 44
+      draw(gs, canvas)
+      animRef.current = requestAnimationFrame(loop)
+    }
+    animRef.current = requestAnimationFrame(loop)
+    const place = () => placeFn(gs, canvas, setScore, setDead, runRef, animRef, dispatch)
+    canvas.addEventListener('click', place)
+    canvas.addEventListener('touchstart', place, { passive: true })
+    const onKey = (e) => { if (e.code === 'Space') { e.preventDefault(); place() } }
+    document.addEventListener('keydown', onKey)
+    return () => { runRef.current = false; cancelAnimationFrame(animRef.current); canvas.removeEventListener('click', place); document.removeEventListener('keydown', onKey) }
+  }, []) // eslint-disable-line
+
+  const cW = Math.min(typeof window!=='undefined'?window.innerWidth:480, 480)
+  const cH = Math.max(300, Math.min(420, typeof window!=='undefined'?window.innerHeight-130:400))
+
+  if (dead) return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
+      <div style={{ fontSize:64, marginBottom:10 }}>🏗️</div>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:8 }}>Tower: {score} ชั้น!</div>
+      <button onClick={() => { setDead(false); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
+    </div>
+  )
+
+  return (
+    <div style={{ width:'100%', maxWidth:480 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif' }}>
+        <span style={{ fontSize:13 }}>🏗️ วางบล็อก!</span>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18 }}>{score}</span>
+        <span style={{ fontSize:13 }}>แตะเพื่อวาง</span>
+      </div>
+      <canvas ref={canvasRef} width={cW} height={cH} style={{ display:'block', borderRadius:12, cursor:'pointer' }} />
+    </div>
+  )
+}
+
+function placeFn(gs, canvas, setScore, setDead, runRef, animRef, dispatch) {
+  if (!runRef.current || !gs.current) return
+  const top = gs.blocks[gs.blocks.length - 1]
+  const oL = Math.max(gs.current.x, top.x), oR = Math.min(gs.current.x + gs.current.w, top.x + top.w)
+  const overlap = oR - oL
+  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setDead(true); const xp = Math.max(2, gs.score*3); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
+  playTone(overlap === gs.current.w ? 'streak' : 'correct')
+  if (overlap === gs.current.w) spawnConfetti(3)
+  const trimmed = { x: oL, y: top.y - 22, w: overlap, h: 20, color: TOWER_COLORS[gs.blocks.length % TOWER_COLORS.length] }
+  gs.blocks.push(trimmed)
+  gs.score++; setScore(gs.score)
+  if (gs.blocks.length > canvas.height / 22) gs.blocks.forEach(b => b.y += 22)
+  gs.current = { x: canvas.width/2 - overlap/2, y: trimmed.y - 40, w: overlap, h: 20, color: TOWER_COLORS[gs.blocks.length % TOWER_COLORS.length] }
+}
+
+function draw(gs, canvas) {
+  const W = canvas.width, H = canvas.height, ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, W, H)
+  const sky = ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#1a1a2e'); sky.addColorStop(1,'#16213e')
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = '#3D7A24'; ctx.fillRect(0, H-30, W, 30)
+  for (const b of gs.blocks) {
+    ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h)
+    ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(b.x, b.y, b.w, 4)
+    ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 1; ctx.strokeRect(b.x, b.y, b.w, b.h)
+  }
+  if (gs.current) {
+    ctx.fillStyle = gs.current.color; ctx.fillRect(gs.current.x, gs.current.y, gs.current.w, gs.current.h)
+    ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(gs.current.x, gs.current.y, gs.current.w, 4)
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.5; ctx.strokeRect(gs.current.x, gs.current.y, gs.current.w, gs.current.h)
+    const top = gs.blocks[gs.blocks.length - 1]
+    ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1
+    ctx.strokeRect(top.x, gs.current.y, top.w, gs.current.h); ctx.setLineDash([])
+  }
+}

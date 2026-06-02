@@ -1,0 +1,209 @@
+export const ITEMS = {
+  food:   { emoji:'🍗', name:'อาหาร',   desc:'ให้กินเพื่อเพิ่มความสุข',  rarity:0.55 },
+  star:   { emoji:'⭐', name:'ผงดาว',   desc:'XP x2 เป็นเวลา 5 นาที',    rarity:0.25 },
+  ribbon: { emoji:'🎀', name:'ริบบิ้น', desc:'ตกแต่งไข่ เพิ่มความสุข',   rarity:0.12 },
+  potion: { emoji:'💧', name:'น้ำมนต์', desc:'ฟักเร็วขึ้น +20 XP',       rarity:0.08 },
+}
+
+export const HATCH_CREATURES = {
+  thai:  [{e:'🐘',n:'ช้างน้ำเงิน',f:'+ความอดทน',rarity:'common',rarityLabel:'Common'},{e:'🐍',n:'นาคทอง',f:'+พลังน้ำ',rarity:'rare',rarityLabel:'Rare'},{e:'🦅',n:'ครุฑไฟ',f:'+ปีกไฟ',rarity:'epic',rarityLabel:'Epic'}],
+  eng:   [{e:'🐉',n:'มังกรน้ำ',f:'+พลังน้ำ',rarity:'common',rarityLabel:'Common'},{e:'🦊',n:'จิ้งจอกน้ำแข็ง',f:'+พลังน้ำแข็ง',rarity:'uncommon',rarityLabel:'Uncommon'},{e:'🦄',n:'ยูนิคอร์นฟ้า',f:'+เขาเวทมนตร์',rarity:'legendary',rarityLabel:'Legendary'}],
+  math:  [{e:'🤖',n:'หุ่นโกเลม',f:'+กำปั้นเหล็ก',rarity:'common',rarityLabel:'Common'},{e:'💎',n:'คริสตัลเบิร์ด',f:'+คริสตัลบิน',rarity:'rare',rarityLabel:'Rare'},{e:'⚡',n:'สายฟ้าเสือ',f:'+สายฟ้า',rarity:'epic',rarityLabel:'Epic'}],
+  hybrid:[{e:'🌈🦄',n:'ยูนิคอร์นรุ้ง',f:'+รุ้งสวรรค์',rarity:'legendary',rarityLabel:'Legendary'},{e:'🐉',n:'มังกรทอง',f:'+ออร่าทอง',rarity:'legendary',rarityLabel:'Legendary'},{e:'☀️🦁',n:'สิงห์สุริยา',f:'+แสงสุริยา',rarity:'epic',rarityLabel:'Epic'}],
+}
+
+export const GRADE_LABELS = ['อนุบาล','ป.1','ป.2','ป.3','ป.4','ป.5','ป.6']
+
+export const TH_ALPHA = [
+  {char:'ก',word:'ไก่',meaning:'Chicken',emoji:'🐔'},{char:'ข',word:'ไข่',meaning:'Egg',emoji:'🥚'},
+  {char:'ค',word:'ควาย',meaning:'Buffalo',emoji:'🐃'},{char:'ง',word:'งู',meaning:'Snake',emoji:'🐍'},
+  {char:'จ',word:'จาน',meaning:'Plate',emoji:'🍽️'},{char:'ช',word:'ช้าง',meaning:'Elephant',emoji:'🐘'},
+  {char:'ด',word:'เด็ก',meaning:'Child',emoji:'👶'},{char:'ต',word:'เต่า',meaning:'Turtle',emoji:'🐢'},
+  {char:'น',word:'หนู',meaning:'Mouse',emoji:'🐭'},{char:'บ',word:'ใบไม้',meaning:'Leaf',emoji:'🍃'},
+  {char:'ป',word:'ปลา',meaning:'Fish',emoji:'🐟'},{char:'ม',word:'ม้า',meaning:'Horse',emoji:'🐴'},
+  {char:'ย',word:'ยักษ์',meaning:'Giant',emoji:'👹'},{char:'ร',word:'เรือ',meaning:'Boat',emoji:'⛵'},
+  {char:'ล',word:'ลิง',meaning:'Monkey',emoji:'🐒'},{char:'ว',word:'แหวน',meaning:'Ring',emoji:'💍'},
+  {char:'ส',word:'เสือ',meaning:'Tiger',emoji:'🐯'},{char:'ห',word:'หีบ',meaning:'Chest',emoji:'📦'},
+  {char:'อ',word:'อ่าง',meaning:'Basin',emoji:'🪣'},{char:'ฝ',word:'ฝา',meaning:'Lid',emoji:'🔒'},
+]
+
+export const SPELL_L1 = [
+  {word:'ปา',chars:['ป','า'],emoji:'🎣',label:'ปา (ตกปลา)'},{word:'มา',chars:['ม','า'],emoji:'🤚',label:'มา (มาที่นี่)'},
+  {word:'ขา',chars:['ข','า'],emoji:'🦵',label:'ขา (ขาของเรา)'},{word:'นา',chars:['น','า'],emoji:'🌾',label:'นา (ทุ่งนา)'},
+  {word:'ตา',chars:['ต','า'],emoji:'👁️',label:'ตา (ดวงตา)'},{word:'หา',chars:['ห','า'],emoji:'🔍',label:'หา (หาของ)'},
+  {word:'ดา',chars:['ด','า'],emoji:'⭐',label:'ดาว'},{word:'ลา',chars:['ล','า'],emoji:'🫏',label:'ลา (สัตว์)'},
+  {word:'พา',chars:['พ','า'],emoji:'🫶',label:'พา (พาไป)'},{word:'วา',chars:['ว','า'],emoji:'📏',label:'วา (หน่วยวัด)'},
+  {word:'สา',chars:['ส','า'],emoji:'🧴',label:'สา (น้ำสา)'},{word:'ยา',chars:['ย','า'],emoji:'💊',label:'ยา (กินยา)'},
+]
+
+export const TH_L2 = [
+  {word:'ปลา',chars:['ป','ล','า'],emoji:'🐟',label:'ปลา'},{word:'แมว',chars:['แ','ม','ว'],emoji:'🐱',label:'แมว'},
+  {word:'นก',chars:['น','ก'],emoji:'🐦',label:'นก'},{word:'วัว',chars:['ว','ั','ว'],emoji:'🐄',label:'วัว'},
+  {word:'ไก่',chars:['ไ','ก่'],emoji:'🐔',label:'ไก่'},{word:'หมู',chars:['ห','ม','ู'],emoji:'🐷',label:'หมู'},
+  {word:'ช้าง',chars:['ช้','า','ง'],emoji:'🐘',label:'ช้าง'},{word:'หมา',chars:['ห','ม','า'],emoji:'🐕',label:'หมา'},
+  {word:'เป็ด',chars:['เ','ป็','ด'],emoji:'🦆',label:'เป็ด'},{word:'ลิง',chars:['ล','ิ','ง'],emoji:'🐒',label:'ลิง'},
+  {word:'กบ',chars:['ก','บ'],emoji:'🐸',label:'กบ'},{word:'แมลง',chars:['แ','ม','ล','ง'],emoji:'🐛',label:'แมลง'},
+]
+
+export const TH_L3 = [
+  {word:'กล้วย',chars:['ก','ล้','ว','ย'],emoji:'🍌',label:'กล้วย'},{word:'มะม่วง',chars:['ม','ะ','ม่','ว','ง'],emoji:'🥭',label:'มะม่วง'},
+  {word:'แตงโม',chars:['แ','ต','ง','โ','ม'],emoji:'🍉',label:'แตงโม'},{word:'ส้มโอ',chars:['ส้','ม','โ','อ'],emoji:'🍊',label:'ส้มโอ'},
+  {word:'มะละกอ',chars:['ม','ะ','ล','ะ','ก','อ'],emoji:'🍈',label:'มะละกอ'},{word:'สับปะรด',chars:['ส','ั','บ','ป','ะ','ร','ด'],emoji:'🍍',label:'สับปะรด'},
+  {word:'กระต่าย',chars:['ก','ระ','ต่า','ย'],emoji:'🐰',label:'กระต่าย'},{word:'ดอกไม้',chars:['ด','อ','ก','ไ','ม้'],emoji:'🌸',label:'ดอกไม้'},
+]
+
+export const TH_L4 = [
+  {sentence:'แมว___ปลา',blank:'กิน',choices:['กิน','วิ่ง','บิน','นอน'],emoji:'🐱🐟',sound:'แมวกินปลา'},
+  {sentence:'หมา___เล่น',blank:'วิ่ง',choices:['วิ่ง','กิน','บิน','ว่าย'],emoji:'🐕🏃',sound:'หมาวิ่งเล่น'},
+  {sentence:'นก___สูง',blank:'บิน',choices:['บิน','กิน','วิ่ง','ว่าย'],emoji:'🐦✈️',sound:'นกบินสูง'},
+  {sentence:'ไก่___ข้าว',blank:'กิน',choices:['กิน','บิน','วิ่ง','นอน'],emoji:'🐔🍚',sound:'ไก่กินข้าว'},
+  {sentence:'ปลา___น้ำ',blank:'ว่าย',choices:['ว่าย','บิน','วิ่ง','กิน'],emoji:'🐟💧',sound:'ปลาว่ายน้ำ'},
+  {sentence:'เด็ก___นม',blank:'ดื่ม',choices:['ดื่ม','กิน','วิ่ง','บิน'],emoji:'👧🥛',sound:'เด็กดื่มนม'},
+]
+
+export const SP_CON = ['ก','ข','ค','ง','จ','ช','ด','ต','น','บ','ป','ม','ย','ร','ล','ว','ส','ห','อ','พ','ท','ฝ','ฟ','ถ','ภ']
+export const SP_VOW = ['า','ิ','ี','เ','แ','โ','ว','ม','น','ง','ก','ต','ด']
+
+export const CHAR_SPEAK = {
+  'า':'อา','ิ':'อิ','ี':'อี','ึ':'อึ','ื':'อือ','ุ':'อุ','ู':'อู',
+  'เ':'เอ','แ':'แอ','โ':'โอ','ไ':'ไ','ใ':'ใ','็':'อ็','่':'ไม้เอก','้':'ไม้โท',
+  'ั':'อั','ํ':'นิคหิต',
+}
+
+export const EN_ALPHA = [
+  {letter:'A',phonics:'/æ/',word:'Ant',emoji:'🐜',thai:'มด'},{letter:'B',phonics:'/b/',word:'Ball',emoji:'⚽',thai:'ลูกบอล'},
+  {letter:'C',phonics:'/k/',word:'Cat',emoji:'🐱',thai:'แมว'},{letter:'D',phonics:'/d/',word:'Dog',emoji:'🐶',thai:'สุนัข'},
+  {letter:'E',phonics:'/ɛ/',word:'Egg',emoji:'🥚',thai:'ไข่'},{letter:'F',phonics:'/f/',word:'Fish',emoji:'🐟',thai:'ปลา'},
+  {letter:'G',phonics:'/g/',word:'Guitar',emoji:'🎸',thai:'กีตาร์'},{letter:'H',phonics:'/h/',word:'Hat',emoji:'🎩',thai:'หมวก'},
+  {letter:'I',phonics:'/ɪ/',word:'Igloo',emoji:'🧊',thai:'อิกลู'},{letter:'J',phonics:'/dʒ/',word:'Jelly',emoji:'🍇',thai:'เยลลี่'},
+  {letter:'K',phonics:'/k/',word:'Kite',emoji:'🪁',thai:'ว่าว'},{letter:'L',phonics:'/l/',word:'Lion',emoji:'🦁',thai:'สิงโต'},
+  {letter:'M',phonics:'/m/',word:'Map',emoji:'🗺️',thai:'แผนที่'},{letter:'N',phonics:'/n/',word:'Net',emoji:'🥅',thai:'ตาข่าย'},
+  {letter:'O',phonics:'/ɒ/',word:'Octopus',emoji:'🐙',thai:'ปลาหมึก'},{letter:'P',phonics:'/p/',word:'Penguin',emoji:'🐧',thai:'เพนกวิน'},
+  {letter:'Q',phonics:'/kw/',word:'Queen',emoji:'👑',thai:'ราชินี'},{letter:'R',phonics:'/r/',word:'Robot',emoji:'🤖',thai:'หุ่นยนต์'},
+  {letter:'S',phonics:'/s/',word:'Sun',emoji:'☀️',thai:'ดวงอาทิตย์'},{letter:'T',phonics:'/t/',word:'Tiger',emoji:'🐯',thai:'เสือ'},
+  {letter:'U',phonics:'/ʌ/',word:'Umbrella',emoji:'☂️',thai:'ร่ม'},{letter:'V',phonics:'/v/',word:'Van',emoji:'🚐',thai:'รถตู้'},
+  {letter:'W',phonics:'/w/',word:'Whale',emoji:'🐋',thai:'วาฬ'},{letter:'X',phonics:'/ks/',word:'Box',emoji:'📦',thai:'กล่อง'},
+  {letter:'Y',phonics:'/j/',word:'Yak',emoji:'🦬',thai:'จามรี'},{letter:'Z',phonics:'/z/',word:'Zebra',emoji:'🦓',thai:'ม้าลาย'},
+]
+
+export const CVC_WORDS = [
+  {word:'cat',emoji:'🐱',alts:['bat','cut','cap']},{word:'dog',emoji:'🐕',alts:['dig','dot','log']},
+  {word:'pig',emoji:'🐷',alts:['big','pin','pit']},{word:'sun',emoji:'☀️',alts:['run','fun','bun']},
+  {word:'hat',emoji:'🎩',alts:['bat','hot','hit']},{word:'cup',emoji:'☕',alts:['cut','pup','cap']},
+  {word:'bed',emoji:'🛏️',alts:['bad','bid','red']},{word:'bus',emoji:'🚌',alts:['but','bun','bug']},
+  {word:'fan',emoji:'🌀',alts:['fun','fin','fat']},{word:'map',emoji:'🗺️',alts:['mat','cap','mop']},
+]
+
+export const SIGHT_DATA = [
+  {sentence:'___ cat is big.',blank:'The',choices:['The','A','Is','I'],emoji:'🐱'},
+  {sentence:'I ___ a dog.',blank:'see',choices:['see','the','is','we'],emoji:'🐕'},
+  {sentence:'___ like dogs.',blank:'I',choices:['I','a','The','is'],emoji:'❤️🐕'},
+  {sentence:'We ___ happy.',blank:'are',choices:['are','is','a','the'],emoji:'😊'},
+  {sentence:'___ is my cat.',blank:'She',choices:['She','Is','A','The'],emoji:'🐱'},
+  {sentence:'He ___ a bird.',blank:'has',choices:['has','is','a','the'],emoji:'🐦'},
+  {sentence:'I go ___ school.',blank:'to',choices:['to','a','is','the'],emoji:'🏫'},
+  {sentence:'___ are friends.',blank:'We',choices:['We','I','Is','A'],emoji:'👫'},
+]
+
+export const ENG_SENTS = [
+  {words:['The','cat','is','big'],emoji:'🐱'},{words:['I','like','dogs'],emoji:'🐕'},
+  {words:['She','can','run','fast'],emoji:'🏃'},{words:['The','bird','can','fly'],emoji:'🐦'},
+  {words:['We','eat','rice'],emoji:'🍚'},{words:['He','has','a','ball'],emoji:'⚽'},
+  {words:['I','see','a','fish'],emoji:'🐟'},{words:['The','sun','is','hot'],emoji:'☀️'},
+]
+
+export const MATH_WORDS = [
+  {story:'มีแอปเปิ้ล 🍎 3 ลูก ได้เพิ่ม 2 ลูก มีทั้งหมดกี่ลูก?',a:3,b:2,op:'+',ans:5},
+  {story:'มีลูกบอล ⚽ 7 ลูก ให้เพื่อนไป 3 ลูก เหลือกี่ลูก?',a:7,b:3,op:'-',ans:4},
+  {story:'มีแมว 🐱 4 ตัว วิ่งมาเพิ่ม 3 ตัว มีทั้งหมดกี่ตัว?',a:4,b:3,op:'+',ans:7},
+  {story:'มีคุกกี้ 🍪 9 ชิ้น กิน 4 ชิ้น เหลือกี่ชิ้น?',a:9,b:4,op:'-',ans:5},
+  {story:'มีนก 🐦 5 ตัว บินมาอีก 6 ตัว มีทั้งหมดกี่ตัว?',a:5,b:6,op:'+',ans:11},
+  {story:'มีดินสอ ✏️ 8 แท่ง หาย 3 แท่ง เหลือกี่แท่ง?',a:8,b:3,op:'-',ans:5},
+  {story:'มีปลา 🐟 6 ตัว ตายไป 2 ตัว เหลือกี่ตัว?',a:6,b:2,op:'-',ans:4},
+  {story:'มีดอกไม้ 🌸 4 ดอก ปลูกเพิ่ม 5 ดอก มีทั้งหมดกี่ดอก?',a:4,b:5,op:'+',ans:9},
+]
+
+export const LEVELS = {
+  thai:[
+    {id:1,name:'พยัญชนะ ก-ฮ',hint:'จับคู่ตัวอักษรกับรูปภาพ',emoji:'🇹🇭',stars:1,diff:1,type:'match'},
+    {id:2,name:'พยัญชนะ+สระอา',hint:'เช่น ปา มา ขา',emoji:'🅰️',stars:2,diff:1.2},
+    {id:3,name:'คำสัตว์',hint:'เช่น ปลา แมว ช้าง',emoji:'🐟🐱',stars:3,diff:1.5},
+    {id:4,name:'คำผลไม้',hint:'เช่น กล้วย มะม่วง',emoji:'🍌🥭',stars:4,diff:2},
+    {id:5,name:'ประโยคสั้น',hint:'เช่น แมวกินปลา',emoji:'💬',stars:5,diff:2.5,type:'sentence'},
+  ],
+  math:[
+    {id:1,name:'บวก 1–5',hint:'1+2=?',emoji:'1️⃣',stars:1,diff:1,range:[1,5],op:'add',timer:20},
+    {id:2,name:'บวก 1–10',hint:'4+6=?',emoji:'🔟',stars:2,diff:1.5,range:[1,10],op:'add',timer:15},
+    {id:3,name:'บวก 1–20',hint:'8+12=?',emoji:'🔢',stars:3,diff:2,range:[1,20],op:'add',timer:12},
+    {id:4,name:'ลบ 1–10',hint:'7−3=?',emoji:'➖',stars:3,diff:2,range:[1,10],op:'sub',timer:10},
+    {id:5,name:'บวกลบผสม',hint:'5+3−2=?',emoji:'🔀',stars:4,diff:2.5,range:[1,10],op:'mixed',timer:10},
+    {id:6,name:'โจทย์คำ',hint:'มีแอปเปิ้ล 3 ลูก...',emoji:'💬',stars:5,diff:3,op:'word',timer:15},
+  ],
+  eng:[
+    {id:1,name:'A–Z Phonics',hint:'A is for Apple...',emoji:'🔤',stars:1,diff:1,type:'phonics'},
+    {id:2,name:'CVC Words',hint:'cat, dog, pig...',emoji:'🐱🐕',stars:2,diff:1.5,type:'cvc'},
+    {id:3,name:'Sight Words',hint:'the, is, a, I...',emoji:'👁️',stars:3,diff:2,type:'sight'},
+    {id:4,name:'Sentences',hint:'The cat is big.',emoji:'💬',stars:4,diff:2.5,type:'sentence'},
+  ],
+}
+
+export const TEACH_CONTENT = {
+  thai:{
+    1:{mascot:'🦔',text:'มาสะกดคำกัน! ดูรูปแล้วกดตัวอักษรทีละตัว\nเช่น ปา = ป + า',examples:['ป + า = ปา 🎣','ม + า = มา 🤚']},
+    2:{mascot:'🐱',text:'Level นี้มีสัตว์หลายชนิด!\nดูรูปสัตว์แล้วสะกดชื่อมัน',examples:['🐟 ป + ล + า = ปลา','🐱 แ + ม + ว = แมว']},
+    3:{mascot:'🍌',text:'คำผลไม้มีหลายตัวอักษร\nสะกดทีละตัวให้ครบนะ!',examples:['🍌 ก + ล้ + ว + ย = กล้วย','🥭 ม + ะ + ม่ + ว + ง = มะม่วง']},
+    4:{mascot:'💬',text:'เลือกคำที่หายไปในประโยค\nดูรูปช่วยคิดได้!',examples:['แมว ___ ปลา → กิน','หมา ___ เล่น → วิ่ง']},
+  },
+  math:{
+    1:{mascot:'🦔',text:'บวกเลข 1-5 กัน!\nนับจุดสีเหลืองช่วยได้',examples:['2 + 3 = 5 🟡🟡🔵🔵🔵','1 + 4 = 5 🟡🔵🔵🔵🔵']},
+    2:{mascot:'🦔',text:'ตอนนี้เลขถึง 10!\nนับจุดให้ครบนะ',examples:['4 + 6 = 10','3 + 7 = 10']},
+    3:{mascot:'🦔',text:'บวกเลขใหญ่ขึ้น 1-20\nคิดทีละก้าว ทำได้!',examples:['8 + 12 = 20','15 + 5 = 20']},
+    4:{mascot:'🦔',text:'ลบเลขคือ "เอาออก"\nดูนะ: 🟡🟡🟡🟡🟡 มี 5 เอาออก 2 ❌❌ เหลือ 3!',examples:['5 - 2 = 3','7 - 4 = 3']},
+    5:{mascot:'🔥',text:'บวกและลบผสมกัน!\nอ่านเครื่องหมายให้ดีนะ + หรือ −',examples:['5 + 3 - 2 = 6','8 - 3 + 1 = 6']},
+    6:{mascot:'🦉',text:'โจทย์คำ: อ่านแล้วคำนวณ\nดูรูป emoji ช่วยได้!',examples:['มีแอปเปิ้ล 3 ลูก ได้เพิ่ม 2 ลูก = 5 ลูก']},
+  },
+  eng:{
+    1:{mascot:'🦔',text:'A-Z Phonics! Each letter has a sound.\nTap the right picture!',examples:['🍎 A is for Apple','🐝 B is for Bee']},
+    2:{mascot:'🐱',text:'CVC = Consonant-Vowel-Consonant\nHear the word, pick the spelling!',examples:['🐱 → c-a-t = cat','🐕 → d-o-g = dog']},
+    3:{mascot:'📖',text:'Sight words appear in every sentence!\nFind the missing word.',examples:['___ cat is big → The','I ___ a dog → see']},
+    4:{mascot:'💬',text:'Put the words in the right order\nto make a sentence!',examples:['big / The / is / cat → The cat is big.']},
+  },
+}
+
+export const MG_UNLOCK = { catch:2, memory:4, tower:6, fishing:10 }
+export const MG_COLORS = {
+  catch:'linear-gradient(135deg,#1D9E75,#085041)',
+  memory:'linear-gradient(135deg,#7F77DD,#3C3489)',
+  tower:'linear-gradient(135deg,#EF9F27,#633806)',
+  fishing:'linear-gradient(135deg,#378ADD,#0C447C)',
+}
+
+export const FISH_TYPES = [
+  {sym:'🐟',item:'food',rarity:.5,name:'ปลาธรรมดา'},
+  {sym:'🐠',item:'ribbon',rarity:.25,name:'ปลาสวยงาม'},
+  {sym:'🐡',item:'star',rarity:.15,name:'ปลาปักเป้า'},
+  {sym:'🦑',item:'potion',rarity:.08,name:'ปลาหมึก'},
+  {sym:'🐙',item:'all',rarity:.02,name:'ปลาหมึกยักษ์'},
+]
+
+export const CATCH_ITEMS = [
+  {sym:'💛',pts:1,w:.65,danger:false},{sym:'🍎',pts:3,w:.2,danger:false},
+  {sym:'💎',pts:10,w:.05,danger:false},{sym:'🪨',pts:0,w:.07,danger:true,dmg:1},
+  {sym:'💣',pts:0,w:.03,danger:true,dmg:2},
+]
+
+export const TOWER_COLORS = ['#7F77DD','#1D9E75','#EF9F27','#378ADD','#E24B4A','#9C27B0']
+
+export function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+export function todayStr() {
+  const d = new Date()
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
+}

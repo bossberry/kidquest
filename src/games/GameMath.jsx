@@ -1,0 +1,152 @@
+import React, { useState, useEffect, useRef } from 'react'
+import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import LevelSelector from './LevelSelector.jsx'
+import TeachOverlay from './TeachOverlay.jsx'
+import { MATH_WORDS, shuffle } from '../config/gameConfig.js'
+import { playTone, speakTh } from '../lib/audio.js'
+import { showToast, spawnConfetti } from '../components/Toasts.jsx'
+
+export default function GameMath() {
+  const [view, setView] = useState('levels')
+  const [activeLv, setActiveLv] = useState(null)
+  const { state } = useAppState()
+
+  const handleSelect = (lv) => {
+    setActiveLv(lv)
+    const key = `math-${lv.id}`
+    setView((state.seenTeach||[]).includes(key) ? 'play' : 'teach')
+  }
+
+  if (view === 'levels') return <LevelSelector world="math" onSelect={handleSelect} />
+  if (view === 'teach') return <TeachOverlay world="math" levelId={activeLv?.id} onDone={() => setView('play')} />
+  return <MathLevelGame lv={activeLv} onBack={() => setView('levels')} />
+}
+
+function genQ(lv) {
+  if (lv?.op === 'word') {
+    const pool = shuffle([...MATH_WORDS])
+    const q = pool[0]
+    const w = new Set(); while(w.size<3){const v=q.ans+(Math.floor(Math.random()*5)-2);if(v!==q.ans&&v>=0)w.add(v)}
+    return {a:q.a,b:q.b,op:q.op,answer:q.ans,choices:shuffle([q.ans,...w]),story:q.story,isWord:true}
+  }
+  const mx = lv?.range?.[1] || 10
+  let a, b, ans, op = '+'
+  if (lv?.op === 'sub' || (lv?.op === 'mixed' && Math.random() > 0.5)) {
+    op='-'; a=Math.floor(Math.random()*mx)+2; b=Math.floor(Math.random()*a)+1; ans=a-b
+  } else {
+    a=Math.floor(Math.random()*mx)+1; b=Math.floor(Math.random()*(mx-a+1))+1; ans=a+b
+  }
+  const w=new Set(); while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v)}
+  return {a,b,op,answer:ans,choices:shuffle([ans,...w])}
+}
+
+function MathLevelGame({ lv, onBack }) {
+  const { state, dispatch } = useAppState()
+  const [qs] = useState(() => Array.from({length:10},()=>genQ(lv)))
+  const [cur, setCur] = useState(0)
+  const [score, setScore] = useState(0)
+  const [streak, setStreak] = useState(0)
+  const [xp, setXp] = useState(0)
+  const [answered, setAnswered] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [feedback, setFeedback] = useState(null)
+  const [done, setDone] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(lv?.timer || 15)
+  const timerRef = useRef(null)
+
+  const q = qs[cur]
+  const timerMax = lv?.timer || 15
+
+  const startTimer = () => {
+    clearInterval(timerRef.current)
+    setTimeLeft(timerMax)
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 0.1) { clearInterval(timerRef.current); handleTimeout(); return 0 }
+        return t - 0.1
+      })
+    }, 100)
+  }
+
+  useEffect(() => { startTimer(); return () => clearInterval(timerRef.current) }, [cur]) // eslint-disable-line
+
+  const handleTimeout = () => {
+    if (answered) return
+    setAnswered(true); setStreak(0); playTone('wrong')
+    setFeedback({ type:'lose', msg:`หมดเวลา! ${q?.a}${q?.op}${q?.b}=${q?.answer}` })
+  }
+
+  const check = (val) => {
+    if (answered) return
+    clearInterval(timerRef.current)
+    const ok = val === q.answer
+    if (ok) {
+      setAnswered(true)
+      const newStreak = streak+1; setStreak(newStreak)
+      const diff = lv?.diff || 1
+      const prevM = (state.levelMastery?.math?.[lv?.id||1]) || 0
+      const earned = Math.max(2, Math.round(10*diff*(1-prevM))) + (newStreak>=3?5:0)
+      setXp(x=>x+earned); setScore(s=>s+1)
+      dispatch({ type: ACTIONS.ADD_XP, payload: { world:'math', amount:earned, accDelta:100, speedDelta:Math.round((1-timeLeft/timerMax)*100) } })
+      if (newStreak>=3){playTone('streak');spawnConfetti(5)}else playTone('correct')
+      setFeedback({ type:'win', msg:['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP` })
+    } else {
+      const newAttempts = attempts+1; setAttempts(newAttempts)
+      setStreak(0); playTone('wrong')
+      if (newAttempts===1) setFeedback({type:'lose',msg:'ไม่ถูก ลองอีกครั้ง! 🤔'})
+      else if (newAttempts===2) setFeedback({type:'lose',msg:'Hint: นับจุดช่วยได้!'})
+      else { setAnswered(true); setFeedback({type:'lose',msg:`คำตอบคือ ${q.answer}`}) }
+    }
+  }
+
+  const next = () => {
+    playTone('next')
+    if (cur+1>=10){
+      setDone(true)
+      const p=score/10
+      dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}})
+      dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'math',levelId:lv?.id||1,value:p*0.4+((state.levelMastery?.math?.[lv?.id||1])||0)*0.6}})
+      if(p>=0.8){const cur2=state.subjectLevels?.math||1;if(cur2<6){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15)}}
+    } else { setAnswered(false);setAttempts(0);setFeedback(null);setCur(c=>c+1) }
+  }
+
+  if (done) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
+      <div style={{fontSize:64,marginBottom:10}}>{score/10>=.9?'🏆':score/10>=.7?'🎉':'😊'}</div>
+      <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,color:'var(--purple-d)',marginBottom:8}}>{score/10>=.9?'อัจฉริยะเลข!':'เก่งมาก!'}</div>
+      <div style={{fontSize:14,color:'var(--muted)',marginBottom:16}}>{score}/10 ถูก · +{xp} XP</div>
+      <button onClick={onBack} style={{width:'100%',background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>← Level อื่น</button>
+    </div>
+  )
+
+  if (!q) return null
+  return (
+    <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
+      <div style={{padding:'0 20px 4px',display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)'}}><span>{cur}/10</span><span>+{xp} XP</span></div>
+      <div style={{padding:'0 20px 4px'}}><div style={{height:5,background:'var(--border)',borderRadius:20,overflow:'hidden'}}><div style={{height:5,background:timeLeft<4?'var(--red)':'var(--amber)',borderRadius:20,width:`${timeLeft/timerMax*100}%`,transition:'width .1s linear'}}/></div></div>
+      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'8px 20px',padding:'18px 16px'}}>
+        {q.isWord
+          ? <div style={{fontSize:13,color:'var(--text)',lineHeight:1.7,marginBottom:12,padding:'0 4px'}}>{q.story}</div>
+          : <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:12}}>
+              <div style={{fontFamily:"'Fredoka One',cursive",fontSize:58,color:'var(--purple-d)',lineHeight:1}}>{q.a}</div>
+              <div style={{fontFamily:"'Fredoka One',cursive",fontSize:44,color:'var(--purple)'}}>{q.op}</div>
+              <div style={{fontFamily:"'Fredoka One',cursive",fontSize:58,color:'var(--purple-d)',lineHeight:1}}>{q.b}</div>
+              <div style={{fontFamily:"'Fredoka One',cursive",fontSize:44,color:'var(--muted)'}}>=</div>
+              <div style={{fontFamily:"'Fredoka One',cursive",fontSize:58,color:'var(--amber)'}}>?</div>
+            </div>
+        }
+        {!q.isWord && <div style={{display:'flex',justifyContent:'center',gap:5,flexWrap:'wrap',minHeight:36,marginBottom:12,padding:'0 8px'}}>
+          {[...Array(q.a)].map((_,i)=><span key={i} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🟡</span>)}
+          {[...Array(q.b)].map((_,i)=><span key={i} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🔵</span>)}
+        </div>}
+        <div className="choices">
+          {q.choices.map((c,i)=>(
+            <button key={i} className={`choice-btn${answered&&c===q.answer?' correct':''}`} style={{fontSize:26,fontFamily:"'Fredoka One',cursive"}} onClick={()=>check(c)}>{c}</button>
+          ))}
+        </div>
+        {feedback && <div className={`feedback show ${feedback.type}`}>{feedback.msg}</div>}
+        {(answered||attempts>=3) && <button className="next-btn show" style={{background:'var(--purple)',color:'#fff'}} onClick={next}>ต่อไป →</button>}
+      </div>
+    </div>
+  )
+}

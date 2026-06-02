@@ -116,10 +116,35 @@ math:  หุ่นโกเลม (common) / สายฟ้าเสือ (ra
 hybrid: มังกรทอง (epic) / ยูนิคอร์นรุ้ง (legendary)
 ```
 
-## Known Issues (ยังมีอยู่)
-- [ ] ฟักไข่จาก collection page บางครั้งยังไม่ work
-- [ ] ไข่ใน collection page ไม่ขึ้นรูป (canvas ต้องใช้ requestAnimationFrame)
-- [ ] rounds ใน report อาจยังสูงเกิน (migration จาก old localStorage)
+## Known Issues (resolved)
+- [x] startManualHatch() ฟักได้ทั้งที่ stage ต่ำ → เพิ่ม XP guard
+- [x] Egg Run hitbox ไม่ตรง → เปลี่ยนเป็น circle-circle collision (35% radius)
+- [x] Collection egg ลวดลายไม่ตรง → save fullEggStats ครบทุก field ตอน hatch
+- [x] rounds ใน report อาจสูงเกิน (migration จาก old localStorage)
+
+## Procedural Creature System
+- `drawCreature(canvas, seed, stats)` วาดสัตว์ procedural บน Canvas
+- seed = hash(name+grade) XOR hash(dow+month+day+hour) — เหมือน egg seed
+- Body: 5 shapes (circle, tall ellipse, wide ellipse, hexagon, blob)
+- Eyes: 1-3 ดวง, สีจาก seed, เรืองแสงถ้า accuracy > 85%
+- Features: horn/tail/wing/spike/tentacle/scale/flame (2-4 อย่างตาม rarity)
+- Colors: xpThai→green, xpEng→blue, xpMath→purple, balanced→random hue
+- Rarity effects: aura glow (rare+), flame particles (streak>5), legendary particles
+- Collection cards ใช้ drawCreature() แทน emoji
+
+## Mini-Games (5 total)
+1. **Egg Run** 🏃 — daily reward (10 rounds/day), endless runner
+2. **Egg Catch** 🧺 — unlock 2 eggs, catch falling items dodge rocks/bombs
+3. **Egg Memory** 🃏 — unlock 4 eggs, match pairs of hatched creatures
+4. **Egg Tower** 🏗️ — unlock 6 eggs, stack blocks (stage affects starting width)
+5. **Egg Fishing** 🎣 — unlock 10 eggs, timing game, fish → items
+
+## Thai Language Levels (5 levels)
+- L1 ⭐: พยัญชนะ ก-ฮ จับคู่รูป (match game)
+- L2 ⭐⭐: พยัญชนะ+สระอา (ปา มา ขา)
+- L3 ⭐⭐⭐: คำสัตว์ (ปลา แมว ช้าง)
+- L4 ⭐⭐⭐⭐: คำผลไม้ (กล้วย มะม่วง)
+- L5 ⭐⭐⭐⭐⭐: ประโยคสั้น fill-in-blank
 
 ## Roadmap
 

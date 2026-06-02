@@ -288,6 +288,21 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .mastery-bar-wrap{height:4px;background:var(--border);border-radius:4px;margin-top:4px;overflow:hidden}
 .mastery-bar{height:4px;background:var(--green);border-radius:4px;transition:width .4s}
 
+/* MINI-GAMES GRID */
+.minigames-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:480px;padding:8px 20px 0}
+.mg-card{border-radius:var(--r);padding:12px 10px;text-align:center;cursor:pointer;border:1.5px solid var(--border);transition:transform .12s,box-shadow .12s;position:relative}
+.mg-card:not(.locked):hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.mg-card:not(.locked):active{transform:scale(.96)}
+.mg-card.locked{background:#f5f5f5;cursor:default;border-color:#e0e0e0}
+.mg-card.mystery-lock{background:#111;border-color:#222;cursor:default}
+.mg-icon{font-size:26px;display:block;margin-bottom:4px}
+.mg-name{font-size:12px;font-weight:600;color:var(--text)}
+.mg-sub{font-size:10px;color:var(--muted);margin-top:2px}
+/* CREATURE DETAIL POPUP */
+.creature-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:970;display:none;align-items:center;justify-content:center;padding:16px}
+.creature-detail-overlay.show{display:flex;animation:fadeIn .2s ease}
+.creature-detail-card{background:var(--card);border-radius:20px;width:100%;max-width:380px;padding:20px;max-height:90vh;overflow-y:auto}
+.cd-ability{background:var(--purple-l);color:var(--purple-d);border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:6px;line-height:1.5}
 /* EGG RUN */
 .eggrun-banner{width:100%;max-width:480px;background:linear-gradient(130deg,#1D1B3A 0%,#1A4A7A 100%);border-radius:var(--r);padding:13px 18px;cursor:pointer;border:1.5px solid #2D5A9E;display:flex;align-items:center;gap:14px;transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
 .eggrun-banner:active{transform:scale(.97)}
@@ -411,7 +426,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
     </div>
   </div>
 
-  <!-- EGG RUN -->
+  <!-- MINI-GAMES: EGG RUN + 4 MORE -->
   <div style="width:100%;max-width:480px;padding:10px 20px 0">
     <div id="er-banner" class="eggrun-banner" onclick="onEggRunClick()">
       <canvas id="er-home-canvas" width="44" height="52" style="border-radius:8px;flex-shrink:0"></canvas>
@@ -419,6 +434,30 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
         <div style="font-family:'Fredoka One',cursive;font-size:16px;color:#fff;margin-bottom:2px">🏃 Egg Run</div>
         <div style="font-size:11px;color:rgba(255,255,255,.65)">วิ่ง เก็บ ring หลบหิน!</div>
       </div>
+    </div>
+  </div>
+
+  <!-- MINI-GAMES GRID (4 bonus games) -->
+  <div class="minigames-grid" id="mg-grid">
+    <div class="mg-card locked" id="mg-catch" onclick="onMgClick('catch')">
+      <span class="mg-icon">🧺</span>
+      <div class="mg-name">Egg Catch</div>
+      <div class="mg-sub" id="mg-catch-sub">ฟักไข่ 2 ใบ 🔒</div>
+    </div>
+    <div class="mg-card locked" id="mg-memory" onclick="onMgClick('memory')">
+      <span class="mg-icon">🃏</span>
+      <div class="mg-name">Egg Memory</div>
+      <div class="mg-sub" id="mg-memory-sub">ฟักไข่ 4 ใบ 🔒</div>
+    </div>
+    <div class="mg-card locked" id="mg-tower" onclick="onMgClick('tower')">
+      <span class="mg-icon">🏗️</span>
+      <div class="mg-name">Egg Tower</div>
+      <div class="mg-sub" id="mg-tower-sub">ฟักไข่ 6 ใบ 🔒</div>
+    </div>
+    <div class="mg-card locked" id="mg-fishing" onclick="onMgClick('fishing')">
+      <span class="mg-icon">🎣</span>
+      <div class="mg-name">Egg Fishing</div>
+      <div class="mg-sub" id="mg-fishing-sub">ฟักไข่ 10 ใบ 🔒</div>
     </div>
   </div>
 
@@ -461,6 +500,30 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
     <div class="egg-detail-type" id="edd-type"></div>
     <div class="egg-detail-feature" id="edd-feature"></div>
     <div class="egg-detail-stats" id="edd-stats"></div>
+  </div>
+</div>
+
+<!-- CREATURE DETAIL POPUP -->
+<div class="creature-detail-overlay" id="creature-detail-overlay" onclick="closeCreatureDetail(event)">
+  <div class="creature-detail-card" id="creature-detail-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div id="cdd-rarity" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px"></div>
+      <button onclick="document.getElementById('creature-detail-overlay').classList.remove('show')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">
+      <canvas id="cdd-creature-canvas" width="120" height="120" style="border-radius:14px;flex-shrink:0;background:var(--bg)"></canvas>
+      <div>
+        <div id="cdd-name" style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--text);margin-bottom:4px"></div>
+        <div id="cdd-type" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+        <div id="cdd-date" style="font-size:11px;color:var(--muted)"></div>
+        <canvas id="cdd-egg-canvas" width="48" height="58" style="border-radius:8px;margin-top:8px;display:block"></canvas>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:8px">⚡ พลังของไข่ใบนี้</div>
+    <div id="cdd-xp-bars" style="margin-bottom:12px"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="cdd-stats-grid"></div>
+    <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:8px">✨ ความสามารถพิเศษ</div>
+    <div id="cdd-abilities"></div>
   </div>
 </div>
 
@@ -854,7 +917,10 @@ function getCreatureForHatch() {
 }
 
 function startManualHatch() {
-  // Clear any stale state that might block hatch
+  if (totalXP() < EGG_STAGES * STAGE_XP_NEEDED) {
+    showToast('เรียนเพิ่มอีกนะ ไข่ยังไม่พร้อมฟัก!');
+    return;
+  }
   STATE.hatched = false;
   STATE.hatching = false;
   STATE.readyToHatch = true;
@@ -976,14 +1042,27 @@ function triggerHatch() {
 
       // Save to collection
       if (!STATE.hatchedEggs) STATE.hatchedEggs = [];
+      const tSum2=snapXpThai+snapXpEng+snapXpMath||1;
+      const fullEggStats={
+        name:STATE.name, grade:STATE.grade||0,
+        dow:STATE.eggDow, month:STATE.eggMonth, day:STATE.eggDay, hour:STATE.eggHour,
+        firstSubject:Math.max(0,STATE.firstSubject),
+        thai:Math.min(100,Math.round(snapXpThai/tSum2*100)),
+        eng:Math.min(100,Math.round(snapXpEng/tSum2*100)),
+        math:Math.min(100,Math.round(snapXpMath/tSum2*100)),
+        streak:Math.min(100,STATE.streak*5),
+        acc:STATE.acc||70, mins:Math.min(60,STATE.mins||0), speed:STATE.speed||50,
+        xpThai:snapXpThai, xpEng:snapXpEng, xpMath:snapXpMath,
+      };
       STATE.hatchedEggs.unshift({
         creature,
-        eggStats: savedEggStats,
+        eggStats: fullEggStats,
         xpThai: snapXpThai,
         xpEng:  snapXpEng,
         xpMath: snapXpMath,
         grade: GRADE_LABELS[STATE.grade||0],
         date: new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}),
+        hatched_at: Date.now(),
       });
       STATE.badges++;
 
@@ -1062,6 +1141,7 @@ function updateHomeEgg() {
   document.getElementById('home-rounds').textContent = STATE.rounds;
   document.getElementById('home-badges').textContent = STATE.badges+'⭐';
   updateEggRunBanner();
+  updateMiniGameButtons();
 }
 
 function updateWorldXP() {
@@ -1096,9 +1176,16 @@ function buildEggStats() {
 // NAVIGATION
 // ============================================================
 function goHome() {
-  if(typeof erAnim!=='undefined'&&erAnim){cancelAnimationFrame(erAnim);erAnim=null;}
-  if(typeof erRunning!=='undefined') erRunning=false;
+  if(erAnim){cancelAnimationFrame(erAnim);erAnim=null;} erRunning=false;
+  if(catchAnim){cancelAnimationFrame(catchAnim);catchAnim=null;} catchRunning=false;
+  if(towerAnim){cancelAnimationFrame(towerAnim);towerAnim=null;} towerRunning=false;
+  if(fishAnim){cancelAnimationFrame(fishAnim);fishAnim=null;} fishRunning=false;
+  if(fishTimer){clearInterval(fishTimer);fishTimer=null;}
+  ['ct-left','ct-right'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
   document.removeEventListener('keydown', erKeyDown);
+  document.removeEventListener('keydown', ctKey);
+  document.removeEventListener('keyup', ctKeyUp);
+  document.removeEventListener('keydown', towerKey);
   navTo('home');
 }
 
@@ -1228,6 +1315,10 @@ function buildGame(world) {
   if (world==='thai') buildThaiGame(container);
   else if (world==='math') buildMathGame(container);
   else if (world==='eggrun') buildEggRunGame(container);
+  else if (world==='catch') buildEggCatchGame(container);
+  else if (world==='memory') buildEggMemoryGame(container);
+  else if (world==='tower') buildEggTowerGame(container);
+  else if (world==='fishing') buildEggFishingGame(container);
   else buildEngGame(container);
 }
 
@@ -1262,7 +1353,8 @@ const TH_ALPHA=[
 let thQ=[],thCur=0,thScore=0,thStreak=0,thAnswered=false;
 
 function buildThaiGame(c) {
-  const lvl = STATE.thSpellLevel||1;
+  buildLevelSelector(c,'thai'); return;
+  const lvl = STATE.thSpellLevel||1; // dead code kept for reference
   const mastery = STATE.thaiMastery||{};
   const l1Done = SPELL_L1.filter(w=>(mastery[w.word]||0)>=0.8).length;
   c.innerHTML=`
@@ -1630,14 +1722,181 @@ function spShowResult() {
 }
 
 // ============================================================
+// PROCEDURAL CREATURE
+// ============================================================
+function drawCreature(canvas, seed, stats) {
+  const W=canvas.width,H=canvas.height,ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const rng=prng(seed>>>0);
+  const st=stats||{};
+  const tSum=(st.xpThai||st.thai||0)+(st.xpEng||st.eng||0)+(st.xpMath||st.math||0)||1;
+  const thP=(st.xpThai||st.thai||0)/tSum, enP=(st.xpEng||st.eng||0)/tSum, maP=(st.xpMath||st.math||0)/tSum;
+  const maxP=Math.max(thP,enP,maP);
+  const balanced=maxP<0.45;
+  let bH=balanced?(rng()*360|0):(thP===maxP?130+rng()*40:enP===maxP?200+rng()*30:260+rng()*30);
+  const streak=st.streak||0; const acc=st.acc||70;
+  const rarN=streak>20?4:streak>10?3:streak>5?2:streak>2?1:0;
+  const cx=W/2,cy=H*0.52;
+  const bs=Math.min(W,H)*(0.26+rng()*.1);
+  // Aura
+  if(rarN>=2){const aR=bs*2,ag=ctx.createRadialGradient(cx,cy,bs*.2,cx,cy,aR);ag.addColorStop(0,`hsla(${bH},85%,65%,${.12+rarN*.04})`);ag.addColorStop(1,'transparent');ctx.fillStyle=ag;ctx.beginPath();ctx.ellipse(cx,cy,aR,aR*.9,0,0,Math.PI*2);ctx.fill();}
+  // Flame aura for high streak
+  if(streak>5){for(let fi=0;fi<6;fi++){const fa=rng()*Math.PI*2,fr=bs*(1.1+rng()*.4),fh=bs*(.15+rng()*.2);const fx=cx+Math.cos(fa)*fr,fy=cy+Math.sin(fa)*fr;const fg=ctx.createRadialGradient(fx,fy,0,fx,fy,fh);fg.addColorStop(0,`hsla(30,100%,65%,.7)`);fg.addColorStop(1,'transparent');ctx.fillStyle=fg;ctx.beginPath();ctx.ellipse(fx,fy,fh,fh*1.4,fa,0,Math.PI*2);ctx.fill();}}
+  // Body
+  const bt=Math.floor(rng()*5);
+  const bg=ctx.createRadialGradient(cx-bs*.2,cy-bs*.25,0,cx+bs*.1,cy+bs*.1,bs*1.3);
+  bg.addColorStop(0,`hsl(${bH+15},${55+rarN*7}%,${74-rarN*3}%)`);
+  bg.addColorStop(.5,`hsl(${bH},${62+rarN*5}%,${60-rarN*4}%)`);
+  bg.addColorStop(1,`hsl(${bH-15},${65+rarN*4}%,${44-rarN*3}%)`);
+  ctx.fillStyle=bg;ctx.beginPath();
+  if(bt===0){ctx.ellipse(cx,cy,bs,bs,0,0,Math.PI*2);}
+  else if(bt===1){ctx.ellipse(cx,cy,bs*.78,bs*1.18,0,0,Math.PI*2);}
+  else if(bt===2){ctx.ellipse(cx,cy,bs*1.22,bs*.82,0,0,Math.PI*2);}
+  else if(bt===3){for(let i=0;i<6;i++){const a=i/6*Math.PI*2-Math.PI/6;i===0?ctx.moveTo(cx+Math.cos(a)*bs,cy+Math.sin(a)*bs):ctx.lineTo(cx+Math.cos(a)*bs,cy+Math.sin(a)*bs);}ctx.closePath();}
+  else{ctx.moveTo(cx,cy-bs);for(let i=1;i<=8;i++){const a=i/8*Math.PI*2,r=bs*(.82+rng()*.32);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}ctx.closePath();}
+  ctx.fill();ctx.strokeStyle=`hsl(${bH},45%,28%)`;ctx.lineWidth=1.5;ctx.stroke();
+  // Math patterns on body
+  if(maP>0.4){ctx.save();ctx.clip();ctx.strokeStyle=`hsla(${bH+100},70%,40%,.3)`;ctx.lineWidth=1;for(let pi=0;pi<4;pi++){const px=cx+(rng()-.5)*bs*1.4,py=cy+(rng()-.5)*bs*1.2,ps=bs*(.2+rng()*.2);const sides=[3,4,6][Math.floor(rng()*3)];ctx.beginPath();for(let s=0;s<sides;s++){const a=s/sides*Math.PI*2;s===0?ctx.moveTo(px+Math.cos(a)*ps,py+Math.sin(a)*ps):ctx.lineTo(px+Math.cos(a)*ps,py+Math.sin(a)*ps);}ctx.closePath();ctx.stroke();}ctx.restore();}
+  // Eyes
+  const ne=1+Math.floor(rng()*3);const eS=bs*(0.12+rng()*.07);const eHue=(bH+180)%360;
+  for(let i=0;i<ne;i++){const ea=(ne===1?0:(i/(ne-1)-.5)*1.1),ex=cx+Math.sin(ea)*bs*.42,ey=cy-bs*.2+Math.cos(ea)*bs*.05;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(ex,ey,eS,eS*.9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`hsl(${eHue},70%,${acc>85?55:40}%)`;ctx.beginPath();ctx.ellipse(ex,ey,eS*.6,eS*.72,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.ellipse(ex,ey,eS*.3,eS*.38,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.arc(ex-eS*.15,ey-eS*.15,eS*.12,0,Math.PI*2);ctx.fill();
+    if(acc>85){ctx.save();ctx.shadowColor=`hsl(${eHue},90%,65%)`;ctx.shadowBlur=5;ctx.strokeStyle=`hsl(${eHue},80%,65%)`;ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(ex,ey,eS*.65,eS*.78,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+  }
+  // Features pool
+  const feats=[];
+  if(enP>0.35) feats.push('wing');
+  if(streak>5) feats.push('flame_feat');
+  feats.push(...['horn','tail','spike','tentacle','scale']);
+  const nFeat=Math.min(4,1+rarN+Math.floor(rng()));
+  const chosen=shuffle([...feats]).slice(0,nFeat);
+  for(const f of chosen){
+    ctx.save();
+    if(f==='horn'){const hn=1+Math.floor(rng()*3);for(let h=0;h<hn;h++){const ha=((h/(hn)-0.5)*0.8);const hx=cx+Math.sin(ha)*bs*.5,hy=cy-bs*.85;const hl=bs*(.4+rng()*.4);ctx.fillStyle=`hsl(${bH+30},60%,45%)`;ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx-bs*.08,hy+hl*.8);ctx.lineTo(hx+bs*.08,hy+hl*.8);ctx.closePath();ctx.fill();}}
+    else if(f==='tail'){const tx=cx+bs*.7,ty=cy+bs*.3;ctx.strokeStyle=`hsl(${bH},55%,45%)`;ctx.lineWidth=bs*.18;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx+bs*.55,ty);ctx.bezierCurveTo(tx+bs*.3,ty+bs*.2,tx+bs*.5,ty-bs*.4,tx+bs*.1,ty-bs*.7);ctx.stroke();}
+    else if(f==='wing'){const wy=cy-bs*.2;[[1,1],[-1,1]].forEach(([sx,sy])=>{const wg=ctx.createLinearGradient(cx,wy,cx+sx*bs*1.8,wy-bs*.8);wg.addColorStop(0,`hsla(${bH+20},70%,65%,.8)`);wg.addColorStop(1,`hsla(${bH+40},60%,75%,.2)`);ctx.fillStyle=wg;ctx.beginPath();ctx.moveTo(cx+sx*bs*.6,wy);ctx.bezierCurveTo(cx+sx*bs*1.2,wy-bs*.9,cx+sx*bs*1.8,wy-bs*.5,cx+sx*bs*.5,wy+bs*.1);ctx.fill();});}
+    else if(f==='spike'){const ns=4+Math.floor(rng()*4);for(let s=0;s<ns;s++){const sa=s/ns*Math.PI*2,sx=cx+Math.cos(sa)*bs*.9,sy=cy+Math.sin(sa)*bs*.85,sl=bs*(.2+rng()*.18);ctx.fillStyle=`hsl(${bH-10},55%,38%)`;ctx.beginPath();ctx.moveTo(sx,sy);const oa=sa+.25,ob=sa-.25;ctx.lineTo(cx+Math.cos(oa)*bs*.75,cy+Math.sin(oa)*bs*.75);ctx.lineTo(cx+Math.cos(ob)*bs*.75,cy+Math.sin(ob)*bs*.75);ctx.closePath();ctx.fill();}}
+    else if(f==='tentacle'){const nt=2+Math.floor(rng()*3);for(let t=0;t<nt;t++){const ta=-Math.PI/2+((t/(nt-1||1))-.5)*Math.PI*.6;ctx.strokeStyle=`hsl(${bH+10},58%,42%)`;ctx.lineWidth=bs*.1;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx+Math.cos(ta)*bs*.6,cy+Math.sin(ta)*bs*.6);ctx.bezierCurveTo(cx+Math.cos(ta)*bs*1.1+Math.cos(ta+.8)*bs*.3,cy+Math.sin(ta)*bs*1.1,cx+Math.cos(ta)*bs*1.4,cy+Math.sin(ta)*bs*1.4,cx+Math.cos(ta)*bs*1.2,cy+Math.sin(ta)*bs*1.6);ctx.stroke();}}
+    else if(f==='scale'){ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,bs*.95,bs*.95,0,0,Math.PI*2);ctx.clip();ctx.strokeStyle=`hsla(${bH+15},50%,35%,.4)`;ctx.lineWidth=1;for(let row=0;row<8;row++)for(let col=0;col<8;col++){const sx=cx-bs*.9+col*bs*.25+(row%2?.12:0),sy=cy-bs*.9+row*bs*.22;ctx.beginPath();ctx.arc(sx,sy,bs*.1,0,Math.PI);ctx.stroke();}ctx.restore();}
+    else if(f==='flame_feat'){ctx.globalAlpha=.5;for(let fl=0;fl<5;fl++){const fa2=rng()*Math.PI*2,fr2=bs*(1.05+rng()*.25);ctx.fillStyle=`hsla(${20+rng()*30},100%,60%,.6)`;ctx.beginPath();ctx.ellipse(cx+Math.cos(fa2)*fr2,cy+Math.sin(fa2)*fr2,bs*.1,bs*.2,fa2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+    ctx.restore();
+  }
+  // Shine
+  const shine=ctx.createRadialGradient(cx-bs*.22,cy-bs*.28,0,cx-bs*.1,cy-bs*.15,bs*.5);shine.addColorStop(0,'rgba(255,255,255,.35)');shine.addColorStop(1,'transparent');ctx.fillStyle=shine;ctx.beginPath();ctx.ellipse(cx,cy,bs,bs,0,0,Math.PI*2);ctx.fill();
+  // Legendary particles
+  if(rarN>=4){for(let p=0;p<8;p++){const pa=rng()*Math.PI*2,pr=bs*(1.2+rng()*.6);ctx.fillStyle=`hsla(${rng()*360|0},90%,70%,.7)`;ctx.beginPath();ctx.arc(cx+Math.cos(pa)*pr,cy+Math.sin(pa)*pr,bs*.06,0,Math.PI*2);ctx.fill();}}
+}
+
+function getCreatureSeed(egg) {
+  const s=egg.eggStats||{};
+  return hash((s.name||'')+(s.grade||0))^hash(''+(s.dow||0)+(s.month||1)+(s.day||1)+(s.hour||12));
+}
+
+// ============================================================
+// ENHANCED EGG DETAIL (CREATURE POPUP)
+// ============================================================
+function showCreatureDetail(egg) {
+  const overlay=document.getElementById('creature-detail-overlay');
+  overlay.classList.add('show');
+  const s=egg.eggStats||{};
+  const creature=egg.creature||{};
+  const rarityColors={common:'#085041',uncommon:'#0C447C',rare:'#3C3489',epic:'#633806',legendary:'#C8C0F8'};
+  const rarityBg={common:'#E1F5EE',uncommon:'#E6F1FB',rare:'#EEEDFE',epic:'#FAEEDA',legendary:'#1E1B3A'};
+  const rar=creature.rarity||'common';
+  const rDiv=document.getElementById('cdd-rarity');
+  rDiv.style.background=rarityBg[rar];rDiv.style.color=rarityColors[rar];
+  rDiv.textContent=(creature.rarityLabel||'Common')+' '+'⭐'.repeat({common:1,uncommon:2,rare:3,epic:4,legendary:5}[rar]||1);
+  // Draw creature
+  const cc=document.getElementById('cdd-creature-canvas');
+  const seed=getCreatureSeed(egg);
+  drawCreature(cc,seed,s);
+  // Draw egg
+  const ec=document.getElementById('cdd-egg-canvas');
+  if(egg.eggStats) drawEgg(ec,egg.eggStats);
+  document.getElementById('cdd-name').textContent=creature.n||'สัตว์ลึกลับ';
+  document.getElementById('cdd-type').textContent=(creature.cat||'')+(creature.f?' · '+creature.f:'');
+  document.getElementById('cdd-date').textContent='🗓️ '+(egg.date||'?');
+  // XP bars
+  const xpT=egg.xpThai||0,xpE=egg.xpEng||0,xpM=egg.xpMath||0;
+  const xpMax=Math.max(xpT,xpE,xpM)||1;
+  document.getElementById('cdd-xp-bars').innerHTML=`
+    <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px"><span>📖 ภาษาไทย</span><span>${xpT} XP</span></div><div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden"><div style="height:6px;background:var(--green);border-radius:4px;width:${Math.round(xpT/xpMax*100)}%;transition:width .6s"></div></div></div>
+    <div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px"><span>🔤 English</span><span>${xpE} XP</span></div><div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden"><div style="height:6px;background:var(--blue);border-radius:4px;width:${Math.round(xpE/xpMax*100)}%;transition:width .6s"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px"><span>🔢 Math</span><span>${xpM} XP</span></div><div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden"><div style="height:6px;background:var(--purple);border-radius:4px;width:${Math.round(xpM/xpMax*100)}%;transition:width .6s"></div></div></div>`;
+  // Stats
+  const spd=s.speed||50;
+  const mins=s.mins||0;
+  document.getElementById('cdd-stats-grid').innerHTML=`
+    <div class="eds"><div class="eds-val">${s.streak||0}🔥</div><div class="eds-lbl">Streak</div></div>
+    <div class="eds"><div class="eds-val">${s.acc||0}%</div><div class="eds-lbl">แม่นยำ</div></div>
+    <div class="eds"><div class="eds-val">${Math.round(mins)}</div><div class="eds-lbl">นาที</div></div>`;
+  // Abilities
+  const tSum=xpT+xpE+xpM||1;
+  const abils=[];
+  if(xpT/tSum>=xpE/tSum&&xpT/tSum>=xpM/tSum) abils.push('เชี่ยวชาญภาษาไทย ❤️');
+  else if(xpE/tSum>=xpM/tSum) abils.push('พูดภาษาอังกฤษได้ 🌍');
+  else abils.push('อัจฉริยะคณิตศาสตร์ 🔢');
+  if(Math.max(xpT/tSum,xpE/tSum,xpM/tSum)<0.45) abils.push('เก่งรอบด้าน ⭐');
+  if((s.streak||0)>7) abils.push('นักสู้ไม่ยอมแพ้ 🔥');
+  if((s.acc||0)>90) abils.push('แม่นยำเหมือนเลเซอร์ 🎯');
+  document.getElementById('cdd-abilities').innerHTML=abils.map(a=>`<div class="cd-ability">${a}</div>`).join('');
+}
+function closeCreatureDetail(e){if(e.target===document.getElementById('creature-detail-overlay'))document.getElementById('creature-detail-overlay').classList.remove('show');}
+
+// ============================================================
+// MINI-GAME UNLOCK
+// ============================================================
+const MG_UNLOCK={catch:2,memory:4,tower:6,fishing:10};
+const MG_COLORS={catch:'linear-gradient(135deg,#1D9E75,#085041)',memory:'linear-gradient(135deg,#7F77DD,#3C3489)',tower:'linear-gradient(135deg,#EF9F27,#633806)',fishing:'linear-gradient(135deg,#378ADD,#0C447C)'};
+const MG_BORDER={catch:'#0F6E56',memory:'#534AB7',tower:'#B8860B',fishing:'#185FA5'};
+
+function updateMiniGameButtons(){
+  const hatched=(STATE.hatchedEggs||[]).length;
+  const ids=['catch','memory','tower','fishing'];
+  ids.forEach(id=>{
+    const card=document.getElementById('mg-'+id);
+    const sub=document.getElementById('mg-'+id+'-sub');
+    if(!card)return;
+    const needed=MG_UNLOCK[id];
+    const unlocked=hatched>=needed;
+    const far=hatched<needed-3;
+    card.className='mg-card'+(unlocked?'':far?' mystery-lock':' locked');
+    if(unlocked){
+      card.style.background=MG_COLORS[id];card.style.borderColor=MG_BORDER[id];
+      if(sub){sub.style.color='rgba(255,255,255,.7)';sub.textContent='พร้อมเล่น! →';}
+      card.querySelector('.mg-name').style.color='#fff';
+    } else if(far){
+      if(sub){sub.style.color='#1a1a1a';sub.textContent='???';}
+    } else {
+      card.style.background='';card.style.borderColor='';
+      if(sub){sub.style.color='var(--muted)';sub.textContent='ฟักอีก '+(needed-hatched)+' ใบ 🔒';}
+    }
+  });
+}
+
+function onMgClick(id){
+  const hatched=(STATE.hatchedEggs||[]).length;
+  if(hatched<MG_UNLOCK[id]){showToast('ฟักไข่ให้ครบ '+MG_UNLOCK[id]+' ใบก่อนนะ! 🥚');return;}
+  const titles={catch:'🧺 Egg Catch',memory:'🃏 Egg Memory',tower:'🏗️ Egg Tower',fishing:'🎣 Egg Fishing'};
+  document.getElementById('game-title').textContent=titles[id];
+  buildGame(id);
+  showScreen('game-screen');
+  document.querySelector('.bottom-nav').style.display='none';
+}
+
+// ============================================================
 // LEVEL SYSTEM
 // ============================================================
 const LEVELS = {
   thai:[
-    {id:1,name:'พยัญชนะ+สระอา',hint:'เช่น ปา มา ขา',emoji:'🇹🇭',stars:1,diff:1},
-    {id:2,name:'คำสัตว์',hint:'เช่น ปลา แมว ช้าง',emoji:'🐟🐱',stars:2,diff:1.5},
-    {id:3,name:'คำผลไม้',hint:'เช่น กล้วย มะม่วง',emoji:'🍌🥭',stars:3,diff:2},
-    {id:4,name:'ประโยคสั้น',hint:'เช่น แมวกินปลา',emoji:'💬',stars:4,diff:2.5,type:'sentence'},
+    {id:1,name:'พยัญชนะ ก-ฮ',hint:'จับคู่ตัวอักษรกับรูปภาพ',emoji:'🇹🇭',stars:1,diff:1,type:'match'},
+    {id:2,name:'พยัญชนะ+สระอา',hint:'เช่น ปา มา ขา',emoji:'🅰️',stars:2,diff:1.2},
+    {id:3,name:'คำสัตว์',hint:'เช่น ปลา แมว ช้าง',emoji:'🐟🐱',stars:3,diff:1.5},
+    {id:4,name:'คำผลไม้',hint:'เช่น กล้วย มะม่วง',emoji:'🍌🥭',stars:4,diff:2},
+    {id:5,name:'ประโยคสั้น',hint:'เช่น แมวกินปลา',emoji:'💬',stars:5,diff:2.5,type:'sentence'},
   ],
   math:[
     {id:1,name:'บวก 1–5',hint:'1+2=?',emoji:'1️⃣',stars:1,diff:1,range:[1,5],op:'add',timer:20},
@@ -1769,7 +2028,7 @@ function buildLevelSelector(c, world) {
   if(!STATE.levelMastery) STATE.levelMastery={thai:{},math:{},eng:{}};
   const unlocked = STATE.subjectLevels[world]||1;
   const mastery = STATE.levelMastery[world]||{};
-  const titles = {thai:'🇹🇭 ภาษาไทย — สะกดคำ',math:'🔢 Math',eng:'🔤 English'};
+  const titles = {thai:'🇹🇭 ภาษาไทย',math:'🔢 Math',eng:'🔤 English'};
   c.innerHTML=`<div style="width:100%;max-width:480px;padding:16px 20px 20px">
     <div style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--text);margin-bottom:4px">${titles[world]}</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">เลือก Level ที่อยากเล่น</div>
@@ -1846,7 +2105,10 @@ function showTeachPhase(c, world, lv, onDone) {
 }
 
 function launchLevelGame(c, world, lv) {
-  if(world==='thai')   buildThaiSpellLevelGame(c, lv);
+  if(world==='thai'){
+    if(lv.type==='match') buildThaiMatchGame(c);
+    else buildThaiSpellLevelGame(c, lv);
+  }
   else if(world==='math') buildMathLevelGame(c, lv);
   else buildEngLevelGame(c, lv);
 }
@@ -1872,8 +2134,8 @@ function checkLevelUnlock(world, pct) {
 
 // ─── Thai Spell Level Game (levels 1-3 use spell mechanic, 4 uses fill-blank) ───
 function buildThaiSpellLevelGame(c, lv) {
-  const wordSet = lv.id===1 ? SPELL_L1 : lv.id===2 ? TH_L2 : lv.id===3 ? TH_L3 : null;
-  if(lv.id===4){ buildThaiSentenceGame(c,lv); return; }
+  const wordSet = lv.id===2 ? SPELL_L1 : lv.id===3 ? TH_L2 : lv.id===4 ? TH_L3 : null;
+  if(lv.id===5){ buildThaiSentenceGame(c,lv); return; }
   // reuse existing spell game with selected word set
   spLevel=lv.id; spLvDef=lv;
   const overrideWords=shuffle([...wordSet]).slice(0,10);
@@ -2251,6 +2513,371 @@ function esShowResult(){
 }
 
 // ============================================================
+// MINI-GAME: EGG CATCH
+// ============================================================
+let catchCanvas,catchCtx,catchAnim=null,catchRunning=false;
+let catchEgg,catchItems=[],catchScore=0,catchLives=3,catchFrame=0,catchSpeedMult=1;
+const CATCH_ITEMS=[
+  {sym:'💛',pts:1,w:.65,danger:false},{sym:'🍎',pts:3,w:.2,danger:false},
+  {sym:'💎',pts:10,w:.05,danger:false},{sym:'🪨',pts:0,w:.07,danger:true,dmg:1},
+  {sym:'💣',pts:0,w:.03,danger:true,dmg:2},
+];
+function buildEggCatchGame(c){
+  c.innerHTML='';
+  const cW=Math.min(window.innerWidth,480),cH=Math.max(260,Math.min(360,window.innerHeight-140));
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;max-width:480px;display:flex;flex-direction:column;align-items:stretch;';
+  const hud=document.createElement('div');hud.style.cssText='display:flex;justify-content:space-between;padding:6px 16px 4px;font-family:Mitr,sans-serif;font-size:13px;';
+  hud.innerHTML='<span>❤️ <span id="ct-lives">3</span></span><span id="ct-score" style="font-family:Fredoka One,cursive;font-size:16px">0</span><span>⬅ กด ➡ เพื่อเลื่อน</span>';
+  const cvs=document.createElement('canvas');cvs.width=cW;cvs.height=cH;cvs.id='catch-canvas';
+  cvs.style.cssText='display:block;touch-action:none;border-radius:12px;';
+  wrap.appendChild(hud);wrap.appendChild(cvs);c.appendChild(wrap);
+  catchCanvas=cvs;catchCtx=cvs.getContext('2d');
+  // Controls
+  const leftBtn=document.createElement('button');
+  leftBtn.style.cssText='position:fixed;bottom:100px;left:20px;width:64px;height:64px;background:rgba(127,119,221,.8);border:none;border-radius:50%;font-size:24px;cursor:pointer;z-index:50;touch-action:none;';
+  leftBtn.textContent='⬅';leftBtn.id='ct-left';
+  const rightBtn=document.createElement('button');
+  rightBtn.style.cssText='position:fixed;bottom:100px;right:20px;width:64px;height:64px;background:rgba(127,119,221,.8);border:none;border-radius:50%;font-size:24px;cursor:pointer;z-index:50;touch-action:none;';
+  rightBtn.textContent='➡';rightBtn.id='ct-right';
+  document.body.appendChild(leftBtn);document.body.appendChild(rightBtn);
+  leftBtn.addEventListener('touchstart',()=>catchEgg&&(catchEgg.dir=-1),{passive:true});
+  leftBtn.addEventListener('touchend',()=>catchEgg&&(catchEgg.dir=0));
+  rightBtn.addEventListener('touchstart',()=>catchEgg&&(catchEgg.dir=1),{passive:true});
+  rightBtn.addEventListener('touchend',()=>catchEgg&&(catchEgg.dir=0));
+  document.addEventListener('keydown',ctKey);document.addEventListener('keyup',ctKeyUp);
+  catchInitGame();
+  if(catchAnim){cancelAnimationFrame(catchAnim);catchAnim=null;}
+  catchRunning=true;
+  (function loop(){if(!catchRunning)return;catchUpdate();catchDrawFn();catchAnim=requestAnimationFrame(loop);})();
+}
+function ctKey(e){if(!catchEgg)return;if(e.key==='ArrowLeft')catchEgg.dir=-1;if(e.key==='ArrowRight')catchEgg.dir=1;}
+function ctKeyUp(){if(catchEgg)catchEgg.dir=0;}
+function catchInitGame(){
+  const gY=catchCanvas.height;
+  catchEgg={x:catchCanvas.width/2,y:gY-36,w:36,h:36,dir:0,speed:5};
+  catchItems=[];catchScore=0;catchLives=3;catchFrame=0;catchSpeedMult=1;
+  catchEggOff=document.createElement('canvas');catchEggOff.width=36;catchEggOff.height=44;
+  drawEgg(catchEggOff,buildEggStats());
+}
+let catchEggOff=null;
+function catchUpdate(){
+  catchFrame++;
+  catchSpeedMult=1+catchFrame/1200;
+  catchEgg.x+=catchEgg.dir*catchEgg.speed*catchSpeedMult;
+  catchEgg.x=Math.max(catchEgg.w/2,Math.min(catchCanvas.width-catchEgg.w/2,catchEgg.x));
+  // Spawn items
+  if(catchFrame%Math.max(25,50-Math.floor(catchFrame/200))===0){
+    let roll=Math.random(),cum=0,sym,pts,danger=false,dmg=0;
+    for(const it of CATCH_ITEMS){cum+=it.w;if(roll<cum){sym=it.sym;pts=it.pts;danger=it.danger;dmg=it.dmg||0;break;}}
+    catchItems.push({x:Math.random()*(catchCanvas.width-30)+15,y:-20,sym:sym||'💛',pts:pts||1,danger,dmg,vy:2+catchSpeedMult*1.5});
+  }
+  // Move items
+  for(const it of catchItems){it.y+=it.vy*catchSpeedMult;}
+  // Collision & remove
+  const eCx=catchEgg.x,eCy=catchEgg.y,eR=catchEgg.w*.4;
+  catchItems=catchItems.filter(it=>{
+    if(it.y>catchCanvas.height+30)return false;
+    const dx=eCx-it.x,dy=eCy-it.y;
+    if(Math.sqrt(dx*dx+dy*dy)<eR+16){
+      if(it.danger){catchLives-=it.dmg;playTone('wrong');if(catchLives<=0){catchRunning=false;catchGameOver();return false;}}
+      else{catchScore+=it.pts;if(it.pts>=10)spawnConfetti(5);playTone(it.pts>=10?'fanfare':'click');}
+      const ls=document.getElementById('ct-lives');if(ls)ls.textContent=catchLives;
+      const ss=document.getElementById('ct-score');if(ss)ss.textContent=catchScore;
+      return false;
+    }
+    return true;
+  });
+}
+function catchDrawFn(){
+  const W=catchCanvas.width,H=catchCanvas.height,ctx=catchCtx;
+  ctx.clearRect(0,0,W,H);
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#87CEEB');sky.addColorStop(1,'#E0F4FF');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#56A832';ctx.fillRect(0,H-20,W,20);
+  // Items
+  ctx.font='24px serif';ctx.textAlign='center';
+  for(const it of catchItems){ctx.fillText(it.sym,it.x,it.y+12);}
+  // Egg
+  if(catchEggOff)ctx.drawImage(catchEggOff,catchEgg.x-18,catchEgg.y-22,36,44);
+  ctx.textAlign='start';
+}
+function catchGameOver(){
+  document.removeEventListener('keydown',ctKey);document.removeEventListener('keyup',ctKeyUp);
+  ['ct-left','ct-right'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
+  // Item reward
+  const rc=Math.floor(catchScore/3);
+  const chance=rc>=16?.8:rc>=6?.5:.2;
+  let itemMsg='';
+  if(Math.random()<chance){if(!STATE.items)STATE.items={food:0,star:0,ribbon:0,potion:0};const k=['food','star','ribbon','potion'][Math.floor(Math.random()*4)];STATE.items[k]=(STATE.items[k]||0)+1;itemMsg='🎁 ได้รับ '+ITEMS[k].emoji+' '+ITEMS[k].name+'!';}
+  checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;saveState(STATE);updateHomeEgg();
+  const ctx=catchCtx,W=catchCanvas.width,H=catchCanvas.height;
+  catchDrawFn();ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font="bold 22px 'Fredoka One',cursive";ctx.fillText('Game Over!',W/2,H/2-28);
+  ctx.font="15px Mitr,sans-serif";ctx.fillText('คะแนน: '+catchScore,W/2,H/2);
+  if(itemMsg){ctx.fillStyle='#FFD700';ctx.font="13px Mitr,sans-serif";ctx.fillText(itemMsg,W/2,H/2+24);}
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(W/2-70,H/2+40,140,34);ctx.fillStyle='#fff';ctx.font="14px Mitr,sans-serif";ctx.fillText('▶ เล่นอีกครั้ง',W/2,H/2+62);
+  const onR=()=>{catchCanvas.removeEventListener('click',onR);document.body.appendChild(Object.assign(document.createElement('button'),{id:'ct-left'}));buildEggCatchGame(document.getElementById('game-container'));};
+  catchCanvas.addEventListener('click',onR,{once:true});
+}
+
+// ============================================================
+// MINI-GAME: EGG MEMORY
+// ============================================================
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memLocked=false;
+function buildEggMemoryGame(c){
+  c.innerHTML='';
+  const hatched=STATE.hatchedEggs||[];
+  // Build pairs from hatched creatures or emoji fallback
+  const pool=hatched.length>=4?hatched.slice(0,8).map((e,i)=>({id:i,type:'creature',egg:e}))
+    :['🐱','🐕','🐟','🐦','🐸','🐘','🐰','🐷'].map((s,i)=>({id:i,type:'emoji',sym:s}));
+  const pairCount=Math.min(6,Math.max(4,Math.floor(pool.length)));
+  const pairs=pool.slice(0,pairCount);
+  const cards=shuffle([...pairs.map((p,i)=>({...p,key:i})),...pairs.map((p,i)=>({...p,key:pairCount+i}))]);
+  memCards=cards;memFlipped=[];memMatched=0;memMoves=0;memLocked=false;
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;max-width:480px;padding:12px 16px;font-family:Mitr,sans-serif;';
+  wrap.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:12px"><span style="font-size:14px">💡 <span id="mem-moves">0</span> ครั้ง</span><span style="font-family:'Fredoka One',cursive;font-size:16px">Egg Memory</span><span style="font-size:14px">✅ <span id="mem-matched">0</span>/${pairCount}</span></div>
+  <div id="mem-grid" style="display:grid;grid-template-columns:repeat(${pairCount<=4?2:3},1fr);gap:10px"></div>`;
+  c.appendChild(wrap);
+  const grid=document.getElementById('mem-grid');
+  cards.forEach((card,idx)=>{
+    const div=document.createElement('div');
+    div.style.cssText='border-radius:12px;background:var(--purple-l);border:2px solid var(--purple);height:80px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s;position:relative;overflow:hidden;';
+    div.dataset.idx=idx;
+    const front=document.createElement('div');front.style.cssText='display:none;width:100%;height:100%;align-items:center;justify-content:center;';
+    const back=document.createElement('div');back.style.cssText='font-size:28px;';back.textContent='🥚';
+    if(card.type==='creature'){const cvs=document.createElement('canvas');cvs.width=60;cvs.height=60;cvs.style.borderRadius='8px';drawCreature(cvs,getCreatureSeed(card.egg),card.egg.eggStats||{});front.style.display='flex';front.appendChild(cvs);}
+    else{front.style.display='flex';front.style.fontSize='32px';front.textContent=card.sym;}
+    div.appendChild(back);div.appendChild(front);
+    div.onclick=()=>memFlip(idx,div,card,front,back);
+    grid.appendChild(div);
+  });
+}
+function memFlip(idx,div,card,front,back){
+  if(memLocked||memFlipped.includes(idx)||div.dataset.matched)return;
+  back.style.display='none';front.style.display='flex';div.style.transform='scale(1.05)';setTimeout(()=>div.style.transform='',200);
+  memFlipped.push(idx);
+  if(memFlipped.length===2){
+    memMoves++;document.getElementById('mem-moves').textContent=memMoves;memLocked=true;
+    const i1=memFlipped[0],i2=memFlipped[1];
+    const c1=memCards[i1],c2=memCards[i2];
+    const match=c1.id===c2.id&&i1!==i2;
+    setTimeout(()=>{
+      if(match){memMatched++;document.getElementById('mem-matched').textContent=memMatched;playTone('correct');spawnConfetti(4);[i1,i2].forEach(i=>{const el=document.getElementById('mem-grid').children[i];if(el){el.style.background='var(--green-l)';el.style.borderColor='var(--green)';el.dataset.matched='1';}});}
+      else{playTone('wrong');[i1,i2].forEach(i=>{const el=document.getElementById('mem-grid').children[i];if(el){el.querySelector('div:first-child').style.display='flex';const fEl=el.children[1];if(fEl)fEl.style.display='none';}});}
+      memFlipped=[];memLocked=false;
+      if(memMatched===memCards.length/2)memFinish();
+    },700);
+  }
+}
+function memFinish(){
+  const xp=Math.max(5,Math.round(30-memMoves));addXP('thai',xp,80,null);playTone('fanfare');spawnConfetti(25);
+  checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;saveState(STATE);updateHomeEgg();
+  showToast('🎉 จับคู่ครบ! '+memMoves+' ครั้ง · +'+xp+' XP');
+  setTimeout(()=>{const c=document.getElementById('game-container');if(c)buildEggMemoryGame(c);},1800);
+}
+
+// ============================================================
+// MINI-GAME: EGG TOWER
+// ============================================================
+let towerCanvas,towerCtx,towerAnim=null,towerRunning=false;
+let towerBlocks=[],towerCurrent=null,towerScore=0,towerSwingDir=1,towerSwingX=0;
+function buildEggTowerGame(c){
+  c.innerHTML='';
+  const cW=Math.min(window.innerWidth,480),cH=Math.max(300,Math.min(420,window.innerHeight-130));
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;max-width:480px;display:flex;flex-direction:column;align-items:stretch;';
+  const hud=document.createElement('div');hud.style.cssText='display:flex;justify-content:space-between;padding:6px 16px 4px;font-family:Mitr,sans-serif;font-size:13px;';
+  hud.innerHTML='<span>🏗️ วางบล็อก!</span><span id="tw-score" style="font-family:Fredoka One,cursive;font-size:18px">0</span><span>แตะเพื่อวาง</span>';
+  const cvs=document.createElement('canvas');cvs.width=cW;cvs.height=cH;cvs.id='tower-canvas';
+  cvs.style.cssText='display:block;touch-action:none;border-radius:12px;cursor:pointer;';
+  wrap.appendChild(hud);wrap.appendChild(cvs);c.appendChild(wrap);
+  towerCanvas=cvs;towerCtx=cvs.getContext('2d');
+  cvs.addEventListener('click',towerPlace);cvs.addEventListener('touchstart',towerPlace,{passive:true});
+  document.addEventListener('keydown',towerKey);
+  towerInitGame();
+  if(towerAnim){cancelAnimationFrame(towerAnim);towerAnim=null;}
+  towerRunning=true;
+  (function loop(){if(!towerRunning)return;towerUpdate();towerDraw();towerAnim=requestAnimationFrame(loop);})();
+}
+function towerKey(e){if(e.code==='Space'){e.preventDefault();towerPlace();}}
+const TOWER_COLORS=['#7F77DD','#1D9E75','#EF9F27','#378ADD','#E24B4A','#9C27B0'];
+function towerInitGame(){
+  const W=towerCanvas.width,H=towerCanvas.height;
+  const stage=eggProgress().stage;
+  const baseW=Math.round(W*(.45+stage*.03));
+  towerBlocks=[{x:W/2-baseW/2,y:H-30,w:baseW,h:20,color:TOWER_COLORS[0]}];
+  towerScore=0;towerSwingX=W/2;towerSwingDir=1;
+  const curW=baseW;
+  towerCurrent={x:towerSwingX-curW/2,y:H-towerBlocks.length*20-50,w:curW,h:20,color:TOWER_COLORS[1]};
+}
+function towerUpdate(){
+  if(!towerCurrent)return;
+  const W=towerCanvas.width;
+  const spd=2+towerScore*.15;
+  towerSwingX+=towerSwingDir*spd;
+  if(towerSwingX>W-towerCurrent.w*.3||towerSwingX<towerCurrent.w*.3)towerSwingDir*=-1;
+  towerCurrent.x=towerSwingX-towerCurrent.w/2;
+  towerCurrent.y=towerCanvas.height-towerBlocks.length*22-44;
+}
+function towerPlace(){
+  if(!towerRunning||!towerCurrent)return;
+  const top=towerBlocks[towerBlocks.length-1];
+  const overlapLeft=Math.max(towerCurrent.x,top.x);
+  const overlapRight=Math.min(towerCurrent.x+towerCurrent.w,top.x+top.w);
+  const overlap=overlapRight-overlapLeft;
+  if(overlap<=4){towerRunning=false;towerGameOver();return;}
+  playTone('correct');
+  const trimmedBlock={x:overlapLeft,y:top.y-22,w:overlap,h:20,color:TOWER_COLORS[towerBlocks.length%TOWER_COLORS.length]};
+  if(overlap===towerCurrent.w){spawnConfetti(3);playTone('streak');}
+  towerBlocks.push(trimmedBlock);towerScore++;
+  document.getElementById('tw-score').textContent=towerScore;
+  if(towerBlocks.length>towerCanvas.height/22){// scroll view up
+    towerBlocks.forEach(b=>b.y+=22);
+  }
+  towerCurrent={x:towerCanvas.width/2-overlap/2,y:trimmedBlock.y-40,w:overlap,h:20,color:TOWER_COLORS[towerBlocks.length%TOWER_COLORS.length]};
+}
+function towerDraw(){
+  const W=towerCanvas.width,H=towerCanvas.height,ctx=towerCtx;
+  ctx.clearRect(0,0,W,H);
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#1a1a2e');sky.addColorStop(1,'#16213e');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // Ground
+  ctx.fillStyle='#3D7A24';ctx.fillRect(0,H-30,W,30);
+  // Blocks
+  for(const b of towerBlocks){
+    ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(b.x,b.y,b.w,4);
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1;ctx.strokeRect(b.x,b.y,b.w,b.h);
+  }
+  // Swinging block
+  if(towerCurrent&&towerRunning){
+    ctx.fillStyle=towerCurrent.color;ctx.fillRect(towerCurrent.x,towerCurrent.y,towerCurrent.w,towerCurrent.h);
+    ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(towerCurrent.x,towerCurrent.y,towerCurrent.w,4);
+    ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1.5;ctx.strokeRect(towerCurrent.x,towerCurrent.y,towerCurrent.w,towerCurrent.h);
+    // Dashed guideline
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;
+    const top=towerBlocks[towerBlocks.length-1];
+    ctx.strokeRect(top.x,towerCurrent.y,top.w,towerCurrent.h);
+    ctx.setLineDash([]);
+  }
+}
+function towerGameOver(){
+  document.removeEventListener('keydown',towerKey);
+  const xp=Math.max(2,towerScore*3);addXP('math',xp,80,null);
+  checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;saveState(STATE);updateHomeEgg();
+  const ctx=towerCtx,W=towerCanvas.width,H=towerCanvas.height;
+  towerDraw();ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font="bold 22px 'Fredoka One',cursive";ctx.fillText('Tower: '+towerScore+' ชั้น',W/2,H/2-20);
+  ctx.font="14px Mitr,sans-serif";ctx.fillText('+'+xp+' XP ⚡',W/2,H/2+8);
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(W/2-70,H/2+26,140,34);ctx.fillStyle='#fff';ctx.fillText('▶ เล่นอีกครั้ง',W/2,H/2+48);
+  const onR=()=>{towerCanvas.removeEventListener('click',onR);buildEggTowerGame(document.getElementById('game-container'));};
+  towerCanvas.addEventListener('click',onR,{once:true});
+}
+
+// ============================================================
+// MINI-GAME: EGG FISHING
+// ============================================================
+let fishCanvas,fishCtx,fishAnim=null,fishRunning=false;
+let fishEgg,fishLine=0,fishLineDir=1,fishFishes=[],fishCaught=0,fishTime=60,fishTimer=null,fishItems=[];
+const FISH_TYPES=[
+  {sym:'🐟',item:'food',rarity:.5,name:'ปลาธรรมดา'},{sym:'🐠',item:'ribbon',rarity:.25,name:'ปลาสวยงาม'},
+  {sym:'🐡',item:'star',rarity:.15,name:'ปลาปักเป้า'},{sym:'🦑',item:'potion',rarity:.08,name:'ปลาหมึก'},
+  {sym:'🐙',item:'all',rarity:.02,name:'ปลาหมึกยักษ์'},
+];
+function buildEggFishingGame(c){
+  c.innerHTML='';
+  const cW=Math.min(window.innerWidth,480),cH=Math.max(260,Math.min(340,window.innerHeight-140));
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;max-width:480px;display:flex;flex-direction:column;align-items:stretch;';
+  const hud=document.createElement('div');hud.style.cssText='display:flex;justify-content:space-between;padding:6px 16px 4px;font-family:Mitr,sans-serif;font-size:13px;';
+  hud.innerHTML='<span>🐟 <span id="fish-caught">0</span> ตัว</span><span id="fish-time" style="font-family:Fredoka One,cursive;font-size:18px;color:var(--blue-d)">60s</span><span>กดค้างเพื่อหย่อนเบ็ด</span>';
+  const cvs=document.createElement('canvas');cvs.width=cW;cvs.height=cH;cvs.id='fish-canvas';
+  cvs.style.cssText='display:block;touch-action:none;border-radius:12px;cursor:pointer;';
+  wrap.appendChild(hud);wrap.appendChild(cvs);c.appendChild(wrap);
+  fishCanvas=cvs;fishCtx=cvs.getContext('2d');
+  let holding=false;
+  cvs.addEventListener('mousedown',()=>holding=true);
+  cvs.addEventListener('mouseup',()=>{holding=false;fishCheckCatch();});
+  cvs.addEventListener('touchstart',()=>holding=true,{passive:true});
+  cvs.addEventListener('touchend',()=>{holding=false;fishCheckCatch();});
+  fishInitGame();fishRunning=true;
+  fishTimer=setInterval(()=>{fishTime--;const te=document.getElementById('fish-time');if(te)te.textContent=fishTime+'s';if(fishTime<=0){clearInterval(fishTimer);fishRunning=false;fishGameOver();}},1000);
+  if(fishAnim){cancelAnimationFrame(fishAnim);fishAnim=null;}
+  (function loop(){if(!fishRunning)return;fishUpdate(holding);fishDrawFn();fishAnim=requestAnimationFrame(loop);})();
+}
+function fishInitGame(){
+  const W=fishCanvas.width,gY=fishCanvas.height*.4;
+  fishEgg={x:W*.5,y:gY-30};fishLine=0;fishLineDir=1;fishFishes=[];fishCaught=0;fishTime=60;fishItems=[];
+  for(let i=0;i<5;i++) spawnFish();
+}
+function spawnFish(){
+  const W=fishCanvas.width,H=fishCanvas.height;const gY=H*.42;
+  let roll=Math.random(),cum=0,ft=FISH_TYPES[0];
+  for(const f of FISH_TYPES){cum+=f.rarity;if(roll<cum){ft=f;break;}}
+  fishFishes.push({x:Math.random()*(W-60)+30,y:gY+20+Math.random()*(H-gY-60),sym:ft.sym,item:ft.item,name:ft.name,vx:(Math.random()-.5)*2,vy:0,r:ft.rarity});
+}
+function fishUpdate(holding){
+  const H=fishCanvas.height,gY=H*.42;
+  const maxDepth=(STATE.happiness||80)/100*(H-gY-30);
+  if(holding&&fishLine<maxDepth)fishLine+=2.5;
+  else if(!holding&&fishLine>0)fishLine-=4;
+  fishLine=Math.max(0,Math.min(maxDepth,fishLine));
+  // Fish swim
+  for(const f of fishFishes){f.x+=f.vx;if(f.x<20||f.x>fishCanvas.width-20)f.vx*=-1;}
+  // Remove off-screen
+  if(Math.random()<.01&&fishFishes.length<8)spawnFish();
+}
+function fishCheckCatch(){
+  if(!fishRunning||fishLine<20)return;
+  const gY=fishCanvas.height*.42;const lineY=gY+fishLine+10;const lineX=fishEgg.x;
+  for(let i=fishFishes.length-1;i>=0;i--){
+    const f=fishFishes[i];const dx=lineX-f.x,dy=lineY-f.y;
+    if(Math.sqrt(dx*dx+dy*dy)<24){
+      fishFishes.splice(i,1);fishCaught++;
+      const cd=document.getElementById('fish-caught');if(cd)cd.textContent=fishCaught;
+      spawnFish();playTone('streak');
+      // Add item
+      if(!STATE.items)STATE.items={food:0,star:0,ribbon:0,potion:0};
+      if(f.item==='all'){['food','star','ribbon','potion'].forEach(k=>STATE.items[k]=(STATE.items[k]||0)+1);showItemToast('🎉 ปลาหมึกยักษ์! ได้ item ทุกชนิด!');}
+      else if(ITEMS[f.item]){STATE.items[f.item]=(STATE.items[f.item]||0)+1;showItemToast(ITEMS[f.item].emoji+' ได้ '+f.name+' → '+ITEMS[f.item].name+'!');}
+      fishItems.push(f.sym);saveState(STATE);
+      return;
+    }
+  }
+}
+function fishDrawFn(){
+  const W=fishCanvas.width,H=fishCanvas.height,ctx=fishCtx;const gY=H*.4;
+  ctx.clearRect(0,0,W,H);
+  // Sky
+  ctx.fillStyle='#87CEEB';ctx.fillRect(0,0,W,gY);
+  // Water
+  const water=ctx.createLinearGradient(0,gY,0,H);water.addColorStop(0,'#1565C0');water.addColorStop(1,'#0D47A1');
+  ctx.fillStyle=water;ctx.fillRect(0,gY,W,H-gY);
+  // Water shimmer
+  ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=2;
+  for(let wy=gY+15;wy<H;wy+=25){ctx.beginPath();ctx.moveTo(0,wy+(Math.sin(Date.now()*.001+wy))*3);ctx.lineTo(W,wy+(Math.cos(Date.now()*.001+wy))*3);ctx.stroke();}
+  // Boat
+  ctx.fillStyle='#8B4513';ctx.beginPath();ctx.moveTo(fishEgg.x-30,gY-2);ctx.lineTo(fishEgg.x+30,gY-2);ctx.lineTo(fishEgg.x+22,gY+14);ctx.lineTo(fishEgg.x-22,gY+14);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#A0522D';ctx.fillRect(fishEgg.x-30,gY-10,60,8);
+  // Egg on boat
+  ctx.font='20px serif';ctx.textAlign='center';ctx.fillText('🥚',fishEgg.x,gY-12);
+  // Fishing line
+  if(fishLine>0){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fishEgg.x,gY);ctx.lineTo(fishEgg.x,gY+fishLine);ctx.stroke();ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(fishEgg.x,gY+fishLine+8,5,0,Math.PI*2);ctx.fill();}
+  // Fish
+  for(const f of fishFishes){ctx.font='20px serif';ctx.fillText(f.sym,f.x,f.y);}
+  ctx.textAlign='start';
+}
+function fishGameOver(){
+  clearInterval(fishTimer);
+  checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;saveState(STATE);updateHomeEgg();
+  const ctx=fishCtx,W=fishCanvas.width,H=fishCanvas.height;
+  fishDrawFn();ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font="bold 20px 'Fredoka One',cursive";ctx.fillText('หมดเวลา! ตกปลาได้ '+fishCaught+' ตัว',W/2,H/2-16);
+  if(fishItems.length){ctx.font="16px serif";ctx.fillText('ได้ '+fishItems.join(''),W/2,H/2+10);}
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(W/2-70,H/2+26,140,34);ctx.fillStyle='#fff';ctx.font="14px Mitr,sans-serif";ctx.fillText('▶ เล่นอีกครั้ง',W/2,H/2+48);
+  const onR=()=>{fishCanvas.removeEventListener('click',onR);buildEggFishingGame(document.getElementById('game-container'));};
+  fishCanvas.addEventListener('click',onR,{once:true});
+}
+
+// ============================================================
 // DAILY REWARD HELPERS
 // ============================================================
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -2513,11 +3140,11 @@ function erUpdate(){
   // clouds drift
   for(const cl of erClouds){cl.x-=cl.s;if(cl.x<-100)cl.x=W+80;}
   for(const cl of erClouds2){cl.x-=cl.s;if(cl.x<-60)cl.x=W+50;}
-  // collision
-  const eL=erEgg.x+5,eR=erEgg.x+erEgg.w-5,eT=erEgg.y+5,eB=erEgg.y+erEgg.h-2;
+  // Circular hitbox collision (center + radius, 35% of sprite size)
+  const eCx=erEgg.x+erEgg.w/2, eCy=erEgg.y+erEgg.h/2, eR2=erEgg.w*0.35;
   for(const o of erObstacles){
-    if(o.isPit){if(eR>o.x&&eL<o.x+o.w&&eB>gY+4){erRunning=false;return;}}
-    else if(eR>o.x&&eL<o.x+o.w&&eB>o.y&&eT<o.y+o.h){erEgg.flash=18;erRunning=false;return;}
+    if(o.isPit){if(eCx>o.x&&eCx<o.x+o.w&&eCy+eR2>gY+4){erRunning=false;return;}}
+    else{const oCx=o.x+o.w/2,oCy=o.y+o.h/2,oR=o.w*0.35;const dx=eCx-oCx,dy=eCy-oCy;if(Math.sqrt(dx*dx+dy*dy)<eR2+oR){erEgg.flash=18;erRunning=false;return;}}
   }
 }
 
@@ -3103,16 +3730,15 @@ function buildHatchedCollection(catalog) {
     const rarityBg = {common:'#E1F5EE',uncommon:'#E6F1FB',rare:'#EEEDFE',epic:'#FAEEDA',legendary:'#1E1B3A'};
     // Set text HTML first, then insert canvas at top
     item.innerHTML = `
-      <canvas width="88" height="104" style="border-radius:8px;display:block;margin:0 auto 6px" id="hc-${i}"></canvas>
-      <div class="catalog-item-name">${egg.creature?.e||'🐣'} ${egg.creature?.n||'สัตว์ลึกลับ'}</div>
+      <canvas width="88" height="88" style="border-radius:8px;display:block;margin:0 auto 6px;background:var(--bg)" id="hc-${i}"></canvas>
+      <div class="catalog-item-name">${egg.creature?.n||'สัตว์ลึกลับ'}</div>
       <div class="catalog-item-sub">${egg.grade||'อนุบาล'} · ${egg.date||'?'}</div>
       <div class="catalog-item-rarity" style="background:${rarityBg[egg.creature?.rarity||'common']};color:${rarityColors[egg.creature?.rarity||'common']}">${egg.creature?.rarityLabel||'Common'}</div>`;
-    item.onclick = () => showEggDetail(egg);
+    item.onclick = () => showCreatureDetail(egg);
     grid.appendChild(item);
-    // Draw egg AFTER appended to DOM
     requestAnimationFrame(() => {
       const c = item.querySelector('canvas');
-      if (c && egg.eggStats) drawEgg(c, egg.eggStats);
+      if (c) drawCreature(c, getCreatureSeed(egg), egg.eggStats||{});
     });
   });
   catalog.appendChild(grid);

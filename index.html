@@ -272,6 +272,22 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .recommend-item:last-child{margin-bottom:0}
 .strength-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;margin:2px}
 
+/* ===== SPELL GAME ===== */
+.spell-mode-btn{border:2px solid var(--border);border-radius:var(--r);padding:16px 18px;cursor:pointer;background:var(--card);text-align:left;font-family:'Mitr',sans-serif;transition:all .15s;display:block;width:100%}
+.spell-mode-btn:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.07)}
+.spell-mode-btn:active{transform:scale(.97)}
+.spell-slots{display:flex;justify-content:center;gap:10px;margin:14px 0}
+.spell-slot{min-width:50px;height:58px;padding:0 8px;border:2.5px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;font-family:'Mitr',sans-serif;color:var(--text);background:var(--bg);transition:all .2s}
+.spell-slot.filled{border:2.5px solid var(--green);background:var(--green-l);color:var(--green-d);animation:popIn .25s ease}
+.spell-slot.error{border-color:var(--red);background:var(--red-l);color:var(--red)}
+.spell-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:14px 0 4px}
+.spell-tile{min-width:52px;height:52px;padding:0 10px;border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;font-family:'Mitr',sans-serif;cursor:pointer;background:var(--card);transition:opacity .2s,transform .1s;user-select:none;-webkit-user-select:none}
+.spell-tile:active{transform:scale(.88)}
+.spell-tile.used{opacity:0;pointer-events:none}
+.spell-tile.shake-tile{animation:shake .35s ease}
+.mastery-bar-wrap{height:4px;background:var(--border);border-radius:4px;margin-top:4px;overflow:hidden}
+.mastery-bar{height:4px;background:var(--green);border-radius:4px;transition:width .4s}
+
 </style>
 </head>
 <body>
@@ -437,6 +453,7 @@ function defaultState() {
     hatchedCreature: null,
     items: { food:2, star:0, ribbon:0, potion:0 },
     xpBoost: 1, xpBoostEnd: 0,
+    thaiMastery: {}, thSpellLevel: 1,
   };
 }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
@@ -1190,6 +1207,33 @@ const TH_ALPHA=[
 let thQ=[],thCur=0,thScore=0,thStreak=0,thAnswered=false;
 
 function buildThaiGame(c) {
+  const lvl = STATE.thSpellLevel||1;
+  const mastery = STATE.thaiMastery||{};
+  const l1Done = SPELL_L1.filter(w=>(mastery[w.word]||0)>=0.8).length;
+  c.innerHTML=`
+  <div style="width:100%;max-width:480px;padding:16px 20px">
+    <div style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--green-d);text-align:center;margin-bottom:6px">🇹🇭 ภาษาไทย</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px">เลือกโหมดที่อยากเล่น</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button class="spell-mode-btn" onclick="buildThaiMatchGame(document.getElementById('game-container'))">
+        <div style="font-size:28px;margin-bottom:6px">🔤</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text)">จับคู่ตัวอักษร</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">จับคู่ ก-ฮ กับรูปภาพ</div>
+      </button>
+      <button class="spell-mode-btn" onclick="buildThaiSpellGame(document.getElementById('game-container'))">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:28px">✍️</span>
+          ${lvl>=2?'<span style="font-size:11px;font-weight:600;background:var(--amber-l);color:var(--amber-d);padding:2px 10px;border-radius:10px">Level 2 ปลดล็อกแล้ว!</span>':''}
+        </div>
+        <div style="font-size:15px;font-weight:600;color:var(--text)">สะกดคำ</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">เรียงตัวอักษรให้ถูกต้อง${lvl<2?' · Level 1: คำ 2 ตัว':' · Level 2: คำ 3 ตัว'}</div>
+        ${lvl<2?`<div style="margin-top:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">ความเชี่ยวชาญ Level 1: ${l1Done}/${SPELL_L1.length} คำ</div><div class="mastery-bar-wrap"><div class="mastery-bar" style="width:${Math.round(l1Done/SPELL_L1.length*100)}%"></div></div></div>`:''}
+      </button>
+    </div>
+  </div>`;
+}
+
+function buildThaiMatchGame(c) {
   c.innerHTML=`
   <div class="topbar"><div class="topbar-logo">ภาษาไทย</div><div class="topbar-right"><button class="sound-btn" id="th-snd" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="th-xp">0</span></div></div></div>
   <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="th-prog" style="width:0%;background:var(--green)"></div></div><div class="progress-label" id="th-plbl">0/10</div></div>
@@ -1296,6 +1340,227 @@ function thShowResult(){
   document.getElementById('th-result').style.display='flex';
   document.getElementById('th-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
+}
+
+// ============================================================
+// THAI SPELL GAME (สะกดคำ)
+// ============================================================
+const SPELL_L1 = [
+  {word:'ปา', chars:['ป','า'], emoji:'🎣', label:'ปา (ตกปลา)'},
+  {word:'มา', chars:['ม','า'], emoji:'🤚', label:'มา (มาที่นี่)'},
+  {word:'ขา', chars:['ข','า'], emoji:'🦵', label:'ขา (ขาของเรา)'},
+  {word:'นา', chars:['น','า'], emoji:'🌾', label:'นา (ทุ่งนา)'},
+  {word:'ตา', chars:['ต','า'], emoji:'👁️', label:'ตา (ดวงตา)'},
+  {word:'หา', chars:['ห','า'], emoji:'🔍', label:'หา (หาของ)'},
+  {word:'ดา', chars:['ด','า'], emoji:'⭐', label:'ดาว'},
+  {word:'ลา', chars:['ล','า'], emoji:'🫏', label:'ลา (สัตว์)'},
+  {word:'พา', chars:['พ','า'], emoji:'🫶', label:'พา (พาไป)'},
+  {word:'วา', chars:['ว','า'], emoji:'📏', label:'วา (หน่วยวัด)'},
+  {word:'สา', chars:['ส','า'], emoji:'🧴', label:'สา (น้ำสา)'},
+  {word:'ยา', chars:['ย','า'], emoji:'💊', label:'ยา (กินยา)'},
+];
+const SPELL_L2 = [
+  {word:'ปลา', chars:['ป','ล','า'], emoji:'🐟', label:'ปลา'},
+  {word:'แมว', chars:['แ','ม','ว'], emoji:'🐱', label:'แมว'},
+  {word:'เมา', chars:['เ','ม','า'], emoji:'😵', label:'เมา'},
+  {word:'เขา', chars:['เ','ข','า'], emoji:'⛰️', label:'เขา (ภูเขา)'},
+  {word:'เรา', chars:['เ','ร','า'], emoji:'👫', label:'เรา'},
+  {word:'วาว', chars:['ว','า','ว'], emoji:'🪁', label:'วาว (เล่นวาว)'},
+  {word:'ปาก', chars:['ป','า','ก'], emoji:'👄', label:'ปาก'},
+  {word:'นาก', chars:['น','า','ก'], emoji:'🦦', label:'นาก'},
+  {word:'มาก', chars:['ม','า','ก'], emoji:'📈', label:'มาก'},
+  {word:'ดาว', chars:['ด','า','ว'], emoji:'⭐', label:'ดาว'},
+  {word:'ขาว', chars:['ข','า','ว'], emoji:'🤍', label:'ขาว (สีขาว)'},
+  {word:'ยาก', chars:['ย','า','ก'], emoji:'😰', label:'ยาก'},
+];
+const SP_CON = ['ก','ข','ค','ง','จ','ช','ด','ต','น','บ','ป','ม','ย','ร','ล','ว','ส','ห','อ','พ','ท','ฝ','ฟ','ถ','ภ'];
+const SP_VOW = ['า','ิ','ี','เ','แ','โ','ว','ม','น','ง','ก','ต','ด'];
+
+let spQ=[],spCur=0,spScore=0,spStreak=0,spXP=0;
+let spCurWord=null,spTyped=[],spAttempts=0,spDone=false,spLevel=1;
+
+function buildThaiSpellGame(c) {
+  spLevel = STATE.thSpellLevel||1;
+  spQ = getSpellWords(spLevel);
+  spCur=0; spScore=0; spStreak=0; spXP=0;
+  const lvlLabel = spLevel===1 ? 'Level 1 · คำ 2 ตัว' : 'Level 2 · คำ 3 ตัว';
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">สะกดคำ</div><div class="topbar-right"><button class="sound-btn" id="sp-snd" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="sp-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="sp-prog" style="width:0%;background:var(--green)"></div></div><div class="progress-label" id="sp-plbl">0/10</div></div>
+  <div style="width:100%;max-width:480px;padding:2px 20px 0;text-align:right"><span style="font-size:10px;color:var(--muted)">${lvlLabel}</span></div>
+  <div class="main-card" id="sp-card">
+    <div class="mascot" id="sp-mascot">🦔</div>
+    <div id="sp-q-area"></div>
+    <div class="feedback" id="sp-fb"></div>
+    <button class="next-btn" id="sp-next" style="background:var(--green);color:#fff" onclick="spNext()">ต่อไป →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="sp-s1">0</div><div class="stat-lbl">Streak🔥</div></div>
+    <div class="stat-card"><div class="stat-val" id="sp-s2">0</div><div class="stat-lbl">ถูก✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="sp-s3">0</div><div class="stat-lbl">XP⚡</div></div>
+  </div>
+  <div class="result-screen-inner" id="sp-result">
+    <div class="result-emoji" id="sp-re">🎉</div>
+    <div class="result-title" id="sp-rt" style="color:var(--green-d)">เยี่ยม!</div>
+    <div class="result-sub" id="sp-rs"></div>
+    <div class="result-stars" id="sp-rstar">⭐⭐⭐</div>
+    <div class="badge-pill" id="sp-rbadge" style="background:var(--amber-l);color:var(--amber-d)">🏆</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="sp-rc">0</div><div class="result-stat-lbl">ถูกต้อง</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sp-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sp-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--green);color:#fff" onclick="buildThaiSpellGame(document.getElementById('game-container'))">🔄 เล่นอีกครั้ง</button>
+    <button class="home-btn" onclick="buildThaiGame(document.getElementById('game-container'))">← เปลี่ยนโหมด</button>
+  </div>`;
+  spRender();
+}
+
+function getSpellWords(level) {
+  const pool = level===1 ? SPELL_L1 : SPELL_L2;
+  const mastery = STATE.thaiMastery||{};
+  return shuffle([...pool].sort((a,b)=>(mastery[a.word]||0)-(mastery[b.word]||0))).slice(0,10);
+}
+
+function getSpellTiles(chars) {
+  const charSet = new Set(chars);
+  const conPool = SP_CON.filter(c=>!charSet.has(c));
+  const vowPool = SP_VOW.filter(c=>!charSet.has(c));
+  const need = Math.max(2, 6-chars.length);
+  const distractors = shuffle([...shuffle(conPool).slice(0,need), ...shuffle(vowPool).slice(0,need)]).slice(0,need);
+  return shuffle([...chars, ...distractors]);
+}
+
+function spRender() {
+  spCurWord = spQ[spCur];
+  spTyped=[]; spAttempts=0; spDone=false;
+  const q = spCurWord;
+  document.getElementById('sp-prog').style.width=(spCur/10*100)+'%';
+  document.getElementById('sp-plbl').textContent=spCur+'/10';
+  document.getElementById('sp-mascot').textContent=spStreak>=3?'🔥':'🦔';
+  document.getElementById('sp-fb').className='feedback';
+  document.getElementById('sp-next').className='next-btn';
+  const tiles = getSpellTiles(q.chars);
+  document.getElementById('sp-q-area').innerHTML=`
+    <div style="font-size:68px;text-align:center;cursor:pointer;margin-bottom:4px;line-height:1.15" onclick="spSpeak()">
+      ${q.emoji}
+    </div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:14px">${q.label} · แตะเพื่อฟัง 🔊</div>
+    <div class="spell-slots" id="sp-slots">
+      ${q.chars.map((_,i)=>`<div class="spell-slot" id="sp-slot-${i}"></div>`).join('')}
+    </div>
+    <div class="spell-tiles" id="sp-tiles">
+      ${tiles.map((ch,i)=>`<div class="spell-tile" id="sp-tile-${i}" data-char="${ch}" data-idx="${i}" onclick="spTap(this)">${ch}</div>`).join('')}
+    </div>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>spSpeak()));
+}
+
+function spSpeak() { if(spCurWord) speakTh(spCurWord.word); }
+
+function spTap(el) {
+  if(spDone) return;
+  const ch = el.dataset.char;
+  const tileIdx = el.dataset.idx;
+  const q = spCurWord;
+  const expectedIdx = spTyped.length;
+  const expected = q.chars[expectedIdx];
+  if(ch===expected) {
+    spTyped.push(ch);
+    const slot = document.getElementById(`sp-slot-${expectedIdx}`);
+    slot.textContent=ch; slot.classList.add('filled');
+    el.classList.add('used');
+    playTone('click');
+    if(spTyped.length===q.chars.length) spWordCorrect(q);
+  } else {
+    spAttempts++;
+    el.classList.remove('shake-tile'); void el.offsetWidth;
+    el.classList.add('shake-tile');
+    el.addEventListener('animationend',()=>el.classList.remove('shake-tile'),{once:true});
+    playTone('wrong');
+    if(spAttempts>=2) spWordWrong(q);
+  }
+}
+
+function spWordCorrect(q) {
+  spDone=true; spScore++; spStreak++;
+  if(!STATE.thaiMastery) STATE.thaiMastery={};
+  const prev = STATE.thaiMastery[q.word]||0;
+  STATE.thaiMastery[q.word] = Math.min(1, prev*0.7+0.3);
+  const xp = Math.max(2, Math.round(10*(1-prev)));
+  spXP+=xp;
+  addXP('thai',xp,100,null);
+  if(spStreak>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');
+  const msgs = ['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'];
+  const fb = document.getElementById('sp-fb');
+  fb.className='feedback win show';
+  fb.textContent=msgs[Math.floor(Math.random()*msgs.length)]+` +${xp} XP`+(spStreak>=3?` 🔥x${spStreak}`:'');
+  setTimeout(()=>speakTh(['เก่งมาก','ถูกต้อง','ยอดเยี่ยม'][Math.floor(Math.random()*3)]),300);
+  document.getElementById('sp-s1').textContent=spStreak+(spStreak>=3?'🔥':'');
+  document.getElementById('sp-s2').textContent=spScore;
+  document.getElementById('sp-s3').textContent=spXP;
+  document.getElementById('sp-xp').textContent=spXP;
+  document.getElementById('sp-next').className='next-btn show';
+  saveState(STATE);
+  checkSpellLevelUp();
+}
+
+function spWordWrong(q) {
+  spDone=true; spStreak=0;
+  if(!STATE.thaiMastery) STATE.thaiMastery={};
+  const prev = STATE.thaiMastery[q.word]||0;
+  STATE.thaiMastery[q.word] = Math.max(0, prev*0.7);
+  q.chars.forEach((c,i)=>{
+    const slot=document.getElementById(`sp-slot-${i}`);
+    if(!slot.classList.contains('filled')){slot.textContent=c;slot.classList.add('error');}
+  });
+  const fb=document.getElementById('sp-fb');
+  fb.className='feedback lose show';
+  fb.textContent=`ไม่เป็นไร! "${q.word}" สะกดว่า ${q.chars.join(' - ')}`;
+  setTimeout(()=>speakTh(q.word),350);
+  document.getElementById('sp-s1').textContent='0';
+  document.getElementById('sp-s2').textContent=spScore;
+  document.getElementById('sp-s3').textContent=spXP;
+  document.getElementById('sp-next').className='next-btn show';
+  saveState(STATE);
+}
+
+function checkSpellLevelUp() {
+  if(spLevel>=2) return;
+  const mastery=STATE.thaiMastery||{};
+  const allMastered=SPELL_L1.every(w=>(mastery[w.word]||0)>=0.8);
+  if(allMastered){
+    STATE.thSpellLevel=2;
+    saveState(STATE);
+    showToast('🎊 ปลดล็อก Level 2 สะกดคำ 3 ตัวแล้ว!');
+    spawnConfetti(20);
+  }
+}
+
+function spNext() {
+  playTone('next'); spCur++;
+  if(spCur>=10) spShowResult(); else spRender();
+}
+
+function spShowResult() {
+  const p=spScore/10;
+  let e,t,s,b,st;
+  if(p>=.9){e='🏆';t='นักสะกดแชมเปียน!';s='ท่องตัวอักษรได้ขนาดนี้!';b='🏆 นักสะกดแชมเปียน';st='⭐⭐⭐';playTone('fanfare');spawnConfetti(30);STATE.badges++}
+  else if(p>=.7){e='🎉';t='เก่งมาก!';s='เกือบเพอร์เฟกต์!';b='🌟 นักสะกด';st='⭐⭐☆';playTone('streak');spawnConfetti(12)}
+  else if(p>=.5){e='😊';t='ทำได้ดี!';s='ลองอีกครั้งนะ!';b='👍 กำลังพัฒนา';st='⭐☆☆';playTone('correct')}
+  else{e='💪';t='สู้ต่อไป!';s='ฝึกอีกหน่อย!';b='🎯 กำลังฝึก';st='☆☆☆'}
+  document.getElementById('sp-re').textContent=e;
+  document.getElementById('sp-rt').textContent=t;
+  document.getElementById('sp-rs').textContent=s;
+  document.getElementById('sp-rstar').textContent=st;
+  document.getElementById('sp-rbadge').textContent=b;
+  document.getElementById('sp-rc').textContent=spScore+'/10';
+  document.getElementById('sp-rxp').textContent='+'+spXP;
+  document.getElementById('sp-rstr').textContent=spStreak+'🔥';
+  STATE.streak=Math.max(STATE.streak,spStreak);
+  STATE.rounds++;
+  document.getElementById('sp-result').style.display='flex';
+  document.getElementById('sp-result').classList.add('show');
+  saveState(STATE); updateHomeEgg();
 }
 
 // ============================================================

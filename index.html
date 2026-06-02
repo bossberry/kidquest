@@ -293,6 +293,30 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .eggrun-banner:active{transform:scale(.97)}
 .eggrun-banner:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(29,27,58,.4)}
 .eggrun-banner::after{content:'';position:absolute;right:-20px;top:-20px;width:80px;height:80px;background:rgba(255,255,255,.04);border-radius:50%}
+/* LEVEL SYSTEM */
+.level-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.level-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative;min-height:118px;display:flex;flex-direction:column;gap:3px}
+.level-card:not(.locked):hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.level-card:not(.locked):active{transform:scale(.96)}
+.level-card.locked{background:#f5f5f5;cursor:default;border-color:#e0e0e0}
+.level-card.mystery{background:#111;border-color:#222;cursor:default}
+.level-card.mystery *{color:#222!important;text-shadow:none!important}
+.level-name{font-family:'Fredoka One',cursive;font-size:15px;color:var(--text)}
+.level-subname{font-size:11px;font-weight:500;color:var(--text)}
+.level-hint{font-size:10px;color:var(--muted);line-height:1.4}
+.level-meta{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
+.level-lock-icon{position:absolute;top:8px;right:10px;font-size:15px}
+.level-new-badge{position:absolute;top:-7px;left:8px;background:var(--amber);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;animation:popIn .3s ease;z-index:2}
+.level-mastery-wrap{height:3px;background:var(--border);border-radius:3px;margin-top:5px;overflow:hidden}
+.level-mastery-fill{height:3px;background:var(--green);border-radius:3px;transition:width .4s}
+/* TEACH PHASE */
+.teach-overlay{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:960;display:flex;align-items:flex-end;justify-content:center}
+.teach-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px 20px 36px;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+.teach-example{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;text-align:center;font-size:13px;flex:1}
+/* HINT */
+.hint-bar{display:flex;gap:4px;justify-content:center;margin-top:6px}
+.hint-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s}
+.hint-dot.active{background:var(--amber)}
 .eggrun-banner.locked{background:linear-gradient(130deg,#2a2a2a 0%,#383838 100%);border-color:#555;cursor:default;}
 .eggrun-banner.locked:hover,.eggrun-banner.locked:active{transform:none!important;box-shadow:none!important;}
 @keyframes erGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.4)}60%{box-shadow:0 0 0 10px rgba(255,215,0,0)}}
@@ -477,6 +501,9 @@ function defaultState() {
     thaiMastery: {}, thSpellLevel: 1,
     dailyRounds: 0, lastPlayDate: '',
     eggRunLives: 3, lastRunDate: '',
+    subjectLevels: {thai:1,math:1,eng:1},
+    levelMastery: {thai:{},math:{},eng:{}},
+    seenTeach: [],
   };
 }
 function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
@@ -1248,7 +1275,7 @@ function buildThaiGame(c) {
         <div style="font-size:15px;font-weight:600;color:var(--text)">จับคู่ตัวอักษร</div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px">จับคู่ ก-ฮ กับรูปภาพ</div>
       </button>
-      <button class="spell-mode-btn" onclick="buildThaiSpellGame(document.getElementById('game-container'))">
+      <button class="spell-mode-btn" onclick="buildLevelSelector(document.getElementById('game-container'),'thai')">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <span style="font-size:28px">✍️</span>
           ${lvl>=2?'<span style="font-size:11px;font-weight:600;background:var(--amber-l);color:var(--amber-d);padding:2px 10px;border-radius:10px">Level 2 ปลดล็อกแล้ว!</span>':''}
@@ -1596,9 +1623,631 @@ function spShowResult() {
   STATE.streak=Math.max(STATE.streak,spStreak);
   checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
+  checkLevelUnlock('thai', spScore/10);
   document.getElementById('sp-result').style.display='flex';
   document.getElementById('sp-result').classList.add('show');
   saveState(STATE); updateHomeEgg();
+}
+
+// ============================================================
+// LEVEL SYSTEM
+// ============================================================
+const LEVELS = {
+  thai:[
+    {id:1,name:'พยัญชนะ+สระอา',hint:'เช่น ปา มา ขา',emoji:'🇹🇭',stars:1,diff:1},
+    {id:2,name:'คำสัตว์',hint:'เช่น ปลา แมว ช้าง',emoji:'🐟🐱',stars:2,diff:1.5},
+    {id:3,name:'คำผลไม้',hint:'เช่น กล้วย มะม่วง',emoji:'🍌🥭',stars:3,diff:2},
+    {id:4,name:'ประโยคสั้น',hint:'เช่น แมวกินปลา',emoji:'💬',stars:4,diff:2.5,type:'sentence'},
+  ],
+  math:[
+    {id:1,name:'บวก 1–5',hint:'1+2=?',emoji:'1️⃣',stars:1,diff:1,range:[1,5],op:'add',timer:20},
+    {id:2,name:'บวก 1–10',hint:'4+6=?',emoji:'🔟',stars:2,diff:1.5,range:[1,10],op:'add',timer:15},
+    {id:3,name:'บวก 1–20',hint:'8+12=?',emoji:'🔢',stars:3,diff:2,range:[1,20],op:'add',timer:12},
+    {id:4,name:'ลบ 1–10',hint:'7−3=?',emoji:'➖',stars:3,diff:2,range:[1,10],op:'sub',timer:10},
+    {id:5,name:'บวกลบผสม',hint:'5+3−2=?',emoji:'🔀',stars:4,diff:2.5,range:[1,10],op:'mixed',timer:10},
+    {id:6,name:'โจทย์คำ',hint:'มีแอปเปิ้ล 3 ลูก...',emoji:'💬',stars:5,diff:3,op:'word',timer:15},
+  ],
+  eng:[
+    {id:1,name:'A–Z Phonics',hint:'A is for Apple...',emoji:'🔤',stars:1,diff:1,type:'phonics'},
+    {id:2,name:'CVC Words',hint:'cat, dog, pig...',emoji:'🐱🐕',stars:2,diff:1.5,type:'cvc'},
+    {id:3,name:'Sight Words',hint:'the, is, a, I...',emoji:'👁️',stars:3,diff:2,type:'sight'},
+    {id:4,name:'Sentences',hint:'The cat is big.',emoji:'💬',stars:4,diff:2.5,type:'sentence'},
+  ],
+};
+
+// Thai Level 2 words
+const TH_L2 = [
+  {word:'ปลา',chars:['ป','ล','า'],emoji:'🐟',label:'ปลา'},
+  {word:'แมว',chars:['แ','ม','ว'],emoji:'🐱',label:'แมว'},
+  {word:'นก',chars:['น','ก'],emoji:'🐦',label:'นก'},
+  {word:'วัว',chars:['ว','ั','ว'],emoji:'🐄',label:'วัว'},
+  {word:'ไก่',chars:['ไ','ก่'],emoji:'🐔',label:'ไก่'},
+  {word:'หมู',chars:['ห','ม','ู'],emoji:'🐷',label:'หมู'},
+  {word:'ช้าง',chars:['ช้','า','ง'],emoji:'🐘',label:'ช้าง'},
+  {word:'หมา',chars:['ห','ม','า'],emoji:'🐕',label:'หมา'},
+  {word:'เป็ด',chars:['เ','ป็','ด'],emoji:'🦆',label:'เป็ด'},
+  {word:'ลิง',chars:['ล','ิ','ง'],emoji:'🐒',label:'ลิง'},
+  {word:'กบ',chars:['ก','บ'],emoji:'🐸',label:'กบ'},
+  {word:'แมลง',chars:['แ','ม','ล','ง'],emoji:'🐛',label:'แมลง'},
+];
+// Thai Level 3 words
+const TH_L3 = [
+  {word:'กล้วย',chars:['ก','ล้','ว','ย'],emoji:'🍌',label:'กล้วย'},
+  {word:'มะม่วง',chars:['ม','ะ','ม่','ว','ง'],emoji:'🥭',label:'มะม่วง'},
+  {word:'แตงโม',chars:['แ','ต','ง','โ','ม'],emoji:'🍉',label:'แตงโม'},
+  {word:'ส้มโอ',chars:['ส้','ม','โ','อ'],emoji:'🍊',label:'ส้มโอ'},
+  {word:'มะละกอ',chars:['ม','ะ','ล','ะ','ก','อ'],emoji:'🍈',label:'มะละกอ'},
+  {word:'สับปะรด',chars:['ส','ั','บ','ป','ะ','ร','ด'],emoji:'🍍',label:'สับปะรด'},
+  {word:'กระต่าย',chars:['ก','ระ','ต่า','ย'],emoji:'🐰',label:'กระต่าย'},
+  {word:'ดอกไม้',chars:['ด','อ','ก','ไ','ม้'],emoji:'🌸',label:'ดอกไม้'},
+];
+// Thai Level 4 sentences (fill-in-blank)
+const TH_L4 = [
+  {sentence:'แมว___ปลา',blank:'กิน',choices:['กิน','วิ่ง','บิน','นอน'],emoji:'🐱🐟',sound:'แมวกินปลา'},
+  {sentence:'หมา___เล่น',blank:'วิ่ง',choices:['วิ่ง','กิน','บิน','ว่าย'],emoji:'🐕🏃',sound:'หมาวิ่งเล่น'},
+  {sentence:'นก___สูง',blank:'บิน',choices:['บิน','กิน','วิ่ง','ว่าย'],emoji:'🐦✈️',sound:'นกบินสูง'},
+  {sentence:'ไก่___ข้าว',blank:'กิน',choices:['กิน','บิน','วิ่ง','นอน'],emoji:'🐔🍚',sound:'ไก่กินข้าว'},
+  {sentence:'ปลา___น้ำ',blank:'ว่าย',choices:['ว่าย','บิน','วิ่ง','กิน'],emoji:'🐟💧',sound:'ปลาว่ายน้ำ'},
+  {sentence:'เด็ก___นม',blank:'ดื่ม',choices:['ดื่ม','กิน','วิ่ง','บิน'],emoji:'👧🥛',sound:'เด็กดื่มนม'},
+];
+
+// English CVC words
+const CVC_WORDS = [
+  {word:'cat',emoji:'🐱',alts:['bat','cut','cap']},
+  {word:'dog',emoji:'🐕',alts:['dig','dot','log']},
+  {word:'pig',emoji:'🐷',alts:['big','pin','pit']},
+  {word:'sun',emoji:'☀️',alts:['run','fun','bun']},
+  {word:'hat',emoji:'🎩',alts:['bat','hot','hit']},
+  {word:'cup',emoji:'☕',alts:['cut','pup','cap']},
+  {word:'bed',emoji:'🛏️',alts:['bad','bid','red']},
+  {word:'bus',emoji:'🚌',alts:['but','bun','bug']},
+  {word:'fan',emoji:'🌀',alts:['fun','fin','fat']},
+  {word:'map',emoji:'🗺️',alts:['mat','cap','mop']},
+];
+// English Sight Words
+const SIGHT_DATA = [
+  {sentence:'___ cat is big.',blank:'The',choices:['The','A','Is','I'],emoji:'🐱'},
+  {sentence:'I ___ a dog.',blank:'see',choices:['see','the','is','we'],emoji:'🐕'},
+  {sentence:'___ like dogs.',blank:'I',choices:['I','a','The','is'],emoji:'❤️🐕'},
+  {sentence:'We ___ happy.',blank:'are',choices:['are','is','a','the'],emoji:'😊'},
+  {sentence:'___ is my cat.',blank:'She',choices:['She','Is','A','The'],emoji:'🐱'},
+  {sentence:'He ___ a bird.',blank:'has',choices:['has','is','a','the'],emoji:'🐦'},
+  {sentence:'I go ___ school.',blank:'to',choices:['to','a','is','the'],emoji:'🏫'},
+  {sentence:'___ are friends.',blank:'We',choices:['We','I','Is','A'],emoji:'👫'},
+];
+// English sentence ordering
+const ENG_SENTS = [
+  {words:['The','cat','is','big'],emoji:'🐱'},
+  {words:['I','like','dogs'],emoji:'🐕'},
+  {words:['She','can','run','fast'],emoji:'🏃'},
+  {words:['The','bird','can','fly'],emoji:'🐦'},
+  {words:['We','eat','rice'],emoji:'🍚'},
+  {words:['He','has','a','ball'],emoji:'⚽'},
+  {words:['I','see','a','fish'],emoji:'🐟'},
+  {words:['The','sun','is','hot'],emoji:'☀️'},
+];
+// Math word problems
+const MATH_WORDS = [
+  {story:'มีแอปเปิ้ล 🍎 3 ลูก ได้เพิ่ม 2 ลูก มีทั้งหมดกี่ลูก?',a:3,b:2,op:'+',ans:5},
+  {story:'มีลูกบอล ⚽ 7 ลูก ให้เพื่อนไป 3 ลูก เหลือกี่ลูก?',a:7,b:3,op:'-',ans:4},
+  {story:'มีแมว 🐱 4 ตัว วิ่งมาเพิ่ม 3 ตัว มีทั้งหมดกี่ตัว?',a:4,b:3,op:'+',ans:7},
+  {story:'มีคุกกี้ 🍪 9 ชิ้น กิน 4 ชิ้น เหลือกี่ชิ้น?',a:9,b:4,op:'-',ans:5},
+  {story:'มีนก 🐦 5 ตัว บินมาอีก 6 ตัว มีทั้งหมดกี่ตัว?',a:5,b:6,op:'+',ans:11},
+  {story:'มีดินสอ ✏️ 8 แท่ง หาย 3 แท่ง เหลือกี่แท่ง?',a:8,b:3,op:'-',ans:5},
+  {story:'มีปลา 🐟 6 ตัว ตายไป 2 ตัว เหลือกี่ตัว?',a:6,b:2,op:'-',ans:4},
+  {story:'มีดอกไม้ 🌸 4 ดอก ปลูกเพิ่ม 5 ดอก มีทั้งหมดกี่ดอก?',a:4,b:5,op:'+',ans:9},
+];
+
+const TEACH_CONTENT = {
+  thai:{
+    1:{mascot:'🦔',text:'มาสะกดคำกัน! ดูรูปแล้วกดตัวอักษรทีละตัว\nเช่น ปา = ป + า',examples:['ป + า = ปา 🎣','ม + า = มา 🤚']},
+    2:{mascot:'🐱',text:'Level นี้มีสัตว์หลายชนิด!\nดูรูปสัตว์แล้วสะกดชื่อมัน',examples:['🐟 ป + ล + า = ปลา','🐱 แ + ม + ว = แมว']},
+    3:{mascot:'🍌',text:'คำผลไม้มีหลายตัวอักษร\nสะกดทีละตัวให้ครบนะ!',examples:['🍌 ก + ล้ + ว + ย = กล้วย','🥭 ม + ะ + ม่ + ว + ง = มะม่วง']},
+    4:{mascot:'💬',text:'เลือกคำที่หายไปในประโยค\nดูรูปช่วยคิดได้!',examples:['แมว ___ ปลา → กิน','หมา ___ เล่น → วิ่ง']},
+  },
+  math:{
+    1:{mascot:'🦔',text:'บวกเลข 1-5 กัน!\nนับจุดสีเหลืองช่วยได้',examples:['2 + 3 = 5 🟡🟡🔵🔵🔵','1 + 4 = 5 🟡🔵🔵🔵🔵']},
+    2:{mascot:'🦔',text:'ตอนนี้เลขถึง 10!\nนับจุดให้ครบนะ',examples:['4 + 6 = 10','3 + 7 = 10']},
+    3:{mascot:'🦔',text:'บวกเลขใหญ่ขึ้น 1-20\nคิดทีละก้าว ทำได้!',examples:['8 + 12 = 20','15 + 5 = 20']},
+    4:{mascot:'🦔',text:'ลบเลขคือ "เอาออก"\nดูนะ: 🟡🟡🟡🟡🟡 มี 5 เอาออก 2 ❌❌\nเหลือ 3!',examples:['5 - 2 = 3','7 - 4 = 3']},
+    5:{mascot:'🔥',text:'บวกและลบผสมกัน!\nอ่านเครื่องหมายให้ดีนะ + หรือ −',examples:['5 + 3 - 2 = 6','8 - 3 + 1 = 6']},
+    6:{mascot:'🦉',text:'โจทย์คำ: อ่านแล้วคำนวณ\nดูรูป emoji ช่วยได้!',examples:['มีแอปเปิ้ล 3 ลูก ได้เพิ่ม 2 ลูก = 5 ลูก']},
+  },
+  eng:{
+    1:{mascot:'🦔',text:'A-Z Phonics! Each letter has a sound.\nTap the right picture!',examples:['🍎 A is for Apple','🐝 B is for Bee']},
+    2:{mascot:'🐱',text:'CVC = Consonant-Vowel-Consonant\nHear the word, pick the spelling!',examples:['🐱 → c-a-t = cat','🐕 → d-o-g = dog']},
+    3:{mascot:'📖',text:'Sight words appear in every sentence!\nFind the missing word.',examples:['___ cat is big → The','I ___ a dog → see']},
+    4:{mascot:'💬',text:'Put the words in the right order\nto make a sentence!',examples:['big / The / is / cat → The cat is big.']},
+  },
+};
+
+let activeLvWorld='', activeLvId=1;
+
+function buildLevelSelector(c, world) {
+  activeLvWorld = world;
+  if(!STATE.subjectLevels) STATE.subjectLevels={thai:1,math:1,eng:1};
+  if(!STATE.levelMastery) STATE.levelMastery={thai:{},math:{},eng:{}};
+  const unlocked = STATE.subjectLevels[world]||1;
+  const mastery = STATE.levelMastery[world]||{};
+  const titles = {thai:'🇹🇭 ภาษาไทย — สะกดคำ',math:'🔢 Math',eng:'🔤 English'};
+  c.innerHTML=`<div style="width:100%;max-width:480px;padding:16px 20px 20px">
+    <div style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--text);margin-bottom:4px">${titles[world]}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">เลือก Level ที่อยากเล่น</div>
+    <div class="level-grid" id="lv-grid"></div>
+  </div>`;
+  const grid=document.getElementById('lv-grid');
+  LEVELS[world].forEach(lv=>{
+    const isUnlocked=lv.id<=unlocked;
+    const isMystery=lv.id>unlocked+2;
+    const pct=Math.round((mastery[lv.id]||0)*100);
+    const isNew=lv.id===unlocked&&!(STATE.seenTeach||[]).includes(world+'-'+lv.id+'-card');
+    const card=document.createElement('div');
+    card.className='level-card'+(isMystery?' mystery':!isUnlocked?' locked':'');
+    if(isMystery){
+      card.innerHTML=`<div style="font-size:28px;margin-bottom:4px">🔒</div><div class="level-name" style="color:#1a1a1a">???</div><div class="level-hint" style="color:#1a1a1a">ยังล็อกอยู่</div>`;
+    } else {
+      const stars='⭐'.repeat(lv.stars);
+      const xpPrev=Math.round(10*lv.diff);
+      card.innerHTML=`
+        ${isNew?'<div class="level-new-badge">ใหม่! ✨</div>':''}
+        ${!isUnlocked?'<div class="level-lock-icon">🔒</div>':''}
+        <div style="font-size:22px;margin-bottom:3px">${lv.emoji}</div>
+        <div class="level-name">Level ${lv.id}</div>
+        <div class="level-subname">${lv.name}</div>
+        <div class="level-hint">${lv.hint}</div>
+        <div class="level-meta">
+          <span style="font-size:10px">${stars}</span>
+          <span style="font-size:10px;background:var(--amber-l);color:var(--amber-d);padding:1px 6px;border-radius:8px">+${xpPrev} XP ⚡</span>
+        </div>
+        ${isUnlocked&&pct>0?`<div class="level-mastery-wrap"><div class="level-mastery-fill" style="width:${pct}%"></div></div>`:''}`;
+    }
+    if(isUnlocked){
+      card.onclick=()=>{
+        // mark card seen
+        if(isNew){if(!STATE.seenTeach)STATE.seenTeach=[];STATE.seenTeach.push(world+'-'+lv.id+'-card');saveState(STATE);}
+        activeLvId=lv.id;
+        startLevelGame(c,world,lv);
+      };
+    }
+    grid.appendChild(card);
+  });
+}
+
+function startLevelGame(c, world, lv) {
+  const key=world+'-'+lv.id;
+  const seen=(STATE.seenTeach||[]).includes(key);
+  if(!seen){
+    showTeachPhase(c,world,lv,()=>launchLevelGame(c,world,lv));
+  } else {
+    launchLevelGame(c,world,lv);
+  }
+}
+
+function showTeachPhase(c, world, lv, onDone) {
+  const tc=TEACH_CONTENT[world]?.[lv.id];
+  if(!STATE.seenTeach)STATE.seenTeach=[];
+  STATE.seenTeach.push(world+'-'+lv.id);
+  saveState(STATE);
+  if(!tc){onDone();return;}
+  const overlay=document.createElement('div');
+  overlay.className='teach-overlay';
+  overlay.innerHTML=`<div class="teach-sheet">
+    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px"></div>
+    <div style="font-size:36px;text-align:center;margin-bottom:8px">${tc.mascot}</div>
+    <div style="font-size:14px;color:var(--text);line-height:1.8;text-align:center;margin-bottom:14px;white-space:pre-line">${tc.text}</div>
+    <div style="display:flex;gap:8px;margin-bottom:18px">
+      ${tc.examples.map(ex=>`<div class="teach-example">${ex}</div>`).join('')}
+    </div>
+    <button id="teach-go" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:14px;font-family:Mitr,sans-serif;font-size:16px;font-weight:600;cursor:pointer">เข้าใจแล้ว! →</button>
+    <button id="teach-skip" style="width:100%;background:none;border:none;color:var(--muted);font-family:Mitr,sans-serif;font-size:13px;cursor:pointer;margin-top:8px;padding:6px">ข้ามไปก่อน</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#teach-go').onclick=overlay.querySelector('#teach-skip').onclick=()=>{overlay.remove();onDone();};
+}
+
+function launchLevelGame(c, world, lv) {
+  if(world==='thai')   buildThaiSpellLevelGame(c, lv);
+  else if(world==='math') buildMathLevelGame(c, lv);
+  else buildEngLevelGame(c, lv);
+}
+
+function checkLevelUnlock(world, pct) {
+  if(!STATE.subjectLevels) STATE.subjectLevels={thai:1,math:1,eng:1};
+  if(!STATE.levelMastery)  STATE.levelMastery={thai:{},math:{},eng:{}};
+  if(!STATE.levelMastery[world]) STATE.levelMastery[world]={};
+  const cur=STATE.subjectLevels[world]||1;
+  const max=LEVELS[world].length;
+  const prev=STATE.levelMastery[world][cur]||0;
+  STATE.levelMastery[world][cur]=prev*0.6+pct*0.4;
+  if(STATE.levelMastery[world][cur]>=0.8 && cur<max){
+    STATE.subjectLevels[world]=cur+1;
+    saveState(STATE);
+    const nextName=LEVELS[world][cur].name;
+    showToast(`✨ ปลดล็อก Level ${cur+1}: ${nextName}!`);
+    spawnConfetti(18);
+  } else {
+    saveState(STATE);
+  }
+}
+
+// ─── Thai Spell Level Game (levels 1-3 use spell mechanic, 4 uses fill-blank) ───
+function buildThaiSpellLevelGame(c, lv) {
+  const wordSet = lv.id===1 ? SPELL_L1 : lv.id===2 ? TH_L2 : lv.id===3 ? TH_L3 : null;
+  if(lv.id===4){ buildThaiSentenceGame(c,lv); return; }
+  // reuse existing spell game with selected word set
+  spLevel=lv.id; spLvDef=lv;
+  const overrideWords=shuffle([...wordSet]).slice(0,10);
+  buildThaiSpellGameWithWords(c, overrideWords, lv);
+}
+let spLvDef=null;
+function buildThaiSpellGameWithWords(c, words, lv) {
+  spQ=words; spCur=0; spScore=0; spStreak=0; spXP=0;
+  const lvLabel=`Level ${lv.id}: ${lv.name}`;
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">สะกดคำ</div><div class="topbar-right"><button class="sound-btn" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="sp-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="sp-prog" style="width:0%;background:var(--green)"></div></div><div class="progress-label" id="sp-plbl">0/10</div></div>
+  <div style="width:100%;max-width:480px;padding:2px 20px 0;text-align:right"><span style="font-size:10px;color:var(--muted)">${lvLabel}</span></div>
+  <div class="main-card" id="sp-card"><div class="mascot" id="sp-mascot">🦔</div><div id="sp-q-area"></div>
+    <div class="hint-bar" id="sp-hints"><div class="hint-dot" id="sp-h0"></div><div class="hint-dot" id="sp-h1"></div><div class="hint-dot" id="sp-h2"></div></div>
+    <div class="feedback" id="sp-fb"></div>
+    <button class="next-btn" id="sp-next" style="background:var(--green);color:#fff" onclick="spNext()">ต่อไป →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="sp-s1">0</div><div class="stat-lbl">Streak🔥</div></div>
+    <div class="stat-card"><div class="stat-val" id="sp-s2">0</div><div class="stat-lbl">ถูก✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="sp-s3">0</div><div class="stat-lbl">XP⚡</div></div>
+  </div>
+  <div class="result-screen-inner" id="sp-result">
+    <div class="result-emoji" id="sp-re">🎉</div>
+    <div class="result-title" id="sp-rt" style="color:var(--green-d)">เยี่ยม!</div>
+    <div class="result-sub" id="sp-rs"></div>
+    <div class="result-stars" id="sp-rstar">⭐⭐⭐</div>
+    <div class="badge-pill" id="sp-rbadge" style="background:var(--amber-l);color:var(--amber-d)">🏆</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="sp-rc">0</div><div class="result-stat-lbl">ถูกต้อง</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sp-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sp-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--green);color:#fff" onclick="buildThaiSpellLevelGame(document.getElementById('game-container'),spLvDef)">🔄 เล่นอีกครั้ง</button>
+    <button class="home-btn" onclick="buildThaiGame(document.getElementById('game-container'))">← เปลี่ยนโหมด</button>
+  </div>`;
+  spRender();
+}
+
+// Thai L4: fill-in-blank sentence
+let thL4Q=[],thL4Cur=0,thL4Score=0,thL4Streak=0,thL4XP=0;
+function buildThaiSentenceGame(c,lv){
+  thL4Q=shuffle([...TH_L4]).slice(0,6); thL4Cur=0; thL4Score=0; thL4Streak=0; thL4XP=0;
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">ประโยค</div><div class="topbar-right"><button class="sound-btn" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="l4-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="l4-prog" style="width:0%;background:var(--green)"></div></div><div class="progress-label" id="l4-plbl">0/6</div></div>
+  <div class="main-card"><div class="mascot">💬</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px">เลือกคำที่หายไปในประโยค</div>
+    <div id="l4-emoji" style="font-size:42px;text-align:center;margin-bottom:8px"></div>
+    <div id="l4-sentence" style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--text);text-align:center;margin-bottom:16px;line-height:1.6"></div>
+    <div class="choices" id="l4-choices"></div>
+    <div class="feedback" id="l4-fb"></div>
+    <button class="next-btn" id="l4-next" style="background:var(--green);color:#fff" onclick="l4Next()">ต่อไป →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="l4-s1">0</div><div class="stat-lbl">ถูก✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="l4-s2">0</div><div class="stat-lbl">XP⚡</div></div>
+    <div class="stat-card"><div class="stat-val" id="l4-s3">0🔥</div><div class="stat-lbl">Streak</div></div>
+  </div>
+  <div class="result-screen-inner" id="l4-result">
+    <div class="result-emoji" id="l4-re">🎉</div><div class="result-title" id="l4-rt" style="color:var(--green-d)">เยี่ยม!</div>
+    <div class="result-sub" id="l4-rs"></div><div class="result-stars" id="l4-rstar">⭐⭐⭐</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="l4-rc">0</div><div class="result-stat-lbl">ถูกต้อง</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="l4-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="l4-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--green);color:#fff" onclick="buildThaiSentenceGame(document.getElementById('game-container'),null)">🔄 เล่นอีกครั้ง</button>
+    <button class="home-btn" onclick="buildThaiGame(document.getElementById('game-container'))">← เปลี่ยนโหมด</button>
+  </div>`;
+  l4Render();
+}
+function l4Render(){
+  thL4Cur < thL4Q.length || l4ShowResult();
+  const q=thL4Q[thL4Cur];
+  if(!q) return;
+  document.getElementById('l4-prog').style.width=(thL4Cur/thL4Q.length*100)+'%';
+  document.getElementById('l4-plbl').textContent=thL4Cur+'/'+thL4Q.length;
+  document.getElementById('l4-emoji').textContent=q.emoji;
+  document.getElementById('l4-sentence').textContent=q.sentence.replace('___','[ ? ]');
+  document.getElementById('l4-fb').className='feedback';
+  document.getElementById('l4-next').className='next-btn';
+  const ch=document.getElementById('l4-choices'); ch.innerHTML='';
+  shuffle(q.choices).forEach(w=>{
+    const btn=document.createElement('button');btn.className='choice-btn';btn.textContent=w;
+    btn.onclick=()=>{
+      if(btn.classList.contains('correct')||btn.classList.contains('wrong')) return;
+      const ok=w===q.blank;
+      btn.classList.add(ok?'correct':'wrong');
+      if(ok){thL4Score++;thL4Streak++;const xp=Math.max(2,Math.round(10*2.5*(1-(STATE.levelMastery?.thai?.[4]||0))));thL4XP+=xp;addXP('thai',xp,100,null);playTone(thL4Streak>=3?'streak':'correct');if(thL4Streak>=3)spawnConfetti(5);const fb=document.getElementById('l4-fb');fb.className='feedback win show';fb.textContent=q.sentence.replace('___',q.blank)+` +${xp} XP`;}
+      else{thL4Streak=0;playTone('wrong');document.querySelectorAll('#l4-choices .choice-btn').forEach(b=>{if(b.textContent===q.blank)b.classList.add('correct')});const fb=document.getElementById('l4-fb');fb.className='feedback lose show';fb.textContent='คำตอบที่ถูกคือ: '+q.blank;}
+      speakTh(q.sound||q.sentence.replace('___',q.blank));
+      document.getElementById('l4-s1').textContent=thL4Score;document.getElementById('l4-s2').textContent=thL4XP;document.getElementById('l4-s3').textContent=thL4Streak+'🔥';document.getElementById('l4-xp').textContent=thL4XP;
+      document.getElementById('l4-next').className='next-btn show';
+    };ch.appendChild(btn);
+  });
+  speakTh(q.sound||'');
+}
+function l4Next(){playTone('next');thL4Cur++;if(thL4Cur>=thL4Q.length)l4ShowResult();else l4Render();}
+function l4ShowResult(){
+  const p=thL4Score/thL4Q.length;
+  const e=p>=.8?'🏆':p>=.6?'🎉':'😊', t=p>=.8?'ยอดเยี่ยม!':'เก่งมาก!', s=p>=.8?'ประโยคเก่งมาก!':'ลองอีกครั้งนะ!';
+  if(p>=.8){playTone('fanfare');spawnConfetti(20);}else playTone(p>=.6?'streak':'correct');
+  document.getElementById('l4-re').textContent=e;document.getElementById('l4-rt').textContent=t;document.getElementById('l4-rs').textContent=s;
+  document.getElementById('l4-rstar').textContent=p>=.8?'⭐⭐⭐':p>=.6?'⭐⭐☆':'⭐☆☆';
+  document.getElementById('l4-rc').textContent=thL4Score+'/'+thL4Q.length;document.getElementById('l4-rxp').textContent='+'+thL4XP;document.getElementById('l4-rstr').textContent=thL4Streak+'🔥';
+  STATE.streak=Math.max(STATE.streak,thL4Streak);checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;
+  checkLevelUnlock('thai',p);
+  document.getElementById('l4-result').style.display='flex';document.getElementById('l4-result').classList.add('show');
+  saveState(STATE);updateHomeEgg();
+}
+
+// ─── Math Level Game ───
+let mLvDef=null, mAttempts=0;
+function buildMathLevelGame(c, lv) {
+  mLvDef=lv;
+  // Generate questions based on level
+  const container=document.getElementById('game-container');
+  // Reuse existing math HTML but build it fresh
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">Math Lv.${lv.id}</div><div class="topbar-right"><button class="sound-btn" id="m-snd" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="m-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="m-prog" style="width:0%;background:var(--purple)"></div></div><div class="progress-label" id="m-plbl">0/10</div></div>
+  <div style="width:100%;max-width:480px;padding:0 20px 4px"><div style="background:var(--border);border-radius:20px;height:5px;overflow:hidden"><div id="m-timer" style="height:5px;background:var(--amber);border-radius:20px;width:100%;transition:width .1s linear"></div></div></div>
+  <div class="main-card">
+    <div class="mascot" id="m-mascot">🦔</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px" id="m-prompt"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px" id="m-eq-row">
+      <div id="m-a" style="font-family:'Fredoka One',cursive;font-size:58px;color:var(--purple-d);line-height:1">?</div>
+      <div id="m-op" style="font-family:'Fredoka One',cursive;font-size:44px;color:var(--purple)">+</div>
+      <div id="m-b" style="font-family:'Fredoka One',cursive;font-size:58px;color:var(--purple-d);line-height:1">?</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:44px;color:var(--muted)">=</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:58px;color:var(--amber);animation:pulse 1.2s ease-in-out infinite">?</div>
+    </div>
+    <div id="m-dots" style="display:flex;justify-content:center;gap:5px;flex-wrap:wrap;min-height:36px;margin-bottom:14px;padding:0 8px"></div>
+    <div class="choices" id="m-choices"></div>
+    <div class="hint-bar" id="m-hint-bar"><div class="hint-dot" id="mh0"></div><div class="hint-dot" id="mh1"></div><div class="hint-dot" id="mh2"></div></div>
+    <div class="feedback" id="m-fb"></div>
+    <button class="next-btn" id="m-next" style="background:var(--purple);color:#fff" onclick="mNext()">ต่อไป →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="m-s1">0</div><div class="stat-lbl">Streak🔥</div></div>
+    <div class="stat-card"><div class="stat-val" id="m-s2">0</div><div class="stat-lbl">ถูก✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="m-s3">0</div><div class="stat-lbl">XP⚡</div></div>
+  </div>
+  <div class="result-screen-inner" id="m-result">
+    <div class="result-emoji" id="m-re">🎉</div><div class="result-title" id="m-rt" style="color:var(--purple-d)">เก่งมาก!</div>
+    <div class="result-sub" id="m-rs"></div><div class="result-stars" id="m-rstar">⭐⭐⭐</div>
+    <div class="badge-pill" id="m-rbadge" style="background:var(--amber-l);color:var(--amber-d)">🏆</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="m-rc">0</div><div class="result-stat-lbl">ถูกต้อง</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="m-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="m-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--purple);color:#fff" onclick="buildMathLevelGame(document.getElementById('game-container'),mLvDef)">🔄 เล่นอีกครั้ง</button>
+    <button class="home-btn" onclick="buildMathGame(document.getElementById('game-container'))">← Level อื่น</button>
+  </div>`;
+  mStart();
+}
+
+// ─── English Level Games ───
+let engLvDef=null;
+function buildEngLevelGame(c, lv) {
+  engLvDef=lv;
+  if(lv.type==='phonics') { _buildEngGameOld(c); enStart(); return; }
+  if(lv.type==='cvc')     buildEngCVCGame(c,lv);
+  else if(lv.type==='sight')   buildEngSightGame(c,lv);
+  else buildEngSentenceGame(c,lv);
+}
+
+let cvcQ=[],cvcCur=0,cvcScore=0,cvcStreak=0,cvcXP=0,cvcAnswered=false;
+function buildEngCVCGame(c,lv){
+  cvcQ=shuffle([...CVC_WORDS]).slice(0,10);cvcCur=0;cvcScore=0;cvcStreak=0;cvcXP=0;cvcAnswered=false;
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">CVC Words</div><div class="topbar-right"><button class="sound-btn" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="cvc-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="cvc-prog" style="width:0%;background:var(--blue)"></div></div><div class="progress-label" id="cvc-plbl">0/10</div></div>
+  <div class="main-card">
+    <div class="mascot" id="cvc-mascot">🦔</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px">Hear the word → pick the spelling</div>
+    <div id="cvc-emoji" style="font-size:64px;text-align:center;cursor:pointer;margin-bottom:4px" onclick="cvcSpeak()"></div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:14px">แตะเพื่อฟัง 🔊</div>
+    <div class="choices" id="cvc-choices"></div>
+    <div class="feedback" id="cvc-fb"></div>
+    <button class="next-btn" id="cvc-next" style="background:var(--blue);color:#fff" onclick="cvcNext()">Next →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="cvc-s1">0</div><div class="stat-lbl">Streak🔥</div></div>
+    <div class="stat-card"><div class="stat-val" id="cvc-s2">0</div><div class="stat-lbl">Correct✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="cvc-s3">0</div><div class="stat-lbl">XP⚡</div></div>
+  </div>
+  <div class="result-screen-inner" id="cvc-result">
+    <div class="result-emoji" id="cvc-re">🎉</div><div class="result-title" id="cvc-rt" style="color:var(--blue-d)">Great!</div>
+    <div class="result-sub" id="cvc-rs"></div><div class="result-stars" id="cvc-rstar">⭐⭐⭐</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="cvc-rc">0</div><div class="result-stat-lbl">Correct</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="cvc-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="cvc-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--blue);color:#fff" onclick="buildEngCVCGame(document.getElementById('game-container'),engLvDef)">🔄 Play Again</button>
+    <button class="home-btn" onclick="buildEngGame(document.getElementById('game-container'))">← Levels</button>
+  </div>`;
+  cvcRender();
+}
+function cvcSpeak(){const q=cvcQ[cvcCur];if(q)speakEn(q.word,.8);}
+function cvcRender(){
+  cvcAnswered=false;const q=cvcQ[cvcCur];
+  document.getElementById('cvc-prog').style.width=(cvcCur/10*100)+'%';
+  document.getElementById('cvc-plbl').textContent=cvcCur+'/10';
+  document.getElementById('cvc-emoji').textContent=q.emoji;
+  document.getElementById('cvc-mascot').textContent=cvcStreak>=3?'🔥':'🦔';
+  document.getElementById('cvc-fb').className='feedback';
+  document.getElementById('cvc-next').className='next-btn';
+  const ch=document.getElementById('cvc-choices');ch.innerHTML='';
+  const choices=shuffle([q.word,...q.alts]);
+  choices.forEach(w=>{const btn=document.createElement('button');btn.className='choice-btn';btn.style.fontSize='20px';btn.style.fontFamily="'Fredoka One',cursive";btn.textContent=w;
+    btn.onclick=()=>{if(cvcAnswered)return;cvcAnswered=true;const ok=w===q.word;btn.classList.add(ok?'correct':'wrong');
+      if(ok){cvcScore++;cvcStreak++;const xp=Math.max(2,Math.round(10*1.5*(1-(STATE.levelMastery?.eng?.[2]||0))));cvcXP+=xp;addXP('eng',xp,100,null);playTone(cvcStreak>=3?'streak':'correct');if(cvcStreak>=3)spawnConfetti(5);document.getElementById('cvc-fb').className='feedback win show';document.getElementById('cvc-fb').textContent=['Great! 🎉','Correct! ✅','Perfect! 🌟'][Math.floor(Math.random()*3)]+` +${xp} XP`;setTimeout(()=>speakEn(q.word),300);}
+      else{cvcStreak=0;playTone('wrong');choices.forEach((_,i)=>{const b=ch.children[i];if(b.textContent===q.word)b.classList.add('correct');});document.getElementById('cvc-fb').className='feedback lose show';document.getElementById('cvc-fb').textContent=`It's "${q.word}" ${q.emoji}`;setTimeout(()=>speakEn(q.word),300);}
+      document.getElementById('cvc-s1').textContent=cvcStreak+(cvcStreak>=3?'🔥':'');document.getElementById('cvc-s2').textContent=cvcScore;document.getElementById('cvc-s3').textContent=cvcXP;document.getElementById('cvc-xp').textContent=cvcXP;
+      document.getElementById('cvc-next').className='next-btn show';};ch.appendChild(btn);});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>speakEn(q.word,.8)));
+}
+function cvcNext(){playTone('next');cvcCur++;if(cvcCur>=10)cvcShowResult();else cvcRender();}
+function cvcShowResult(){
+  const p=cvcScore/10;
+  const e=p>=.9?'🏆':p>=.7?'🎉':'😊',t=p>=.9?'Phonics Star!':p>=.7?'Great Job!':'Good Try!',s=p>=.9?'CVC champion!':'Keep practicing!';
+  if(p>=.9){playTone('fanfare');spawnConfetti(30);STATE.badges++;}else if(p>=.7)playTone('streak');else playTone('correct');
+  document.getElementById('cvc-re').textContent=e;document.getElementById('cvc-rt').textContent=t;document.getElementById('cvc-rs').textContent=s;
+  document.getElementById('cvc-rstar').textContent=p>=.9?'⭐⭐⭐':p>=.7?'⭐⭐☆':'⭐☆☆';
+  document.getElementById('cvc-rc').textContent=cvcScore+'/10';document.getElementById('cvc-rxp').textContent='+'+cvcXP;document.getElementById('cvc-rstr').textContent=cvcStreak+'🔥';
+  STATE.streak=Math.max(STATE.streak,cvcStreak);checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;
+  checkLevelUnlock('eng',p);
+  document.getElementById('cvc-result').style.display='flex';document.getElementById('cvc-result').classList.add('show');
+  saveState(STATE);updateHomeEgg();
+}
+
+let sightQ=[],sightCur=0,sightScore=0,sightStreak=0,sightXP=0;
+function buildEngSightGame(c,lv){
+  sightQ=shuffle([...SIGHT_DATA]).slice(0,8);sightCur=0;sightScore=0;sightStreak=0;sightXP=0;
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">Sight Words</div><div class="topbar-right"><button class="sound-btn" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="sw-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="sw-prog" style="width:0%;background:var(--blue)"></div></div><div class="progress-label" id="sw-plbl">0/8</div></div>
+  <div class="main-card">
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px">เลือกคำที่หายไป</div>
+    <div id="sw-emoji" style="font-size:42px;text-align:center;margin-bottom:8px"></div>
+    <div id="sw-sent" style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--text);text-align:center;margin-bottom:16px;line-height:1.6"></div>
+    <div class="choices" id="sw-choices"></div>
+    <div class="feedback" id="sw-fb"></div>
+    <button class="next-btn" id="sw-next" style="background:var(--blue);color:#fff" onclick="sightNext()">Next →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="sw-s1">0</div><div class="stat-lbl">Correct✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="sw-s2">0</div><div class="stat-lbl">XP⚡</div></div>
+    <div class="stat-card"><div class="stat-val" id="sw-s3">0</div><div class="stat-lbl">Streak🔥</div></div>
+  </div>
+  <div class="result-screen-inner" id="sw-result">
+    <div class="result-emoji" id="sw-re">🎉</div><div class="result-title" id="sw-rt" style="color:var(--blue-d)">Great!</div>
+    <div class="result-sub" id="sw-rs"></div><div class="result-stars" id="sw-rstar">⭐⭐⭐</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="sw-rc">0</div><div class="result-stat-lbl">Correct</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sw-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="sw-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--blue);color:#fff" onclick="buildEngSightGame(document.getElementById('game-container'),engLvDef)">🔄 Play Again</button>
+    <button class="home-btn" onclick="buildEngGame(document.getElementById('game-container'))">← Levels</button>
+  </div>`;
+  sightRender();
+}
+function sightRender(){
+  const q=sightQ[sightCur];
+  document.getElementById('sw-prog').style.width=(sightCur/sightQ.length*100)+'%';
+  document.getElementById('sw-plbl').textContent=sightCur+'/'+sightQ.length;
+  document.getElementById('sw-emoji').textContent=q.emoji;
+  document.getElementById('sw-sent').textContent=q.sentence;
+  document.getElementById('sw-fb').className='feedback';
+  document.getElementById('sw-next').className='next-btn';
+  const ch=document.getElementById('sw-choices');ch.innerHTML='';
+  shuffle(q.choices).forEach(w=>{const btn=document.createElement('button');btn.className='choice-btn';btn.textContent=w;
+    btn.onclick=()=>{if(btn.classList.contains('correct')||btn.classList.contains('wrong'))return;const ok=w===q.blank;btn.classList.add(ok?'correct':'wrong');
+      if(ok){sightScore++;sightStreak++;const xp=Math.max(2,Math.round(10*2));sightXP+=xp;addXP('eng',xp,100,null);playTone('correct');document.getElementById('sw-fb').className='feedback win show';document.getElementById('sw-fb').textContent=q.sentence.replace('___',q.blank)+` +${xp} XP`;setTimeout(()=>speakEn(q.sentence.replace('___',q.blank),.85),300);}
+      else{sightStreak=0;playTone('wrong');document.querySelectorAll('#sw-choices .choice-btn').forEach(b=>{if(b.textContent===q.blank)b.classList.add('correct');});document.getElementById('sw-fb').className='feedback lose show';document.getElementById('sw-fb').textContent=`"${q.blank}" is correct!`;}
+      document.getElementById('sw-s1').textContent=sightScore;document.getElementById('sw-s2').textContent=sightXP;document.getElementById('sw-s3').textContent=sightStreak+(sightStreak>=3?'🔥':'');document.getElementById('sw-xp').textContent=sightXP;
+      document.getElementById('sw-next').className='next-btn show';};ch.appendChild(btn);});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>speakEn(q.sentence.replace('___','blank'),.8)));
+}
+function sightNext(){playTone('next');sightCur++;if(sightCur>=sightQ.length)sightShowResult();else sightRender();}
+function sightShowResult(){
+  const p=sightScore/sightQ.length;
+  const e=p>=.8?'🏆':p>=.6?'🎉':'😊',t=p>=.8?'Sight Word Star!':'Good Job!';
+  if(p>=.8){playTone('fanfare');spawnConfetti(20);}else playTone('correct');
+  document.getElementById('sw-re').textContent=e;document.getElementById('sw-rt').textContent=t;document.getElementById('sw-rs').textContent=p>=.8?'You know sight words!':'Keep practicing!';
+  document.getElementById('sw-rstar').textContent=p>=.8?'⭐⭐⭐':p>=.6?'⭐⭐☆':'⭐☆☆';
+  document.getElementById('sw-rc').textContent=sightScore+'/'+sightQ.length;document.getElementById('sw-rxp').textContent='+'+sightXP;document.getElementById('sw-rstr').textContent=sightStreak+'🔥';
+  STATE.streak=Math.max(STATE.streak,sightStreak);checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;
+  checkLevelUnlock('eng',p);
+  document.getElementById('sw-result').style.display='flex';document.getElementById('sw-result').classList.add('show');
+  saveState(STATE);updateHomeEgg();
+}
+
+let esSentQ=[],esSentCur=0,esSentScore=0,esSentStreak=0,esSentXP=0,esTyped=[],esDone=false;
+function buildEngSentenceGame(c,lv){
+  esSentQ=shuffle([...ENG_SENTS]).slice(0,8);esSentCur=0;esSentScore=0;esSentStreak=0;esSentXP=0;
+  c.innerHTML=`
+  <div class="topbar"><div class="topbar-logo">Sentences</div><div class="topbar-right"><button class="sound-btn" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="es-xp">0</span></div></div></div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="es-prog" style="width:0%;background:var(--blue)"></div></div><div class="progress-label" id="es-plbl">0/8</div></div>
+  <div class="main-card">
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px">เรียงคำให้เป็นประโยค</div>
+    <div id="es-emoji" style="font-size:48px;text-align:center;margin-bottom:8px;cursor:pointer" onclick="esSentSpeak()"></div>
+    <div id="es-answer-row" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:42px;margin-bottom:12px;padding:8px;background:var(--bg);border-radius:10px;border:1.5px dashed var(--border)"></div>
+    <div id="es-word-tiles" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:4px"></div>
+    <div class="feedback" id="es-fb"></div>
+    <button class="next-btn" id="es-next" style="background:var(--blue);color:#fff" onclick="esNext()">Next →</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="es-s1">0</div><div class="stat-lbl">Correct✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="es-s2">0</div><div class="stat-lbl">XP⚡</div></div>
+    <div class="stat-card"><div class="stat-val" id="es-s3">0</div><div class="stat-lbl">Streak🔥</div></div>
+  </div>
+  <div class="result-screen-inner" id="es-result">
+    <div class="result-emoji" id="es-re">🎉</div><div class="result-title" id="es-rt" style="color:var(--blue-d)">Amazing!</div>
+    <div class="result-sub" id="es-rs"></div><div class="result-stars" id="es-rstar">⭐⭐⭐</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="result-stat-val" id="es-rc">0</div><div class="result-stat-lbl">Correct</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="es-rxp">0</div><div class="result-stat-lbl">XP</div></div>
+      <div class="result-stat"><div class="result-stat-val" id="es-rstr">0</div><div class="result-stat-lbl">Streak</div></div>
+    </div>
+    <button class="replay-btn" style="background:var(--blue);color:#fff" onclick="buildEngSentenceGame(document.getElementById('game-container'),engLvDef)">🔄 Play Again</button>
+    <button class="home-btn" onclick="buildEngGame(document.getElementById('game-container'))">← Levels</button>
+  </div>`;
+  esRender();
+}
+function esSentSpeak(){const q=esSentQ[esSentCur];if(q)speakEn(q.words.join(' '),.82);}
+function esRender(){
+  esDone=false;esTyped=[];
+  const q=esSentQ[esSentCur];
+  document.getElementById('es-prog').style.width=(esSentCur/esSentQ.length*100)+'%';
+  document.getElementById('es-plbl').textContent=esSentCur+'/'+esSentQ.length;
+  document.getElementById('es-emoji').textContent=q.emoji;
+  document.getElementById('es-answer-row').innerHTML='';
+  document.getElementById('es-fb').className='feedback';
+  document.getElementById('es-next').className='next-btn';
+  const tilesWrap=document.getElementById('es-word-tiles');tilesWrap.innerHTML='';
+  shuffle([...q.words]).forEach((w,i)=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='background:var(--card);border:2px solid var(--border);border-radius:10px;padding:8px 14px;font-family:Mitr,sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s';
+    btn.textContent=w; btn.dataset.word=w; btn.dataset.idx=i;
+    btn.onclick=()=>{if(esDone||btn.classList.contains('used'))return;
+      esTyped.push(w);btn.classList.add('used');btn.style.opacity='0';
+      const span=document.createElement('span');span.textContent=w;span.style.cssText='background:var(--blue-l);color:var(--blue-d);border-radius:8px;padding:6px 10px;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;animation:popIn .2s ease';
+      document.getElementById('es-answer-row').appendChild(span);
+      if(esTyped.length===q.words.length) esCheckSentence(q);};
+    tilesWrap.appendChild(btn);
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>speakEn(q.words.join(' '),.8)));
+}
+function esCheckSentence(q){
+  esDone=true;const correct=esTyped.join(' ')===q.words.join(' ');
+  if(correct){esSentScore++;esSentStreak++;const xp=Math.max(2,Math.round(10*2.5));esSentXP+=xp;addXP('eng',xp,100,null);playTone(esSentStreak>=3?'streak':'correct');if(esSentStreak>=3)spawnConfetti(5);document.getElementById('es-fb').className='feedback win show';document.getElementById('es-fb').textContent='Correct! '+q.words.join(' ')+` +${xp} XP`;setTimeout(()=>speakEn(q.words.join(' '),.85),300);}
+  else{esSentStreak=0;playTone('wrong');document.getElementById('es-fb').className='feedback lose show';document.getElementById('es-fb').textContent='Answer: '+q.words.join(' ');}
+  document.getElementById('es-s1').textContent=esSentScore;document.getElementById('es-s2').textContent=esSentXP;document.getElementById('es-s3').textContent=esSentStreak+(esSentStreak>=3?'🔥':'');document.getElementById('es-xp').textContent=esSentXP;
+  document.getElementById('es-next').className='next-btn show';
+}
+function esNext(){playTone('next');esSentCur++;if(esSentCur>=esSentQ.length)esShowResult();else esRender();}
+function esShowResult(){
+  const p=esSentScore/esSentQ.length;
+  const e=p>=.8?'🏆':p>=.6?'🎉':'😊',t=p>=.8?'Sentence Master!':'Good Job!';
+  if(p>=.8){playTone('fanfare');spawnConfetti(25);STATE.badges++;}else playTone('correct');
+  document.getElementById('es-re').textContent=e;document.getElementById('es-rt').textContent=t;document.getElementById('es-rs').textContent=p>=.8?'You can build sentences!':'Keep going!';
+  document.getElementById('es-rstar').textContent=p>=.8?'⭐⭐⭐':p>=.6?'⭐⭐☆':'⭐☆☆';
+  document.getElementById('es-rc').textContent=esSentScore+'/'+esSentQ.length;document.getElementById('es-rxp').textContent='+'+esSentXP;document.getElementById('es-rstr').textContent=esSentStreak+'🔥';
+  STATE.streak=Math.max(STATE.streak,esSentStreak);checkDailyReset();STATE.dailyRounds=(STATE.dailyRounds||0)+1;STATE.rounds++;
+  checkLevelUnlock('eng',p);
+  document.getElementById('es-result').style.display='flex';document.getElementById('es-result').classList.add('show');
+  saveState(STATE);updateHomeEgg();
 }
 
 // ============================================================
@@ -1667,10 +2316,21 @@ function updateEggRunBanner(){
 // EGG RUN
 // ============================================================
 let erCanvas,erCtx,erAnim=null,erRunning=false;
-let erEgg,erObstacles=[],erRings=[],erClouds=[];
+let erEgg,erObstacles=[],erRings=[],erClouds=[],erClouds2=[],erFloats=[];
 let erDist=0,erRingCount=0,erSpawnTimer=0,erRingTimer=0,erFrame=0;
-let erEggOff=null;
+let erEggOff=null,erCombo=0,erComboTimer=0,erLastMilestone=0,erSpeedUpTimer=0;
+let erCountdown=0,erCountdownTimer=null;
 const ER_GRAV=0.55, ER_GY=0.74;
+
+// ── Egg Run SFX ──
+function erSfxJump(){if(!soundOn)return;try{const ctx=getACtx(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.setValueAtTime(200,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(600,ctx.currentTime+.12);g.gain.setValueAtTime(.22,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);o.start(ctx.currentTime);o.stop(ctx.currentTime+.2);}catch(e){}}
+function erSfxRing(){if(!soundOn)return;try{const ctx=getACtx(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=1047;g.gain.setValueAtTime(.18,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);o.start(ctx.currentTime);o.stop(ctx.currentTime+.13);}catch(e){}}
+function erSfxHit(){if(!soundOn)return;try{const ctx=getACtx();[80,60,40].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.value=f;const t=ctx.currentTime+i*.06;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.start(t);o.stop(t+.2);});}catch(e){}}
+function erSfxSpeedUp(){if(!soundOn)return;try{const ctx=getACtx(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(150,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(400,ctx.currentTime+.25);g.gain.setValueAtTime(.14,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.3);o.start(ctx.currentTime);o.stop(ctx.currentTime+.32);}catch(e){}}
+function erSfxMilestone(){if(!soundOn)return;try{const ctx=getACtx();[523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='triangle';o.frequency.value=f;const t=ctx.currentTime+i*.08;g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);o.start(t);o.stop(t+.27);});}catch(e){}}
+function erSfxGameOver(){if(!soundOn)return;try{const ctx=getACtx();[600,400,250,150].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=f;const t=ctx.currentTime+i*.14;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.start(t);o.stop(t+.22);});}catch(e){}}
+function erSfxRecord(){if(!soundOn)return;try{const ctx=getACtx();[523,659,784,1047,1319,1568].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='triangle';o.frequency.value=f;const t=ctx.currentTime+i*.07;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.22);o.start(t);o.stop(t+.24);});}catch(e){}}
+function erSfxCountdown(n){if(!soundOn)return;try{const ctx=getACtx(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=n===0?880:440+n*80;g.gain.setValueAtTime(.25,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(n===0?.4:.2));o.start(ctx.currentTime);o.stop(ctx.currentTime+(n===0?.45:.25));}catch(e){}}
 
 function buildEggRunGame(c) {
   if(erAnim){cancelAnimationFrame(erAnim);erAnim=null;}
@@ -1692,11 +2352,36 @@ function buildEggRunGame(c) {
   saveState(STATE);
   const livesLeft=STATE.eggRunLives;
   const hearts='❤️'.repeat(livesLeft)+'🖤'.repeat(Math.max(0,3-livesLeft));
+  // Show stats screen first
+  c.innerHTML=`<div style="width:100%;max-width:480px;padding:20px;font-family:Mitr,sans-serif">
+    <div style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--text);text-align:center;margin-bottom:16px">🏃 Egg Run</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:14px">
+      <canvas id="er-stats-egg" width="56" height="68" style="border-radius:10px;flex-shrink:0"></canvas>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">ไข่ของ${STATE.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:3px">⚡ ความเร็ว ${Array(Math.min(5,Math.ceil((3+totalXP()/200)/2.4))).fill('⚡').join('')}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:3px">🌟 พลังกระโดด ${Array(Math.min(5,Math.ceil(eggProgress().stage/1.4))).fill('🌟').join('')}</div>
+        <div style="font-size:12px;color:var(--muted)">💫 แม่เหล็ก ring ${Array(Math.min(5,Math.ceil((STATE.happiness||80)/20))).fill('💫').join('')}</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--amber-l);border-radius:12px;margin-bottom:14px">
+      <span style="font-size:13px;color:var(--amber-d)">🏆 Best: ${STATE.erBestDist||0}m</span>
+      <span style="font-size:13px;color:var(--amber-d)">💛 ${STATE.erBestRings||0} rings</span>
+      <span style="font-size:13px;color:var(--amber-d)">${hearts}</span>
+    </div>
+    <button onclick="erStartRun(document.getElementById('game-container'))" style="width:100%;background:var(--purple);color:#fff;border:none;border-radius:12px;padding:14px;font-family:Mitr,sans-serif;font-size:16px;font-weight:600;cursor:pointer">🏃 เริ่มวิ่ง!</button>
+  </div>`;
+  requestAnimationFrame(()=>{const ec=document.getElementById('er-stats-egg');if(ec)drawEgg(ec,buildEggStats());});
+}
+
+function erStartRun(c) {
   const cW=Math.min(window.innerWidth,480);
   const cH=Math.max(220,Math.min(300,window.innerHeight-140));
   c.innerHTML='';
   const wrap=document.createElement('div');
   wrap.style.cssText='width:100%;max-width:480px;display:flex;flex-direction:column;align-items:stretch;';
+  const livesLeft=STATE.eggRunLives||0;
+  const hearts='❤️'.repeat(livesLeft)+'🖤'.repeat(Math.max(0,3-livesLeft));
   const hud=document.createElement('div');
   hud.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:6px 16px 4px;font-family:Mitr,sans-serif;';
   hud.innerHTML='<span style="font-size:13px;color:var(--text)">📏 <span id="er-dist">0</span>m</span><span style="font-size:13px" id="er-lives">'+hearts+'</span><span style="font-size:13px;color:#B8860B">💛 <span id="er-rings">0</span></span>';
@@ -1710,10 +2395,30 @@ function buildEggRunGame(c) {
   cvs.addEventListener('touchstart',erJump,{passive:true});
   cvs.addEventListener('mousedown',erJump);
   document.addEventListener('keydown',erKeyDown);
-  erInit(); erLoop();
+  erInit(); erDoCountdown();
 }
 
 function erKeyDown(e){if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();erJump();}}
+
+function erDoCountdown() {
+  erCountdown=3; erRunning=false;
+  const tick=()=>{
+    erDrawCountdown(erCountdown);
+    erSfxCountdown(erCountdown);
+    erCountdown--;
+    if(erCountdown<0){erRunning=true;erLoop();}
+    else erCountdownTimer=setTimeout(tick,900);
+  };
+  tick();
+}
+function erDrawCountdown(n) {
+  const W=erCanvas.width,H=erCanvas.height,ctx=erCtx;
+  erDraw();
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';ctx.fillStyle='#fff';
+  if(n>0){ctx.font=`bold ${Math.round(W*.22)}px 'Fredoka One',cursive`;ctx.fillText(n,W/2,H/2+20);}
+  else{ctx.font=`bold ${Math.round(W*.13)}px 'Fredoka One',cursive`;ctx.fillText('GO! 🏃',W/2,H/2+14);}
+}
 
 function erInit() {
   const gY=Math.floor(erCanvas.height*ER_GY);
@@ -1721,19 +2426,22 @@ function erInit() {
   const spd=Math.min(12,3+totalXP()/200);
   const jf=-(8+stage*1.5);
   const mag=10+(STATE.happiness||80)*0.4;
-  erEgg={x:70,y:gY-40,vy:0,onGround:true,w:32,h:40,speed:spd,jumpForce:jf,mag};
-  erObstacles=[];erRings=[];erClouds=[];
+  erEgg={x:70,y:gY-40,vy:0,onGround:true,w:32,h:40,speed:spd,jumpForce:jf,mag,bobPhase:0,flash:0};
+  erObstacles=[];erRings=[];erClouds=[];erClouds2=[];erFloats=[];
   erDist=0;erRingCount=0;erSpawnTimer=0;erRingTimer=0;erFrame=0;
+  erCombo=0;erComboTimer=0;erLastMilestone=0;erSpeedUpTimer=0;
   erRunning=true;
   erEggOff=document.createElement('canvas');
   erEggOff.width=32;erEggOff.height=40;
   drawEgg(erEggOff,buildEggStats());
-  for(let i=0;i<4;i++) erClouds.push({x:60+i*120,y:15+Math.random()*45,w:50+Math.random()*40,s:0.25+Math.random()*0.2});
+  const W=erCanvas.width;
+  for(let i=0;i<3;i++) erClouds.push({x:60+i*160,y:20+Math.random()*40,w:60+Math.random()*50,s:0.2+Math.random()*.15});
+  for(let i=0;i<5;i++) erClouds2.push({x:30+i*100,y:50+Math.random()*30,w:30+Math.random()*30,s:0.5+Math.random()*.3});
 }
 
 function erJump(){
   if(!erRunning)return;
-  if(erEgg&&erEgg.onGround){erEgg.vy=erEgg.jumpForce;erEgg.onGround=false;playTone('click');}
+  if(erEgg&&erEgg.onGround){erEgg.vy=erEgg.jumpForce;erEgg.onGround=false;erSfxJump();}
 }
 
 function erLoop(){
@@ -1747,53 +2455,69 @@ function erLoop(){
 function erUpdate(){
   const W=erCanvas.width,H=erCanvas.height;
   const gY=Math.floor(H*ER_GY);
-  const spd=erEgg.speed+(erDist/2000);
+  const spd=Math.min(18,erEgg.speed+(erDist/2000));
   erFrame++;
+  // egg bob on ground
+  erEgg.bobPhase=(erEgg.bobPhase||0)+0.15;
+  const bobY=erEgg.onGround?Math.sin(erEgg.bobPhase)*1.5:0;
   // egg physics
   erEgg.vy+=ER_GRAV; erEgg.y+=erEgg.vy;
   if(erEgg.y>=gY-erEgg.h){erEgg.y=gY-erEgg.h;erEgg.vy=0;erEgg.onGround=true;}
-  // distance
+  erEgg.bobOffset=bobY;
+  if(erEgg.flash>0) erEgg.flash--;
+  // distance + milestone
+  const prevDist=erDist;
   erDist+=spd/60;
-  const distEl=document.getElementById('er-dist');
-  if(distEl)distEl.textContent=Math.floor(erDist);
-  // spawn obstacles — interval shrinks with distance
+  const distEl=document.getElementById('er-dist');if(distEl)distEl.textContent=Math.floor(erDist);
+  const mile=Math.floor(erDist/100);
+  if(mile>erLastMilestone&&erDist>10){erLastMilestone=mile;erSfxMilestone();spawnConfetti(10);erFloats.push({x:W/2,y:H*.4,text:mile*100+'m! 🎉',life:80,vy:-1.2,scale:1.4});}
+  // speed up every 50m
+  erSpeedUpTimer+=(spd/60);
+  if(erSpeedUpTimer>=50&&Math.floor(erDist/50)>Math.floor(prevDist/50)){erSpeedUpTimer=0;erSfxSpeedUp();erFloats.push({x:W*.7,y:gY-60,text:'⚡ Speed up!',life:50,vy:-0.8,scale:1});}
+  // combo timer decay
+  if(erComboTimer>0)erComboTimer--;else if(erComboTimer<=0&&erCombo>0)erCombo=0;
+  // spawn obstacles
   erSpawnTimer++;
-  const si=Math.max(55,140-Math.floor(erDist*0.08));
+  const si=Math.max(50,130-Math.floor(erDist*0.1));
   if(erSpawnTimer>si){
     erSpawnTimer=0;
-    const h=28+Math.random()*28;
-    erObstacles.push({x:W+20,y:gY-h,w:20,h});
+    const h=24+Math.random()*32,isPit=Math.random()<.25&&erDist>100;
+    if(isPit) erObstacles.push({x:W+20,y:gY,w:50+Math.random()*30,h:H,isPit:true});
+    else erObstacles.push({x:W+20,y:gY-h,w:18+Math.random()*12,h});
   }
-  // spawn rings in arcs
+  // spawn rings
   erRingTimer++;
-  if(erRingTimer>36){
-    erRingTimer=0;
-    if(Math.random()<0.72){
-      const ry=gY-22-Math.random()*55;
-      for(let i=0;i<3;i++) erRings.push({x:W+18+i*26,y:ry+(i===1?-12:0),col:false});
-    }
-  }
+  if(erRingTimer>32){erRingTimer=0;if(Math.random()<.75){const ry=gY-20-Math.random()*60;for(let i=0;i<3;i++)erRings.push({x:W+18+i*26,y:ry+(i===1?-14:0),col:false,angle:Math.random()*Math.PI*2});}}
   // move obstacles
-  for(const o of erObstacles) o.x-=spd;
-  erObstacles=erObstacles.filter(o=>o.x>-40);
-  // move rings + magnet collect
-  const mag=erEgg.mag;
+  for(const o of erObstacles)o.x-=spd;
+  erObstacles=erObstacles.filter(o=>o.x>-80);
+  // rings + magnet + combo
   for(const r of erRings){
-    r.x-=spd;
+    r.x-=spd; r.angle+=0.08;
     if(!r.col){
-      const dx=(erEgg.x+16)-r.x, dy=(erEgg.y+20)-r.y;
-      const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<mag){r.x+=dx*0.18;r.y+=dy*0.18;}
-      if(d<16){r.col=true;erRingCount++;const rel=document.getElementById('er-rings');if(rel)rel.textContent=erRingCount;playTone('click');}
+      const dx=(erEgg.x+16)-r.x,dy=(erEgg.y+20)-r.y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<erEgg.mag){r.x+=dx*.18;r.y+=dy*.18;}
+      if(d<16){
+        r.col=true;erRingCount++;erCombo++;erComboTimer=80;
+        const rel=document.getElementById('er-rings');if(rel)rel.textContent=erRingCount;
+        erSfxRing();
+        erFloats.push({x:r.x,y:r.y,text:'+1',life:40,vy:-1,scale:.9});
+        if(erCombo>=5&&erCombo%5===0){erFloats.push({x:W/2,y:H*.5,text:'COMBO! x'+Math.floor(erCombo/5+1)+'🔥',life:60,vy:-1,scale:1.3});spawnConfetti(4);}
+      }
     }
   }
   erRings=erRings.filter(r=>r.x>-20);
+  // floats
+  for(const f of erFloats){f.y+=f.vy;f.life--;}
+  erFloats=erFloats.filter(f=>f.life>0);
   // clouds drift
-  for(const cl of erClouds){cl.x-=cl.s;if(cl.x<-90)cl.x=W+60;}
-  // collision (rock vs egg — shrink hitbox slightly for fairness)
+  for(const cl of erClouds){cl.x-=cl.s;if(cl.x<-100)cl.x=W+80;}
+  for(const cl of erClouds2){cl.x-=cl.s;if(cl.x<-60)cl.x=W+50;}
+  // collision
   const eL=erEgg.x+5,eR=erEgg.x+erEgg.w-5,eT=erEgg.y+5,eB=erEgg.y+erEgg.h-2;
   for(const o of erObstacles){
-    if(eR>o.x&&eL<o.x+o.w&&eB>o.y&&eT<o.y+o.h){erRunning=false;return;}
+    if(o.isPit){if(eR>o.x&&eL<o.x+o.w&&eB>gY+4){erRunning=false;return;}}
+    else if(eR>o.x&&eL<o.x+o.w&&eB>o.y&&eT<o.y+o.h){erEgg.flash=18;erRunning=false;return;}
   }
 }
 
@@ -1801,47 +2525,86 @@ function erDraw(){
   const W=erCanvas.width,H=erCanvas.height,ctx=erCtx;
   const gY=Math.floor(H*ER_GY);
   ctx.clearRect(0,0,W,H);
-  // sky
-  const sky=ctx.createLinearGradient(0,0,0,gY);
-  sky.addColorStop(0,'#5BA8D4');sky.addColorStop(1,'#B8DDF0');
+  // Dynamic sky colour based on distance
+  const phase=Math.min(1,erDist/400);
+  const skyTop=phase<.5?`hsl(${210-phase*40},${70-phase*10}%,${55+phase*10}%)`:`hsl(${170+phase*80},60%,${65-phase*20}%)`;
+  const skyBot=phase<.5?`hsl(${200-phase*30},60%,${72+phase*8}%)`:`hsl(${20+phase*60},80%,${75-phase*20}%)`;
+  const sky=ctx.createLinearGradient(0,0,0,gY);sky.addColorStop(0,skyTop);sky.addColorStop(1,skyBot);
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,gY);
-  // clouds
+  // Far clouds (parallax layer 1 — slow, faint)
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  for(const cl of erClouds){ctx.beginPath();ctx.ellipse(cl.x,cl.y,cl.w/2,10,0,0,Math.PI*2);ctx.fill();}
+  // Near clouds (parallax layer 2 — faster, more opaque)
   ctx.fillStyle='rgba(255,255,255,0.82)';
-  for(const cl of erClouds){
-    ctx.beginPath();ctx.ellipse(cl.x,cl.y,cl.w/2,13,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cl.x-14,cl.y+5,cl.w*.3,9,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cl.x+14,cl.y+5,cl.w*.3,9,0,0,Math.PI*2);ctx.fill();
+  for(const cl of erClouds2){
+    ctx.beginPath();ctx.ellipse(cl.x,cl.y,cl.w/2,11,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cl.x-10,cl.y+4,cl.w*.3,7,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cl.x+10,cl.y+4,cl.w*.3,7,0,0,Math.PI*2);ctx.fill();
   }
-  // ground
+  // Ground
   ctx.fillStyle='#56A832';ctx.fillRect(0,gY,W,7);
   ctx.fillStyle='#3D7A24';ctx.fillRect(0,gY+7,W,H-gY-7);
-  // ground texture lines
-  ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;
-  for(let gx=(erFrame*erEgg.speed*.6)%22;gx<W;gx+=22){ctx.beginPath();ctx.moveTo(gx,gY+7);ctx.lineTo(gx+11,gY+13);ctx.stroke();}
-  // obstacles (rocks)
-  for(const o of erObstacles){
-    const g2=ctx.createLinearGradient(o.x,o.y,o.x+o.w,o.y+o.h);
-    g2.addColorStop(0,'#9E9E9E');g2.addColorStop(1,'#5A5A5A');
-    ctx.fillStyle=g2;
-    ctx.beginPath();ctx.moveTo(o.x+o.w/2,o.y);ctx.lineTo(o.x+o.w+3,o.y+o.h);ctx.lineTo(o.x-3,o.y+o.h);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='#424242';ctx.lineWidth=1;ctx.stroke();
+  // Grass tufts
+  ctx.fillStyle='#4CAF50';
+  const grassOff=(erFrame*(erEgg.speed||3)*.5)%28;
+  for(let gx=-grassOff;gx<W+28;gx+=28){
+    ctx.beginPath();ctx.moveTo(gx,gY+7);ctx.quadraticCurveTo(gx+4,gY,gx+8,gY+7);ctx.fill();
+    ctx.beginPath();ctx.moveTo(gx+14,gY+7);ctx.quadraticCurveTo(gx+18,gY+1,gx+22,gY+7);ctx.fill();
   }
-  // rings
+  // Obstacles
+  for(const o of erObstacles){
+    if(o.isPit){
+      ctx.fillStyle='#1a1a1a';ctx.fillRect(o.x,gY,o.w,H-gY);
+      ctx.fillStyle='#5D3A1A';ctx.fillRect(o.x-4,gY-3,o.w+8,6);
+    } else {
+      const sz=Math.min(1.2,o.h/40);
+      const g2=ctx.createLinearGradient(o.x,o.y,o.x+o.w,o.y+o.h);
+      g2.addColorStop(0,'#A0A0A0');g2.addColorStop(1,'#4A4A4A');
+      ctx.fillStyle=g2;
+      ctx.beginPath();ctx.moveTo(o.x+o.w/2,o.y);ctx.lineTo(o.x+o.w+4*sz,o.y+o.h);ctx.lineTo(o.x-4*sz,o.y+o.h);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.stroke();
+      // rock texture
+      ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=.5;
+      ctx.beginPath();ctx.moveTo(o.x+o.w*.4,o.y+o.h*.3);ctx.lineTo(o.x+o.w*.2,o.y+o.h*.7);ctx.stroke();
+    }
+  }
+  // Rings with rotation
   for(const r of erRings){
     if(r.col)continue;
-    ctx.save();
+    ctx.save();ctx.translate(r.x,r.y);ctx.rotate(r.angle||0);
     ctx.strokeStyle='#FFD700';ctx.lineWidth=2.5;
-    ctx.shadowColor='#FFD700';ctx.shadowBlur=7;
-    ctx.beginPath();ctx.arc(r.x,r.y,7,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='rgba(255,215,0,0.2)';ctx.fill();
+    ctx.shadowColor='#FFD700';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.ellipse(0,0,7,5,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(255,215,0,0.25)';ctx.fill();
     ctx.restore();
   }
-  // egg
-  if(erEggOff) ctx.drawImage(erEggOff,Math.round(erEgg.x),Math.round(erEgg.y),erEgg.w,erEgg.h);
-  // speed indicator
-  const spd=Math.min(12,3+totalXP()/200+(erDist/2000));
-  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='10px Mitr,sans-serif';ctx.textAlign='left';
-  ctx.fillText('⚡'+spd.toFixed(1),6,H-8);ctx.textAlign='start';
+  // Egg with animation
+  if(erEggOff){
+    const eY=Math.round(erEgg.y+(erEgg.bobOffset||0));
+    const angle=erEgg.onGround?0:(erEgg.vy<0?-0.12:0.12);
+    ctx.save();
+    if(erEgg.flash>0){ctx.filter=`brightness(${1+erEgg.flash*.1}) saturate(0.2) sepia(1) hue-rotate(-20deg)`;}
+    ctx.translate(erEgg.x+erEgg.w/2,eY+erEgg.h/2);
+    ctx.rotate(angle);
+    const scaleX=erEgg.onGround?1:0.95, scaleY=erEgg.onGround?1:1.05;
+    ctx.scale(scaleX,scaleY);
+    ctx.drawImage(erEggOff,-erEgg.w/2,-erEgg.h/2,erEgg.w,erEgg.h);
+    ctx.restore();
+  }
+  // Float texts (+1, COMBO, milestone)
+  ctx.textAlign='center';
+  for(const f of erFloats){
+    const alpha=Math.min(1,f.life/20);
+    ctx.save();ctx.globalAlpha=alpha;ctx.font=`bold ${Math.round(14*f.scale)}px 'Fredoka One',cursive`;
+    ctx.fillStyle=f.text.startsWith('+')?'#FFD700':f.text.includes('COMBO')?'#FF6B35':'#fff';
+    ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=2;ctx.strokeText(f.text,f.x,f.y);
+    ctx.fillText(f.text,f.x,f.y);ctx.restore();
+  }
+  ctx.textAlign='start';
+  // Speed HUD
+  const spd=Math.min(18,3+totalXP()/200+(erDist/2000));
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='10px Mitr,sans-serif';
+  ctx.fillText('⚡'+spd.toFixed(1),6,H-8);
 }
 
 function erDrawGameOver(){
@@ -1862,7 +2625,7 @@ function erDrawGameOver(){
   }
   const dist=Math.floor(erDist);
   const newBest=dist>(STATE.erBestDist||0);
-  if(newBest)STATE.erBestDist=dist;
+  if(newBest){STATE.erBestDist=dist;erSfxRecord();}else erSfxGameOver();
   STATE.erBestRings=Math.max(STATE.erBestRings||0,rc);
   saveState(STATE);
   if(newBest)showToast('🏆 สถิติใหม่! '+dist+'m');
@@ -1882,7 +2645,7 @@ function erDrawGameOver(){
   if(livesLeft>0){
     ctx.fillStyle='rgba(255,255,255,0.14)';ctx.fillRect(W/2-72,livesY-18,144,34);
     ctx.fillStyle='#fff';ctx.font="14px Mitr,sans-serif";ctx.fillText('▶ เล่นอีกครั้ง (❤️×'+livesLeft+')',W/2,livesY+2);
-    const onRestart=()=>{erCanvas.removeEventListener('click',onRestart);erCanvas.removeEventListener('touchstart',onRestart);buildEggRunGame(document.getElementById('game-container'));};
+    const onRestart=()=>{erCanvas.removeEventListener('click',onRestart);erCanvas.removeEventListener('touchstart',onRestart);erStartRun(document.getElementById('game-container'));};
     erCanvas.addEventListener('click',onRestart,{once:true});
     erCanvas.addEventListener('touchstart',onRestart,{once:true,passive:true});
   } else {
@@ -1898,6 +2661,9 @@ function erDrawGameOver(){
 let mQ=[],mCur=0,mScore=0,mStreak=0,mAnswered=false,mXP=0,mTimer=null,mTimeLeft=15;
 
 function buildMathGame(c){
+  buildLevelSelector(c,'math');
+}
+function _buildMathGameOld(c){
   c.innerHTML=`
   <div class="topbar"><div class="topbar-logo">Math</div><div class="topbar-right"><button class="sound-btn" id="m-snd" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="m-xp">0</span></div></div></div>
   <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="m-prog" style="width:0%;background:var(--purple)"></div></div><div class="progress-label" id="m-plbl">0/10</div></div>
@@ -1934,19 +2700,45 @@ function buildMathGame(c){
   </div>`;
   mStart();
 }
-function mGenQ(){const mx=[5,10,20][Math.min(2,STATE.grade)];const a=Math.floor(Math.random()*mx)+1,b=Math.floor(Math.random()*(mx-a+1))+1,ans=a+b;const w=new Set();while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>0)w.add(v)}return{a,b,answer:ans,choices:shuffle([ans,...w])}}
+function mGenQ(){
+  const lv=mLvDef||{range:[1,10],op:'add',timer:15};
+  if(lv.op==='word'){
+    const pool=shuffle([...MATH_WORDS]);
+    const q=pool[Math.floor(Math.random()*pool.length)];
+    const w=new Set();while(w.size<3){const v=q.ans+(Math.floor(Math.random()*5)-2);if(v!==q.ans&&v>=0)w.add(v);}
+    return{a:q.a,b:q.b,op:q.op,answer:q.ans,choices:shuffle([q.ans,...w]),story:q.story,isWord:true};
+  }
+  const mx=lv.range[1];
+  let a,b,ans,op='+';
+  if(lv.op==='sub'||lv.op==='mixed'&&Math.random()>.5){
+    op='-'; a=Math.floor(Math.random()*mx)+2; b=Math.floor(Math.random()*a)+1; ans=a-b;
+  } else {
+    a=Math.floor(Math.random()*mx)+1; b=Math.floor(Math.random()*(mx-a+1))+1; ans=a+b;
+  }
+  const w=new Set();while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v);}
+  return{a,b,op,answer:ans,choices:shuffle([ans,...w])};
+}
 function mStart(){
   getACtx();clearInterval(mTimer);
-  mQ=Array.from({length:10},()=>mGenQ());mCur=0;mScore=0;mStreak=0;mAnswered=false;mXP=0;
+  mQ=Array.from({length:10},()=>mGenQ());mCur=0;mScore=0;mStreak=0;mAnswered=false;mXP=0;mAttempts=0;
   document.getElementById('m-xp').textContent=0;
   document.getElementById('m-result').classList.remove('show');document.getElementById('m-result').style.display='none';
   mRender();
 }
 function mRender(){
-  mAnswered=false;
+  mAnswered=false; mAttempts=0;
   const q=mQ[mCur];
   document.getElementById('m-prog').style.width=(mCur/10*100)+'%';
   document.getElementById('m-plbl').textContent=mCur+'/10';
+  // reset hint dots
+  [0,1,2].forEach(i=>{const d=document.getElementById('mh'+i);if(d)d.classList.remove('active');});
+  // word problem layout
+  const eqRow=document.getElementById('m-eq-row');
+  const prompt=document.getElementById('m-prompt');
+  if(q.isWord){eqRow.style.display='none';if(prompt){prompt.style.cssText='font-size:13px;color:var(--text);text-align:center;margin-bottom:10px;line-height:1.7;padding:0 8px';prompt.textContent=q.story;}}
+  else{if(eqRow)eqRow.style.display='flex';if(prompt){prompt.style.cssText='font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px';prompt.textContent='เลือกคำตอบที่ถูก';}}
+  // timer duration from level
+  const timerSec=(mLvDef?.timer)||15;
   const ea=document.getElementById('m-a'),eb=document.getElementById('m-b');
   ea.textContent=q.a;eb.textContent=q.b;
   ea.classList.remove('pop');eb.classList.remove('pop');void ea.offsetWidth;ea.classList.add('pop');setTimeout(()=>{void eb.offsetWidth;eb.classList.add('pop')},100);
@@ -1960,12 +2752,12 @@ function mRender(){
   document.getElementById('m-fb').className='feedback';
   document.getElementById('m-next').className='next-btn';
   // timer
-  clearInterval(mTimer);mTimeLeft=15;
+  clearInterval(mTimer);mTimeLeft=timerSec;
   document.getElementById('m-timer').style.background='var(--amber)';
   document.getElementById('m-timer').style.width='100%';
   mTimer=setInterval(()=>{
     mTimeLeft-=.1;
-    document.getElementById('m-timer').style.width=(mTimeLeft/15*100)+'%';
+    document.getElementById('m-timer').style.width=(mTimeLeft/timerSec*100)+'%';
     if(mTimeLeft<=4)document.getElementById('m-timer').style.background='var(--red)';
     if(mTimeLeft<=0){clearInterval(mTimer);if(!mAnswered)mTimeout(q)}
   },100);
@@ -1978,26 +2770,39 @@ function mTimeout(q){
   document.getElementById('m-next').className='next-btn show';
 }
 function mCheck(correct,btn,q){
-  if(mAnswered)return;mAnswered=true;clearInterval(mTimer);
+  if(mAnswered)return;
   if(correct){
+    mAnswered=true;clearInterval(mTimer);
     btn.classList.add('correct');mScore++;mStreak++;
-    const earned=10+(mStreak>=3?5:0);mXP+=earned;
-    const speed=Math.round((1-mTimeLeft/15)*100);
-    addXP('math',earned,100,speed);
+    const diff=(mLvDef?.diff)||1;
+    const prevM=(STATE.levelMastery?.math?.[mLvDef?.id||1])||0;
+    const timerSec=(mLvDef?.timer)||15;
+    const earned=Math.max(2,Math.round(10*diff*(1-prevM)))+(mStreak>=3?5:0);mXP+=earned;
+    addXP('math',earned,100,Math.round((1-mTimeLeft/timerSec)*100));
     if(mStreak>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');
     const fb=document.getElementById('m-fb');fb.className='feedback win show';
     fb.textContent=['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP`;
-    setTimeout(()=>speakTh(['เก่งมาก','ถูกต้อง'][Math.floor(Math.random()*2)]+' '+q.a+' บวก '+q.b+' เท่ากับ '+q.answer),300);
-  }else{
-    btn.classList.add('wrong');mStreak=0;playTone('wrong');
-    document.querySelectorAll('#m-choices .choice-btn').forEach(b=>{if(+b.dataset.val===q.answer)b.classList.add('correct')});
-    const fb=document.getElementById('m-fb');fb.className='feedback lose show';fb.textContent=`ไม่เป็นไร! ${q.a}+${q.b}=${q.answer}`;
-    setTimeout(()=>speakTh(q.a+' บวก '+q.b+' เท่ากับ '+q.answer),300);
+    if(!q.isWord)setTimeout(()=>speakTh(q.a+(q.op==='-'?' ลบ ':' บวก ')+q.b+' เท่ากับ '+q.answer),300);
+    document.getElementById('m-next').className='next-btn show';
+  } else {
+    mAttempts++;
+    const hd=document.getElementById('mh'+(mAttempts-1));if(hd)hd.classList.add('active');
+    btn.classList.add('wrong');setTimeout(()=>btn.classList.remove('wrong'),400);
+    playTone('wrong');mStreak=0;
+    const fb=document.getElementById('m-fb');
+    if(mAttempts===1){fb.className='feedback lose show';fb.textContent='ไม่ถูก ลองอีกครั้ง! 🤔';}
+    else if(mAttempts===2){fb.className='feedback lose show';fb.textContent='Hint: นับจุดช่วยได้!';const dots=document.getElementById('m-dots');if(dots)Array.from(dots.children).forEach(d=>{d.style.outline='2px solid var(--amber)';});}
+    else{
+      mAnswered=true;clearInterval(mTimer);
+      document.querySelectorAll('#m-choices .choice-btn').forEach(b=>{if(+b.dataset.val===q.answer)b.classList.add('correct');});
+      fb.className='feedback lose show';fb.textContent=`คำตอบคือ ${q.answer}${q.isWord?'':' ('+q.a+(q.op==='-'?'−':'+')+q.b+')'}`;
+      if(!q.isWord)setTimeout(()=>speakTh(q.a+(q.op==='-'?' ลบ ':' บวก ')+q.b+' เท่ากับ '+q.answer),300);
+      document.getElementById('m-next').className='next-btn show';
+    }
   }
   document.getElementById('m-s1').textContent=mStreak+(mStreak>=3?'🔥':'');
   document.getElementById('m-s2').textContent=mScore;
   document.getElementById('m-s3').textContent=mXP;
-  document.getElementById('m-next').className='next-btn show';
 }
 function mNext(){playTone('next');mCur++;if(mCur>=10)mShowResult();else mRender()}
 function mShowResult(){
@@ -2015,6 +2820,7 @@ function mShowResult(){
   STATE.streak = Math.max(STATE.streak, mStreak);
   checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
+  checkLevelUnlock('math', mScore/10);
   document.getElementById('m-result').style.display='flex';document.getElementById('m-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
 }
@@ -2076,6 +2882,9 @@ const EN_ALPHA=[
 let enQ=[],enCur=0,enScore=0,enStreak=0,enAnswered=false,enXP=0;
 
 function buildEngGame(c){
+  buildLevelSelector(c,'eng');
+}
+function _buildEngGameOld(c){
   c.innerHTML=`
   <div class="topbar"><div class="topbar-logo">Phonics</div><div class="topbar-right"><button class="sound-btn" id="en-snd" onclick="toggleSound(this)">🔊</button><div class="xp-pill">⚡<span id="en-xp">0</span></div></div></div>
   <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="en-prog" style="width:0%;background:var(--blue)"></div></div><div class="progress-label" id="en-plbl">0/10</div></div>
@@ -2191,6 +3000,7 @@ function enShowResult(){
   STATE.streak = Math.max(STATE.streak, enStreak);
   checkDailyReset(); STATE.dailyRounds=(STATE.dailyRounds||0)+1;
   STATE.rounds++;
+  checkLevelUnlock('eng', enScore/10);
   document.getElementById('en-result').style.display='flex';document.getElementById('en-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
 }
@@ -2508,6 +3318,8 @@ function generateRecommendations() {
 }
 decayHappiness();
 checkDailyReset(); checkLivesReset();
+if(!STATE.subjectLevels){STATE.subjectLevels={thai:Math.max(1,STATE.thSpellLevel||1),math:1,eng:1};STATE.levelMastery={thai:{},math:{},eng:{}};STATE.seenTeach=[];saveState(STATE);}
+if(!STATE.levelMastery){STATE.levelMastery={thai:{},math:{},eng:{}};saveState(STATE);}
 if (STATE.hatching) { STATE.hatching = false; saveState(STATE); }
 if (!STATE.items) STATE.items = {food:2,star:0,ribbon:0,potion:0};
 // Fix rounds: if rounds > correctAnswers it means old counting (per question)

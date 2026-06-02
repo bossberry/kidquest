@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>KidQuest</title>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#FFFDF7;--card:#fff;--text:#1a1a1a;--muted:#6b6b6b;
@@ -271,6 +272,16 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .recommend-item{background:var(--purple-l);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;color:var(--purple-d);line-height:1.6}
 .recommend-item:last-child{margin-bottom:0}
 .strength-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;margin:2px}
+/* AUTH */
+.auth-login-btn{background:var(--purple-l);color:var(--purple-d);border:none;border-radius:16px;padding:5px 12px;font-family:'Mitr',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.auth-login-btn:hover{background:var(--purple);color:#fff}
+.auth-avatar{width:30px;height:30px;border-radius:50%;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer}
+.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:980;display:none;align-items:flex-end;justify-content:center}
+.auth-overlay.show{display:flex;animation:fadeIn .2s ease}
+.auth-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 24px 40px;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+.auth-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Mitr',sans-serif;font-size:15px;color:var(--text);background:var(--bg);margin-bottom:10px;box-sizing:border-box}
+.auth-input:focus{outline:none;border-color:var(--purple)}
+.auth-btn-row{display:flex;gap:10px;margin-top:4px}
 
 /* ===== SPELL GAME ===== */
 .spell-mode-btn{border:2px solid var(--border);border-radius:var(--r);padding:16px 18px;cursor:pointer;background:var(--card);text-align:left;font-family:'Mitr',sans-serif;transition:all .15s;display:block;width:100%}
@@ -390,7 +401,10 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 <div class="screen active" id="home">
   <div class="home-header">
     <div class="home-logo">KidQuest</div>
-    <div class="home-xp">⚡ <span id="home-xp-total">0</span> XP</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="home-xp">⚡ <span id="home-xp-total">0</span> XP</div>
+      <div id="auth-area"><button class="auth-login-btn" onclick="showAuthModal()">Login</button></div>
+    </div>
   </div>
 
   <!-- EGG -->
@@ -503,6 +517,23 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
   </div>
 </div>
 
+<!-- AUTH MODAL -->
+<div class="auth-overlay" id="auth-overlay" onclick="closeAuthModal(event)">
+  <div class="auth-sheet">
+    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px"></div>
+    <div style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--text);margin-bottom:4px">เข้าสู่ระบบ</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px">login เพื่อ sync ข้อมูลข้ามอุปกรณ์ · ยังไม่ login ก็เล่นได้ปกติ</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="Email" autocomplete="email">
+    <input class="auth-input" id="auth-password" type="password" placeholder="Password (อย่างน้อย 6 ตัว)" autocomplete="current-password">
+    <div id="auth-msg" style="font-size:12px;color:var(--red);margin-bottom:8px;min-height:18px"></div>
+    <div class="auth-btn-row">
+      <button onclick="authSignIn()" style="flex:1;background:var(--purple);color:#fff;border:none;border-radius:10px;padding:13px;font-family:Mitr,sans-serif;font-size:15px;font-weight:600;cursor:pointer">Login</button>
+      <button onclick="authSignUp()" style="flex:1;background:var(--purple-l);color:var(--purple-d);border:none;border-radius:10px;padding:13px;font-family:Mitr,sans-serif;font-size:14px;font-weight:600;cursor:pointer">Sign Up</button>
+    </div>
+    <button onclick="closeAuthModal()" style="width:100%;background:none;border:none;color:var(--muted);font-family:Mitr,sans-serif;font-size:13px;cursor:pointer;margin-top:10px;padding:6px">ข้ามไปก่อน (guest mode)</button>
+  </div>
+</div>
+
 <!-- CREATURE DETAIL POPUP -->
 <div class="creature-detail-overlay" id="creature-detail-overlay" onclick="closeCreatureDetail(event)">
   <div class="creature-detail-card" id="creature-detail-card">
@@ -541,8 +572,31 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 // ============================================================
 // GLOBAL STATE (localStorage)
 // ============================================================
+// SUPABASE SETUP
+// ============================================================
+const SUPABASE_URL = 'https://dgpsnlkedergkbhqnjpu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_I9xmeXgWqRhvdn-kyyn_AQ_noLWfW2l';
+let supabase = null;
+try {
+  const sbLib = window.supabaseJs || window.supabase;
+  if (sbLib && sbLib.createClient) supabase = sbLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) { console.log('Supabase init failed:', e); }
+
+// ============================================================
 const KEY = 'kq_state';
-function loadState() {
+async function loadState() {
+  try {
+    if (supabase) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('eggs').select('state_json').eq('user_id', user.id).single();
+        if (data?.state_json) {
+          localStorage.setItem(KEY, JSON.stringify(data.state_json));
+          return data.state_json;
+        }
+      }
+    }
+  } catch(e) { console.log('Supabase load failed, using localStorage'); }
   try { return JSON.parse(localStorage.getItem(KEY)) || defaultState(); } catch(e) { return defaultState(); }
 }
 function defaultState() {
@@ -569,9 +623,26 @@ function defaultState() {
     seenTeach: [],
   };
 }
-function saveState(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+function saveState(s) {
+  localStorage.setItem(KEY, JSON.stringify(s));
+  _sbSave(s); // fire-and-forget Supabase sync
+}
+async function _sbSave(s) {
+  try {
+    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('eggs').upsert({
+        user_id: user.id,
+        child_name: s.name || 'โชแปง',
+        state_json: s,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    }
+  } catch(e) { console.log('Supabase save failed, using localStorage only'); }
+}
 
-let STATE = loadState();
+let STATE = defaultState(); // async-loaded in _appInit below
 let currentWorld = 'thai';
 let sessionXP = 0;
 
@@ -1719,6 +1790,75 @@ function spShowResult() {
   document.getElementById('sp-result').style.display='flex';
   document.getElementById('sp-result').classList.add('show');
   saveState(STATE); updateHomeEgg();
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function showAuthModal() {
+  document.getElementById('auth-overlay').classList.add('show');
+  document.getElementById('auth-msg').textContent = '';
+}
+function closeAuthModal(e) {
+  if (!e || e.target === document.getElementById('auth-overlay')) {
+    document.getElementById('auth-overlay').classList.remove('show');
+  }
+}
+async function authSignIn() {
+  const msg = document.getElementById('auth-msg');
+  if (!supabase) { msg.textContent = 'ไม่สามารถเชื่อมต่อ Supabase ได้'; return; }
+  const email = (document.getElementById('auth-email').value||'').trim();
+  const password = document.getElementById('auth-password').value||'';
+  if (!email || !password) { msg.textContent = 'กรุณากรอก email และ password'; return; }
+  msg.textContent = 'กำลัง login...';
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    msg.textContent = '';
+    closeAuthModal();
+  } catch(e) {
+    msg.textContent = 'Login ไม่สำเร็จ: ' + (e.message === 'Invalid login credentials' ? 'email หรือ password ไม่ถูกต้อง' : e.message || 'ลองอีกครั้ง');
+  }
+}
+async function authSignUp() {
+  const msg = document.getElementById('auth-msg');
+  if (!supabase) { msg.textContent = 'ไม่สามารถเชื่อมต่อ Supabase ได้'; return; }
+  const email = (document.getElementById('auth-email').value||'').trim();
+  const password = document.getElementById('auth-password').value||'';
+  if (!email || !password) { msg.textContent = 'กรุณากรอก email และ password'; return; }
+  if (password.length < 6) { msg.textContent = 'Password ต้องมีอย่างน้อย 6 ตัว'; return; }
+  msg.textContent = 'กำลังสมัครสมาชิก...';
+  try {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    msg.style.color = 'var(--green-d)';
+    msg.textContent = '✅ สมัครสำเร็จ! กรุณายืนยัน email ของคุณ';
+    setTimeout(closeAuthModal, 2000);
+  } catch(e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Sign up ไม่สำเร็จ: ' + (e.message || 'ลองอีกครั้ง');
+  }
+}
+async function authSignOut() {
+  if (!supabase) return;
+  try { await supabase.auth.signOut(); } catch(e) { console.log('logout error', e); }
+}
+async function updateAuthUI() {
+  const area = document.getElementById('auth-area');
+  if (!area) return;
+  try {
+    if (!supabase) throw new Error('no supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const initial = (user.email||'?')[0].toUpperCase();
+      area.innerHTML = `<div style="display:flex;align-items:center;gap:6px">
+        <div class="auth-avatar" title="${user.email}">${initial}</div>
+        <button onclick="authSignOut()" style="font-size:11px;background:none;border:none;color:var(--muted);cursor:pointer;font-family:Mitr,sans-serif;">Logout</button>
+      </div>`;
+      return;
+    }
+  } catch(e) {}
+  area.innerHTML = `<button class="auth-login-btn" onclick="showAuthModal()">Login</button>`;
 }
 
 // ============================================================
@@ -3942,27 +4082,44 @@ function generateRecommendations() {
   recs.push('🎮 เล่นด้วยกัน — ลองนั่งดูลูกเล่นสัก 5 นาทีแล้วถามว่า "ตัวนี้ชื่ออะไร?" การที่ลูกได้อธิบายจะช่วยให้จำได้นานขึ้นมาก');
   return recs.slice(0,4);
 }
-decayHappiness();
-checkDailyReset(); checkLivesReset();
-if(!STATE.subjectLevels){STATE.subjectLevels={thai:Math.max(1,STATE.thSpellLevel||1),math:1,eng:1};STATE.levelMastery={thai:{},math:{},eng:{}};STATE.seenTeach=[];saveState(STATE);}
-if(!STATE.levelMastery){STATE.levelMastery={thai:{},math:{},eng:{}};saveState(STATE);}
-if (STATE.hatching) { STATE.hatching = false; saveState(STATE); }
-if (!STATE.items) STATE.items = {food:2,star:0,ribbon:0,potion:0};
-// Fix rounds: if rounds > correctAnswers it means old counting (per question)
-// Real sessions = rounds / ~8 average questions answered per session
-if (STATE.correctAnswers === undefined) {
-  STATE.correctAnswers = STATE.rounds||0;
-  // rounds was per-question before, convert to per-session estimate
-  STATE.rounds = Math.max(0, Math.round((STATE.rounds||0) / 8));
-  saveState(STATE);
+async function _appInit() {
+  STATE = await loadState();
+  decayHappiness();
+  checkDailyReset(); checkLivesReset();
+  if(!STATE.subjectLevels){STATE.subjectLevels={thai:Math.max(1,STATE.thSpellLevel||1),math:1,eng:1};STATE.levelMastery={thai:{},math:{},eng:{}};STATE.seenTeach=[];saveState(STATE);}
+  if(!STATE.levelMastery){STATE.levelMastery={thai:{},math:{},eng:{}};saveState(STATE);}
+  if (STATE.hatching) { STATE.hatching = false; saveState(STATE); }
+  if (!STATE.items) STATE.items = {food:2,star:0,ribbon:0,potion:0};
+  if (STATE.correctAnswers === undefined) {
+    STATE.correctAnswers = STATE.rounds||0;
+    STATE.rounds = Math.max(0, Math.round((STATE.rounds||0) / 8));
+    saveState(STATE);
+  }
+  if (totalXP() >= EGG_STAGES * STAGE_XP_NEEDED && !STATE.hatched) {
+    STATE.readyToHatch = true;
+    saveState(STATE);
+  }
+  updateHomeEgg();
+  updateWorldXP();
+  updateAuthUI();
 }
-// Fix broken state: mark as ready to hatch if XP is at max
-if (totalXP() >= EGG_STAGES * STAGE_XP_NEEDED && !STATE.hatched) {
-  STATE.readyToHatch = true;
-  saveState(STATE);
+_appInit();
+
+// Supabase auth state listener
+if (supabase) {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN') {
+      STATE = await loadState();
+      updateHomeEgg(); updateWorldXP();
+      showToast('✅ sync ข้อมูลสำเร็จ!');
+      updateAuthUI();
+    }
+    if (event === 'SIGNED_OUT') {
+      showToast('👋 logout แล้ว');
+      updateAuthUI();
+    }
+  });
 }
-updateHomeEgg();
-updateWorldXP();
 </script>
 
 <!-- BOTTOM NAV -->

@@ -44,7 +44,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
   const spoilHint = ['🔮 เรียนเพื่อปลุกลวดลาย!','✨ ไข่เริ่มอบอุ่น...','👁️ มีบางอย่างขยับ...','🐾 เห็นเงาข้างใน...','👀 มีดวงตามองออกมา!','💥 ไข่สั่นแล้ว!!!','🎉 กำลังจะฟัก!!!'][stage] || ''
 
   return (
-    <div className="screen active" id="home" style={{ display:'flex' }}>
+    <div id="home" style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', minHeight:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
       {/* Header */}
       <div className="home-header">
         <div className="home-logo">KidQuest</div>

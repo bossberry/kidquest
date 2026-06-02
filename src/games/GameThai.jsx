@@ -34,7 +34,7 @@ export default function GameThai() {
 
 // ── Match Game ──
 function ThaiMatchGame({ lv, onBack }) {
-  const { dispatch } = useAppState()
+  const { state, dispatch } = useAppState()
   const [q, setQ] = useState(() => shuffle([...TH_ALPHA]).slice(0, 10))
   const [cur, setCur] = useState(0)
   const [score, setScore] = useState(0)
@@ -72,8 +72,8 @@ function ThaiMatchGame({ lv, onBack }) {
       setDone(true)
       const p = score / 10
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
-      dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world:'thai', levelId: lv?.id || 1, value: p * 0.4 + ((useAppState().state.levelMastery?.thai?.[lv?.id||1]) || 0) * 0.6 } })
-      if (p >= 0.8) { const cur2 = (useAppState().state.subjectLevels?.thai || 1); if (cur2 < 5) dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world:'thai', newLevel: cur2+1 } }) }
+      dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world:'thai', levelId: lv?.id || 1, value: p * 0.4 + ((state.levelMastery?.thai?.[lv?.id||1]) || 0) * 0.6 } })
+      if (p >= 0.8) { const cur2 = state.subjectLevels?.thai || 1; if (cur2 < 5) dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world:'thai', newLevel: cur2+1 } }) }
       if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
     } else {
       setAnswered(false); setFeedback(null); setCur(c => c + 1)

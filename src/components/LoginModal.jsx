@@ -52,8 +52,8 @@ export default function LoginModal({ open, onClose }) {
         <input className="auth-input" type="password" placeholder="Password (อย่างน้อย 6 ตัว)" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
         <div style={{ fontSize:12, color:msgColor, marginBottom:8, minHeight:18 }}>{msg}</div>
         <div className="auth-btn-row">
-          <button onClick={handleSignIn} disabled={loading} style={{ flex:1, background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading?.6:1 }}>Login</button>
-          <button onClick={handleSignUp} disabled={loading} style={{ flex:1, background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer', opacity:loading?.6:1 }}>Sign Up</button>
+          <button onClick={handleSignIn} disabled={loading} style={{ flex:1, background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Login</button>
+          <button onClick={handleSignUp} disabled={loading} style={{ flex:1, background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Sign Up</button>
         </div>
         <button onClick={onClose} style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', marginTop:10, padding:6 }}>ข้ามไปก่อน (guest mode)</button>
       </div>

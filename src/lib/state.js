@@ -43,6 +43,18 @@ export async function loadState() {
           localStorage.setItem(KEY, JSON.stringify(data.state_json))
           return data.state_json
         }
+        // Supabase empty — push localStorage up immediately
+        let local
+        try { local = JSON.parse(localStorage.getItem(KEY)) } catch {}
+        if (local) {
+          await supabase.from('eggs').upsert({
+            user_id: user.id,
+            child_name: local.name || 'โชแปง',
+            state_json: local,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' })
+          return local
+        }
       }
     }
   } catch (e) {

@@ -962,6 +962,7 @@ function closeHatch() {
 // ============================================================
 // HOME UI
 // ============================================================
+const GRADE_LABELS = ['อนุบาล','ป.1','ป.2','ป.3','ป.4','ป.5','ป.6'];
 const EGG_STAGE_NAMES = ['ไข่ลึกลับ','ไข่แวววาว','ไข่มีลาย','ไข่เปล่งแสง','เห็นเงาข้างใน...','เห็นดวงตาแล้ว! 👁️','ใกล้ฟักแล้ว!!!'];
 const SPOIL_HINTS = ['🔮 เรียนเพื่อปลุกลวดลาย!','✨ ไข่เริ่มอบอุ่น...','👁️ มีบางอย่างขยับ...','🐾 เห็นเงาข้างใน...','👀 มีดวงตามองออกมา!','💥 ไข่สั่นแล้ว!!!','🎉 กำลังจะฟัก!!!'];
 
@@ -1290,6 +1291,7 @@ function thShowResult(){
   document.getElementById('th-rc').textContent=thScore+'/10';
   document.getElementById('th-rxp').textContent='+'+STATE.xpThai;
   document.getElementById('th-rstr').textContent=thStreak+'🔥';
+  STATE.streak = Math.max(STATE.streak, thStreak);
   STATE.rounds++;
   document.getElementById('th-result').style.display='flex';
   document.getElementById('th-result').classList.add('show');
@@ -1416,6 +1418,7 @@ function mShowResult(){
   document.getElementById('m-rbadge').textContent=b;
   document.getElementById('m-rc').textContent=mScore+'/10';
   document.getElementById('m-rxp').textContent='+'+mXP;document.getElementById('m-rstr').textContent=mStreak+'🔥';
+  STATE.streak = Math.max(STATE.streak, mStreak);
   STATE.rounds++;
   document.getElementById('m-result').style.display='flex';document.getElementById('m-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
@@ -1590,6 +1593,7 @@ function enShowResult(){
   document.getElementById('en-rbadge').textContent=b;
   document.getElementById('en-rc').textContent=enScore+'/10';
   document.getElementById('en-rxp').textContent='+'+enXP;document.getElementById('en-rstr').textContent=enStreak+'🔥';
+  STATE.streak = Math.max(STATE.streak, enStreak);
   STATE.rounds++;
   document.getElementById('en-result').style.display='flex';document.getElementById('en-result').classList.add('show');
   saveState(STATE);updateHomeEgg();
@@ -1907,6 +1911,7 @@ function generateRecommendations() {
   return recs.slice(0,4);
 }
 decayHappiness();
+if (STATE.hatching) { STATE.hatching = false; saveState(STATE); }
 if (!STATE.items) STATE.items = {food:2,star:0,ribbon:0,potion:0};
 // Fix rounds: if rounds > correctAnswers it means old counting (per question)
 // Real sessions = rounds / ~8 average questions answered per session

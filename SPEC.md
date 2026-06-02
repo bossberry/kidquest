@@ -1,0 +1,226 @@
+# KidQuest — Project SPEC
+
+## Vision
+Educational RPG web app สำหรับเด็กไทย อนุบาล → มัธยมปลาย
+- เด็กเล่นเหมือนเกม RPG — มีไข่ สัตว์เลี้ยง XP items
+- พ่อแม่ดู dashboard รายงานพัฒนาการลูก
+- ขายเป็น subscription ให้พ่อแม่
+
+## Primary User: โชแปง
+- อายุ 5 ขวบ (เกิด 18 กรกฎาคม 2020)
+- ชอบ Sonic, Minecraft, Pokémon
+- เรียนรู้ผ่านเกม ไม่ชอบ passive learning
+- เล่น 67 นาที/วัน, ผ่าน ~50 ด่านต่อวัน
+
+## Target Market
+- พ่อแม่เด็ก อนุบาล → มัธยมปลาย ในไทย
+- เด็กในระบบการศึกษาไทย ~9.5 ล้านคน
+- Addressable market ~2.4 ล้านครอบครัว
+- ราคาตั้งใจ 199 บาท/เดือน
+
+## Tech Stack
+- **Frontend**: HTML/CSS/JS (single file prototype → React ในอนาคต)
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **Hosting**: Netlify หรือ Vercel
+- **Version Control**: GitHub (bossberry/kidquest)
+- **Development**: Claude Code + Claude Pro subscription
+
+## Current State (Prototype)
+ไฟล์เดียว: `kidquest_home.html` (~556KB รวม phonics audio base64)
+
+### 3 Games
+1. **ภาษาไทย** — จับคู่ตัวอักษร ก-ฮ กับรูปภาพ เสียง TTS ไทย
+2. **Math** — บวกเลข 3 ระดับ มี timer 15 วินาที
+3. **English Phonics** — A-Z เสียง phonics จริงจาก buzzphonics (MIT license) base64 embedded
+
+### RPG Egg System
+- ผ่านด่าน → ได้ XP → ไข่ evolve 7 stages
+- XP threshold: 50 XP ต่อ stage (demo mode)
+- ฟักไข่: กด 5 ครั้ง tap counter → สัตว์โผล่
+- 60 creatures: 4 สาย (ไทย/EN/Math/Hybrid) × 5 rarity × 3 ตัว
+
+### Procedural Egg Algorithm (LOCKED — อย่าเปลี่ยน)
+```
+baseSeed = hash(name + grade) XOR hash(dow + month + day + hour)
+สีหลัก = dominant stat (ไทย=เขียว, EN=น้ำเงิน, Math=ม่วง)
+รูปร่าง = firstSubject (ป้อม/รี/แหลม)
+ลวดลาย = progress stage
+สีพื้น = วันในสัปดาห์
+Pattern = เดือนที่ได้ไข่
+โทน = ชั่วโมง (กลางวัน=สว่าง, กลางคืน=dark galaxy)
+Streak = ประกายและ accent band
+```
+
+### Item System
+- 🍗 อาหาร (55% drop) — +25 happiness + feeding animation
+- ⭐ ผงดาว (25%) — XP x2 เป็น 5 นาที
+- 🎀 ริบบิ้น (12%) — +15 happiness
+- 💧 น้ำมนต์ (8%) — +20 XP ทันที
+- Drop rate: 40% per correct answer
+
+### State Management
+- `localStorage` key: `kq_state`
+- Fields: xpThai, xpEng, xpMath, streak, rounds, badges, happiness, items, hatchedEggs, eggDow/Month/Day/Hour, firstSubject, readyToHatch, hatching
+
+### Navigation
+- Bottom Nav 3 ปุ่ม: หน้าหลัก / คอลเลกชัน / รีพอร์ต
+- ซ่อน nav ระหว่างเล่นเกม
+
+### Pages
+1. **Home** — ไข่ + XP bar + 3 world cards + stats
+2. **Collection** — tab ฟักแล้ว / กำลังฟัก + egg detail popup
+3. **Report** — นาที, ด่าน, accuracy, เวลาต่อวิชา, AI insights, คำแนะนำ
+
+## Creature System
+```javascript
+// สาย ← dominant stat
+thai:  ช้างน้ำเงิน, เต่าหยก, ปลาทอง (common) / ครุฑไฟ (rare) / สิงห์เทพ (epic)
+eng:   มังกรน้ำ, นกฟีนิกซ์ (common) / ยูนิคอร์นฟ้า (epic) / มังกร Galaxy (legendary)
+math:  หุ่นโกเลม (common) / สายฟ้าเสือ (rare) / God Golem (legendary)
+hybrid: มังกรทอง (epic) / ยูนิคอร์นรุ้ง (legendary)
+```
+
+## Known Issues (ยังมีอยู่)
+- [ ] ฟักไข่จาก collection page บางครั้งยังไม่ work
+- [ ] ไข่ใน collection page ไม่ขึ้นรูป (canvas ต้องใช้ requestAnimationFrame)
+- [ ] rounds ใน report อาจยังสูงเกิน (migration จาก old localStorage)
+
+## Roadmap
+
+### Phase 1 — Foundation (ตอนนี้)
+- [x] 3 เกมพื้นฐาน
+- [x] Egg RPG system
+- [x] Collection + Report
+- [ ] **Supabase integration** (Auth + DB)
+- [ ] **Deploy ขึ้น Vercel/Netlify**
+
+### Phase 2 — Polish
+- [ ] Refactor เป็น React/Next.js
+- [ ] Parent account → multi-child profiles
+- [ ] Payment system (Omise หรือ Stripe)
+- [ ] Landing page
+- [ ] เพิ่มหลักสูตร ป.1-ป.6
+
+### Phase 3 — Scale
+- [ ] หลักสูตร ม.ต้น-ม.ปลาย
+- [ ] AI tutor / personalized questions
+- [ ] Classroom mode (B2B → โรงเรียน)
+- [ ] Mobile app (PWA หรือ Capacitor)
+
+## Design Principles
+- เด็กต้องรู้สึกเหมือนเล่นเกม ไม่ใช่เรียน
+- พ่อแม่ต้องเห็น progress ลูกได้ทันที
+- Gamification loop: เรียน → XP → ไข่โต → ได้ item → ฟัก → สัตว์ใหม่ → วนซ้ำ
+- ไม่มีบทลงโทษหนัก — happiness ลดเบาๆ เท่านั้น
+
+## Audio
+- Thai TTS: Web Speech API (lang: th-TH)
+- English Phonics: buzzphonics MIT license, base64 embedded (26 ตัว + digraphs)
+- Sound effects: Web Audio API (playTone function)
+- GainNode boost 2.5x สำหรับ phonics
+
+## Key Functions Reference
+```javascript
+addXP(world, amount, accDelta, speedDelta) // เพิ่ม XP และ trigger effects
+drawEgg(canvas, stats)                       // วาดไข่ procedural
+getCreatureForHatch()                        // determine creature จาก stats
+triggerHatch()                              // เริ่ม hatch sequence
+startManualHatch()                          // กดฟักจาก UI (clears stale state)
+buildReport()                               // สร้าง parent dashboard
+buildCollection()                           // สร้าง collection page
+```
+
+## File Structure (ตอนนี้)
+```
+kidquest/
+└── kidquest_home.html  (~556KB, รวม phonics audio)
+```
+
+## Future Structure (เมื่อ migrate to React)
+```
+kidquest/
+├── src/
+│   ├── components/
+│   │   ├── EggCanvas.jsx
+│   │   ├── GameThai.jsx
+│   │   ├── GameMath.jsx
+│   │   ├── GamePhonics.jsx
+│   │   ├── Collection.jsx
+│   │   └── Report.jsx
+│   ├── lib/
+│   │   ├── supabase.js
+│   │   ├── eggAlgorithm.js
+│   │   └── gameLogic.js
+│   └── App.jsx
+├── public/
+│   └── sounds/ (phonics audio files)
+└── SPEC.md
+```
+
+## Supabase Schema (planned)
+```sql
+-- users (parents)
+CREATE TABLE users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text UNIQUE NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- children profiles
+CREATE TABLE children (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id),
+  name text NOT NULL,
+  grade int DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+-- game sessions
+CREATE TABLE sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  child_id uuid REFERENCES children(id),
+  world text NOT NULL, -- 'thai' | 'eng' | 'math'
+  xp_earned int DEFAULT 0,
+  correct int DEFAULT 0,
+  total int DEFAULT 0,
+  duration_seconds int DEFAULT 0,
+  played_at timestamptz DEFAULT now()
+);
+
+-- egg state (1 active egg per child)
+CREATE TABLE eggs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  child_id uuid REFERENCES children(id) UNIQUE,
+  xp_thai int DEFAULT 0,
+  xp_eng int DEFAULT 0,
+  xp_math int DEFAULT 0,
+  egg_dow int,
+  egg_month int,
+  egg_day int,
+  egg_hour int,
+  first_subject int DEFAULT -1,
+  happiness int DEFAULT 80,
+  ready_to_hatch boolean DEFAULT false,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- hatched creatures
+CREATE TABLE hatched_creatures (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  child_id uuid REFERENCES children(id),
+  creature_name text,
+  creature_emoji text,
+  creature_rarity text,
+  egg_stats jsonb, -- snapshot of egg visual params
+  hatched_at timestamptz DEFAULT now()
+);
+
+-- items inventory
+CREATE TABLE items (
+  child_id uuid REFERENCES children(id) PRIMARY KEY,
+  food int DEFAULT 2,
+  star int DEFAULT 0,
+  ribbon int DEFAULT 0,
+  potion int DEFAULT 0
+);
+```

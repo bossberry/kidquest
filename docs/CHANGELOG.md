@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Docs Sync (Current State Audit)
+- `CURRENT_STATE.md` updated: Math level count corrected (6 → 9), visual models added, tier system detailed, minigame unlock conditions expanded, Vercel/phonics audio noted accurately.
+- `TASKS.md` restructured: consolidated Done list, added visual models + tiers + AI_OPPONENTS entries, removed duplicate items, added Math L9+ and English L5+ to Later.
+- `GPT_HANDOFF.md` regenerated to reflect latest codebase state.
+- No app code changed.
+
 ## 2026-06-03 — Math Visual Models for L1–L4
 - `gameConfig.js`: added `visualModel` field to math levels 1–4 (`objects`, `objects`, `tenFrame`, `crossOut`).
 - `GameMath.jsx`: `genQ` numeric branch now attaches `visualModel`, `emojiA`, `emojiB` to question object.

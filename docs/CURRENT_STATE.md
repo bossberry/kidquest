@@ -1,0 +1,91 @@
+# Current State — KidQuest
+
+## Implemented Features
+
+### Core Game System
+- **3 subjects** with level-unlock (≥80% accuracy → EMA unlock next)
+  - Thai: 5 levels (match, spell×3, word-order)
+  - Math: 9 levels (L0 Foundation count · L1–L5 add/sub/mixed · L6 word-problems · L7 comparison · L8 pattern AB)
+  - English: 4 levels (phonics, CVC, sight words, sentence ordering)
+- **Teach overlay**: first-time per level; mascot + examples; tracked in `seenTeach[]`
+- **GameHeader**: progress bar + streak in all game modes across all 3 subjects
+- **Hint system**: Thai spell → amber-highlight next correct tile after 1 miss; Math → 3-attempt reveal; Pattern → amber unit-highlight after attempt 1
+
+### Math Visual Models (L1–L4)
+- **L1/L2** (`objects`): real emoji objects grid — emojiA×a **+** emojiB×b
+- **L3** (`tenFrame`): 2×5 or 4×5 coloured grid (amber=a, blue=b, grey=empty)
+- **L4** (`crossOut`): emoji objects with ❌ overlay on last b items
+- **L5+**: original 🟡/🔵 dot visualization
+
+### RPG / Egg System
+- **Procedural egg**: 7 stages × 50 XP = 350 XP total; `drawEgg()` Canvas — **LOCKED**
+- **Hatching**: `HatchOverlay.jsx`, tap-to-hatch → `getCreatureForHatch()` → creature revealed
+- **Procedural creature**: `drawCreature()` Canvas, rarity from streak at hatch time
+- **Tier system**: 6 tiers (0=อนุบาล → 5=ม.ปลาย); `calcCreatureStats()` derives HP/ATK/DEF/SPD/CRIT
+- **Collection page**: hatched tab + current egg tab + creature detail popup
+- **Item system**: food🍗 ribbon🎀 star⭐ potion💧 — drop in minigames, affect egg state
+- **XP boost**: star item = 2× XP for 5 min
+- **Happiness decay**: −3/hour after 8h idle, floor 10
+
+### Battle System
+- **Turn-based battle**: `BattleScreen.jsx` — `simulateBattle()` pre-computes turn log; animated playback with Pokémon-style per-turn display
+- **Stats**: HP, ATK, DEF, SPD, CRIT via `calcCreatureStats()` (derived from subject XP proportions + tier)
+- **Challenger system**: every 15 `dailyBattleRounds` → random `AI_OPPONENTS` opponent shown via `ChallengerOverlay`
+- **AI_OPPONENTS**: tier 0 (Motobug, Buzzbomber, Crabmeat + Egg Pawn mini-boss + Dr. Eggman I boss) and tier 1 (Caterkiller, Burrobot, Chopper + Egg Gunner + Dr. Eggman II boss)
+- **Item reward** on win; defeated bosses tracked in `defeatedBosses[]`
+
+### Minigames (5 total — all lazy-loaded)
+- **EggRun** 🏃: daily reward, requires 10 rounds/day, endless runner, 3 lives/day, speed scales with XP
+- **EggCatch** 🧺: unlock at 2 hatched eggs — catch items, dodge rocks/bombs
+- **EggMemory** 🃏: unlock at 4 eggs — match pairs of hatched creatures on Canvas
+- **EggTower** 🏗️: unlock at 6 eggs — stack blocks, starting width scales with egg stage
+- **EggFishing** 🎣: unlock at 10 eggs — timing game, fish drop items
+
+### Persistence & Auth
+- **localStorage** key `kq_state` — always-on, written on every state change
+- **Supabase** `eggs` table: `user_id (PK), child_name, state_json (jsonb), updated_at`
+- **Guest mode**: fully functional without login; localStorage only
+- **On SIGNED_IN**: cloud wins if data exists; else pushes local state up silently
+- **Egg migration**: `_migrateEggs()` backfills `tier` + `stats` on legacy hatched egg records
+
+---
+
+## Partially Implemented
+
+- **Single child profile**: hardcoded `name:'โชแปง', grade:0`; no UI to change
+- **Challenger tiers**: only `AI_OPPONENTS` tier 0 and 1 defined; grades 2–6 silently fall back to tier 1
+- **Foundation mode**: Level 0 count-objects game exists; shown only when `grade===0 && !foundationComplete`
+
+---
+
+## Not Implemented
+
+- Multi-child profiles / parent account management
+- Payment / subscription (target: 199 THB/month)
+- Landing / marketing page
+- AI tutor or personalized question generation
+- Classroom mode (B2B)
+- PWA / mobile app
+- Per-session Supabase logging (currently one state blob per user, no row history)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, Vite 5, plain CSS |
+| State | useReducer + Context + localStorage |
+| Backend | Supabase (PostgreSQL + email/password Auth) |
+| Hosting | Vercel (`vercel.json` — migrated from Netlify) |
+| Audio | Web Speech API (Thai/English TTS), Web Audio API (SFX), static `.m4a` in `public/sounds/phonics/` |
+| Canvas | HTML Canvas 2D — procedural egg (`eggAlgorithm.js` LOCKED) + procedural creature |
+
+---
+
+## Known Risks
+
+- `alert()` in `Home.jsx` for EggRun/minigame lock messages — child-unfriendly, not yet replaced
+- Single-child assumption baked into `defaultState()` — multi-child requires state shape refactor
+- No session audit trail — all progress in one Supabase blob per user
+- `SPEC.md` in repo root describes old HTML prototype — deprecated, do not use

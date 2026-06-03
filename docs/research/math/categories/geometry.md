@@ -1,0 +1,17 @@
+# Category: Geometry
+
+- [Shapes 2D](../topics/shapes-2d.md)
+- [Shapes 3D](../topics/shapes-3d.md)
+- [Shape](../topics/shape.md)
+- [Position](../topics/position.md)
+- [Symmetry](../topics/symmetry.md)
+- [Angles](../topics/angles.md)
+- [Triangles](../topics/triangles.md)
+- [Quadrilaterals](../topics/quadrilaterals.md)
+- [Circles](../topics/circles.md)
+- [Coordinate Plane](../topics/coordinate_plane.md)
+- [Coordinate Transformations](../topics/coordinate_transformations.md)
+- [Transformations](../topics/transformations.md)
+- [Distance and Midpoint](../topics/distance_and_midpoint.md)
+- [Vectors](../topics/vectors.md)
+- [Matrices](../topics/matrices.md)

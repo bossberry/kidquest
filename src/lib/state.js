@@ -26,6 +26,9 @@ export function defaultState() {
     seenTeach: [],
     sessionXP: 0,
     currentWorld: 'thai',
+    unlockedTiers: [0],
+    defeatedBosses: [],
+    battleHistory: [],
   }
 }
 

@@ -194,6 +194,60 @@ export const CATCH_ITEMS = [
 
 export const TOWER_COLORS = ['#7F77DD','#1D9E75','#EF9F27','#378ADD','#E24B4A','#9C27B0']
 
+export const TIERS = {
+  0: { name: 'อนุบาล', baseStat: 100,  maxXP: 350  },
+  1: { name: 'ป.1-2',  baseStat: 150,  maxXP: 500  },
+  2: { name: 'ป.3-4',  baseStat: 220,  maxXP: 700  },
+  3: { name: 'ป.5-6',  baseStat: 300,  maxXP: 900  },
+  4: { name: 'ม.ต้น',  baseStat: 400,  maxXP: 1200 },
+  5: { name: 'ม.ปลาย', baseStat: 500, maxXP: 1500 },
+}
+
+export function calcCreatureStats(egg) {
+  const tier = TIERS[egg.tier || 0]
+  const base = tier.baseStat
+  const total = (egg.xpThai || 0) + (egg.xpEng || 0) + (egg.xpMath || 0) || 1
+  const ATK = Math.round(base * (egg.xpThai || 0) / total)
+  const DEF = Math.round(base * (egg.xpMath || 0) / total)
+  const SPD = Math.round(base * (egg.xpEng  || 0) / total)
+  const critRate    = Math.min(0.5, (egg.acc    || 70) / 200)
+  const streakBonus = 1 + Math.floor((egg.streak || 0) / 7) * 0.1
+  return {
+    HP:       Math.round(base * 1.5 * streakBonus),
+    ATK:      Math.round(ATK * streakBonus),
+    DEF:      Math.round(DEF * streakBonus),
+    SPD:      Math.round(SPD * streakBonus),
+    CRIT:     critRate,
+    tier:     egg.tier || 0,
+    tierName: tier.name,
+  }
+}
+
+export const AI_OPPONENTS = {
+  0: {
+    normal: [
+      { name: 'Motobug',    emoji: '🤖', HP: 80,  ATK: 8,  DEF: 5,  SPD: 6  },
+      { name: 'Buzzbomber', emoji: '🦟', HP: 70,  ATK: 10, DEF: 4,  SPD: 9  },
+      { name: 'Crabmeat',   emoji: '🦀', HP: 90,  ATK: 7,  DEF: 8,  SPD: 5  },
+    ],
+    miniBoss: { name: 'Egg Pawn',     emoji: '⚔️🤖', HP: 130, ATK: 14, DEF: 12, SPD: 8  },
+    boss:     { name: 'Dr. Eggman I', emoji: '😈',   HP: 200, ATK: 18, DEF: 15, SPD: 10,
+                reward: 'unlock_tier_1',
+                dialogue: 'ฮ่าฮ่า! เจ็บไหม? กลับไปเรียนให้เก่งกว่านี้ก่อน!' },
+  },
+  1: {
+    normal: [
+      { name: 'Caterkiller', emoji: '🐛', HP: 120, ATK: 12, DEF: 8,  SPD: 7  },
+      { name: 'Burrobot',    emoji: '🔩', HP: 130, ATK: 11, DEF: 12, SPD: 6  },
+      { name: 'Chopper',     emoji: '🐟', HP: 110, ATK: 14, DEF: 7,  SPD: 10 },
+    ],
+    miniBoss: { name: 'Egg Gunner',    emoji: '🔫🤖', HP: 200, ATK: 20, DEF: 18, SPD: 12 },
+    boss:     { name: 'Dr. Eggman II', emoji: '😈🚀', HP: 300, ATK: 25, DEF: 22, SPD: 15,
+                reward: 'unlock_tier_2',
+                dialogue: 'ไม่เป็นไร! เครื่องจักรรุ่นต่อไปจะทำลายเจ้าแน่!' },
+  },
+}
+
 export function shuffle(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {

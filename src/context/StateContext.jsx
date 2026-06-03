@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useMemo, useCa
 import { KEY, defaultState, loadState, saveState, syncToSupabase } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
-import { ITEMS, GRADE_LABELS, todayStr, shuffle } from '../config/gameConfig.js'
+import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
 
 export const StateContext = createContext(null)
@@ -75,13 +75,26 @@ function reducer(state, action) {
 
     case ACTIONS.HATCH_COMPLETE: {
       const { creature, eggStats, snapXpThai, snapXpEng, snapXpMath } = action.payload
+      const tier = state.grade || 0
+      const eggSnap = {
+        tier,
+        xpThai: snapXpThai,
+        xpEng:  snapXpEng,
+        xpMath: snapXpMath,
+        acc:    state.acc    || 70,
+        streak: state.streak || 0,
+      }
       const newEgg = {
         creature,
         eggStats,
         xpThai: snapXpThai,
         xpEng: snapXpEng,
         xpMath: snapXpMath,
-        grade: GRADE_LABELS[state.grade || 0],
+        grade: GRADE_LABELS[tier],
+        tier,
+        streak: state.streak || 0,
+        acc:    state.acc    || 70,
+        stats:  calcCreatureStats(eggSnap),
         date: new Date().toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' }),
         hatched_at: Date.now(),
       }

@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Subject Readiness Design (docs only)
+
+- `docs/research/observation/play-observation-system.md` — **Subject Readiness** section added: 4 readiness states (Strong / Comfortable / Exploring / Not Ready), derivation logic (last 10 sessions, avgScore ≥ 0.85 + goodRuns ≥ 3 + completionRate ≥ 0.80 for Strong; avgScore ≥ 0.70 + goodRuns ≥ 2 for Comfortable; else Exploring; no sessions = Not Ready), explicit non-goals (no AI, no gate, no child UI, no level tree), phase status section updated to mark Phase D shipped and describe Phase D+ scope.
+- `docs/research/observation/play-observation-system.md` — Peer Comparison section updated: marked as ✅ done (replaced in Phase D).
+- `docs/research/missions/mission-system.md` — **Subject Readiness and Mission Design** section added: explains why highest unlocked level is unreliable, defines mission content weighting from readiness profile, example profiles (Thai Strong / Math Comfortable / English Exploring → Thai 60% / Math 30% / English 10%), when to apply per mission phase, core principle "Mission should follow the child."
+- `docs/GPT_NOTES.md` — Subject Readiness Decisions section added: 9 decisions covering derivation, mission weighting, Shop Stretch independence, Cooking Mission dependency, implementation timing.
+- `docs/TASKS.md` — Phase D+ Subject Readiness documentation marked done; Cooking Mission task updated with readiness dependency warning; Subject Readiness Report display added as deferred task.
+- No app code changed.
+
 ## 2026-06-03 — Phase D: Play Observation System
 
 - `src/lib/state.js` — `sessionLog: []` added to `defaultState()`; `shopV1` extended with `totalHints: 0`, `totalDuration: 0`, `phaseStats: { 1–4 }`.

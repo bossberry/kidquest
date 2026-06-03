@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Phase D: Play Observation System — app code)_
+_Last updated: 2026-06-03 (Subject Readiness Design — docs only)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,20 +22,18 @@ _Last updated: 2026-06-03 (Phase D: Play Observation System — app code)_
 
 ## Latest Session Summary
 
-**What changed this session (Phase D: Play Observation System):**
+**What changed this session (Subject Readiness Design — docs only):**
 
-Phase D fully implemented and committed. All 4 sub-tasks done:
+No app code changed. Documentation only.
 
-- **D1**: `sessionLog: []` + extended `shopV1` (totalHints, totalDuration, phaseStats) in `state.js`. `LOG_SESSION` reducer + extended `UPDATE_SHOP_V1` in `StateContext.jsx`.
-- **D2**: `LOG_SESSION` dispatched from all game result screens — `GameShop.jsx` (with per-phase stats + duration), `GameThai.jsx` (via extended `useFinishRound` hook), `GameMath.jsx` (in `next()` when done), `GamePhonics.jsx` (all 4 game components: PhonicsGame, CVCGame, SightGame, SentenceGame).
-- **D3**: `MissionAnalytics` component added to `Report.jsx` — shows runs, avg score, avg duration, hints, per-phase difficulty (✅/⚠️ with challenge/easiest labels), replay behavior text (framing replays positively), one deterministic nudge.
-- **D4**: Peer-comparison card ("เทียบกับเด็กวัยเดียวกัน") replaced with play-history timeline (last 10 sessions: world label + date + ✅/❌ completed).
+- **`play-observation-system.md`** — Subject Readiness section added. Defines 4 states (Strong / Comfortable / Exploring / Not Ready) derived from `sessionLog` at render time. No new state fields. No AI. Highest unlocked level is explicitly rejected as a readiness proxy. Phase status section updated (Phase D marked shipped).
+- **`mission-system.md`** — "Subject Readiness and Mission Design" section added. Mission content weighting should follow readiness profile, not assumed level. Core principle stated: "Mission should follow the child. The child should not follow the mission." Cooking Mission design should consult readiness data before finalizing step sequence.
+- **`GPT_NOTES.md`** — Subject Readiness decisions recorded (9 decisions).
+- **`TASKS.md`** — Phase D+ Subject Readiness documentation marked done. Cooking Mission task updated with readiness dependency warning.
 
-Build: ✅ zero errors (verified with `npm run build`).
-
-**Previous session (docs only — workflow audit):**
-- Found Phase C uncommitted (now confirmed it was committed in `feat: Shop Mission MVP + Phase B–D docs`).
-- Docs patched: `GPT_NOTES.md`, `mission-system.md`, `TASKS.md`.
+**Previous session (Phase D — app code):**
+- `sessionLog` ring buffer, `shopV1` extended (totalHints/totalDuration/phaseStats), `LOG_SESSION` reducer, dispatched from all 8 game result points, Mission Analytics card in Report, play history timeline.
+- Build: ✅ zero errors. Pushed to main. Vercel auto-deploy triggered.
 
 ---
 
@@ -47,38 +45,34 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 **What's fully working:**
 - **Thai**: 5 levels (letter match, spell×3, word-order)
-- **Math**: 9 levels — L0 Foundation (count emoji, grade-0 only), L1–L5 (add/sub/mixed), L6 (word problems), L7 (comparison), L8 (pattern AB). Visual models for L1–L4.
+- **Math**: 9 levels — L0 Foundation, L1–L5 (add/sub/mixed), L6 (word problems), L7 (comparison), L8 (pattern AB)
 - **English**: 4 levels (A–Z phonics, CVC words, sight words, sentence ordering)
-- **Shop Mission** (`GameShop.jsx`): 4 phases / 6 Qs. `shopV1` state with extended analytics fields. Shop card on Home.
-- **Play Observation System** (Phase D): `sessionLog` ring buffer (50 entries), `replayedImmediately` auto-computed, Mission Analytics card in Report, play history timeline.
+- **Shop Mission** (`GameShop.jsx`): 4 phases / 6 Qs. `shopV1` with extended analytics (totalHints, totalDuration, phaseStats). Shop card on Home.
+- **Play Observation System** (Phase D): `sessionLog` ring buffer (50 entries), `replayedImmediately` auto-computed, Mission Analytics card in Report, play history timeline (peer comparison removed).
+- **Subject Readiness** (Phase D+, docs only): spec complete. Computed from `sessionLog` at render time. No new state. Report UI deferred until data accumulates.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
-- Turn-based battle with Pokémon-style animation; challenger system every 15 rounds
-- 6-tier system; **AI_OPPONENTS all 6 tiers (0–5)**
-- 5 minigames: EggRun (daily), EggCatch (2), EggMemory (4), EggTower (6), EggFishing (10)
+- Turn-based battle; challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
+- 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
 - Supabase auth + cloud sync; full guest mode
-- Parent Report tab with Mission Analytics + play history
-- **ProfileModal**: child name and grade editable via 👤 button
-- **No alert() calls** — all lock messages are friendly toasts
-- **Sound persists** across reloads (`kq_sound` localStorage key)
-- **XP boost badge** in header shows live countdown when star item is active
+- Parent Report: overview, subject time, strengths, Mission Analytics, play history
 
-**Not done:** single child per account, no payment, no landing page, no multi-child, no PWA.
+**Not done:** payment, landing page, multi-child, PWA, Cooking/Garden missions.
 
 ---
 
 ## Active Tasks
 
 **Now (highest priority):**
-- **Play Shop Mission with Chopin** — validate fun and 2–3 min timing. Check: Thai matching clear? Emoji choices obvious? Social phrase step lands? Timing right?
-- **D0: Shop card UX audit** — review Home screen. Is Shop card prominent, exciting, above the fold? Document ideas only.
+- **Play Shop Mission with Chopin** — validate fun and 2–3 min timing. Which steps feel clear? Which feel hard or boring? Report back to `GPT_NOTES.md`.
+- **D0: Shop card UX audit** — Is the Shop card prominent, exciting, above the fold on Home? Document ideas only.
 
-**Phase E (after play validation with Chopin):**
+**Phase E (after play validation):**
 - Shop Stretch (quantity difference + price concept) with mastery-gate UI
-- Cooking Mission MVP (after Shop Core + Stretch confirmed)
+- ⚠️ Shop Stretch is independent of Subject Readiness — proceed after play validation
 
-**Later:**
-- Thai Levels 6+ / Math Levels 9+ / English Levels 5+ content expansion
-- Multi-child profiles; per-session Supabase logging; payment (199 THB/month); landing page; PWA
+**Phase F / Content expansion (after Phase E):**
+- **Subject Readiness Report display** — small addition to Report.jsx. Deferred until ~10+ sessions per subject accumulate.
+- **Cooking Mission MVP** — ⚠️ Do not design step sequence before consulting Subject Readiness data from real play sessions.
 
 ---
 
@@ -91,7 +85,24 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 | Guest mode | Always works — full app without login |
 | Child errors | Silent or friendly only — no stack traces |
 | State blob | Full `state_json` in one Supabase row (not per-session rows) |
-| SPEC.md | **Deprecated** — describes old HTML prototype, ignore it |
+| Highest unlock level | **Not a readiness proxy** — use `sessionLog` derived Subject Readiness instead |
+| Subject Readiness | Computed at render time from `sessionLog`. No new state. No AI. |
+| Mission content | Must follow readiness profile, not assumed level gates |
+
+---
+
+## Subject Readiness Reference
+
+Computed from `sessionLog` per subject. Four states:
+
+| State | Threshold |
+|-------|-----------|
+| **Strong** | avgScore ≥ 0.85 AND goodRuns ≥ 3 AND completionRate ≥ 0.80 (last 10 sessions) |
+| **Comfortable** | avgScore ≥ 0.70 AND goodRuns ≥ 2 |
+| **Exploring** | Sessions exist but below Comfortable |
+| **Not Ready** | No sessions for this world |
+
+Full spec: `docs/research/observation/play-observation-system.md` → "Subject Readiness"
 
 ---
 
@@ -99,40 +110,38 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 ```
 src/config/gameConfig.js        — ALL game content (~380 lines)
-src/context/StateContext.jsx    — Global state + ACTIONS (now includes LOG_SESSION)
-src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
-src/lib/state.js                — loadState(), saveState(), defaultState() (sessionLog + shopV1 extended)
-src/components/ProfileModal.jsx — child name + grade editor
-src/components/Home.jsx         — Home screen + profile button
+src/context/StateContext.jsx    — Global state + ACTIONS (includes LOG_SESSION, UPDATE_SHOP_V1)
+src/lib/state.js                — defaultState() — sessionLog + shopV1 with analytics fields
 src/components/Report.jsx       — Report: Overview + Subject time + Strengths + MissionAnalytics + PlayHistory
-src/games/GameThai.jsx          — Thai: Match + Spell + WordOrder (useFinishRound dispatches LOG_SESSION)
-src/games/GameMath.jsx          — Math: 9 level types + VisualModel (dispatches LOG_SESSION on done)
-src/games/GamePhonics.jsx       — English: 4 game modes (all dispatch LOG_SESSION)
-src/games/GameShop.jsx          — Shop Mission 6 Qs (dispatches LOG_SESSION + extended UPDATE_SHOP_V1)
+src/games/GameShop.jsx          — Shop Mission 6 Qs — dispatches LOG_SESSION + extended UPDATE_SHOP_V1
+src/games/GameThai.jsx          — Thai: useFinishRound dispatches LOG_SESSION
+src/games/GameMath.jsx          — Math: dispatches LOG_SESSION in next() when done
+src/games/GamePhonics.jsx       — English: all 4 game components dispatch LOG_SESSION
 src/components/BattleScreen.jsx — Battle sim + animation
+src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 ```
 
 ---
 
 ## Risks / Unknowns
 
-- **`nextAction` field in sessionLog is always `null`** — tracking where the child navigates after a result screen requires a navigation event system. Not implemented yet. The field exists in the schema for future use.
-- Tier 4 and 5 opponents exist but are unreachable in current game (max grade 6 → tier 3); reserved for future ม.ต้น/ม.ปลาย
+- **`nextAction` in sessionLog is always `null`** — tracking post-result navigation requires a navigation event system. Deferred. Field exists in schema for future use.
+- **Subject Readiness display deferred** — no Report.jsx UI yet. Spec complete but no code written. Waiting for real data to accumulate before implementing.
+- **Cooking Mission readiness dependency** — Cooking Mission step sequence must not be designed until Subject Readiness data from real play is available.
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
-- No session audit trail in Supabase — all progress in one blob per user (still true; `sessionLog` is part of the state blob)
+- No session audit trail in Supabase — all progress in one blob per user
 
 ---
 
 ## Recommended Next Work
 
-**Stay within Year 1 scope (Kindergarten + Early Grade 1 only).**
-
 **GPT — next:**
-1. **Validate Shop Mission with Chopin** — play it together. Note which steps feel clear, which feel hard or boring. Feed back to Claude Code as notes in `GPT_NOTES.md`.
-2. **D0: Shop card UX audit** — before next implementation cycle, review Home screen. Can Chopin find the Shop card easily? Is it visually prominent? Would a first-time child notice it? Write ideas to `GPT_NOTES.md`.
-3. **Shop Stretch design review** — is the quantity difference question at the right level for early Grade 1? Write to `GPT_NOTES.md`.
-4. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1? Write to `GPT_NOTES.md`.
-5. **Math Levels 9–10 content** — place value? Counting to 100? Write to `GPT_NOTES.md`.
+1. **Play Shop Mission with Chopin** — play it together. Note which phases feel clear vs confusing, whether timing is right, whether Chopin replays voluntarily. Write to `GPT_NOTES.md`.
+2. **D0: Shop card UX audit** — on the Home screen: Is the Shop card prominent? Above the fold? Visually exciting? Would a 5-year-old notice it? Write ideas to `GPT_NOTES.md`.
+3. **Shop Stretch design review** — is the quantity difference question (แม่ต้องการ 3 ลูก มี 1 ลูก ต้องซื้อเพิ่มกี่ลูก?) at the right Early Grade 1 level? Write to `GPT_NOTES.md`.
+4. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
+5. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
 
-**Claude Code — after GPT play validation:**
-1. **Phase E: Shop Stretch** — implement quantity difference + price concept questions with mastery gate.
+**Claude Code — after play validation:**
+1. Phase E: Shop Stretch implementation + mastery-gate UI
+2. (Later) Subject Readiness Report display — once ~10+ sessions per subject exist

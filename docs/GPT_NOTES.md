@@ -72,6 +72,21 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Subject Readiness Decisions (2026-06-03)
+
+- **Subject Readiness is a derived layer inside Play Observation, not a separate system.** Computed from `sessionLog` at render time. No new state fields required. No AI.
+- **Highest unlocked level is not a readiness proxy.** Children can unlock levels accidentally (one lucky run, random tapping). Voluntary replay and sustained accuracy are more meaningful signals.
+- **Four states per subject (Thai, Math, English): Strong / Comfortable / Exploring / Not Ready.** Derived from last 10 sessions: avgScore, count of sessions with ≥80%, completion rate. Thresholds: Strong = avgScore ≥ 0.85 + goodRuns ≥ 3 + completionRate ≥ 0.80. Comfortable = avgScore ≥ 0.70 + goodRuns ≥ 2. Otherwise Exploring.
+- **Mission content weighting should follow readiness, not level gates.** If Thai is Strong and English is Exploring, a mission should lean Thai-heavy and keep English light — not foreground the struggling subject. "Mission should follow the child. The child should not follow the mission."
+- **Shop Core is already readiness-aligned.** Thai-heavy weighting reflects Kindergarten reality intuitively. No change needed.
+- **Shop Stretch does not depend on Subject Readiness.** Stretch gates on the mastery signal (score ≥ 90% + wrong ≤ 1 + runs ≥ 2). Readiness is irrelevant for Shop Stretch. Proceed with Phase E independently.
+- **Cooking Mission design depends on Subject Readiness.** Do not finalize Cooking Mission step sequence before consulting real readiness data from Phase D sessions. Readiness needs ~10 sessions per subject to stabilize. Let data accumulate during Phase E play before designing Cooking.
+- **Subject Readiness Report display deferred.** No new code needed to collect the data (Phase D already does this). Report.jsx display can be added once sessions accumulate (~10+ per subject). Not a priority before Cooking Mission design.
+- **Engagement signals are the readiness foundation.** `replayedImmediately` (strongest signal: child chose to return immediately) + replay count + completion rate + avgScore. High replay at lower accuracy > low replay at higher accuracy, as a readiness signal.
+- **Full design:** `docs/research/observation/play-observation-system.md` (Subject Readiness section)
+
+---
+
 ## Rejected Ideas
 
 - **Full open-world exploration map** — Too much engine work. Not Year 1. Missions access via Home screen cards instead.

@@ -16,6 +16,12 @@
 - [x] **D3: Mission Analytics card in Report.jsx** — runs, avg score, avg duration, hints, per-phase difficulty (✅/⚠️), replay behavior text, deterministic nudge
 - [x] **D4: Replace peer-comparison card** — "เทียบกับเด็กวัยเดียวกัน" replaced with play-history timeline (last 10 sessions, no peer reference)
 
+### Phase D+ — Subject Readiness Documentation ✅ DONE
+
+- [x] **Subject Readiness spec** — added to `play-observation-system.md`: 4 readiness states (Strong / Comfortable / Exploring / Not Ready), derivation logic (last 10 sessions, avgScore + goodRuns + completionRate), explicit non-goals. No new code.
+- [x] **Mission system updated** — `mission-system.md` now includes "Subject Readiness and Mission Design" section: explains why unlock level is unreliable, how mission weighting should follow readiness profile, when to apply.
+- [x] **GPT_NOTES.md updated** — Subject Readiness decisions recorded.
+
 ### Phase E — Shop Stretch (after play validation with Chopin)
 
 - [ ] Review Shop Core with Chopin — confirm fun before expanding
@@ -24,7 +30,9 @@
 
 ### Content expansion (after Phase D + E)
 
-- [ ] Cooking Mission MVP (after Shop Core + Stretch are confirmed working)
+- [ ] **Subject Readiness Report display** — add readiness indicator to Report.jsx once ~10+ sessions per subject exist. Small addition to existing report card. No new state needed (derived from sessionLog). Deferred until data accumulates.
+- [ ] Cooking Mission MVP (after Shop Core + Stretch confirmed + Subject Readiness data available)
+  - ⚠️ **Do not design Cooking Mission step sequence before consulting readiness data from real play.**
 - [ ] Thai Levels 6+ (fruits, everyday objects, short sentences — อนุบาล → early ป.1)
 - [ ] Math Levels 9+ (place value, counting to 100 — early ป.1 stretch)
 - [ ] English Levels 5+ (longer sentences, basic comprehension)

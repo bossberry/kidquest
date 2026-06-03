@@ -268,6 +268,104 @@ Navigation (future target — after 2+ missions share the pattern):
 
 ---
 
+## Subject Readiness and Mission Design
+
+### The problem with level-gated content
+
+Using `subjectLevels[world]` (the highest unlocked level) as a mission content gate creates a false assumption: that the child at "Level 5" is ready for Level 5 content in a mission.
+
+They may have:
+- unlocked Level 5 through one lucky or random session
+- not played that subject in weeks
+- genuine comfort only at Level 2 or 3
+
+A mission that assumes Level 5 readiness will feel too hard and create frustration or guessing behavior.
+
+Conversely, a child who voluntarily replays Level 2 for the fifth time, consistently scoring 95%, is demonstrably comfortable — even though the unlock number "1" or "2" doesn't capture it.
+
+### Mission should follow the child
+
+Subject Readiness (see `docs/research/observation/play-observation-system.md`) gives a per-subject state derived from recent play behavior:
+
+| State | Profile |
+|-------|---------|
+| **Strong** | Sustained high accuracy, voluntary replays, consistent completion |
+| **Comfortable** | Good accuracy across multiple sessions |
+| **Exploring** | Attempting the subject; accuracy still developing |
+| **Not Ready** | No session data for this subject |
+
+This is computed from `sessionLog` at render time. No new state. No AI.
+
+### Mission content weighting
+
+A mission's subject mix can follow the child's readiness profile rather than a fixed ratio.
+
+**Shop Core current mix** (roughly fixed, intentionally Thai-heavy):
+```
+Phase 1: Thai matching     ×3 questions  → ~50% Thai
+Phase 2: English vocab     ×1 question   → ~17% English
+Phase 3: Math counting     ×1 question   → ~17% Math
+Phase 4: Thai phrase       ×1 question   → ~17% Thai (social)
+```
+This weighting is appropriate for a Kindergarten child. Thai is the strongest subject at this age; Math and English are light.
+
+**Readiness-informed design for future missions:**
+
+If Chopin's readiness profile after several weeks of play is:
+```
+Thai:    Strong
+Math:    Comfortable
+English: Exploring
+```
+
+A future Cooking Mission might weight:
+```
+Thai:    60% (confidence-building, familiar vocabulary)
+Math:    30% (counting ingredients, measuring — Comfortable is ready for more)
+English: 10% (light, non-pressuring — Exploring means we introduce gently)
+```
+
+A different child whose profile is:
+```
+Thai:    Comfortable
+Math:    Strong
+English: Not Ready
+```
+
+Cooking Mission for that child might look:
+```
+Thai:    40%
+Math:    55% (follow the strength)
+English: 5% (or absent — Not Ready means we don't foreground it)
+```
+
+This is **not adaptive question generation**. The content is pre-defined. The subject mix within a mission type is selected at design time using the observed readiness profile. A mission has a fixed step sequence once chosen — readiness informs the initial design, not runtime generation.
+
+### What this is not
+
+- ❌ Not AI — readiness is a deterministic derivation from `sessionLog`
+- ❌ Not adaptive question generation — content is pre-defined in `gameConfig.js` / `missionConfig.js`
+- ❌ Not a level tree or prerequisite chain
+- ❌ Not dynamic per-session difficulty — the step sequence is fixed once the mission launches
+- ❌ Not a gate — readiness does not lock or unlock missions; mastery signal does that
+
+### When to apply Subject Readiness in mission design
+
+| Mission | When Readiness matters |
+|---------|----------------------|
+| Shop Core (current) | Design is already right — Thai-heavy reflects Kindergarten readiness intuitively |
+| Shop Stretch | Not needed — Stretch gates on mastery signal (score ≥ 90% + wrong ≤ 1 + runs ≥ 2) |
+| Cooking Mission MVP | **Yes — consult readiness profile before finalizing step sequence.** Do not design Cooking before seeing real play data from Phase D. |
+| Garden Mission | Same — check readiness for all three subjects before designing the subject mix |
+
+### The core principle
+
+> Mission should follow the child. The child should not follow the mission.
+
+The mission is a story. The story should be told in a language the child is comfortable in — emphasizing the subjects they're growing in, not hammering the ones they're struggling with. The learning happens through confidence, not anxiety.
+
+---
+
 ## Explicit Non-Goals
 
 These are out of scope for the mission system — permanently or until explicitly revisited:

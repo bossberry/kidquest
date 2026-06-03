@@ -232,15 +232,110 @@ Rules are evaluated in priority order. Show maximum one nudge. No stacking.
 
 ---
 
-## Existing Report Section: Peer Comparison
+## Subject Readiness
 
-The current `Report.jsx` has a "เทียบกับเด็กวัยเดียวกัน" (compare with peers) card that compares total minutes to a "research average for 5–6 year olds."
+Subject Readiness is a **derived layer** of observation — computed at render time from `sessionLog`. It requires no new state fields, no AI, and no separate system. It belongs inside the Play Observation System.
 
-This card conflicts with the no-comparison principle.
+### The problem with highest unlocked level
 
-**Recommendation for Phase D:** Replace this card with a "Play History" card showing a simple timeline of recent sessions (world + date + completed/not completed), with no peer reference. The spirit of encouragement is preserved; the comparison framing is removed.
+`subjectLevels[world]` (the highest unlocked level) is not a reliable signal of readiness.
 
-This is not a blocker for Phase D implementation — it can be addressed in the same PR or deferred.
+A child may:
+- unlock a level through a single lucky or random session
+- show a level number that does not reflect sustained understanding
+- appear "advanced" in the data without genuine comfort
+
+A child may also:
+- voluntarily replay easy levels — a sign of comfort, not regression
+- achieve consistently high accuracy on levels below their unlock boundary
+- show genuine readiness at a level the unlock number does not capture
+
+**Subject Readiness ignores the unlock level entirely.** It is derived from recent play behavior.
+
+### Signals used
+
+| Signal | Source | Why it matters |
+|--------|--------|----------------|
+| Average score (last 10 sessions of this world) | `sessionLog` | Sustained accuracy is stronger evidence than one peak performance |
+| Count of sessions with score ≥ 80% | `sessionLog` | Repeated competence across sessions matters more than best score |
+| Completion rate | `sessionLog.completed` | A child who does not finish sessions is signalling something |
+| Voluntary immediate replay | `sessionLog.replayedImmediately` | The strongest "I'm comfortable here" signal — the child chose to return |
+| Session count for this world | `sessionLog` filtered by `world` | No data = no readiness to derive |
+
+Signals **not used**:
+- Response speed — never a readiness gate (see core principles)
+- Best score alone — one high score does not establish readiness
+- Highest unlocked level — see above
+
+### Readiness states
+
+Four states. Derived independently for each subject: Thai, Math, English.
+
+| State | Meaning |
+|-------|---------|
+| **Strong** | Sustained high accuracy + repeated voluntary practice. The child owns this subject comfortably. |
+| **Comfortable** | Good accuracy across multiple sessions. The child can handle this subject without anxiety. |
+| **Exploring** | The child has attempted this subject but accuracy is still developing. Normal and expected. |
+| **Not Ready** | No session data logged for this subject. The child has not played it. |
+
+### Derivation (deterministic — no AI)
+
+```
+sessions = sessionLog
+  .filter(s => s.world === world)
+  .slice(-10)               // last 10 sessions only (recent behavior matters more)
+
+if sessions.length === 0:
+  → Not Ready
+
+avgScore        = mean(s.score for s in sessions)
+goodRuns        = count(s where s.score >= 0.80)
+completionRate  = count(s where s.completed) / sessions.length
+
+if avgScore >= 0.85 AND goodRuns >= 3 AND completionRate >= 0.80:
+  → Strong
+
+if avgScore >= 0.70 AND goodRuns >= 2:
+  → Comfortable
+
+otherwise:
+  → Exploring
+```
+
+No persistence. Computed fresh on every render. No stored `readiness` field needed — `sessionLog` is the single source of truth.
+
+### What Subject Readiness feeds into
+
+1. **Parent Report** — show readiness per subject as a context signal alongside mission analytics. Framed positively, never as a judgment. "Thai: settling in well", "Math: building confidence", etc.
+2. **Mission content weighting** — mission design can follow the readiness profile instead of assumed level thresholds. See `mission-system.md`.
+3. **Cooking Mission design** — the Cooking Mission step sequence and subject mix should be designed by consulting the readiness profile, not the unlock number.
+
+### What Subject Readiness does NOT do
+
+- ❌ Does not gate any mission access — mastery signal (score ≥ 90% + wrong ≤ 1 + runs ≥ 2) still controls Stretch unlock
+- ❌ Does not generate questions — content is pre-defined; readiness informs weighting only
+- ❌ Does not build a skill tree, level map, or prerequisite chain
+- ❌ Does not show readiness to the child in any form
+- ❌ Does not require AI, a model, or inference beyond simple arithmetic
+- ❌ Does not replace parent judgment — parents read the signal and decide
+
+### Timing
+
+Subject Readiness needs session data to be meaningful. Phase D deployed `LOG_SESSION` across all game result screens. Data begins accumulating from the first play session after Phase D.
+
+Rough milestones:
+- After ~3 sessions per subject: states become non-trivial (Exploring vs Not Ready)
+- After ~10 sessions per subject: states are stable enough to inform mission design
+
+**Readiness is read-only for now.** Observe it. Let data accumulate. Use it when designing the Cooking Mission step sequence.
+
+---
+
+## Peer Comparison Card
+
+~~The current `Report.jsx` has a "เทียบกับเด็กวัยเดียวกัน" card that conflicts with the no-comparison principle.~~
+
+**✅ Replaced in Phase D.** The peer-comparison card was replaced with a play-history timeline (last 10 sessions: world + date + completed/not completed). No peer reference remains.
 
 ---
 
@@ -313,24 +408,23 @@ All report UI fits inside the existing `Report.jsx` card pattern.
 
 ---
 
-## Phase D+ Recommendation
+## Phase Status
 
-**Yes, this should become Phase D.**
+### ✅ Phase D (shipped 2026-06-03)
 
-Reasons:
-1. The data collection is small, non-disruptive, and can be implemented before or alongside play validation with Chopin.
-2. Starting observation *before* the next content expansion means data accumulates from the beginning — avoiding the "no history to show" problem when parents first open the report.
-3. It does not depend on Shop Stretch or new missions — it runs in parallel to the validation phase.
-4. The peer-comparison card replacement is a quick win on an existing issue.
+- D1: `sessionLog: []` + extended `shopV1` in `state.js`. `LOG_SESSION` reducer + extended `UPDATE_SHOP_V1` in `StateContext.jsx`.
+- D2: `LOG_SESSION` dispatched from all result screens — `GameShop.jsx`, `GameThai.jsx` (via `useFinishRound`), `GameMath.jsx`, `GamePhonics.jsx` (all 4 game components).
+- D3: `MissionAnalytics` card in `Report.jsx` — runs, avg score, avg duration, hints, per-phase difficulty, replay framing, nudge.
+- D4: Peer-comparison card replaced with play-history timeline.
 
-**Suggested Phase D scope:**
-- D1: Add `LOG_SESSION` + extend `UPDATE_SHOP_V1` (state + reducer, ~50 lines)
-- D2: Dispatch `LOG_SESSION` from all game result screens (~10 lines each, 3 files)
-- D3: Add Mission Analytics card to `Report.jsx` with phase difficulty + nudge rules
-- D4 (optional, same PR): Replace peer-comparison card with play history timeline
+### Phase D+ (next documentation cycle)
+
+- **Subject Readiness** — documented in this file. Computed from `sessionLog`. No new state. Available to render in `Report.jsx` once sessions accumulate (~10 per subject for reliable states).
+- **Report.jsx Subject Readiness display** — add a Subject Readiness row to the existing Subject Time card, or a small new card. Implementation deferred until real session data exists.
+- **Cooking Mission design** — use Subject Readiness profile to determine subject mix. Do not design Cooking Mission content before consulting readiness data from real play.
 
 **Phase E (after play validation with Chopin):**
 - Shop Stretch implementation + mastery-gate UI
-- Cooking Mission MVP
+- Cooking Mission MVP (readiness-informed step sequence)
 
-Phase D can ship independently of Phase E.
+Phase D ships independently of Phase E. Subject Readiness data accumulates during Phase E play.

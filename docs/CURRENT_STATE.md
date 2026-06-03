@@ -69,6 +69,7 @@
 - **Mission Analytics card** in `Report.jsx`: shows runs, avg score, avg duration, hints, per-phase difficulty (✅/⚠️), replay behavior text, one deterministic nudge. Appears only if `shopV1.runs > 0`.
 - **Play History card** in `Report.jsx`: replaces old peer-comparison card. Shows last 10 sessions with world label, date, completed/not. No peer reference.
 - **All subject games dispatch `LOG_SESSION`**: GameThai (via `useFinishRound`), GameMath (in `next()`), GamePhonics (in each game's `next()`). GameShop dispatches alongside `UPDATE_SHOP_V1`.
+- **Subject Readiness card** in `Report.jsx`: `computeReadiness(sessionLog, world)` derived at render time from last 10 entries per subject. 4 states: Strong (แข็งแรงมาก) / Comfortable (กำลังมั่นใจ) / Exploring (กำลังสำรวจ) / Not Ready (ยังไม่มีข้อมูลพอ). Observation footnote: "ดูจากการเล่นล่าสุด ไม่ใช่เลเวลที่ปลดล็อก". No new state fields.
 
 ---
 

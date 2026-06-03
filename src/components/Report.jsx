@@ -3,6 +3,59 @@ import { useAppState } from '../context/StateContext.jsx'
 
 const WORLD_LABELS = { thai: '📖 ภาษาไทย', math: '🔢 Math', eng: '🔤 English', shop: '🏪 ร้านค้า' }
 
+function computeReadiness(sessionLog, world) {
+  const sessions = (sessionLog || []).filter(s => s.world === world).slice(-10)
+  if (sessions.length === 0) return 'notready'
+  const avgScore = sessions.reduce((sum, s) => sum + (s.score || 0), 0) / sessions.length
+  const goodRuns = sessions.filter(s => (s.score || 0) >= 0.80).length
+  const completionRate = sessions.filter(s => s.completed).length / sessions.length
+  if (avgScore >= 0.85 && goodRuns >= 3 && completionRate >= 0.80) return 'strong'
+  if (avgScore >= 0.70 && goodRuns >= 2) return 'comfortable'
+  return 'exploring'
+}
+
+const READINESS_LABELS = {
+  strong:    'แข็งแรงมาก',
+  comfortable: 'กำลังมั่นใจ',
+  exploring: 'กำลังสำรวจ',
+  notready:  'ยังไม่มีข้อมูลพอ',
+}
+const READINESS_COLORS = {
+  strong:    { bg: 'var(--green-l)',  text: 'var(--green-d)' },
+  comfortable: { bg: 'var(--blue-l)', text: 'var(--blue-d)' },
+  exploring: { bg: 'var(--amber-l)', text: 'var(--amber-d)' },
+  notready:  { bg: 'var(--border)',   text: 'var(--muted)' },
+}
+const READINESS_SUBJECTS = [
+  { world: 'thai', label: 'ภาษาไทย', icon: '📖' },
+  { world: 'math', label: 'คณิต',    icon: '🔢' },
+  { world: 'eng',  label: 'อังกฤษ',  icon: '🔤' },
+]
+
+function SubjectReadiness({ sessionLog }) {
+  return (
+    <div className="report-card">
+      <div className="rc-title"><span className="rc-icon">🌱</span>ความพร้อมรายวิชา</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+        ดูจากการเล่นล่าสุด ไม่ใช่เลเวลที่ปลดล็อก
+      </div>
+      {READINESS_SUBJECTS.map(({ world, label, icon }) => {
+        const r = computeReadiness(sessionLog, world)
+        const c = READINESS_COLORS[r]
+        return (
+          <div key={world} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 20, minWidth: 28 }}>{icon}</span>
+            <span style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{label}</span>
+            <span style={{ background: c.bg, color: c.text, borderRadius: 12, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>
+              {READINESS_LABELS[r]}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function fmtDur(ms) {
   const m = Math.floor(ms / 60000)
   const s = Math.round((ms % 60000) / 1000)
@@ -145,6 +198,7 @@ export default function Report() {
           ))}
         </div>
         <MissionAnalytics shopV1={state.shopV1} name={state.name || 'ลูก'} />
+        <SubjectReadiness sessionLog={state.sessionLog} />
         <div className="report-card">
           <div className="rc-title"><span className="rc-icon">📅</span>ประวัติการเล่น</div>
           {(!state.sessionLog || state.sessionLog.length === 0) ? (

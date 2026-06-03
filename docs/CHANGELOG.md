@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Subject Readiness Report display
+
+- `src/components/Report.jsx` — `computeReadiness(sessionLog, world)` added: filters last 10 `sessionLog` entries per world, derives one of 4 states (strong / comfortable / exploring / notready) from avgScore + goodRuns + completionRate thresholds. `SubjectReadiness` component renders a card with color-coded Thai-language badges for ภาษาไทย / คณิต / อังกฤษ. Observation footnote: "ดูจากการเล่นล่าสุด ไม่ใช่เลเวลที่ปลดล็อก". No new state fields.
+- Build: ✅ zero errors.
+
 ## 2026-06-03 — Subject Readiness Design (docs only)
 
 - `docs/research/observation/play-observation-system.md` — **Subject Readiness** section added: 4 readiness states (Strong / Comfortable / Exploring / Not Ready), derivation logic (last 10 sessions, avgScore ≥ 0.85 + goodRuns ≥ 3 + completionRate ≥ 0.80 for Strong; avgScore ≥ 0.70 + goodRuns ≥ 2 for Comfortable; else Exploring; no sessions = Not Ready), explicit non-goals (no AI, no gate, no child UI, no level tree), phase status section updated to mark Phase D shipped and describe Phase D+ scope.

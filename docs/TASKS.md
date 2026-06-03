@@ -30,7 +30,7 @@
 
 ### Content expansion (after Phase D + E)
 
-- [ ] **Subject Readiness Report display** — add readiness indicator to Report.jsx once ~10+ sessions per subject exist. Small addition to existing report card. No new state needed (derived from sessionLog). Deferred until data accumulates.
+- [x] **Subject Readiness Report display** — `SubjectReadiness` component in Report.jsx; `computeReadiness()` derived from `sessionLog` at render time; 4 states (แข็งแรงมาก / กำลังมั่นใจ / กำลังสำรวจ / ยังไม่มีข้อมูลพอ); observation note "ดูจากการเล่นล่าสุด ไม่ใช่เลเวลที่ปลดล็อก".
 - [ ] Cooking Mission MVP (after Shop Core + Stretch confirmed + Subject Readiness data available)
   - ⚠️ **Do not design Cooking Mission step sequence before consulting readiness data from real play.**
 - [ ] Thai Levels 6+ (fruits, everyday objects, short sentences — อนุบาล → early ป.1)

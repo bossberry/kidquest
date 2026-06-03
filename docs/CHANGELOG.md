@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Mission System Design (documentation only)
+- Created `docs/research/missions/` with 5 files: README, mission-system, shop-mission, cooking-mission, garden-mission.
+- Mission system: 3 types (Progression/Review/Challenge), reuses all existing mechanics, data-driven via `missionConfig.js`, thin `MissionScreen.jsx` wrapper.
+- Shop mission MVP: 6 steps, Kindergarten core + Grade 1 stretch, integrates Thai/Math/English/GK. Full data structure specified.
+- Cooking and garden missions: design only — not for implementation until shop is confirmed working.
+- Updated `GPT_NOTES.md`, `TASKS.md`, `RESEARCH_INDEX.md`, `SESSION_SUMMARY.md`.
+- No app code changed.
+
 ## 2026-06-03 — Vision + Scope Documentation
 - Created `PROJECT.md` — one-page project brief (what, who, golden rule, success metric).
 - Created `VISION.md` — full design philosophy: golden rule, mastery progression, Year 1 scope, stable engine, content strategy, replay philosophy, non-goals, scope guardian mandate.

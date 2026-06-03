@@ -2,13 +2,26 @@
 
 ## Now
 
-_(nothing urgent — Phase 1 UX complete)_
+- [ ] **Implement Shop Mission MVP** — first integrated mission after design review
+  - Read `docs/research/missions/shop-mission.md` first
+  - New file: `src/config/missionConfig.js` (mission data)
+  - New file: `src/games/MissionScreen.jsx` (step sequencer)
+  - Add mission cards to Home screen
+  - New state fields: `completedMissions`, `currentMissionId`
+  - New ACTIONS: `FINISH_MISSION`
+  - Reuse existing mechanics — no new mini-games
+  - **Do NOT implement cooking or garden yet**
 
 ---
 
 ## Next
 
-_(Phase 2 + Phase 3 complete — see Done)_
+- [ ] Review Shop Mission with Chopin — confirm fun before expanding
+- [ ] Cooking Mission MVP (after shop is confirmed working)
+- [ ] Garden Mission MVP (after cooking is confirmed working)
+- [ ] Thai Levels 6+ (fruits, everyday objects, short sentences — อนุบาล → early ป.1)
+- [ ] Math Levels 9+ (place value, counting to 100 — early ป.1 stretch)
+- [ ] English Levels 5+ (longer sentences, basic comprehension)
 
 ---
 
@@ -16,11 +29,17 @@ _(Phase 2 + Phase 3 complete — see Done)_
 
 ### Content
 - [ ] Expand Thai Level 3 animal words (20 → 30+)
-- [ ] Add Thai Levels 6+ (fruits, everyday objects, ป.1 curriculum)
 - [ ] Add English Level 5+ (longer sentences, paragraph comprehension)
 - [ ] Add Math Levels 9+ (ABC patterns, multiplication intro)
 
+### Missions
+- [ ] Shop Mission variant 2 (different items: stationery / toy shop)
+- [ ] Garden daily-habit loop (gentle "plant grew" indicator on Home)
+- [ ] Mission unlock cosmetic rewards (new egg pattern, creature color)
+
 ### Features
+- [ ] First-run onboarding flow (before ProfileModal is opened manually)
+- [ ] Daily learning habit indicators
 - [ ] Parent dashboard (protected route, separate from Report tab)
 - [ ] PWA manifest + service worker (offline support)
 
@@ -62,3 +81,6 @@ _(Phase 2 + Phase 3 complete — see Done)_
 - [x] **Phase 1 UX**: replace alert() with showToast(); ProfileModal with name + grade; SET_PROFILE action
 - [x] **Phase 2 UX**: sound toggle persists via `kq_sound` localStorage key; XpBoostBadge countdown in Home header
 - [x] **Phase 3**: AI_OPPONENTS tiers 2–5 added; grade→tier mapping fixed in StateContext (was hard-capped at tier 1)
+- [x] Vision + scope documentation (PROJECT.md, VISION.md, GOALS.md, scope guardian mandate)
+- [x] Math research reorganized into topics/curriculum/learning-path/categories structure
+- [x] **Mission system designed**: shop, cooking, garden missions documented in docs/research/missions/

@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Vision + Scope Documentation)_
+_Last updated: 2026-06-03 (Mission System Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,12 +22,12 @@ _Last updated: 2026-06-03 (Vision + Scope Documentation)_
 
 ## Latest Session Summary
 
-**What changed this session:**
-- Created `PROJECT.md`, `VISION.md`, `GOALS.md`, `docs/README.md` — full project vision documented
-- Updated `docs/DECISIONS.md` — mastery-based progression, Golden Rule, replay philosophy, scope guardian mandate added
-- Updated `CLAUDE.md` — scope guardian check added to Before Coding section
-- Updated `docs/ARCHITECTURE.md` — stable engine note replaces stale React migration note
-- Updated `SPEC.md` — deprecated header now matches canonical format
+**What changed this session (Mission System Design — docs only, no code):**
+- Created `docs/research/missions/` — mission-system.md, shop-mission.md, cooking-mission.md, garden-mission.md
+- Shop mission: 6-step MVP design with full data structure. Thai/Math/English/GK integrated in one shop visit. Kindergarten core + Grade 1 stretch.
+- Mission system: 3 types (Progression/Review/Challenge), reuses existing mechanics, `missionConfig.js` + `MissionScreen.jsx` only new code needed
+- Updated `GPT_NOTES.md` with research decisions, architecture suggestions, rejected ideas, open questions for Claude
+- **Next coding task: Shop Mission MVP** — see `docs/research/missions/shop-mission.md`
 
 ---
 
@@ -58,13 +58,13 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 ## Active Tasks
 
-**Now:** _(nothing urgent — Phases 1–3 and vision documentation complete)_
+**Now (highest priority):**
+- **Implement Shop Mission MVP** — design is complete, ready to code. See `docs/research/missions/shop-mission.md`. Requires: `missionConfig.js`, `MissionScreen.jsx`, mission cards on Home, `completedMissions` state, `FINISH_MISSION` action.
 
-**Next (Year 1 priorities):**
-- First integrated mission prototype (shop / cooking / garden) — multi-subject
-- Thai Levels 6+ (อนุบาล → early ป.1 content: fruits, everyday objects, short sentences)
-- Math Levels 9+ (ป.1 stretch: place value, counting to 100)
-- English Levels 5+ (ป.1 stretch: longer sentences, basic comprehension)
+**Next:**
+- Review shop mission with Chopin → confirm fun before cooking/garden
+- Cooking Mission MVP (after shop confirmed)
+- Thai Levels 6+ / Math Levels 9+ / English Levels 5+ content expansion
 
 **Later:**
 - Multi-child profiles; per-session Supabase logging; payment (199 THB/month); landing page; PWA
@@ -113,8 +113,8 @@ src/components/BattleScreen.jsx — Battle sim + animation (292 lines)
 
 **Stay within Year 1 scope (Kindergarten + Early Grade 1 only).**
 
-1. **Mission system design** — what should the first integrated mission look like? (shop / cooking / garden). How does it blend Math, Thai, English, and general knowledge naturally?
-2. **Thai Levels 6–8** — what อนุบาล/early ป.1 Thai content comes next? Fruits, everyday objects, short action sentences?
-3. **Math Levels 9–10** — what early ป.1 Math content fits? Place value? Counting to 100?
-4. **Monetisation timing** — when is the app ready to share with other families? What's the minimum viable parent experience?
-5. Write findings to `docs/GPT_NOTES.md` for Claude Code to act on
+1. **Review shop mission design** in `docs/research/missions/shop-mission.md` — is the content right for Chopin? Are the Thai item names good? Is the flow natural?
+2. **Thai Levels 6–8 content** — what อนุบาล/early ป.1 Thai content comes next? Fruits, everyday objects, short action sentences? Write decisions to `GPT_NOTES.md`.
+3. **Math Levels 9–10 content** — place value? Counting to 100? What mechanic variations work? Write to `GPT_NOTES.md`.
+4. **Monetisation timing** — when is the app ready to share? What does the minimum viable parent experience look like?
+5. Write all findings to `docs/GPT_NOTES.md` for Claude Code to act on

@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Math Visual Models for L1–L4
+- `gameConfig.js`: added `visualModel` field to math levels 1–4 (`objects`, `objects`, `tenFrame`, `crossOut`).
+- `GameMath.jsx`: `genQ` numeric branch now attaches `visualModel`, `emojiA`, `emojiB` to question object.
+- New `VisualModel` component with 4 modes:
+  - `objects`: real emoji grid (emojiA×a + emojiB×b) with `+` separator; smaller font when total > 10.
+  - `tenFrame`: 2×5 or 4×5 coloured grid (amber=a, blue=b, grey=empty); fallback dots if total > 20.
+  - `crossOut`: emoji grid with ❌ overlay on the last `b` items (subtraction visualisation).
+  - `null` (L5+): unchanged coloured 🟡/🔵 dots.
+
 ## 2026-06-03 — Math Content Expansion + New Question Types
 - `MATH_WORDS` expanded from 16 → 30: added joining, taking-away, and 10 comparison problems (`comparison:true`).
 - `PATTERN_SETS` added to `gameConfig.js` (5 AB emoji pairs; ABC reserved for L9).

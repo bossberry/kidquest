@@ -28,6 +28,69 @@ export default function GameMath() {
 
 const COUNTABLES = ['🥚','⭐','🍎','🐟','🌸','🏀','🍬','💎']
 
+function VisualModel({ q }) {
+  const { a, b, visualModel, emojiA, emojiB } = q
+  const total = a + b
+
+  if (visualModel === 'objects') {
+    const sz = total > 10 ? 18 : 24
+    return (
+      <div style={{display:'flex',flexWrap:'wrap',gap:4,justifyContent:'center',marginBottom:12,minHeight:36,alignItems:'center'}}>
+        {[...Array(a)].map((_,i)=><span key={`a${i}`} style={{fontSize:sz,lineHeight:1}}>{emojiA}</span>)}
+        <span style={{fontSize:16,color:'var(--purple)',fontWeight:700,padding:'0 6px',alignSelf:'center'}}>+</span>
+        {[...Array(b)].map((_,i)=><span key={`b${i}`} style={{fontSize:sz,lineHeight:1}}>{emojiB}</span>)}
+      </div>
+    )
+  }
+
+  if (visualModel === 'tenFrame') {
+    const rows = total <= 10 ? 2 : total <= 20 ? 4 : null
+    if (rows === null) {
+      // total > 20: fallback to coloured dots
+      return (
+        <div style={{display:'flex',justifyContent:'center',gap:4,flexWrap:'wrap',marginBottom:12}}>
+          {[...Array(a)].map((_,i)=><span key={`a${i}`} style={{width:18,height:18,borderRadius:'50%',background:'var(--amber)',display:'inline-block'}}/>)}
+          {[...Array(b)].map((_,i)=><span key={`b${i}`} style={{width:18,height:18,borderRadius:'50%',background:'var(--blue)',display:'inline-block'}}/>)}
+        </div>
+      )
+    }
+    const cells = rows * 5
+    return (
+      <div style={{display:'grid',gridTemplateColumns:'repeat(5,28px)',gap:3,justifyContent:'center',marginBottom:12}}>
+        {[...Array(cells)].map((_,i) => {
+          const bg = i < a ? 'var(--amber)' : i < a+b ? 'var(--blue)' : '#e5e7eb'
+          return <div key={i} style={{width:28,height:28,borderRadius:4,background:bg,border:`1.5px solid ${bg==='#e5e7eb'?'#d1d5db':'rgba(0,0,0,0.1)'}`}}/>
+        })}
+      </div>
+    )
+  }
+
+  if (visualModel === 'crossOut') {
+    const keepCount = a - b
+    return (
+      <div style={{display:'flex',flexWrap:'wrap',gap:4,justifyContent:'center',marginBottom:12,minHeight:36}}>
+        {[...Array(a)].map((_,i) => {
+          const crossed = i >= keepCount
+          return (
+            <span key={i} style={{position:'relative',display:'inline-block',fontSize:26,lineHeight:1,opacity:crossed?0.5:1}}>
+              {emojiA}
+              {crossed && <span style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-55%)',fontSize:20,lineHeight:1,pointerEvents:'none'}}>❌</span>}
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // null / L5+: existing coloured dots
+  return (
+    <div style={{display:'flex',justifyContent:'center',gap:5,flexWrap:'wrap',minHeight:36,marginBottom:12,padding:'0 8px'}}>
+      {[...Array(a)].map((_,i)=><span key={`a${i}`} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🟡</span>)}
+      {[...Array(b)].map((_,i)=><span key={`b${i}`} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🔵</span>)}
+    </div>
+  )
+}
+
 function genQ(lv) {
   if (lv?.op === 'count') {
     const emoji = COUNTABLES[Math.floor(Math.random() * COUNTABLES.length)]
@@ -62,7 +125,12 @@ function genQ(lv) {
     a=Math.floor(Math.random()*mx)+1; b=Math.floor(Math.random()*(mx-a+1))+1; ans=a+b
   }
   const w=new Set(); while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v)}
-  return {a,b,op,answer:ans,choices:shuffle([ans,...w])}
+  const visModel = lv?.visualModel || null
+  const emojiA = visModel ? COUNTABLES[Math.floor(Math.random()*COUNTABLES.length)] : null
+  const emojiB = visModel === 'objects'
+    ? COUNTABLES.filter(e=>e!==emojiA)[Math.floor(Math.random()*(COUNTABLES.length-1))]
+    : null
+  return {a,b,op,answer:ans,choices:shuffle([ans,...w]),visualModel:visModel,emojiA,emojiB}
 }
 
 function MathLevelGame({ lv, onBack }) {
@@ -198,12 +266,7 @@ function MathLevelGame({ lv, onBack }) {
             <div style={{fontFamily:"'Fredoka One',cursive",fontSize:58,color:'var(--amber)'}}>?</div>
           </div>
         )}
-        {!q.isWord && !q.isCount && !q.isPattern && (
-          <div style={{display:'flex',justifyContent:'center',gap:5,flexWrap:'wrap',minHeight:36,marginBottom:12,padding:'0 8px'}}>
-            {[...Array(q.a)].map((_,i)=><span key={i} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🟡</span>)}
-            {[...Array(q.b)].map((_,i)=><span key={i} style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🔵</span>)}
-          </div>
-        )}
+        {!q.isWord && !q.isCount && !q.isPattern && <VisualModel q={q} />}
         <div className="choices">
           {q.choices.map((c,i)=>(
             <button key={i} className={`choice-btn${answered&&c===q.answer?' correct':''}`}

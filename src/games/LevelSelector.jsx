@@ -2,19 +2,20 @@ import React from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { LEVELS } from '../config/gameConfig.js'
 
-export default function LevelSelector({ world, onSelect }) {
+export default function LevelSelector({ world, onSelect, levelsOverride }) {
   const { state, dispatch } = useAppState()
   const unlocked = (state.subjectLevels || {})[world] || 1
   const mastery = (state.levelMastery || {})[world] || {}
 
   const titles = { thai:'🇹🇭 ภาษาไทย', math:'🔢 Math', eng:'🔤 English' }
+  const levels = levelsOverride || LEVELS[world]
 
   return (
     <div style={{ width:'100%', maxWidth:480, padding:'16px 20px 20px' }}>
       <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>{titles[world]}</div>
       <div style={{ fontSize:12, color:'var(--muted)', marginBottom:16 }}>เลือก Level ที่อยากเล่น</div>
       <div className="level-grid">
-        {LEVELS[world].map(lv => {
+        {levels.map(lv => {
           const isUnlocked = lv.id <= unlocked
           const isMystery = lv.id > unlocked + 2
           const pct = Math.round((mastery[lv.id] || 0) * 100)

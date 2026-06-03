@@ -27,9 +27,10 @@ export const ACTIONS = {
   CHECK_DAILY_RESET:  'CHECK_DAILY_RESET',
   DECAY_HAPPINESS:    'DECAY_HAPPINESS',
   SET_HATCHING:       'SET_HATCHING',
-  RECORD_BATTLE:      'RECORD_BATTLE',
-  SET_CHALLENGER:     'SET_CHALLENGER',
-  CLEAR_CHALLENGER:   'CLEAR_CHALLENGER',
+  RECORD_BATTLE:       'RECORD_BATTLE',
+  SET_CHALLENGER:      'SET_CHALLENGER',
+  CLEAR_CHALLENGER:    'CLEAR_CHALLENGER',
+  FOUNDATION_COMPLETE: 'FOUNDATION_COMPLETE',
 }
 
 function reducer(state, action) {
@@ -233,6 +234,9 @@ function reducer(state, action) {
         : state.items
       return { ...state, defeatedBosses, battleHistory, items }
     }
+
+    case ACTIONS.FOUNDATION_COMPLETE:
+      return { ...state, foundationComplete: true }
 
     default:
       return state

@@ -33,6 +33,7 @@ export function defaultState() {
     dailyBattleRounds: 0,
     lastBattleDate: '',
     pendingChallenger: null,
+    foundationComplete: false,
   }
 }
 

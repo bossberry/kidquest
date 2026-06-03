@@ -4,7 +4,7 @@
 
 🏪 **ร้านค้า — The Shop**
 
-Chopin visits a small Thai neighbourhood shop (ร้านของชำ). They read item names, count items on the shelf, pick the right quantity, solve a simple price problem, and say thank you before leaving.
+Chopin visits a small Thai neighbourhood shop (ร้านของชำ). They match item names, say what they are in English, count items on the shelf, and say thank you before leaving.
 
 Familiar, warm, and completely in range for a 5-year-old.
 
@@ -13,7 +13,7 @@ Familiar, warm, and completely in range for a 5-year-old.
 ## Scope
 
 - **Kindergarten core** (primary)
-- **Early Grade 1 stretch** (optional challenge steps)
+- **Early Grade 1 stretch** — price/quantity steps available as later expansion only
 - No real money, no payment system, no e-commerce
 - No new mechanics — uses only existing question types
 
@@ -23,196 +23,184 @@ Familiar, warm, and completely in range for a 5-year-old.
 
 | Subject | Objective |
 |---------|-----------|
-| **Math** | Count objects 1–5 · Simple addition 1–5 · Choose correct quantity |
-| **Thai** | Read 3–5 shop item names · Say a polite social phrase |
-| **English** | Name common fruit/food items in English |
-| **General knowledge** | Understand that shops have items and prices · Basic social roles |
+| **Math** | Count objects 1–5 |
+| **Thai** | Match 3 item names to emoji · Say a polite social phrase |
+| **English** | Name common fruit/food items |
+| **General knowledge** | Shops have items with names · Basic social courtesy |
 
 ---
 
-## Mission Flow (MVP — 6 steps)
+## Mission Flow (MVP — 4 steps)
 
 ```
 [Step 1] Thai Matching
-  → Show 3 items (apple 🍎, banana 🍌, orange 🍊)
-  → "จับคู่ของกับชื่อ" (Match the item to its name)
+  → Show 3 items: แอปเปิ้ล 🍎, กล้วย 🍌, ส้ม 🍊
+  → "จับคู่ของกับชื่อ" (Match item emoji to Thai name)
   → Mechanic: matching
 
-[Step 2] English Naming
-  → Show one item with emoji
-  → "What is this called?" → choices: apple / mango / bread / egg
+[Step 2] English Vocabulary
+  → Show one item emoji (e.g. 🍌)
+  → "What is this called?"
+  → Choices: apple / banana / orange / bread
   → Mechanic: multipleChoice (English)
 
 [Step 3] Counting
-  → Show 4 apples on a shelf
+  → Show items on shelf (e.g. 🍎🍎🍎🍎)
   → "มีแอปเปิ้ลกี่ลูก?" (How many apples?)
-  → Mechanic: counting (existing Foundation mechanic)
+  → Range 1–5 only
   → Choices: 1, 2, 3, 4, 5
+  → Mechanic: counting (existing Foundation mechanic)
 
-[Step 4] Quantity Choice
-  → "แม่ต้องการแอปเปิ้ล 3 ลูก แต่มีแค่ 1 ลูก ต้องซื้อเพิ่มกี่ลูก?"
-     (Mom needs 3 apples. There is 1. How many more do we need?)
-  → Mechanic: multipleChoice (Math — simple addition/subtraction 1–5)
-  → Choices: 1, 2, 3, 4
-
-[Step 5] Price / Addition (stretch — optional for grade 0, required for grade 1 stretch)
-  → "แอปเปิ้ล 1 ลูก ราคา 2 บาท ซื้อ 2 ลูก จ่ายกี่บาท?"
-     (1 apple = 2 baht. Buy 2 apples. How much?)
-  → Mechanic: multipleChoice (Math — addition 2+2)
-  → Visual: 2 apples shown with price tag emoji 💰
-
-[Step 6] Social Phrase
-  → "บอกว่าอะไรตอนซื้อของเสร็จ?" (What do you say when you finish buying?)
-  → Choices: ขอบคุณครับ / สวัสดี / ลาก่อน / หิวข้าว
+[Step 4] Social Phrase
+  → "บอกว่าอะไรตอนซื้อของเสร็จ?" (What do you say after buying?)
+  → Choices: ขอบคุณครับ / ขอบคุณค่ะ / สวัสดี / หิวข้าว
   → Mechanic: multipleChoice (Thai social language)
 ```
+
+**Total: 4 steps. Estimated time: 2–3 minutes.**
+
+---
+
+## Why 4 Steps, Not 6
+
+The original 6-step design included a quantity-difference problem and a price/addition problem. These were removed from the MVP because:
+
+1. **Quantity difference** ("need 3, have 1, need how many more?") requires two-step reasoning. Appropriate for Early Grade 1 stretch, not Kindergarten MVP.
+2. **Price/addition** ("1 apple = 2 baht, buy 2, pay how much?") introduces money concepts that are conceptually rich but not necessary for a first mission. Saves it as a meaningful stretch reward.
+3. **4 steps is the right size** for a 5-year-old's first mission experience. Validates the concept without over-committing.
 
 ---
 
 ## Content Details
 
 ### Thai Content
-- Item names: แอปเปิ้ล, กล้วย, ส้ม, ขนมปัง, ไข่, น้ำ (apple, banana, orange, bread, egg, water)
-- Social phrases: ขอบคุณครับ/ค่ะ, ขอซื้อ..., เท่าไหร่ครับ/ค่ะ (thank you, I'd like to buy..., how much?)
-- Reading: item labels on shelf (2–3 syllable words, อนุบาล level)
+- Item names (MVP): แอปเปิ้ล, กล้วย, ส้ม (apple, banana, orange)
+- Social phrases: ขอบคุณครับ/ค่ะ (thank you — male/female form)
+- Reading level: 2–3 syllable words, อนุบาล level
 
 ### Math Content
-- Counting 1–5 objects on a shelf
-- Simple addition 1–5 (e.g. 1 + 2 = ?)
-- Simple subtraction: "need 3, have 1, need how many more?" (difference 1–4)
-- Grade 1 stretch: price addition (2 + 2 = 4 baht)
+- Counting objects 1–5 on a shelf
+- No addition or subtraction in MVP
 
 ### English Content
-- Vocabulary: apple, banana, orange, bread, egg, water, shop, buy
-- Recognition: hear word → match to picture (uses existing CVC/phonics mechanic)
-- Level: pure recognition, no spelling required at this stage
+- Vocabulary: apple, banana, orange, bread
+- Recognition only — no spelling required
 
 ### General Knowledge Content
-- Shops sell things for money
-- Shopkeeper and customer social roles
-- Money is used to buy things (concept only, no complex arithmetic)
-- Items have names and prices (reading labels)
+- Shops sell items with names
+- Saying thank you after buying is polite
+- Basic social role: customer
 
 ---
 
-## Reusable Mechanics Needed
+## Reusable Mechanics
 
 All already exist in the codebase:
 
-| Step type | Component/mechanic | Location |
-|-----------|-------------------|----------|
-| Matching | ThaiMatchGame pattern | `GameThai.jsx` |
-| Multiple choice (Thai) | Used in all games | `GameThai.jsx`, `GameMath.jsx` |
-| Counting | Foundation count mechanic | `GameMath.jsx` (genQ count type) |
-| Multiple choice (Math) | MathLevelGame | `GameMath.jsx` |
-| Multiple choice (English) | PhonicsGame pattern | `GamePhonics.jsx` |
-
-The MissionScreen wrapper sequences these steps and passes appropriate content.
+| Step | Mechanic | Existing location |
+|------|----------|-------------------|
+| Thai Matching | `matching` | `GameThai.jsx` L1 ThaiMatchGame |
+| English Choice | `multipleChoice` | `GamePhonics.jsx` PhonicsGame |
+| Counting | `counting` | `GameMath.jsx` genQ count type |
+| Social Phrase | `multipleChoice` | `GameMath.jsx`, `GameThai.jsx` |
 
 ---
 
 ## Suggested Data Structure
 
 ```js
-// src/config/missionConfig.js
+// Inline in GameShop.jsx for MVP, or src/config/missionConfig.js later
 
-export const MISSIONS = [
-  {
-    id: 'shop-v1',
-    name: 'ร้านค้า',
-    emoji: '🏪',
-    theme: 'shop',
-    unlockAfter: null,          // available from start
-    targetGrade: [0, 1],        // KG + early G1
-    steps: [
-      {
-        id: 's1', type: 'matching', subject: 'thai',
-        prompt: 'จับคู่ของกับชื่อ',
-        pairs: [
-          { word: 'แอปเปิ้ล', emoji: '🍎' },
-          { word: 'กล้วย',    emoji: '🍌' },
-          { word: 'ส้ม',      emoji: '🍊' },
-        ]
-      },
-      {
-        id: 's2', type: 'multipleChoice', subject: 'english',
-        prompt: 'What is this?',
-        image: '🍎',
-        answer: 'apple',
-        choices: ['apple', 'mango', 'bread', 'egg']
-      },
-      {
-        id: 's3', type: 'counting', subject: 'math',
-        prompt: 'มีแอปเปิ้ลกี่ลูก?',
-        objects: ['🍎','🍎','🍎','🍎'],
-        answer: 4,
-        choices: [1, 2, 3, 4, 5]
-      },
-      {
-        id: 's4', type: 'multipleChoice', subject: 'math',
-        prompt: 'แม่ต้องการ 3 ลูก มี 1 ลูก ต้องซื้อเพิ่มกี่ลูก?',
-        visualA: ['🍎'],
-        visualB: ['🍎','🍎','🍎'],
-        answer: 2,
-        choices: [1, 2, 3, 4],
-        gradeStretch: false   // required for all
-      },
-      {
-        id: 's5', type: 'multipleChoice', subject: 'math',
-        prompt: '1 ลูก = 2 บาท ซื้อ 2 ลูก จ่ายกี่บาท?',
-        image: '🍎💰',
-        answer: 4,
-        choices: [2, 3, 4, 5],
-        gradeStretch: true    // optional for grade 0, shown for grade 1+
-      },
-      {
-        id: 's6', type: 'multipleChoice', subject: 'thai',
-        prompt: 'บอกว่าอะไรตอนซื้อของเสร็จ?',
-        answer: 'ขอบคุณครับ',
-        choices: ['ขอบคุณครับ','สวัสดี','ลาก่อน','หิวข้าว']
-      },
-    ],
-    rewards: {
-      xp: 30,
-      itemChance: 0.4,
-      eggXp: 15
-    }
+const SHOP_V1 = {
+  id: 'shop-v1',
+  name: 'ร้านค้า',
+  emoji: '🏪',
+  unlockAfter: null,       // always available from start
+  unlockThreshold: 0.80,   // complete with ≥80% to unlock next mission
+  steps: [
+    {
+      id: 's1', type: 'matching', subject: 'thai',
+      prompt: 'จับคู่ของกับชื่อ',
+      pairs: [
+        { word: 'แอปเปิ้ล', emoji: '🍎' },
+        { word: 'กล้วย',    emoji: '🍌' },
+        { word: 'ส้ม',      emoji: '🍊' },
+      ]
+    },
+    {
+      id: 's2', type: 'multipleChoice', subject: 'english',
+      prompt: 'What is this?',
+      image: '🍌',
+      answer: 'banana',
+      choices: ['apple', 'banana', 'orange', 'bread']
+    },
+    {
+      id: 's3', type: 'counting', subject: 'math',
+      prompt: 'มีแอปเปิ้ลกี่ลูก?',
+      objects: ['🍎','🍎','🍎','🍎'],
+      answer: 4,
+      choices: [1, 2, 3, 4, 5]
+    },
+    {
+      id: 's4', type: 'multipleChoice', subject: 'thai',
+      prompt: 'บอกว่าอะไรตอนซื้อของเสร็จ?',
+      answer: 'ขอบคุณครับ',
+      choices: ['ขอบคุณครับ','ขอบคุณค่ะ','สวัสดี','หิวข้าว']
+    },
+  ],
+  rewards: {
+    xp: 25,
+    itemChance: 0.4,
+    eggXp: 12
   }
-]
+}
 ```
 
 ---
 
-## MVP Version
+## MVP Implementation Note
 
-The minimum viable shop mission:
+Prefer **`GameShop.jsx`** over a full generic `MissionScreen.jsx` for the first build:
 
-1. **No animated shopkeeper** — just emoji + text
-2. **No map or navigation screen** — tap the mission card on Home → start immediately
-3. **No money counter UI** — price problems use existing multiple-choice layout
-4. **Reuse existing question UI** — same card style as current game modes
-5. **6 steps** — short enough for a 5-year-old attention span (3–5 minutes)
-6. **One item type per playthrough** (apple/banana/orange — randomized per session)
+- Start with a focused, minimal component specific to the shop
+- Reuse existing reward/XP patterns from `GameMath.jsx` and `GameThai.jsx`
+- Add only one state field: `shopV1Complete: false` in `defaultState()`
+- If Shop, Cooking, and Garden clearly share the same pattern after testing, then refactor into a generic `MissionScreen.jsx` + `missionConfig.js`
 
-The MVP introduces the mission concept with minimal new code.
+Do not over-engineer before validating the pattern with a real play session.
 
 ---
 
-## Later Expansion Ideas
+## Later Expansion — Early Grade 1 Stretch
 
-After MVP is solid and Chopin plays through it:
+These steps were intentionally moved out of MVP. Add them only after the 4-step version is validated and Chopin is approaching Grade 1:
 
-- Add more shop items (ขนมปัง, ไข่, น้ำ, ผัก — bread, egg, water, vegetables)
-- Add a second mission variant (different story context, same mechanic types)
-- Animate a simple shopkeeper character (emoji-based, not full sprite)
-- Add "change" calculation (Grade 1 stretch: paid 5 baht, item costs 3 baht, get back ?)
-- Add different shops: fruit shop 🍓, stationery shop 📝, toy shop 🧸
-- Each shop variant = new data in missionConfig, no new components
+### Quantity Difference (stretch step 5)
+```
+"แม่ต้องการแอปเปิ้ล 3 ลูก แต่มีแค่ 1 ลูก ต้องซื้อเพิ่มกี่ลูก?"
+(Mom needs 3 apples. There is 1. How many more do we need to buy?)
+→ Mechanic: multipleChoice (Math — subtraction / difference 1–4)
+→ Choices: 1, 2, 3, 4
+```
+Requires two-step reasoning — Early Grade 1 appropriate, not Kindergarten MVP.
+
+### Price / Addition (stretch step 6)
+```
+"แอปเปิ้ล 1 ลูก ราคา 2 บาท ซื้อ 2 ลูก จ่ายกี่บาท?"
+(1 apple = 2 baht. Buy 2 apples. How much do you pay?)
+→ Mechanic: multipleChoice (Math — addition, visual: 🍎💰🍎💰)
+→ Choices: 2, 3, 4, 5
+```
+Money is **conceptual only** — no real currency, no denomination matching, no change-making. Add when Chopin is comfortable with addition to 10.
+
+**Do not include price steps in the first MVP. This is not a money education game.**
 
 ---
 
 ## What NOT to Build for MVP
 
+- ❌ Price/money steps (moved to stretch — see above)
+- ❌ Quantity difference problem (moved to stretch — see above)
 - ❌ Drag-and-drop item placement
 - ❌ Animated cart / basket
 - ❌ Real currency denomination coins/notes
@@ -220,3 +208,4 @@ After MVP is solid and Chopin plays through it:
 - ❌ Shop inventory that depletes
 - ❌ Story dialogue trees
 - ❌ Grade 2+ pricing (multiplication, large numbers)
+- ❌ Generic MissionScreen.jsx before shop is validated

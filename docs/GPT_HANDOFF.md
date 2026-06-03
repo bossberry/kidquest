@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Mission System Design — Review & Patch)_
+_Last updated: 2026-06-03 (Phase B Review Patch — Mission MVP scope tightened)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,11 +22,17 @@ _Last updated: 2026-06-03 (Mission System Design — Review & Patch)_
 
 ## Latest Session Summary
 
-**What changed this session (Mission System Design — review & patch):**
-- Confirmed all five mission docs are complete and accurate (no rewrites needed)
-- Added "Explicit Non-Goals" section to `mission-system.md` — no payment, no multiplayer, no social features, no Grade 2+, no AI tutor, no unique mini-games
-- No app code changed; no other docs needed updates
-- **Next coding task: Shop Mission MVP** — see `docs/research/missions/shop-mission.md`
+**What changed this session (Phase B Review Patch — no app code changed):**
+
+Mission design result: **PASS WITH MINOR CHANGES**
+
+Changes applied:
+- **Shop MVP reduced from 6 → 4 steps**: Thai matching → English vocab → counting 1–5 → social phrase
+- **Price/money steps moved to Later Expansion** (Early Grade 1 stretch) — not MVP
+- **Unlock threshold raised: 70% → 80%** — aligns with existing subject-level rules; 70% was guessable on 4 questions
+- **Generic MissionScreen.jsx delayed**: Phase C should start with focused `GameShop.jsx` only; extract to generic engine after shop + cooking validate the pattern
+
+**Next coding task: Implement Shop Mission MVP using smallest safe path**
 
 ---
 
@@ -58,7 +64,13 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 ## Active Tasks
 
 **Now (highest priority):**
-- **Implement Shop Mission MVP** — design is complete, ready to code. See `docs/research/missions/shop-mission.md`. Requires: `missionConfig.js`, `MissionScreen.jsx`, mission cards on Home, `completedMissions` state, `FINISH_MISSION` action.
+- **Implement Shop Mission MVP** — design reviewed and approved. Read `docs/research/missions/shop-mission.md`.
+  - 4 steps only (Thai matching → English vocab → counting → social phrase)
+  - No price/money step
+  - `GameShop.jsx` (focused, not generic)
+  - 80% unlock threshold
+  - Minimum state: `shopV1Complete` only
+  - Do not build `MissionScreen.jsx` or `missionConfig.js` yet
 
 **Next:**
 - Review shop mission with Chopin → confirm fun before cooking/garden

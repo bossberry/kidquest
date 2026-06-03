@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Phase B Review Patch: Mission MVP scope tightened
+- `shop-mission.md`: MVP reduced 6 → 4 steps. Price/money and quantity-difference steps moved to Later Expansion (Early Grade 1 stretch) — not deleted.
+- `mission-system.md`: Unlock threshold 70% → 80% (aligned with subject levels; 70% guessable on 4 questions). Engine philosophy updated: start with `GameShop.jsx`, delay generic `MissionScreen.jsx` until pattern validated.
+- `GPT_NOTES.md`: Architecture suggestions updated to staged approach; threshold and step count corrected.
+- `TASKS.md`: Now task updated — 4-step MVP, GameShop.jsx first, no missionConfig/MissionScreen yet.
+- No app code changed.
+
 ## 2026-06-03 — Mission System Design Review & Patch
 - Confirmed existing mission docs (README, mission-system, shop, cooking, garden) are complete.
 - Added "Explicit Non-Goals" section to `mission-system.md`: no payment, no multiplayer, no social features, no Grade 2+, no AI tutor, no unique mini-games.

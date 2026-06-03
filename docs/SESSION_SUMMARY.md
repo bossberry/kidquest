@@ -1,15 +1,17 @@
-# Session Summary — 2026-06-03 (Mission System Design — Review & Patch)
+# Session Summary — 2026-06-03 (Phase B Review Patch)
 
 ## What Changed
-- Confirmed that all five mission research files from the previous session are complete and accurate
-- Added **Explicit Non-Goals** section to `mission-system.md` — lists: no payment system, no multiplayer, no social features, no Grade 2+ content, no AI tutor, no unique mini-games (was implied but not stated explicitly)
-- No other files required changes — TASKS, GPT_NOTES, RESEARCH_INDEX, GPT_HANDOFF were all already up to date
+- `shop-mission.md`: MVP reduced from 6 → 4 steps. Price/quantity-difference steps moved to "Later Expansion — Early Grade 1 Stretch" section (not deleted).
+- `mission-system.md`: Unlock threshold changed from 70% → 80%. Engine philosophy rewritten to prefer staged `GameShop.jsx` first, generic `MissionScreen.jsx` only after pattern is validated.
+- `GPT_NOTES.md`: Step count, threshold, and architecture suggestions updated to match review decisions.
+- `TASKS.md`: Now task rewritten — 4-step MVP, GameShop.jsx preference, no missionConfig/MissionScreen yet, 80% threshold.
+- `GPT_HANDOFF.md`: Phase B review result documented; next coding task clarified.
 
 ## Files Changed
-`docs/research/missions/mission-system.md` (Explicit Non-Goals section added), `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md`
+`docs/research/missions/shop-mission.md`, `docs/research/missions/mission-system.md`, `docs/GPT_NOTES.md`, `docs/TASKS.md`, `docs/GPT_HANDOFF.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`
 
 ## Current Status
-Mission system design is complete. All five files are thorough and within Year 1 scope. No app code was changed. Shop Mission MVP is the next coding task.
+Phase B review complete. All docs patched. No app code changed. Phase C (implementation) is ready to begin.
 
 ## Next Suggested Task
-Implement Shop Mission MVP: `src/config/missionConfig.js` + `src/games/MissionScreen.jsx` + mission cards on Home screen + `completedMissions` state + `FINISH_MISSION` action. Read `docs/research/missions/shop-mission.md` first.
+Implement Shop Mission MVP — `GameShop.jsx`, 4 steps, 80% unlock, minimum state, reuse existing mechanics. Read `docs/research/missions/shop-mission.md` first.

@@ -25,8 +25,8 @@ A mission is NOT:
 ### Progression Mission
 - Primary source of XP and advancement
 - First time through a mission earns full rewards
-- Unlocks the next mission when completed with ≥70% accuracy
-- Gentle threshold — lower than subject levels because integration is harder
+- Unlocks the next mission when completed with **≥80% accuracy** — aligned with existing subject-level unlock rules
+- 70% acts as a "soft pass" that still gives encouragement and partial rewards, but does not unlock the next mission
 
 ### Review Mission
 - Replaying a mission the child already completed
@@ -212,8 +212,15 @@ The MVP is: step sequence → rewards → replay. Everything else comes later.
 
 Missions are **content, not engine**.
 
-The mission runner is ~1 new React component (`MissionScreen.jsx`).
-Mission data lives in a new `src/config/missionConfig.js`.
-All question types reuse existing game components.
+### Phase C MVP approach (staged):
 
-This means adding new missions in the future = adding data, not code.
+1. **Start small** — build `GameShop.jsx` as a focused, shop-specific component. Reuse existing reward and XP patterns. Add only the minimum state needed to mark `shop-v1` complete.
+2. **Validate first** — play through the shop mission with Chopin. Confirm it's fun and the step pattern works.
+3. **Refactor if justified** — if Shop, Cooking, and Garden clearly share the same structure after real testing, extract into `MissionScreen.jsx` + `missionConfig.js`.
+
+### Do not build the full engine upfront:
+- `MissionScreen.jsx` is the *target architecture*, not the *starting point*
+- `START_MISSION` / `COMPLETE_MISSION_STEP` actions are not required for MVP
+- One state field (`shopV1Complete: false`) is enough to track shop completion initially
+
+This means the first mission uses minimal new code, and future missions are added as data once the pattern is confirmed.

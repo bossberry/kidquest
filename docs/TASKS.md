@@ -2,14 +2,17 @@
 
 ## Now
 
-- [ ] **Implement Shop Mission MVP** — first integrated mission after design review
+- [ ] **Implement Shop Mission MVP** — smallest safe path, design reviewed and approved
   - Read `docs/research/missions/shop-mission.md` first
-  - New file: `src/config/missionConfig.js` (mission data)
-  - New file: `src/games/MissionScreen.jsx` (step sequencer)
-  - Add mission cards to Home screen
-  - New state fields: `completedMissions`, `currentMissionId`
-  - New ACTIONS: `FINISH_MISSION`
-  - Reuse existing mechanics — no new mini-games
+  - **4 steps only**: Thai matching → English vocab → counting 1–5 → social phrase
+  - **No price/money step** — moved to Early Grade 1 stretch expansion
+  - **80% unlock threshold** to unlock next mission (aligns with subject levels)
+  - Prefer `GameShop.jsx` over a full generic `MissionScreen.jsx` for first build
+  - Minimum state: add `shopV1Complete: false` to `defaultState()` only
+  - Reuse existing XP/reward patterns from `GameMath.jsx` / `GameThai.jsx`
+  - Add shop card to Home screen between World Cards and EggRun
+  - Route via `currentWorld: 'shop'` in `GameScreen.jsx`
+  - **Do NOT build `MissionScreen.jsx` or `missionConfig.js` yet**
   - **Do NOT implement cooking or garden yet**
 
 ---

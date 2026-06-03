@@ -30,6 +30,9 @@ export function defaultState() {
     unlockedTiers: [0],
     defeatedBosses: [],
     battleHistory: [],
+    dailyBattleRounds: 0,
+    lastBattleDate: '',
+    pendingChallenger: null,
   }
 }
 

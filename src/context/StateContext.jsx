@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useMemo, useCa
 import { KEY, defaultState, loadState, saveState, syncToSupabase } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
-import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats } from '../config/gameConfig.js'
+import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
 
 export const StateContext = createContext(null)
@@ -28,6 +28,8 @@ export const ACTIONS = {
   DECAY_HAPPINESS:    'DECAY_HAPPINESS',
   SET_HATCHING:       'SET_HATCHING',
   RECORD_BATTLE:      'RECORD_BATTLE',
+  SET_CHALLENGER:     'SET_CHALLENGER',
+  CLEAR_CHALLENGER:   'CLEAR_CHALLENGER',
 }
 
 function reducer(state, action) {
@@ -71,6 +73,8 @@ function reducer(state, action) {
         dailyRounds: (dailyReset ? 0 : (state.dailyRounds || 0)) + 1,
         lastPlayDate: today,
         badges: (score || 0) >= 0.9 ? (state.badges || 0) + 1 : (state.badges || 0),
+        dailyBattleRounds: (dailyReset ? 0 : (state.dailyBattleRounds || 0)) + 1,
+        lastBattleDate: today,
       }
     }
 
@@ -212,6 +216,12 @@ function reducer(state, action) {
     case ACTIONS.SET_HATCHING:
       return { ...state, hatching: action.payload }
 
+    case ACTIONS.SET_CHALLENGER:
+      return { ...state, pendingChallenger: action.payload, dailyBattleRounds: 0 }
+
+    case ACTIONS.CLEAR_CHALLENGER:
+      return { ...state, pendingChallenger: null }
+
     case ACTIONS.RECORD_BATTLE: {
       const { entry, bossKey, itemKey } = action.payload
       const defeatedBosses = bossKey
@@ -305,6 +315,16 @@ export function StateProvider({ children }) {
 
     return () => { sub?.unsubscribe() }
   }, []) // eslint-disable-line
+
+  // Challenger trigger: every 15 battle rounds → pick a random opponent
+  useEffect(() => {
+    if ((state.dailyBattleRounds || 0) >= 15 && !state.pendingChallenger) {
+      const tier = Math.min(state.grade || 0, 1)
+      const tierData = AI_OPPONENTS[tier] || AI_OPPONENTS[0]
+      const opp = tierData.normal[Math.floor(Math.random() * tierData.normal.length)]
+      dispatch({ type: ACTIONS.SET_CHALLENGER, payload: { ...opp, challengerTier: tier } })
+    }
+  }, [state.dailyBattleRounds]) // eslint-disable-line
 
   const derived = useMemo(() => ({
     totalXPValue: totalXP(state),

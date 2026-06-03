@@ -11,6 +11,7 @@ import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer } from './components/Toasts.jsx'
+import ChallengerOverlay from './components/ChallengerOverlay.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -37,6 +38,7 @@ export default function App() {
       <EggPopup open={eggPopupOpen} onClose={() => setEggPopupOpen(false)} />
       <HatchOverlay onClose={() => navigate('home')} />
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <ChallengerOverlay />
 
       {/* Screens */}
       {screen === 'home' && (

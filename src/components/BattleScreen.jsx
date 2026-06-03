@@ -1,32 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { AI_OPPONENTS } from '../config/gameConfig.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { useAppState } from '../context/StateContext.jsx'
 import { ACTIONS } from '../context/StateContext.jsx'
 
 const ITEM_REWARDS = ['food','food','food','star','ribbon','potion']
-const ITEM_EMOJI = { food:'🍗', star:'⭐', ribbon:'🎀', potion:'💧' }
+const ITEM_EMOJI   = { food:'🍗', star:'⭐', ribbon:'🎀', potion:'💧' }
+const delay = ms => new Promise(res => setTimeout(res, ms))
+
+function playBattleSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const now = ctx.currentTime
+    const tone = (freq, t, dur, vol=0.25, wave='square') => {
+      const o = ctx.createOscillator(), g = ctx.createGain()
+      o.type = wave; o.frequency.value = freq
+      g.gain.setValueAtTime(vol, now+t)
+      g.gain.exponentialRampToValueAtTime(0.001, now+t+dur)
+      o.connect(g); g.connect(ctx.destination)
+      o.start(now+t); o.stop(now+t+dur)
+    }
+    if (type==='hit')     { tone(200,0,.12); tone(120,.05,.1) }
+    if (type==='crit')    { tone(440,0,.08); tone(660,.09,.12); tone(880,.2,.18) }
+    if (type==='warning') { tone(880,0,.1); tone(880,.18,.1) }
+    if (type==='win')     { [523,659,784,1047].forEach((f,i)=>tone(f,i*.13,.28,.2,'sine')) }
+    if (type==='lose')    { [400,300,220,150].forEach((f,i)=>tone(f,i*.18,.2,.15,'sine')) }
+    setTimeout(()=>ctx.close(), 3000)
+  } catch {}
+}
 
 function simulateBattle(player, opponent) {
-  let pHP = player.HP
-  let oHP = opponent.HP
+  let pHP = player.HP, oHP = opponent.HP
   const pFirst = player.SPD >= opponent.SPD
   const log = []
-
-  while (pHP > 0 && oHP > 0 && log.length < 80) {
-    const first = pFirst ? 'player' : 'opponent'
-    const second = pFirst ? 'opponent' : 'player'
-    for (const who of [first, second]) {
+  const calcDmg = (atk, def, crit) => {
+    const base = Math.max(Math.ceil(atk * 0.3), atk - Math.floor(def / 2))
+    const isCrit = Math.random() < (crit || 0)
+    return { dmg: isCrit ? base * 2 : base, crit: isCrit }
+  }
+  while (pHP > 0 && oHP > 0 && log.length < 30) {
+    const order = pFirst ? ['player','opponent'] : ['opponent','player']
+    for (const who of order) {
       if (pHP <= 0 || oHP <= 0) break
       if (who === 'player') {
-        const base = Math.max(1, player.ATK - Math.floor(opponent.DEF / 2))
-        const crit = Math.random() < (player.CRIT || 0)
-        const dmg = crit ? base * 2 : base
+        const { dmg, crit } = calcDmg(player.ATK, opponent.DEF, player.CRIT)
         oHP = Math.max(0, oHP - dmg)
         log.push({ by:'player', dmg, crit, pHP, oHP })
       } else {
-        const dmg = Math.max(1, opponent.ATK - Math.floor(player.DEF / 2))
+        const { dmg } = calcDmg(opponent.ATK, player.DEF, 0)
         pHP = Math.max(0, pHP - dmg)
         log.push({ by:'opponent', dmg, crit:false, pHP, oHP })
       }
@@ -35,270 +56,237 @@ function simulateBattle(player, opponent) {
   return { winner: pHP > 0 ? 'player' : 'opponent', log }
 }
 
-function HPBar({ current, max, color }) {
-  const pct = Math.max(0, Math.round((current / max) * 100))
+function HPBar({ current, max }) {
+  const pct = Math.max(0, (current / max) * 100)
+  const color = pct > 50 ? '#1D9E75' : pct > 20 ? '#EF9F27' : '#E24B4A'
   return (
-    <div style={{ width:'100%', background:'#e0e0e0', borderRadius:20, height:10, overflow:'hidden' }}>
-      <div style={{ height:10, borderRadius:20, background:color, width:`${pct}%`, transition:'width .4s ease' }} />
+    <div style={{ width:'100%', height:8, background:'rgba(0,0,0,.1)', borderRadius:20, overflow:'hidden' }}>
+      <div style={{
+        height:'100%', borderRadius:20, background:color,
+        width:`${pct}%`, transition:'width .5s ease',
+        animation: pct <= 20 ? 'hp-blink .6s ease infinite' : 'none',
+      }} />
     </div>
   )
 }
 
-export default function BattleScreen({ egg, onClose }) {
-  const { state, dispatch } = useAppState()
-  const [phase, setPhase] = useState('select')
-  const [opponent, setOpponent] = useState(null)
-  const [opponentType, setOpponentType] = useState(null)
-  const [logStep, setLogStep] = useState(-1)
-  const [pHP, setPHP] = useState(egg.stats?.HP || 100)
-  const [oHP, setOHP] = useState(0)
-  const [winner, setWinner] = useState(null)
+// Props: egg (hatchedEgg with .stats), opponent ({name,emoji,HP,ATK,DEF,SPD}), opponentType, onClose
+export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
+  const { dispatch } = useAppState()
+  const [phase, setPhase]         = useState('fighting')
+  const [battleText, setBattleText] = useState('⚔️ เริ่มต่อสู้!')
+  const [pHP, setPHP]             = useState(egg.stats.HP)
+  const [oHP, setOHP]             = useState(opponent.HP)
+  const [shaking, setShaking]     = useState(null)   // 'player' | 'opponent'
+  const [flashRed, setFlashRed]   = useState(null)
+  const [dmgFloat, setDmgFloat]   = useState(null)   // { key, dmg, side, crit }
+  const [winner, setWinner]       = useState(null)
   const [rewardItem, setRewardItem] = useState(null)
-  const battleRef = useRef(null)
-  const canvasRef = useRef(null)
+  const canvasRef   = useRef(null)
+  const activeRef   = useRef(true)
+  const battleRef   = useRef(null)
 
-  const tier = Math.min(egg.tier || 0, 1) // clamp to available AI tiers
-  const tierData = AI_OPPONENTS[tier] || AI_OPPONENTS[0]
-  const tierHistory = (state.battleHistory || []).filter(b => b.tier === egg.tier)
-  const normalWins = tierHistory.filter(b => b.type === 'normal' && b.result === 'win').length
-  const miniBossWins = tierHistory.filter(b => b.type === 'miniBoss' && b.result === 'win').length
-  const bossKey = `tier_${egg.tier}_boss`
-  const bossDefeated = (state.defeatedBosses || []).includes(bossKey)
-  const miniBossUnlocked = normalWins >= 3
-  const bossUnlocked = miniBossWins >= 1
+  const stats   = egg.stats
+  const creature = egg.creature || {}
 
   useEffect(() => {
     if (canvasRef.current) drawCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
-  }, [egg, phase])
+    battleRef.current = simulateBattle(stats, opponent)
+    activeRef.current = true
+    runAnimation()
+    return () => { activeRef.current = false }
+  }, []) // eslint-disable-line
 
-  // Battle animation loop
-  useEffect(() => {
-    if (phase !== 'fighting') return
-    const br = battleRef.current
-    if (!br) return
-    if (logStep >= br.log.length) {
-      setTimeout(() => {
-        setWinner(br.winner)
-        if (br.winner === 'player') {
-          const item = ITEM_REWARDS[Math.floor(Math.random() * ITEM_REWARDS.length)]
-          setRewardItem(item)
-          dispatch({ type: ACTIONS.RECORD_BATTLE, payload: {
-            entry: { tier: egg.tier, type: opponentType, opponent: opponent.name, result: 'win', ts: Date.now() },
-            bossKey: opponentType === 'boss' ? bossKey : null,
-            itemKey: item,
-          }})
-        } else {
-          dispatch({ type: ACTIONS.RECORD_BATTLE, payload: {
-            entry: { tier: egg.tier, type: opponentType, opponent: opponent.name, result: 'loss', ts: Date.now() },
-            bossKey: null, itemKey: null,
-          }})
-        }
-        setPhase('result')
-      }, 600)
-      return
+  async function runAnimation() {
+    const { log, winner: w } = battleRef.current
+    const alive = () => activeRef.current
+
+    await delay(800)
+
+    for (const entry of log) {
+      if (!alive()) return
+      const isPlayer = entry.by === 'player'
+      const atkEmoji = isPlayer ? (creature.e || '🐉') : opponent.emoji
+      const atkName  = isPlayer ? (creature.n || 'สัตว์') : opponent.name
+      const defSide  = isPlayer ? 'opponent' : 'player'
+
+      setBattleText(`${atkEmoji} ${atkName} โจมตี!`)
+      await delay(900)
+      if (!alive()) return
+
+      // Flash + shake
+      setShaking(defSide); setFlashRed(defSide)
+      playBattleSound('hit')
+      await delay(200); if (!alive()) return; setFlashRed(null)
+      await delay(150); if (!alive()) return; setFlashRed(defSide)
+      await delay(150); if (!alive()) return; setFlashRed(null); setShaking(null)
+
+      // Update HP + float damage
+      if (isPlayer) setOHP(entry.oHP); else setPHP(entry.pHP)
+      setDmgFloat({ key: Date.now(), dmg: entry.dmg, side: defSide, crit: entry.crit })
+      if (entry.crit) { playBattleSound('crit'); setBattleText(`💥 Critical Hit! -${entry.dmg} HP!`) }
+      else              setBattleText(`-${entry.dmg} HP`)
+      await delay(700); if (!alive()) return; setDmgFloat(null)
+
+      // Low HP warning
+      const hpNow = isPlayer ? entry.oHP : entry.pHP
+      const hpMax = isPlayer ? opponent.HP : stats.HP
+      if (hpNow > 0 && hpNow < hpMax * 0.2) {
+        playBattleSound('warning')
+        setBattleText(`⚠️ ${isPlayer ? opponent.name : creature.n} HP เหลือน้อยมาก!`)
+        await delay(800); if (!alive()) return
+      }
     }
-    if (logStep < 0) { setLogStep(0); return }
-    const entry = br.log[logStep]
-    if (entry) { setPHP(entry.pHP); setOHP(entry.oHP) }
-    const t = setTimeout(() => setLogStep(i => i + 1), 700)
-    return () => clearTimeout(t)
-  }, [phase, logStep])
 
-  function startBattle(opp, type) {
-    const result = simulateBattle(egg.stats, opp)
-    battleRef.current = result
-    setOpponent(opp)
-    setOpponentType(type)
-    setPHP(egg.stats.HP)
-    setOHP(opp.HP)
-    setLogStep(-1)
-    setPhase('fighting')
+    await delay(600); if (!alive()) return
+
+    const won = w === 'player'
+    playBattleSound(won ? 'win' : 'lose')
+    setBattleText(won ? '🎉 ชนะแล้ว!' : '😤 แพ้แล้ว...')
+
+    if (won) {
+      const item = ITEM_REWARDS[Math.floor(Math.random() * ITEM_REWARDS.length)]
+      setRewardItem(item)
+      dispatch({ type: ACTIONS.RECORD_BATTLE, payload: {
+        entry: { tier: egg.tier, type: opponentType, opponent: opponent.name, result:'win', ts: Date.now() },
+        bossKey: opponentType === 'boss' ? `tier_${egg.tier}_boss` : null,
+        itemKey: item,
+      }})
+    } else {
+      dispatch({ type: ACTIONS.RECORD_BATTLE, payload: {
+        entry: { tier: egg.tier, type: opponentType, opponent: opponent.name, result:'loss', ts: Date.now() },
+        bossKey: null, itemKey: null,
+      }})
+    }
+    dispatch({ type: ACTIONS.CLEAR_CHALLENGER })
+
+    await delay(900); if (!alive()) return
+    setWinner(w); setPhase('result')
   }
 
-  function pickNormal() {
-    const arr = tierData.normal
-    startBattle(arr[Math.floor(Math.random() * arr.length)], 'normal')
-  }
-
-  const currentEntry = battleRef.current?.log[logStep - 1]
-  const stats = egg.stats || {}
-  const creature = egg.creature || {}
-
-  // ── PHASE: select ──
-  if (phase === 'select') {
+  // ── FIGHTING PHASE ──
+  if (phase === 'fighting') {
     return createPortal(
-      <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:9999,display:'flex',alignItems:'flex-end',justifyContent:'center' }}>
-        <div style={{ background:'var(--bg)',borderRadius:'20px 20px 0 0',padding:'20px 20px 32px',width:'100%',maxWidth:480,fontFamily:'Mitr,sans-serif' }}>
-          <div style={{ width:36,height:4,background:'var(--border)',borderRadius:2,margin:'0 auto 16px' }} />
-          <div style={{ fontFamily:"'Fredoka One',cursive",fontSize:20,color:'var(--text)',marginBottom:4 }}>⚔️ เลือกคู่ต่อสู้</div>
-          <div style={{ fontSize:12,color:'var(--muted)',marginBottom:16 }}>
-            {creature.e} {creature.n} · HP:{stats.HP} ATK:{stats.ATK} DEF:{stats.DEF} SPD:{stats.SPD}
+      <div style={{ position:'fixed', inset:0, background:'#1a1040', zIndex:9999, display:'flex', flexDirection:'column', fontFamily:'Mitr,sans-serif', maxWidth:480, margin:'0 auto' }}>
+        {/* Opponent card (top-right) */}
+        <div style={{ padding:'18px 20px 0', display:'flex', justifyContent:'flex-end' }}>
+          <div style={{ background:'rgba(255,255,255,.12)', borderRadius:14, padding:'10px 16px', minWidth:180 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:4 }}>{opponent.emoji} {opponent.name}</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,.7)', marginBottom:4 }}>HP {Math.max(0,oHP)}/{opponent.HP}</div>
+            <HPBar current={Math.max(0,oHP)} max={opponent.HP} />
+          </div>
+        </div>
+
+        {/* Battlefield */}
+        <div style={{ flex:1, position:'relative', display:'flex', alignItems:'center', justifyContent:'space-around', padding:'0 24px' }}>
+          {/* Player creature (left) */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', animation: shaking==='player' ? 'battle-shake .4s ease' : 'none', filter: flashRed==='player' ? 'brightness(2) sepia(1) saturate(5) hue-rotate(-20deg)' : 'none' }}>
+            <canvas ref={canvasRef} width={90} height={90} style={{ borderRadius:10, background:'rgba(255,255,255,.08)' }} />
           </div>
 
-          {/* Normal */}
-          <div style={{ background:'var(--card)',border:'0.5px solid var(--border)',borderRadius:14,padding:14,marginBottom:10,cursor:'pointer' }} onClick={pickNormal}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-              <div>
-                <div style={{ fontWeight:600,fontSize:15 }}>🤖 Normal Enemy</div>
-                <div style={{ fontSize:11,color:'var(--muted)',marginTop:2 }}>สุ่มจากศัตรูธรรมดา</div>
-              </div>
-              <div style={{ fontSize:24 }}>▶</div>
+          {/* Opponent (right) */}
+          <div style={{ fontSize:72, lineHeight:1, animation: shaking==='opponent' ? 'battle-shake .4s ease' : 'none', filter: flashRed==='opponent' ? 'brightness(2) sepia(1) saturate(5) hue-rotate(-20deg)' : 'none' }}>
+            {opponent.emoji}
+          </div>
+
+          {/* Damage float */}
+          {dmgFloat && (
+            <div key={dmgFloat.key} style={{
+              position:'absolute',
+              top: dmgFloat.side === 'opponent' ? '15%' : '55%',
+              left: dmgFloat.side === 'opponent' ? '55%' : '10%',
+              fontSize: dmgFloat.crit ? 28 : 20, fontWeight:900,
+              color: dmgFloat.crit ? '#FFD700' : '#ff6b6b',
+              animation:'dmg-float 1s ease-out forwards',
+              pointerEvents:'none', textShadow:'0 2px 4px rgba(0,0,0,.5)',
+            }}>
+              -{dmgFloat.dmg}{dmgFloat.crit ? '💥' : ''}
             </div>
-            <div style={{ fontSize:11,color:'var(--green-d)',marginTop:6 }}>ชนะแล้ว {normalWins} ครั้ง</div>
-          </div>
+          )}
+        </div>
 
-          {/* Mini Boss */}
-          <div style={{ background:miniBossUnlocked?'var(--card)':'#f5f5f5',border:'0.5px solid var(--border)',borderRadius:14,padding:14,marginBottom:10,cursor:miniBossUnlocked?'pointer':'default',opacity:miniBossUnlocked?1:.6 }}
-               onClick={miniBossUnlocked ? () => startBattle(tierData.miniBoss,'miniBoss') : undefined}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-              <div>
-                <div style={{ fontWeight:600,fontSize:15 }}>{miniBossUnlocked?tierData.miniBoss.emoji:'🔒'} Mini Boss: {tierData.miniBoss.name}</div>
-                <div style={{ fontSize:11,color:'var(--muted)',marginTop:2 }}>
-                  {miniBossUnlocked ? `HP:${tierData.miniBoss.HP} ATK:${tierData.miniBoss.ATK} DEF:${tierData.miniBoss.DEF}` : `🔒 ชนะ Normal ${normalWins}/3 ครั้งเพื่อ unlock`}
-                </div>
-              </div>
-              {miniBossUnlocked && <div style={{ fontSize:24 }}>▶</div>}
-            </div>
+        {/* Player card (bottom-left) */}
+        <div style={{ padding:'0 20px 8px', display:'flex', justifyContent:'flex-start' }}>
+          <div style={{ background:'rgba(255,255,255,.12)', borderRadius:14, padding:'10px 16px', minWidth:180 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:4 }}>{creature.e || '🐣'} {creature.n || 'สัตว์'}</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,.7)', marginBottom:4 }}>HP {Math.max(0,pHP)}/{stats.HP}</div>
+            <HPBar current={Math.max(0,pHP)} max={stats.HP} />
           </div>
+        </div>
 
-          {/* Boss */}
-          <div style={{ background:bossUnlocked&&!bossDefeated?'#fff8e1':bossDefeated?'#f0f0f0':'#f5f5f5',border:'0.5px solid var(--border)',borderRadius:14,padding:14,marginBottom:16,cursor:bossUnlocked&&!bossDefeated?'pointer':'default',opacity:bossUnlocked&&!bossDefeated?1:.6 }}
-               onClick={bossUnlocked&&!bossDefeated ? () => startBattle(tierData.boss,'boss') : undefined}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-              <div>
-                <div style={{ fontWeight:600,fontSize:15 }}>{bossDefeated?'✅':bossUnlocked?tierData.boss.emoji:'🔒'} Boss: {tierData.boss.name}</div>
-                <div style={{ fontSize:11,color:'var(--muted)',marginTop:2 }}>
-                  {bossDefeated ? 'ชนะแล้ว!' : bossUnlocked ? `HP:${tierData.boss.HP} ATK:${tierData.boss.ATK}` : `🔒 ชนะ Mini Boss ก่อน`}
-                </div>
-              </div>
-              {bossUnlocked && !bossDefeated && <div style={{ fontSize:24 }}>▶</div>}
-            </div>
-          </div>
-
-          <button onClick={onClose} style={{ width:'100%',background:'none',border:'1px solid var(--border)',borderRadius:10,padding:11,fontFamily:'Mitr,sans-serif',fontSize:14,color:'var(--muted)',cursor:'pointer' }}>ถอย</button>
+        {/* Text box */}
+        <div style={{ margin:'0 16px 20px', background:'rgba(255,255,255,.95)', borderRadius:14, padding:'14px 18px', minHeight:52, border:'3px solid #fff' }}>
+          <div style={{ fontSize:14, color:'#1a1a1a', lineHeight:1.6 }}>▷ {battleText}</div>
         </div>
       </div>,
       document.body
     )
   }
 
-  // ── PHASE: fighting ──
-  if (phase === 'fighting' && opponent) {
-    const oMax = opponent.HP
-    const logMsg = currentEntry
-      ? currentEntry.by === 'player'
-        ? `${creature.e} ${creature.n} โจมตี! -${currentEntry.dmg} HP${currentEntry.crit?' 💥 CRIT!':''}`
-        : `${opponent.emoji} ${opponent.name} โจมตี! -${currentEntry.dmg} HP`
-      : 'กำลังต่อสู้...'
-
-    return createPortal(
-      <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
-        <div style={{ background:'var(--bg)',borderRadius:20,padding:20,width:'100%',maxWidth:440,fontFamily:'Mitr,sans-serif' }}>
-          <div style={{ fontFamily:"'Fredoka One',cursive",fontSize:18,textAlign:'center',marginBottom:16,color:'var(--text)' }}>⚔️ ต่อสู้!</div>
-
-          {/* Combatants */}
-          <div style={{ display:'flex',alignItems:'flex-end',justifyContent:'space-around',marginBottom:16,gap:12 }}>
-            {/* Player */}
-            <div style={{ flex:1,textAlign:'center' }}>
-              <canvas ref={canvasRef} width={80} height={80} style={{ borderRadius:8,background:'var(--card)',display:'block',margin:'0 auto 4px' }} />
-              <div style={{ fontSize:11,fontWeight:600 }}>{creature.n || 'สัตว์'}</div>
-              <div style={{ fontSize:10,color:'var(--muted)',marginBottom:4 }}>HP {Math.max(0,pHP)}/{stats.HP}</div>
-              <HPBar current={Math.max(0,pHP)} max={stats.HP} color={pHP > stats.HP*0.5?'#1D9E75':pHP>stats.HP*0.2?'#EF9F27':'#E24B4A'} />
-            </div>
-            <div style={{ fontSize:22,fontWeight:900,color:'var(--text)',paddingBottom:20 }}>VS</div>
-            {/* Opponent */}
-            <div style={{ flex:1,textAlign:'center' }}>
-              <div style={{ fontSize:56,lineHeight:1,marginBottom:4 }}>{opponent.emoji}</div>
-              <div style={{ fontSize:11,fontWeight:600 }}>{opponent.name}</div>
-              <div style={{ fontSize:10,color:'var(--muted)',marginBottom:4 }}>HP {Math.max(0,oHP)}/{oMax}</div>
-              <HPBar current={Math.max(0,oHP)} max={oMax} color={oHP > oMax*0.5?'#E24B4A':oHP>oMax*0.2?'#EF9F27':'#aaa'} />
-            </div>
-          </div>
-
-          {/* Log box */}
-          <div style={{ background:'var(--card)',border:'0.5px solid var(--border)',borderRadius:12,padding:'10px 14px',minHeight:40,fontSize:13,color:'var(--text)',textAlign:'center',lineHeight:1.5 }}>
-            {logMsg}
-          </div>
-        </div>
-      </div>,
-      document.body
-    )
+  // ── RESULT PHASE ──
+  const won = winner === 'player'
+  const adviceMap = {
+    ATK: { msg:`ATK คุณ: ${stats.ATK} vs ${opponent.name}: ${opponent.ATK} → เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!`, emoji:'🇹🇭' },
+    DEF: { msg:`DEF คุณ: ${stats.DEF} vs ${opponent.name}: ${opponent.DEF} → เรียน Math เพิ่มเพื่อเพิ่ม DEF!`, emoji:'🔢' },
+    SPD: { msg:`SPD คุณ: ${stats.SPD} vs ${opponent.name}: ${opponent.SPD} → เรียน English เพิ่มเพื่อเพิ่ม SPD!`, emoji:'🔤' },
+  }
+  let advice = null
+  if (!won) {
+    const worst = [
+      { stat:'ATK', gap: opponent.ATK - stats.ATK },
+      { stat:'DEF', gap: opponent.DEF - stats.DEF },
+      { stat:'SPD', gap: opponent.SPD - stats.SPD },
+    ].filter(g => g.gap > 0).sort((a,b)=>b.gap-a.gap)[0]
+    if (worst) advice = adviceMap[worst.stat]
   }
 
-  // ── PHASE: result ──
-  if (phase === 'result') {
-    const won = winner === 'player'
-    const adviceMap = {
-      ATK: { msg:'ATK ต่ำกว่า → เรียนภาษาไทยเพิ่ม!', emoji:'🇹🇭' },
-      DEF: { msg:'DEF ต่ำกว่า → เรียน Math เพิ่ม!', emoji:'🔢' },
-      SPD: { msg:'SPD ต่ำกว่า → เรียน English เพิ่ม!', emoji:'🔤' },
-    }
-    let advice = null
-    if (!won && opponent) {
-      const gaps = [
-        { stat:'ATK', gap: opponent.ATK - stats.ATK },
-        { stat:'DEF', gap: opponent.DEF - stats.DEF },
-        { stat:'SPD', gap: opponent.SPD - stats.SPD },
-      ].filter(g => g.gap > 0).sort((a,b) => b.gap - a.gap)
-      if (gaps.length) advice = adviceMap[gaps[0].stat]
-    }
-    const isBossWin = won && opponentType === 'boss'
-
-    return createPortal(
-      <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
-        <div style={{ background:'var(--bg)',borderRadius:20,padding:24,width:'100%',maxWidth:400,fontFamily:'Mitr,sans-serif',textAlign:'center' }}>
-          <div style={{ fontSize:60,marginBottom:8 }}>{won?'🎉':'😤'}</div>
-          <div style={{ fontFamily:"'Fredoka One',cursive",fontSize:24,color:won?'var(--green-d)':'var(--red)',marginBottom:8 }}>
-            {won ? 'ชนะแล้ว!' : 'สู้ต่อไป!'}
-          </div>
-
-          {won && rewardItem && (
-            <div style={{ background:'var(--purple-l)',border:'0.5px solid var(--purple)',borderRadius:12,padding:14,marginBottom:14 }}>
-              <div style={{ fontSize:13,color:'var(--purple-d)',marginBottom:4 }}>รางวัลที่ได้</div>
-              <div style={{ fontSize:32 }}>{ITEM_EMOJI[rewardItem]}</div>
-              <div style={{ fontSize:12,color:'var(--text)',marginTop:4 }}>{rewardItem} +1</div>
-            </div>
-          )}
-
-          {isBossWin && opponent?.dialogue && (
-            <div style={{ background:'#fff8e1',border:'0.5px solid #EF9F27',borderRadius:12,padding:12,marginBottom:14,fontSize:12,color:'#633806',lineHeight:1.6 }}>
-              <div style={{ fontSize:20,marginBottom:4 }}>{opponent.emoji}</div>
-              "{opponent.dialogue}"
-            </div>
-          )}
-
-          {!won && advice && (
-            <div style={{ background:'var(--blue-l)',border:'0.5px solid var(--blue-d)',borderRadius:12,padding:12,marginBottom:14 }}>
-              <div style={{ fontSize:22,marginBottom:4 }}>{advice.emoji}</div>
-              <div style={{ fontSize:13,color:'var(--blue-d)',lineHeight:1.6 }}>{advice.msg}</div>
-            </div>
-          )}
-
-          {!won && (
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16 }}>
-              {[['ATK',stats.ATK,opponent?.ATK,'🗡️'],['DEF',stats.DEF,opponent?.DEF,'🛡️'],['SPD',stats.SPD,opponent?.SPD,'⚡']].map(([k,p,o,e])=>(
-                <div key={k} style={{ background:'var(--card)',borderRadius:10,padding:'8px 4px',fontSize:11 }}>
-                  <div>{e} {k}</div>
-                  <div style={{ color: p>=o?'var(--green-d)':'var(--red)',fontWeight:700,fontSize:14 }}>{p}</div>
-                  <div style={{ color:'var(--muted)' }}>vs {o}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ display:'flex',gap:10 }}>
-            <button onClick={() => setPhase('select')} style={{ flex:1,background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:12,fontFamily:'Mitr,sans-serif',fontSize:14,fontWeight:600,cursor:'pointer' }}>
-              ⚔️ สู้อีกครั้ง
-            </button>
-            <button onClick={onClose} style={{ flex:1,background:'none',border:'1px solid var(--border)',borderRadius:10,padding:12,fontFamily:'Mitr,sans-serif',fontSize:14,color:'var(--muted)',cursor:'pointer' }}>
-              กลับ
-            </button>
-          </div>
+  return createPortal(
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+      <div style={{ background:'var(--bg)', borderRadius:20, padding:24, width:'100%', maxWidth:400, fontFamily:'Mitr,sans-serif', textAlign:'center' }}>
+        <div style={{ fontSize:56, marginBottom:8 }}>{won ? '🎉' : '😤'}</div>
+        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color: won?'var(--green-d)':'var(--red)', marginBottom:16 }}>
+          {won ? 'ชนะแล้ว!' : 'สู้ต่อไปนะ!'}
         </div>
-      </div>,
-      document.body
-    )
-  }
 
-  return null
+        {won && rewardItem && (
+          <div style={{ background:'var(--purple-l)', border:'0.5px solid var(--purple)', borderRadius:14, padding:14, marginBottom:14 }}>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>รางวัล</div>
+            <div style={{ fontSize:36 }}>{ITEM_EMOJI[rewardItem]}</div>
+            <div style={{ fontSize:13, marginTop:4 }}>ได้รับ {rewardItem} +1</div>
+          </div>
+        )}
+
+        {won && opponentType === 'boss' && opponent.dialogue && (
+          <div style={{ background:'#fff8e1', border:'0.5px solid var(--amber)', borderRadius:12, padding:12, marginBottom:14, fontSize:12, color:'var(--amber-d)', lineHeight:1.6 }}>
+            <div style={{ fontSize:24, marginBottom:4 }}>{opponent.emoji}</div>
+            "{opponent.dialogue}"
+          </div>
+        )}
+
+        {!won && (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:14 }}>
+            {[['⚔️ ATK',stats.ATK,opponent.ATK],['🛡️ DEF',stats.DEF,opponent.DEF],['⚡ SPD',stats.SPD,opponent.SPD]].map(([k,p,o])=>(
+              <div key={k} style={{ background:'var(--card)', borderRadius:10, padding:'8px 4px', fontSize:11, border:'0.5px solid var(--border)' }}>
+                <div style={{ color:'var(--muted)' }}>{k}</div>
+                <div style={{ fontWeight:700, fontSize:15, color: p>=o?'var(--green-d)':'var(--red)' }}>{p}</div>
+                <div style={{ fontSize:10, color:'var(--muted)' }}>vs {o}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!won && advice && (
+          <div style={{ background:'var(--blue-l)', border:'0.5px solid var(--blue)', borderRadius:12, padding:12, marginBottom:16, fontSize:12, color:'var(--blue-d)', lineHeight:1.6 }}>
+            <div style={{ fontSize:22, marginBottom:4 }}>{advice.emoji}</div>
+            {advice.msg}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ width:'100%', background: won?'var(--green)':'var(--purple)', color:'#fff', border:'none', borderRadius:12, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:700, cursor:'pointer' }}>
+          {won ? 'เก็บของ ✨' : 'กลับไปเรียน 📚'}
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
 }

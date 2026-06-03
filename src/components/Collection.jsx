@@ -4,13 +4,10 @@ import EggCanvas from './EggCanvas.jsx'
 import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
-import BattleScreen from './BattleScreen.jsx'
-
 export default function Collection() {
   const { state, eggStatsData, eggProgressData } = useAppState()
   const [tab, setTab] = useState('hatched')
   const [selectedEgg, setSelectedEgg] = useState(null)
-  const [battleEgg, setBattleEgg] = useState(null)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
@@ -23,17 +20,16 @@ export default function Collection() {
       </div>
       <div className="egg-catalog">
         {tab === 'hatched'
-          ? <HatchedGrid hatched={state.hatchedEggs||[]} onSelect={setSelectedEgg} onBattle={setBattleEgg} />
+          ? <HatchedGrid hatched={state.hatchedEggs||[]} onSelect={setSelectedEgg} />
           : <CurrentEgg state={state} eggStats={eggStatsData} progress={eggProgressData} />
         }
       </div>
       {selectedEgg && <CreatureDetailPopup egg={selectedEgg} onClose={() => setSelectedEgg(null)} />}
-      {battleEgg && <BattleScreen egg={battleEgg} onClose={() => setBattleEgg(null)} />}
     </div>
   )
 }
 
-function CreatureCard({ egg, index, onSelect, onBattle }) {
+function CreatureCard({ egg, index, onSelect }) {
   const canvasRef = useRef(null)
   useEffect(() => {
     if (canvasRef.current) drawCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
@@ -47,17 +43,11 @@ function CreatureCard({ egg, index, onSelect, onBattle }) {
       <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
       <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>
       <div className="catalog-item-rarity" style={{ background:rarityBg[rar], color:rarityColors[rar] }}>{egg.creature?.rarityLabel||'Common'}</div>
-      {egg.stats && (
-        <button
-          onClick={e => { e.stopPropagation(); onBattle(egg) }}
-          style={{ marginTop:6, width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:8, padding:'5px 0', fontFamily:'Mitr,sans-serif', fontSize:12, fontWeight:600, cursor:'pointer' }}
-        >⚔️ Battle!</button>
-      )}
     </div>
   )
 }
 
-function HatchedGrid({ hatched, onSelect, onBattle }) {
+function HatchedGrid({ hatched, onSelect }) {
   if (!hatched.length) return (
     <div className="catalog-empty">🥚<br/><br/>ยังไม่มีไข่ที่ฟักแล้ว<br/><span style={{ fontSize:12, color:'var(--muted)' }}>เล่นเกมเพื่อฟักไข่ใบแรก!</span></div>
   )
@@ -65,7 +55,7 @@ function HatchedGrid({ hatched, onSelect, onBattle }) {
     <>
       <div className="catalog-section-title">ไข่ที่ฟักแล้ว {hatched.length} ใบ</div>
       <div className="catalog-grid">
-        {hatched.map((egg, i) => <CreatureCard key={i} egg={egg} index={i} onSelect={onSelect} onBattle={onBattle} />)}
+        {hatched.map((egg, i) => <CreatureCard key={i} egg={egg} index={i} onSelect={onSelect} />)}
       </div>
     </>
   )

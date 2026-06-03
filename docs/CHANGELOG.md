@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Mission System Design Review & Patch
+- Confirmed existing mission docs (README, mission-system, shop, cooking, garden) are complete.
+- Added "Explicit Non-Goals" section to `mission-system.md`: no payment, no multiplayer, no social features, no Grade 2+, no AI tutor, no unique mini-games.
+- No other changes needed — TASKS, GPT_NOTES, RESEARCH_INDEX already up to date.
+
 ## 2026-06-03 — Mission System Design (documentation only)
 - Created `docs/research/missions/` with 5 files: README, mission-system, shop-mission, cooking-mission, garden-mission.
 - Mission system: 3 types (Progression/Review/Challenge), reuses all existing mechanics, data-driven via `missionConfig.js`, thin `MissionScreen.jsx` wrapper.

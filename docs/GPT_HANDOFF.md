@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Mission System Design)_
+_Last updated: 2026-06-03 (Mission System Design — Review & Patch)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,11 +22,10 @@ _Last updated: 2026-06-03 (Mission System Design)_
 
 ## Latest Session Summary
 
-**What changed this session (Mission System Design — docs only, no code):**
-- Created `docs/research/missions/` — mission-system.md, shop-mission.md, cooking-mission.md, garden-mission.md
-- Shop mission: 6-step MVP design with full data structure. Thai/Math/English/GK integrated in one shop visit. Kindergarten core + Grade 1 stretch.
-- Mission system: 3 types (Progression/Review/Challenge), reuses existing mechanics, `missionConfig.js` + `MissionScreen.jsx` only new code needed
-- Updated `GPT_NOTES.md` with research decisions, architecture suggestions, rejected ideas, open questions for Claude
+**What changed this session (Mission System Design — review & patch):**
+- Confirmed all five mission docs are complete and accurate (no rewrites needed)
+- Added "Explicit Non-Goals" section to `mission-system.md` — no payment, no multiplayer, no social features, no Grade 2+, no AI tutor, no unique mini-games
+- No app code changed; no other docs needed updates
 - **Next coding task: Shop Mission MVP** — see `docs/research/missions/shop-mission.md`
 
 ---

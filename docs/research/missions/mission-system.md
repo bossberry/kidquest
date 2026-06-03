@@ -179,6 +179,19 @@ Navigation:
 
 ---
 
+## Explicit Non-Goals
+
+These are out of scope for the mission system — permanently or until explicitly revisited:
+
+- ❌ **No payment system** — missions have no in-app purchase or real money
+- ❌ **No multiplayer** — missions are single-player only
+- ❌ **No social features** — no leaderboards, no sharing, no friend codes
+- ❌ **No Grade 2+ content** — Year 1 scope is Kindergarten + Early Grade 1 only
+- ❌ **No AI tutor** — no personalized question generation or adaptive AI
+- ❌ **No unique mini-games** unless an existing mechanic absolutely cannot express the skill
+
+---
+
 ## What NOT to Build Yet
 
 Keep the MVP minimal. Do not build:
@@ -187,9 +200,7 @@ Keep the MVP minimal. Do not build:
 - ❌ Animated characters that walk around
 - ❌ Voice narration of mission story
 - ❌ Complex branching story paths
-- ❌ Multiplayer or cooperative missions
-- ❌ Timed missions with countdown
-- ❌ Missions that require Grade 2+ content
+- ❌ Timed missions with countdown pressure
 - ❌ A separate save system for mission progress
 - ❌ Complex inventory or shop economics
 

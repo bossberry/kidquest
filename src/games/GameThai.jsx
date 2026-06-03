@@ -2,14 +2,21 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
-import { TH_ALPHA, TH_L2, TH_L3, TH_L4, SPELL_L1, SP_CON, SP_VOW, CHAR_SPEAK, shuffle } from '../config/gameConfig.js'
+import { TH_ALPHA, TH_L2, TH_L3, TH_L5, SPELL_L1, SP_CON, SP_VOW, CHAR_SPEAK, shuffle } from '../config/gameConfig.js'
 import { playTone, speakTh } from '../lib/audio.js'
 import { showToast, spawnConfetti } from '../components/Toasts.jsx'
 
-const LEVEL_WORDS = { 1: null, 2: SPELL_L1, 3: TH_L2, 4: TH_L3 }
+const LEVEL_WORDS = { 2: SPELL_L1, 3: TH_L2, 4: TH_L3 }
+
+const getGameView = (lv) => {
+  if (!lv) return 'levels'
+  if (lv.type === 'match') return 'match'
+  if (lv.type === 'wordorder') return 'wordorder'
+  return 'spell'
+}
 
 export default function GameThai() {
-  const [view, setView] = useState('levels') // 'levels'|'teach'|'match'|'spell'|'sentence'
+  const [view, setView] = useState('levels')
   const [activeLv, setActiveLv] = useState(null)
   const { state } = useAppState()
 
@@ -17,101 +24,126 @@ export default function GameThai() {
     setActiveLv(lv)
     const key = `thai-${lv.id}`
     const seen = (state.seenTeach || []).includes(key)
-    setView(seen ? (lv.type === 'match' ? 'match' : lv.id === 5 ? 'sentence' : 'spell') : 'teach')
+    setView(seen ? getGameView(lv) : 'teach')
   }
 
-  const afterTeach = () => {
-    if (!activeLv) return
-    setView(activeLv.type === 'match' ? 'match' : activeLv.id === 5 ? 'sentence' : 'spell')
-  }
+  const afterTeach = () => { if (activeLv) setView(getGameView(activeLv)) }
 
-  if (view === 'levels') return <LevelSelector world="thai" onSelect={handleLevelSelect} />
-  if (view === 'teach') return <TeachOverlay world="thai" levelId={activeLv?.id} onDone={afterTeach} />
-  if (view === 'match') return <ThaiMatchGame lv={activeLv} onBack={() => setView('levels')} />
-  if (view === 'sentence') return <ThaiSentenceGame lv={activeLv} onBack={() => setView('levels')} />
+  if (view === 'levels')   return <LevelSelector world="thai" onSelect={handleLevelSelect} />
+  if (view === 'teach')    return <TeachOverlay world="thai" levelId={activeLv?.id} onDone={afterTeach} />
+  if (view === 'match')    return <ThaiMatchGame lv={activeLv} onBack={() => setView('levels')} />
+  if (view === 'wordorder')return <ThaiWordOrderGame lv={activeLv} onBack={() => setView('levels')} />
   return <ThaiSpellGame lv={activeLv} onBack={() => setView('levels')} words={LEVEL_WORDS[activeLv?.id] || SPELL_L1} />
 }
 
-// ── Match Game ──
+// ── shared result screen ──────────────────────────────────────────────
+function ResultScreen({ emoji, title, sub, onReplay, onBack }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
+      <div style={{ fontSize:64, marginBottom:10 }}>{emoji}</div>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--green-d)', marginBottom:8 }}>{title}</div>
+      <div style={{ fontSize:14, color:'var(--muted)', marginBottom:20 }}>{sub}</div>
+      <button onClick={onReplay} style={{ width:'100%', background:'var(--green)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer', marginBottom:8 }}>🔄 เล่นอีกครั้ง</button>
+      <button onClick={onBack}   style={{ width:'100%', background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>← Level อื่น</button>
+    </div>
+  )
+}
+
+// ── progress bar + header ─────────────────────────────────────────────
+function GameHeader({ cur, total, xp, streak }) {
+  return (
+    <>
+      <div style={{ display:'flex', justifyContent:'space-between', padding:'0 20px 6px', fontSize:12, color:'var(--muted)' }}>
+        <span>{cur}/{total}</span>
+        <span>{streak >= 3 ? `${streak}🔥` : streak > 0 ? `streak ${streak}` : ''}</span>
+        <span>+{xp} XP</span>
+      </div>
+      <div style={{ padding:'0 20px 8px' }}>
+        <div style={{ height:6, background:'var(--border)', borderRadius:4, overflow:'hidden' }}>
+          <div style={{ height:6, background:'var(--green)', borderRadius:4, width:`${(cur/total)*100}%`, transition:'width .4s' }} />
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── finish round helper ────────────────────────────────────────────────
+function useFinishRound({ score, total, world, levelId, maxLevels, streak }) {
+  const { state, dispatch } = useAppState()
+  return () => {
+    const p = score / total
+    dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
+    dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world, levelId, value: p * 0.4 + ((state.levelMastery?.[world]?.[levelId]) || 0) * 0.6 } })
+    if (p >= 0.8) {
+      const cur = state.subjectLevels?.[world] || 1
+      if (cur < maxLevels) {
+        dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world, newLevel: cur + 1 } })
+        showToast(`✨ ปลดล็อก Level ${cur + 1}!`); spawnConfetti(15)
+      }
+    }
+    if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
+  }
+}
+
+// ── MATCH GAME (Level 1) ───────────────────────────────────────────────
 function ThaiMatchGame({ lv, onBack }) {
   const { state, dispatch } = useAppState()
-  const [q, setQ] = useState(() => shuffle([...TH_ALPHA]).slice(0, 10))
-  const [cur, setCur] = useState(0)
+  const [q, setQ]         = useState(() => shuffle([...TH_ALPHA]).slice(0, 10))
+  const [cur, setCur]     = useState(0)
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
-  const [xp, setXp] = useState(0)
+  const [xp, setXp]       = useState(0)
   const [answered, setAnswered] = useState(false)
-  const [done, setDone] = useState(false)
+  const [done, setDone]   = useState(false)
   const [feedback, setFeedback] = useState(null)
 
   const question = q[cur]
-  const wrong = shuffle(TH_ALPHA.filter(a => a.char !== question?.char)).slice(0, 3)
-  const choices = shuffle([question, ...wrong])
+  const wrong    = shuffle(TH_ALPHA.filter(a => a.char !== question?.char)).slice(0, 3)
+  const choices  = React.useMemo(() => shuffle([question, ...wrong]), [cur]) // eslint-disable-line
 
-  const check = (c, btn) => {
+  const check = (c) => {
     if (answered || !question) return
     setAnswered(true)
     const ok = c.char === question.char
     if (ok) {
-      const newStreak = streak + 1; setStreak(newStreak)
-      const earned = 10 + (newStreak >= 3 ? 5 : 0)
-      setXp(x => x + earned); setScore(s => s + 1)
-      dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'thai', amount: earned, accDelta: 100 } })
-      setFeedback({ type:'win', msg: ['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)] + ` +${earned} XP` })
-      if (newStreak >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
+      const ns = streak + 1; setStreak(ns)
+      const earned = Math.round(10 * 1 * (1 - ((state.levelMastery?.thai?.[1]) || 0))) + (ns >= 3 ? 5 : 0)
+      const safe = Math.max(2, earned)
+      setXp(x => x + safe); setScore(s => s + 1)
+      dispatch({ type: ACTIONS.ADD_XP, payload: { world:'thai', amount:safe, accDelta:100 } })
+      setFeedback({ type:'win', msg:['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)] + ` +${safe} XP` })
+      if (ns >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
       setTimeout(() => speakTh(['เก่งมาก','ถูกต้อง'][Math.floor(Math.random()*2)]), 300)
     } else {
       setStreak(0); playTone('wrong')
-      setFeedback({ type:'lose', msg:`ไม่เป็นไร! ตัว ${question.char} = ${question.word} ${question.emoji}` })
+      setFeedback({ type:'lose', msg:`ตัว ${question.char} = ${question.word} ${question.emoji}` })
       setTimeout(() => speakTh(question.char + 'อ ' + question.word), 300)
     }
   }
 
+  const finish = useFinishRound({ score, total:10, world:'thai', levelId:1, maxLevels:5, streak })
+
   const next = () => {
-    if (cur + 1 >= 10) {
-      setDone(true)
-      const p = score / 10
-      dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
-      dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world:'thai', levelId: lv?.id || 1, value: p * 0.4 + ((state.levelMastery?.thai?.[lv?.id||1]) || 0) * 0.6 } })
-      if (p >= 0.8) { const cur2 = state.subjectLevels?.thai || 1; if (cur2 < 5) dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world:'thai', newLevel: cur2+1 } }) }
-      if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
-    } else {
-      setAnswered(false); setFeedback(null); setCur(c => c + 1)
-      playTone('next')
-      setTimeout(() => speakTh(q[cur+1]?.char + 'อ ' + q[cur+1]?.word), 200)
-    }
+    if (cur + 1 >= 10) { setDone(true); finish() }
+    else { setAnswered(false); setFeedback(null); setCur(c => c + 1); playTone('next') }
   }
 
   useEffect(() => { if (question) setTimeout(() => speakTh(question.char + 'อ ' + question.word), 200) }, [cur]) // eslint-disable-line
 
   if (done) {
     const p = score / 10
-    return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
-        <div style={{ fontSize:64, marginBottom:10 }}>{p>=.9?'🏆':p>=.7?'🎉':'😊'}</div>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--green-d)', marginBottom:8 }}>{p>=.9?'เยี่ยมมาก!':p>=.7?'เก่งมาก!':'ทำได้ดี!'}</div>
-        <div style={{ fontSize:14, color:'var(--muted)', marginBottom:16 }}>{score}/10 ถูก · +{xp} XP</div>
-        <button onClick={() => { setCur(0); setScore(0); setStreak(0); setXp(0); setAnswered(false); setFeedback(null); setDone(false); setQ(shuffle([...TH_ALPHA]).slice(0,10)) }} style={{ width:'100%', background:'var(--green)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer', marginBottom:8 }}>🔄 เล่นอีกครั้ง</button>
-        <button onClick={onBack} style={{ width:'100%', background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>← Level อื่น</button>
-      </div>
-    )
+    return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'เยี่ยมมาก!':p>=.7?'เก่งมาก!':'ทำได้ดี!'} sub={`${score}/10 ถูก · +${xp} XP`}
+      onReplay={() => { setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setFeedback(null);setDone(false);setQ(shuffle([...TH_ALPHA]).slice(0,10)) }}
+      onBack={onBack} />
   }
-
   if (!question) return null
   return (
     <div style={{ width:'100%', maxWidth:480, padding:'8px 0' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'0 20px 8px', fontSize:12, color:'var(--muted)' }}>
-        <span>{cur}/10</span><span>Streak: {streak >= 3 ? `${streak}🔥` : streak}</span><span>+{xp} XP</span>
-      </div>
-      <div style={{ width:'100%', padding:'0 20px' }}>
-        <div style={{ height:6, background:'var(--border)', borderRadius:4, overflow:'hidden' }}>
-          <div style={{ height:6, background:'var(--green)', borderRadius:4, width:`${cur/10*100}%` }} />
-        </div>
-      </div>
-      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:10, padding:'22px 20px 20px', position:'relative' }}>
-        <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', marginBottom:6 }}>ตัวอักษรนี้คือ... <span style={{ opacity:.6 }}>(แตะเพื่อฟัง)</span></div>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:90, color:'var(--green-d)', textAlign:'center', cursor:'pointer' }} onClick={() => speakTh(question.char + 'อ ' + question.word)}>{question.char}</div>
-        <div style={{ textAlign:'center', fontSize:22, marginBottom:16 }}>{question.emoji}</div>
+      <GameHeader cur={cur} total={10} xp={xp} streak={streak} />
+      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:'0 10px', padding:'20px 16px' }}>
+        <div style={{ fontSize:11, color:'var(--muted)', textAlign:'center', marginBottom:4 }}>ตัวอักษรนี้คือ... <span style={{ opacity:.6 }}>(แตะเพื่อฟัง)</span></div>
+        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:90, color:'var(--green-d)', textAlign:'center', cursor:'pointer', lineHeight:1 }} onClick={() => speakTh(question.char + 'อ ' + question.word)}>{question.char}</div>
+        <div style={{ textAlign:'center', fontSize:22, margin:'6px 0 14px' }}>{question.emoji}</div>
         <div className="choices">
           {choices.map((c, i) => (
             <button key={i} className={`choice-btn${answered && c.char === question.char ? ' correct' : ''}`} onClick={() => check(c)}>
@@ -126,80 +158,72 @@ function ThaiMatchGame({ lv, onBack }) {
   )
 }
 
-// ── Spell Game ──
+// ── SPELL GAME (Levels 2, 3, 4) ───────────────────────────────────────
 function ThaiSpellGame({ lv, onBack, words }) {
   const { state, dispatch } = useAppState()
-  const [q, setQ] = useState(() => shuffle([...words]).slice(0, 10))
-  const [cur, setCur] = useState(0)
-  const [typed, setTyped] = useState([])
+  const pool = React.useMemo(() => shuffle([...words]).slice(0, 10), []) // eslint-disable-line
+  const [q, setQ]           = useState(pool)
+  const [cur, setCur]       = useState(0)
+  const [typed, setTyped]   = useState([])
   const [attempts, setAttempts] = useState(0)
-  const [done, setDone] = useState(false)
-  const [score, setScore] = useState(0)
+  const [done, setDone]     = useState(false)
+  const [score, setScore]   = useState(0)
   const [streak, setStreak] = useState(0)
-  const [xp, setXp] = useState(0)
+  const [xp, setXp]         = useState(0)
   const [feedback, setFeedback] = useState(null)
+  const [usedTiles, setUsedTiles] = useState([])
+  const [errTiles, setErrTiles]   = useState([])
 
   const question = q[cur]
+  const diff = lv?.diff || 1.5
+
   const tiles = React.useMemo(() => {
     if (!question) return []
     const charSet = new Set(question.chars)
-    const distractors = shuffle([...SP_CON, ...SP_VOW].filter(c => !charSet.has(c))).slice(0, Math.max(2, 6 - question.chars.length))
-    return shuffle([...question.chars, ...distractors])
+    const extra = shuffle([...SP_CON, ...SP_VOW].filter(c => !charSet.has(c))).slice(0, Math.max(2, 6 - question.chars.length))
+    return shuffle([...question.chars, ...extra])
   }, [question])
-  const [usedTiles, setUsedTiles] = useState([])
-  const [errTiles, setErrTiles] = useState([])
+
+  // Hint: highlight next correct tile on 2nd mistake
+  const hintTileIdx = attempts >= 1 && typed.length < (question?.chars.length || 0)
+    ? tiles.findIndex((ch, idx) => !usedTiles.includes(idx) && ch === question?.chars[typed.length])
+    : -1
 
   useEffect(() => { setUsedTiles([]); setErrTiles([]); setTyped([]); setAttempts(0); setFeedback(null) }, [cur])
   useEffect(() => { if (question) setTimeout(() => speakTh(question.word), 200) }, [cur]) // eslint-disable-line
 
-  if (!question || done) {
-    if (done) {
-      const p = score / q.length
-      return (
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
-          <div style={{ fontSize:64, marginBottom:10 }}>{p>=.9?'🏆':p>=.7?'🎉':'😊'}</div>
-          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--green-d)', marginBottom:8 }}>{p>=.9?'นักสะกดแชมเปียน!':'เก่งมาก!'}</div>
-          <div style={{ fontSize:14, color:'var(--muted)', marginBottom:16 }}>{score}/{q.length} ถูก · +{xp} XP</div>
-          <button onClick={() => { setQ(shuffle([...words]).slice(0,10)); setCur(0); setScore(0); setStreak(0); setXp(0); setDone(false) }} style={{ width:'100%', background:'var(--green)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer', marginBottom:8 }}>🔄 เล่นอีกครั้ง</button>
-          <button onClick={onBack} style={{ width:'100%', background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>← Level อื่น</button>
-        </div>
-      )
-    }
-    return null
-  }
+  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:lv?.id || 2, maxLevels:5, streak })
 
   const tapTile = (ch, idx) => {
-    if (usedTiles.includes(idx)) return
+    if (usedTiles.includes(idx) || !question) return
     speakTh(CHAR_SPEAK[ch] || ch)
-    const expectedIdx = typed.length
-    const expected = question.chars[expectedIdx]
+    const expected = question.chars[typed.length]
     if (ch === expected) {
       const newTyped = [...typed, ch]
       setTyped(newTyped)
       setUsedTiles(u => [...u, idx])
       playTone('click')
       if (newTyped.length === question.chars.length) {
-        // Word complete
-        const newStreak = streak + 1; setStreak(newStreak)
+        const ns = streak + 1; setStreak(ns)
         const prevM = (state.thaiMastery?.[question.word]) || 0
         dispatch({ type: ACTIONS.UPDATE_THAI_MASTERY, payload: { word: question.word, value: Math.min(1, prevM*0.7+0.3) } })
-        const earned = Math.max(2, Math.round(10*(1-prevM)))
-        setXp(x => x+earned); setScore(s => s+1)
+        const earned = Math.max(2, Math.round(10 * diff * (1 - prevM)))
+        setXp(x => x + earned); setScore(s => s + 1)
         dispatch({ type: ACTIONS.ADD_XP, payload: { world:'thai', amount:earned, accDelta:100 } })
-        if (newStreak >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
-        setFeedback({ type:'win', msg:['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP` })
+        if (ns >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
+        setFeedback({ type:'win', msg:['เก่งมาก! 🎉','ถูกต้อง! ✅','ยอดเยี่ยม! 🌟'][Math.floor(Math.random()*3)] + ` +${earned} XP` })
         setTimeout(() => speakTh(['เก่งมาก','ถูกต้อง'][Math.floor(Math.random()*2)]), 300)
       }
     } else {
-      const newAttempts = attempts + 1; setAttempts(newAttempts)
-      setErrTiles([idx])
-      setTimeout(() => setErrTiles([]), 400)
+      const na = attempts + 1; setAttempts(na)
+      setErrTiles([idx]); setTimeout(() => setErrTiles([]), 400)
       playTone('wrong')
-      if (newAttempts >= 2) {
-        setStreak(0)
+      setStreak(0)
+      if (na === 1) setFeedback({ type:'lose', msg:'ลองอีกครั้ง! 💡 ดูตัวที่ไฮไลท์ช่วย' })
+      else if (na >= 2) {
         const prevM = (state.thaiMastery?.[question.word]) || 0
         dispatch({ type: ACTIONS.UPDATE_THAI_MASTERY, payload: { word: question.word, value: Math.max(0, prevM*0.7) } })
-        setFeedback({ type:'lose', msg:`ไม่เป็นไร! "${question.word}" สะกดว่า ${question.chars.join(' - ')}` })
+        setFeedback({ type:'lose', msg:`"${question.word}" สะกดว่า ${question.chars.join(' - ')} 📖` })
         setTimeout(() => speakTh(question.word), 350)
       }
     }
@@ -207,45 +231,46 @@ function ThaiSpellGame({ lv, onBack, words }) {
 
   const next = () => {
     playTone('next')
-    if (cur + 1 >= q.length) {
-      setDone(true)
-      const p = score / q.length
-      dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
-      dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world:'thai', levelId: lv?.id || 2, value: p*0.4+((state.levelMastery?.thai?.[lv?.id||2])||0)*0.6 } })
-      if (p >= 0.8) { const curLv = state.subjectLevels?.thai||1; if (curLv < 5) dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world:'thai', newLevel:curLv+1 } }); showToast(`✨ ปลดล็อก Level ${curLv+1}!`); spawnConfetti(15) }
-    } else setCur(c => c+1)
+    if (cur + 1 >= q.length) { setDone(true); finish() }
+    else setCur(c => c + 1)
   }
 
-  const wordComplete = typed.length === question.chars.length
-  const showNext = wordComplete || attempts >= 2
+  const wordComplete = typed.length === (question?.chars.length || 0)
+  const showNext     = wordComplete || attempts >= 2
+
+  if (done || !question) {
+    if (done) {
+      const p = score / q.length
+      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'นักสะกดแชมเปียน!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
+        onReplay={() => { const nq=shuffle([...words]).slice(0,10); setQ(nq); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
+        onBack={onBack} />
+    }
+    return null
+  }
 
   return (
     <div style={{ width:'100%', maxWidth:480, padding:'8px 0' }}>
-      <div style={{ padding:'0 20px 4px', display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--muted)' }}>
-        <span>{cur}/{q.length}</span><span>+{xp} XP</span>
-      </div>
-      <div style={{ padding:'0 20px 4px' }}>
-        <div style={{ height:6, background:'var(--border)', borderRadius:4, overflow:'hidden' }}>
-          <div style={{ height:6, background:'var(--green)', borderRadius:4, width:`${cur/q.length*100}%` }} />
-        </div>
-      </div>
-      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:'8px 20px', padding:'16px 16px 12px' }}>
-        <div style={{ fontSize:60, textAlign:'center', cursor:'pointer', lineHeight:1.2, marginBottom:4 }} onClick={() => speakTh(question.word)}>{question.emoji}</div>
-        <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', marginBottom:12 }}>{question.label} · แตะเพื่อฟัง 🔊</div>
+      <GameHeader cur={cur} total={q.length} xp={xp} streak={streak} />
+      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:'0 10px', padding:'14px' }}>
+        <div style={{ fontSize:56, textAlign:'center', cursor:'pointer', lineHeight:1.3, marginBottom:4 }} onClick={() => speakTh(question.word)}>{question.emoji}</div>
+        <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', marginBottom:10 }}>{question.label} · แตะเพื่อฟัง 🔊</div>
         <div className="spell-slots">
           {question.chars.map((_, i) => {
             const filled = i < typed.length
-            const err = !filled && attempts >= 2 && i >= typed.length
+            const reveal = !filled && attempts >= 2 && i >= typed.length
             return (
-              <div key={i} className={`spell-slot${filled ? ' filled' : err ? ' error' : ''}`}>
-                {filled ? typed[i] : err ? question.chars[i] : ''}
+              <div key={i} className={`spell-slot${filled ? ' filled' : reveal ? ' error' : ''}`}>
+                {filled ? typed[i] : reveal ? question.chars[i] : ''}
               </div>
             )
           })}
         </div>
         <div className="spell-tiles">
           {tiles.map((ch, idx) => (
-            <div key={idx} className={`spell-tile${usedTiles.includes(idx) ? ' used' : ''}${errTiles.includes(idx) ? ' shake-tile' : ''}`} onClick={() => tapTile(ch, idx)}>{ch}</div>
+            <div key={idx}
+              className={`spell-tile${usedTiles.includes(idx) ? ' used' : ''}${errTiles.includes(idx) ? ' shake-tile' : ''}${idx === hintTileIdx ? ' hint-tile' : ''}`}
+              onClick={() => tapTile(ch, idx)}
+            >{ch}</div>
           ))}
         </div>
         {feedback && <div className={`feedback show ${feedback.type}`}>{feedback.msg}</div>}
@@ -255,77 +280,101 @@ function ThaiSpellGame({ lv, onBack, words }) {
   )
 }
 
-// ── Sentence Game (Level 5) ──
-function ThaiSentenceGame({ lv, onBack }) {
+// ── WORD ORDER GAME (Level 5) ──────────────────────────────────────────
+function ThaiWordOrderGame({ lv, onBack }) {
   const { state, dispatch } = useAppState()
-  const [q, setQ] = useState(() => shuffle([...TH_L4]).slice(0, 6))
-  const [cur, setCur] = useState(0)
+  const [q, setQ]         = useState(() => shuffle([...TH_L5]).slice(0, 8))
+  const [cur, setCur]     = useState(0)
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
-  const [xp, setXp] = useState(0)
-  const [done, setDone] = useState(false)
-  const [answered, setAnswered] = useState(false)
-  const [feedback, setFeedback] = useState(null)
+  const [xp, setXp]       = useState(0)
+  const [typed, setTyped] = useState([])
+  const [usedIdxs, setUsedIdxs] = useState([])
+  const [submitted, setSubmitted] = useState(false)
+  const [feedback, setFeedback]   = useState(null)
+  const [done, setDone]   = useState(false)
 
   const question = q[cur]
-  useEffect(() => { if (question) setTimeout(() => speakTh(question.sound || question.sentence), 200) }, [cur]) // eslint-disable-line
+  const tiles    = React.useMemo(() => question ? shuffle([...question.words]) : [], [cur]) // eslint-disable-line
 
-  const check = (w) => {
-    if (answered || !question) return
-    setAnswered(true)
-    const ok = w === question.blank
-    if (ok) {
-      const newStreak = streak + 1; setStreak(newStreak)
-      const earned = Math.max(2, Math.round(10*2.5))
-      setXp(x=>x+earned); setScore(s=>s+1)
-      dispatch({ type: ACTIONS.ADD_XP, payload: { world:'thai', amount:earned, accDelta:100 } })
-      playTone(newStreak>=3?'streak':'correct')
-      setFeedback({ type:'win', msg: question.sentence.replace('___', question.blank) + ` +${earned} XP` })
-    } else {
-      setStreak(0); playTone('wrong')
-      setFeedback({ type:'lose', msg:'คำตอบที่ถูกคือ: ' + question.blank })
+  useEffect(() => {
+    setTyped([]); setUsedIdxs([]); setFeedback(null); setSubmitted(false)
+    if (question) setTimeout(() => speakTh(question.sound || question.words.join('')), 250)
+  }, [cur]) // eslint-disable-line
+
+  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:5, maxLevels:5, streak })
+
+  const tapTile = (w, idx) => {
+    if (submitted || usedIdxs.includes(idx) || !question) return
+    const newTyped = [...typed, w]
+    setTyped(newTyped); setUsedIdxs(u => [...u, idx])
+    playTone('click')
+    if (newTyped.length === question.words.length) {
+      setSubmitted(true)
+      const ok = newTyped.join('') === question.words.join('')
+      if (ok) {
+        const ns = streak + 1; setStreak(ns)
+        const prevM = (state.levelMastery?.thai?.[5]) || 0
+        const earned = Math.max(2, Math.round(10 * 3 * (1 - prevM))) + (ns >= 3 ? 5 : 0)
+        setXp(x => x + earned); setScore(s => s + 1)
+        dispatch({ type: ACTIONS.ADD_XP, payload: { world:'thai', amount:earned, accDelta:100 } })
+        if (ns >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
+        setFeedback({ type:'win', msg: question.words.join(' ') + ` +${earned} XP` })
+        setTimeout(() => speakTh(question.sound || question.words.join('')), 300)
+      } else {
+        setStreak(0); playTone('wrong')
+        setFeedback({ type:'lose', msg:'คำตอบที่ถูก: ' + question.words.join(' ') })
+        setTimeout(() => speakTh(question.sound || question.words.join('')), 350)
+      }
     }
-    setTimeout(() => speakTh(question.sound || question.sentence.replace('___', question.blank)), 300)
   }
 
   const next = () => {
     playTone('next')
-    if (cur+1 >= q.length) {
-      setDone(true)
-      const p = score / q.length
-      dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
-    } else { setAnswered(false); setFeedback(null); setCur(c=>c+1) }
+    if (cur + 1 >= q.length) { setDone(true); finish() }
+    else setCur(c => c + 1)
   }
 
   if (done || !question) {
     if (done) {
       const p = score / q.length
-      return (
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
-          <div style={{ fontSize:64, marginBottom:10 }}>{p>=.8?'🏆':'🎉'}</div>
-          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--green-d)', marginBottom:8 }}>{p>=.8?'ยอดเยี่ยม!':'เก่งมาก!'}</div>
-          <div style={{ fontSize:14, color:'var(--muted)', marginBottom:16 }}>{score}/{q.length} ถูก · +{xp} XP</div>
-          <button onClick={() => { setQ(shuffle([...TH_L4]).slice(0,6)); setCur(0); setScore(0); setStreak(0); setXp(0); setDone(false); setAnswered(false); setFeedback(null) }} style={{ width:'100%', background:'var(--green)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer', marginBottom:8 }}>🔄 เล่นอีกครั้ง</button>
-          <button onClick={onBack} style={{ width:'100%', background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>← Level อื่น</button>
-        </div>
-      )
+      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'ยอดเยี่ยม!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
+        onReplay={() => { setQ(shuffle([...TH_L5]).slice(0,8)); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
+        onBack={onBack} />
     }
     return null
   }
 
   return (
     <div style={{ width:'100%', maxWidth:480, padding:'8px 0' }}>
-      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:'8px 20px', padding:20 }}>
-        <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', marginBottom:8 }}>เลือกคำที่หายไปในประโยค</div>
-        <div style={{ fontSize:36, textAlign:'center', marginBottom:8 }}>{question.emoji}</div>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'var(--text)', textAlign:'center', marginBottom:16, lineHeight:1.6 }}>{question.sentence.replace('___','[ ? ]')}</div>
-        <div className="choices">
-          {shuffle(question.choices).map((w, i) => (
-            <button key={i} className={`choice-btn${answered && w===question.blank?' correct':''}`} onClick={() => check(w)}>{w}</button>
+      <GameHeader cur={cur} total={q.length} xp={xp} streak={streak} />
+      <div style={{ background:'var(--card)', border:'1.5px solid var(--border)', borderRadius:16, margin:'0 10px', padding:'16px' }}>
+        <div style={{ fontSize:11, color:'var(--muted)', textAlign:'center', marginBottom:6 }}>เรียงคำให้เป็นประโยค</div>
+        <div style={{ fontSize:48, textAlign:'center', cursor:'pointer', marginBottom:10 }} onClick={() => speakTh(question.sound || question.words.join(''))}>{question.emoji}</div>
+
+        {/* Answer slots */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center', minHeight:44, marginBottom:12, padding:8, background:'var(--bg)', borderRadius:10, border:'1.5px dashed var(--border)' }}>
+          {typed.map((w, i) => (
+            <span key={i} style={{ background:'var(--green-l)', color:'var(--green-d)', borderRadius:8, padding:'6px 12px', fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600 }}>{w}</span>
           ))}
         </div>
+
+        {/* Word tiles */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center', marginBottom:8 }}>
+          {tiles.map((w, i) => (
+            <button key={i} onClick={() => tapTile(w, i)} style={{
+              background: usedIdxs.includes(i) ? 'transparent' : 'var(--card)',
+              border: `2px solid ${usedIdxs.includes(i) ? 'transparent' : 'var(--border)'}`,
+              borderRadius:10, padding:'8px 14px',
+              fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600,
+              cursor: usedIdxs.includes(i) ? 'default' : 'pointer',
+              opacity: usedIdxs.includes(i) ? 0 : 1, transition:'opacity .2s',
+            }}>{w}</button>
+          ))}
+        </div>
+
         {feedback && <div className={`feedback show ${feedback.type}`}>{feedback.msg}</div>}
-        {answered && <button className="next-btn show" style={{ background:'var(--green)', color:'#fff' }} onClick={next}>ต่อไป →</button>}
+        {submitted && <button className="next-btn show" style={{ background:'var(--green)', color:'#fff' }} onClick={next}>ต่อไป →</button>}
       </div>
     </div>
   )

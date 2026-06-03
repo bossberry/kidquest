@@ -293,6 +293,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .spell-tile:active{transform:scale(.88)}
 .spell-tile.used{opacity:0;pointer-events:none}
 .spell-tile.shake-tile{animation:shake .35s ease}
+.spell-tile.hint-tile{border-color:var(--amber);background:var(--amber-l);animation:challenger-pulse .7s ease-in-out infinite}
 .mastery-bar-wrap{height:4px;background:var(--border);border-radius:4px;margin-top:4px;overflow:hidden}
 .mastery-bar{height:4px;background:var(--green);border-radius:4px;transition:width .4s}
 

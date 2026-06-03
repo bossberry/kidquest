@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Vision + Scope Documentation
+- Created `PROJECT.md` — one-page project brief (what, who, golden rule, success metric).
+- Created `VISION.md` — full design philosophy: golden rule, mastery progression, Year 1 scope, stable engine, content strategy, replay philosophy, non-goals, scope guardian mandate.
+- Created `GOALS.md` — Year 1 goals, non-goals, long-term goals, definition of done.
+- Created `docs/README.md` — navigation index for all docs by audience role.
+- Updated `docs/DECISIONS.md` — added mastery-based progression, Golden Rule, replay philosophy, scope guardian decisions under Product and AI sections.
+- Updated `CLAUDE.md` — scope guardian check added to Before Coding section.
+- Updated `docs/ARCHITECTURE.md` — stable engine note replaces stale React migration note.
+- Updated `SPEC.md` — deprecated header updated to canonical format.
+- Updated `docs/GPT_HANDOFF.md` — vision section added; recommended next work updated to Year 1 scope.
+
 ## 2026-06-03 — Phase 3: AI_OPPONENTS Tiers 2–5
 - `gameConfig.js`: Added tiers 2–5 to `AI_OPPONENTS`. Stats scale ~1.5× per tier. Sonic villain theme continues:
   - T2 ป.3-4: Coconuts/Octus/Rexon → Egg Robo → Dr. Eggman III

@@ -1,3 +1,30 @@
+# DEPRECATED — Use docs/GPT_HANDOFF.md and current project docs instead.
+
+> ⚠️ This file describes the old HTML prototype and is no longer the source of truth.
+> See `PROJECT.md`, `VISION.md`, `docs/GPT_HANDOFF.md`, and `docs/CURRENT_STATE.md` instead.
+
+Current source of truth:
+
+1. docs/CURRENT_STATE.md
+2. docs/GPT_HANDOFF.md
+3. docs/CODEBASE_SUMMARY.md
+4. docs/DECISIONS.md
+
+Documentation precedence:
+
+Actual codebase
+→ docs/CURRENT_STATE.md
+→ docs/GPT_HANDOFF.md
+→ docs/GPT_NOTES.md
+→ SPEC.md
+
+Chat history is NOT the source of truth.
+
+The React migration is already complete.
+Do not use this file to recreate the old prototype.
+
+---
+
 # KidQuest — Project SPEC
 
 ## Vision

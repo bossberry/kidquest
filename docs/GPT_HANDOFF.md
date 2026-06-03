@@ -1,16 +1,33 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Phase 3 — AI_OPPONENTS Tiers 2–5)_
+_Last updated: 2026-06-03 (Vision + Scope Documentation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
 ---
 
+## Project Vision (read this first)
+
+**KidQuest grows with Chopin over many years.** It does not attempt to build a complete K-6 platform from day one.
+
+**Golden Rule:** Build one mastery level ahead. Never six years ahead.
+
+**Year 1 scope:** Kindergarten core + Early Grade 1 stretch only.
+
+**Success metric:** Chopin voluntarily plays KidQuest and learns through it. Not feature count. Not grades covered. Joyful learning.
+
+**All AI systems are scope guardians.** Warn before implementing anything that violates the Golden Rule, Year 1 scope, or stable engine philosophy. See `VISION.md` for full mandate.
+
+---
+
 ## Latest Session Summary
 
-**What changed this session (Phase 3):**
-- `AI_OPPONENTS` tiers 2–5 added to `gameConfig.js` — all grades now have proper opponent data; no more silent fallback to tier 1
-- Fixed `StateContext.jsx` challenger trigger: was `Math.min(grade, 1)` (always tier 1 for grade ≥ 1); now maps grade 0→T0, 1-2→T1, 3-4→T2, 5-6→T3
+**What changed this session:**
+- Created `PROJECT.md`, `VISION.md`, `GOALS.md`, `docs/README.md` — full project vision documented
+- Updated `docs/DECISIONS.md` — mastery-based progression, Golden Rule, replay philosophy, scope guardian mandate added
+- Updated `CLAUDE.md` — scope guardian check added to Before Coding section
+- Updated `docs/ARCHITECTURE.md` — stable engine note replaces stale React migration note
+- Updated `SPEC.md` — deprecated header now matches canonical format
 
 ---
 
@@ -41,10 +58,13 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 ## Active Tasks
 
-**Now:** _(nothing urgent — Phase 3 complete)_
+**Now:** _(nothing urgent — Phases 1–3 and vision documentation complete)_
 
-**Next:**
-- Curriculum content expansion (Thai L6+, English L5+, Math L9+)
+**Next (Year 1 priorities):**
+- First integrated mission prototype (shop / cooking / garden) — multi-subject
+- Thai Levels 6+ (อนุบาล → early ป.1 content: fruits, everyday objects, short sentences)
+- Math Levels 9+ (ป.1 stretch: place value, counting to 100)
+- English Levels 5+ (ป.1 stretch: longer sentences, basic comprehension)
 
 **Later:**
 - Multi-child profiles; per-session Supabase logging; payment (199 THB/month); landing page; PWA
@@ -91,8 +111,10 @@ src/components/BattleScreen.jsx — Battle sim + animation (292 lines)
 
 ## Recommended Next GPT Work
 
-1. **AI_OPPONENTS tiers 2–5** — what stats, names, and dialogue fit ป.3–ม.ปลาย age groups?
-2. **Curriculum plan** — what should Thai/Math/English Levels 6–10 teach for ป.1–ป.3?
-3. **Sound persistence** — is persisting sound preference high priority for the target child age?
-4. **Monetisation** — validate 199 THB/month vs Thai edu-app competitors
+**Stay within Year 1 scope (Kindergarten + Early Grade 1 only).**
+
+1. **Mission system design** — what should the first integrated mission look like? (shop / cooking / garden). How does it blend Math, Thai, English, and general knowledge naturally?
+2. **Thai Levels 6–8** — what อนุบาล/early ป.1 Thai content comes next? Fruits, everyday objects, short action sentences?
+3. **Math Levels 9–10** — what early ป.1 Math content fits? Place value? Counting to 100?
+4. **Monetisation timing** — when is the app ready to share with other families? What's the minimum viable parent experience?
 5. Write findings to `docs/GPT_NOTES.md` for Claude Code to act on

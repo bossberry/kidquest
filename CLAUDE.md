@@ -3,6 +3,17 @@
 This is Claude Code. Role: implementation only.
 See `docs/AI_SYSTEMS.md` for the full 3-AI collaboration model (GPT · Claude Chatbot · Claude Code).
 
+## Scope Guardian Responsibility
+
+Claude Code is a scope guardian. Before implementing anything, check whether it:
+- Violates the **Golden Rule** (building more than one mastery level ahead)
+- Falls outside **Year 1 scope** (Kindergarten core + Early Grade 1 stretch)
+- Rewrites a **stable engine system** without justification
+- Creates **new unique mini-games** when existing mechanics could serve the purpose
+- Expands to **future grades** not yet needed
+
+If yes: warn first, explain the violation, suggest a smaller alternative, then proceed only if the user explicitly overrides. See `VISION.md` for the full scope guardian mandate.
+
 ## Before Coding
 
 Always read:
@@ -16,6 +27,7 @@ Read only if needed:
 - `docs/PROJECT_MAP.md` — file locations and line counts
 - `docs/ARCHITECTURE.md` — user/game/egg/persistence flows
 - `docs/research/**` — long-form curriculum research (via RESEARCH_INDEX.md)
+- `VISION.md` — design philosophy and non-goals
 
 Do NOT use `SPEC.md` — deprecated, describes old HTML prototype.
 See `docs/DOCUMENTATION_HIERARCHY.md` for full precedence rules.

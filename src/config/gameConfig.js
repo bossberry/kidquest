@@ -363,6 +363,50 @@ export const AI_OPPONENTS = {
                 reward: 'unlock_tier_2',
                 dialogue: 'ไม่เป็นไร! เครื่องจักรรุ่นต่อไปจะทำลายเจ้าแน่!' },
   },
+  2: {
+    normal: [
+      { name: 'Coconuts', emoji: '🥥',   HP: 175, ATK: 18, DEF: 14, SPD: 12 },
+      { name: 'Octus',    emoji: '🐙',   HP: 160, ATK: 20, DEF: 10, SPD: 16 },
+      { name: 'Rexon',    emoji: '🦕',   HP: 190, ATK: 16, DEF: 18, SPD: 10 },
+    ],
+    miniBoss: { name: 'Egg Robo',        emoji: '🤖💥', HP: 300, ATK: 28, DEF: 24, SPD: 18 },
+    boss:     { name: 'Dr. Eggman III',  emoji: '😈🔥', HP: 450, ATK: 36, DEF: 30, SPD: 22,
+                reward: 'unlock_tier_3',
+                dialogue: 'เจ้าจะได้รับโทษ! เครื่องยนต์ใหม่ของข้าจะบดขยี้เจ้า!' },
+  },
+  3: {
+    normal: [
+      { name: 'Rhino-Bot', emoji: '🦏',  HP: 260, ATK: 28, DEF: 22, SPD: 15 },
+      { name: 'Slicer',    emoji: '🦂',  HP: 240, ATK: 32, DEF: 16, SPD: 20 },
+      { name: 'Jawz',      emoji: '🦈',  HP: 280, ATK: 25, DEF: 26, SPD: 18 },
+    ],
+    miniBoss: { name: 'Heavy Gunner',    emoji: '⚙️🔫', HP: 460, ATK: 44, DEF: 38, SPD: 26 },
+    boss:     { name: 'Dr. Eggman IV',   emoji: '😈⚙️', HP: 680, ATK: 56, DEF: 48, SPD: 34,
+                reward: 'unlock_tier_4',
+                dialogue: 'ความฉลาดของเจ้าน่าเกรงขาม แต่ข้าจะชนะเสมอ!' },
+  },
+  4: {
+    normal: [
+      { name: 'GUN Mech',   emoji: '🤖⚡', HP: 380, ATK: 40, DEF: 32, SPD: 24 },
+      { name: 'E-101 Beta', emoji: '🔮🤖', HP: 360, ATK: 44, DEF: 26, SPD: 30 },
+      { name: 'Dark Chao',  emoji: '😈💜', HP: 400, ATK: 36, DEF: 38, SPD: 22 },
+    ],
+    miniBoss: { name: 'Egg Emperor',     emoji: '👑🤖', HP: 660, ATK: 60, DEF: 54, SPD: 40 },
+    boss:     { name: 'Dr. Eggman V',    emoji: '😈💎', HP: 1000, ATK: 80, DEF: 70, SPD: 52,
+                reward: 'unlock_tier_5',
+                dialogue: 'เจ้าเป็นนักเรียนที่เก่งมาก แต่ Eggman Empire จะพิชิตโลกนี้!' },
+  },
+  5: {
+    normal: [
+      { name: 'Metal Sonic',      emoji: '⚡🤖', HP: 560, ATK: 60, DEF: 48, SPD: 36 },
+      { name: 'Shadow Android',   emoji: '🖤⚡', HP: 540, ATK: 66, DEF: 40, SPD: 44 },
+      { name: 'Silver Gladiator', emoji: '🌟⚔️', HP: 580, ATK: 55, DEF: 56, SPD: 35 },
+    ],
+    miniBoss: { name: 'Mephiles',        emoji: '🌑😈', HP: 960, ATK:  90, DEF:  80, SPD: 60 },
+    boss:     { name: 'PERFECT CHAOS',   emoji: '🌊💀', HP: 1500, ATK: 120, DEF: 110, SPD: 80,
+                reward: 'world_champion',
+                dialogue: 'เจ้าคือจุดสูงสุดแห่งปัญญา ข้ายอมรับความพ่ายแพ้!' },
+  },
 }
 
 export function shuffle(arr) {

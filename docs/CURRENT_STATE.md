@@ -30,8 +30,9 @@
 ### Battle System
 - **Turn-based battle**: `BattleScreen.jsx` — `simulateBattle()` pre-computes turn log; animated playback with Pokémon-style per-turn display
 - **Stats**: HP, ATK, DEF, SPD, CRIT via `calcCreatureStats()` (derived from subject XP proportions + tier)
-- **Challenger system**: every 15 `dailyBattleRounds` → random `AI_OPPONENTS` opponent shown via `ChallengerOverlay`
-- **AI_OPPONENTS**: tier 0 (Motobug, Buzzbomber, Crabmeat + Egg Pawn mini-boss + Dr. Eggman I boss) and tier 1 (Caterkiller, Burrobot, Chopper + Egg Gunner + Dr. Eggman II boss)
+- **Challenger system**: every 15 `dailyBattleRounds` → random `AI_OPPONENTS` opponent; grade→tier: 0→T0, 1-2→T1, 3-4→T2, 5-6→T3
+- **AI_OPPONENTS all 6 tiers** (stats scale ~1.5× per tier, Sonic villain theme):
+  T0 อนุบาล: Motobug/Buzzbomber/Crabmeat → Egg Pawn → Dr. Eggman I · T1 ป.1-2: Caterkiller/Burrobot/Chopper → Egg Gunner → Dr. Eggman II · T2 ป.3-4: Coconuts/Octus/Rexon → Egg Robo → Dr. Eggman III · T3 ป.5-6: Rhino-Bot/Slicer/Jawz → Heavy Gunner → Dr. Eggman IV · T4 ม.ต้น: GUN Mech/E-101 Beta/Dark Chao → Egg Emperor → Dr. Eggman V · T5 ม.ปลาย: Metal Sonic/Shadow Android/Silver Gladiator → Mephiles → PERFECT CHAOS
 - **Item reward** on win; defeated bosses tracked in `defeatedBosses[]`
 
 ### Minigames (5 total — all lazy-loaded)
@@ -60,7 +61,7 @@
 ## Partially Implemented
 
 - **Single child profile**: editable via ProfileModal; `SET_PROFILE` action updates name + grade in global state
-- **Challenger tiers**: only `AI_OPPONENTS` tier 0 and 1 defined; grades 2–6 silently fall back to tier 1
+- **Challenger tiers**: `AI_OPPONENTS` now covers all 6 tiers (0–5); grade→tier mapping fixed in StateContext
 - **Foundation mode**: Level 0 count-objects game exists; shown only when `grade===0 && !foundationComplete`
 
 ---

@@ -8,8 +8,7 @@ _(nothing urgent — Phase 1 UX complete)_
 
 ## Next
 
-- [ ] Add `AI_OPPONENTS` tiers 2–5 (only tier 0+1 defined; older grades silently fall back)
-_(Phase 2 complete — see Done)_
+_(Phase 2 + Phase 3 complete — see Done)_
 
 ---
 
@@ -62,3 +61,4 @@ _(Phase 2 complete — see Done)_
 - [x] Project docs system (docs/ folder, CLAUDE.md, AI_SYSTEMS.md, GPT_HANDOFF workflow)
 - [x] **Phase 1 UX**: replace alert() with showToast(); ProfileModal with name + grade; SET_PROFILE action
 - [x] **Phase 2 UX**: sound toggle persists via `kq_sound` localStorage key; XpBoostBadge countdown in Home header
+- [x] **Phase 3**: AI_OPPONENTS tiers 2–5 added; grade→tier mapping fixed in StateContext (was hard-capped at tier 1)

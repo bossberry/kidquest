@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Phase 2 UX — Sound Persist + XP Boost Indicator)_
+_Last updated: 2026-06-03 (Phase 3 — AI_OPPONENTS Tiers 2–5)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -8,9 +8,9 @@ _Last updated: 2026-06-03 (Phase 2 UX — Sound Persist + XP Boost Indicator)_
 
 ## Latest Session Summary
 
-**What changed this session (Phase 2 UX):**
-- Sound preference now persists across reloads via `localStorage` key `kq_sound` (device-local, not in state blob)
-- `XpBoostBadge` component added to Home header — shows amber `⭐ ×2 M:SS` countdown when star item active; self-managing 1s timer; hides when boost expires
+**What changed this session (Phase 3):**
+- `AI_OPPONENTS` tiers 2–5 added to `gameConfig.js` — all grades now have proper opponent data; no more silent fallback to tier 1
+- Fixed `StateContext.jsx` challenger trigger: was `Math.min(grade, 1)` (always tier 1 for grade ≥ 1); now maps grade 0→T0, 1-2→T1, 3-4→T2, 5-6→T3
 
 ---
 
@@ -26,7 +26,7 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **English**: 4 levels (A–Z phonics, CVC words, sight words, sentence ordering)
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
 - Turn-based battle with Pokémon-style animation; challenger system every 15 rounds
-- 6-tier system; AI_OPPONENTS tiers 0 and 1 only
+- 6-tier system; **AI_OPPONENTS all 6 tiers (0–5)** — no grade falls back to wrong data
 - 5 minigames: EggRun (daily), EggCatch (2), EggMemory (4), EggTower (6), EggFishing (10)
 - Supabase auth + cloud sync; full guest mode
 - Parent Report tab
@@ -41,10 +41,10 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 ## Active Tasks
 
-**Now:** _(nothing urgent — Phase 2 UX complete)_
+**Now:** _(nothing urgent — Phase 3 complete)_
 
 **Next:**
-- Add `AI_OPPONENTS` tiers 2–5 (only 0+1 defined; older grades fall back to tier 1)
+- Curriculum content expansion (Thai L6+, English L5+, Math L9+)
 
 **Later:**
 - Multi-child profiles; per-session Supabase logging; payment (199 THB/month); landing page; PWA
@@ -83,7 +83,7 @@ src/components/BattleScreen.jsx — Battle sim + animation (292 lines)
 
 ## Risks / Unknowns
 
-- `AI_OPPONENTS` only covers tiers 0–1; grades 2–6 silently fall back to tier 1 data
+- Tier 4 and 5 opponents exist but are unreachable in current game (max grade 6 → tier 3); reserved for future ม.ต้น/ม.ปลาย curriculum
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
 - No session audit trail — all progress in one Supabase blob per user
 

@@ -1,17 +1,29 @@
-# Session Summary — 2026-06-03 (Phase B Review Patch)
+# Session Summary — 2026-06-03 (Workflow audit + architecture language patch — docs only)
 
 ## What Changed
-- `shop-mission.md`: MVP reduced from 6 → 4 steps. Price/quantity-difference steps moved to "Later Expansion — Early Grade 1 Stretch" section (not deleted).
-- `mission-system.md`: Unlock threshold changed from 70% → 80%. Engine philosophy rewritten to prefer staged `GameShop.jsx` first, generic `MissionScreen.jsx` only after pattern is validated.
-- `GPT_NOTES.md`: Step count, threshold, and architecture suggestions updated to match review decisions.
-- `TASKS.md`: Now task rewritten — 4-step MVP, GameShop.jsx preference, no missionConfig/MissionScreen yet, 80% threshold.
-- `GPT_HANDOFF.md`: Phase B review result documented; next coding task clarified.
 
-## Files Changed
-`docs/research/missions/shop-mission.md`, `docs/research/missions/mission-system.md`, `docs/GPT_NOTES.md`, `docs/TASKS.md`, `docs/GPT_HANDOFF.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`
+### Modified files
+- `docs/GPT_NOTES.md` — removed present-tense language implying `MissionScreen.jsx` + `missionConfig.js` exist. Both are future targets. Current routing clarified: Home → `GameScreen.jsx` → `GameShop.jsx`.
+- `docs/research/missions/mission-system.md` — Mission Access Points navigation section now distinguishes current implementation from future target architecture.
+- `docs/TASKS.md` — Phase C commit added as critical Now task. Development workflow documented (build → commit → push → verify).
+- `docs/GPT_HANDOFF.md` — session updated, critical finding flagged, recommended next work updated.
+- `docs/SESSION_SUMMARY.md` — this file.
+- `docs/CHANGELOG.md` — new entry appended.
+
+## Key Findings
+
+1. **Architecture language fixed**: `GPT_NOTES.md` and `mission-system.md` previously used present tense implying `MissionScreen.jsx` and `missionConfig.js` are current. Both are future-only. Fixed.
+
+2. **Phase C app code is uncommitted** (critical): `GameShop.jsx`, `Home.jsx`, `StateContext.jsx`, `GameScreen.jsx`, `state.js`, `GamePhonics.jsx` all uncommitted. Production is on Phase 3. Docs claim Phase C is done. Code must be committed + pushed before play testing with Chopin.
+
+3. **No build-verify-deploy workflow was documented**: sessions were committing docs without `npm run build` or production verification. Workflow now documented in TASKS.md.
 
 ## Current Status
-Phase B review complete. All docs patched. No app code changed. Phase C (implementation) is ready to begin.
+No app code changed. Docs are patched.
 
-## Next Suggested Task
-Implement Shop Mission MVP — `GameShop.jsx`, 4 steps, 80% unlock, minimum state, reuse existing mechanics. Read `docs/research/missions/shop-mission.md` first.
+## Immediate Next Action
+1. Run `npm run build` — confirm zero errors.
+2. Commit Phase C app files: `GameShop.jsx`, `Home.jsx`, `StateContext.jsx`, `GameScreen.jsx`, `state.js`.
+3. `git push origin main` → Vercel auto-deploys.
+4. Open production URL → verify Shop card appears on Home screen.
+5. Then: play Shop Mission with Chopin (D0 / validation).

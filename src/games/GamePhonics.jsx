@@ -25,6 +25,23 @@ export default function GamePhonics() {
   return <SentenceGame lv={activeLv} onBack={() => setView('levels')} />
 }
 
+function GameHeader({ cur, total, xp, streak }) {
+  return (
+    <>
+      <div style={{display:'flex',justifyContent:'space-between',padding:'0 20px 6px',fontSize:12,color:'var(--muted)'}}>
+        <span>{cur}/{total}</span>
+        <span>{streak>=3?`${streak}🔥`:streak>0?`streak ${streak}`:''}</span>
+        <span>+{xp} XP</span>
+      </div>
+      <div style={{padding:'0 20px 8px'}}>
+        <div style={{height:6,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+          <div style={{height:6,background:'var(--blue)',borderRadius:4,width:`${(cur/total)*100}%`,transition:'width .4s'}}/>
+        </div>
+      </div>
+    </>
+  )
+}
+
 function ResultScreen({ score, total, xp, streak, onReplay, onBack }) {
   const p = score / total
   return (
@@ -55,13 +72,14 @@ function PhonicsGame({ lv, onBack }) {
     if(ok){const ns=streak+1;setStreak(ns);const earned=10+(ns>=3?5:0);setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});if(ns>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');setFeedback({type:'win',msg:['Great! 🎉','Correct! ✅','Awesome! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP`});setTimeout(()=>speakEn(q.letter+' for '+q.word,.8),300)}
     else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`It's "${q.letter}" for ${q.emoji} ${q.word}`});setTimeout(()=>playPhonicsSound(q,()=>speakEn(q.letter+' for '+q.word,.78)),300)}
   }
-  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:1,value:p*0.4+((state.levelMastery?.eng?.[1])||0)*0.6}});if(p>=0.8){const cur2=state.subjectLevels?.eng||1;if(cur2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:cur2+1}});showToast(`✨ Level ${cur2+1} Unlocked!`);spawnConfetti(15)}}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:1,value:p*0.4+((state.levelMastery?.eng?.[1])||0)*0.6}});if(p>=0.8){const cur2=state.subjectLevels?.eng||1;if(cur2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:cur2+1}});showToast(`✨ Level ${cur2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
 
   if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
-      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'8px 20px',padding:'18px 16px'}}>
+      <GameHeader cur={cur} total={10} xp={xp} streak={streak}/>
+      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'0 20px',padding:'18px 16px'}}>
         <div style={{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:6}}>What starts with this letter?</div>
         <div style={{fontFamily:"'Fredoka One',cursive",fontSize:90,color:'var(--blue-d)',textAlign:'center',cursor:'pointer',lineHeight:1,marginBottom:4}} onClick={()=>playPhonicsSound(q,true)}>{q.letter}</div>
         <div style={{textAlign:'center',fontSize:14,color:'var(--muted)',marginBottom:16}}>{q.phonics}</div>
@@ -83,12 +101,13 @@ function CVCGame({ lv, onBack }) {
   const choices = React.useMemo(() => q ? shuffle([q.word,...q.alts]) : [], [cur]) // eslint-disable-line
   useEffect(() => { if(q) setTimeout(()=>speakEn(q.word,.8),300) },[cur]) // eslint-disable-line
   const check=(w)=>{if(answered||!q)return;setAnswered(true);const ok=w===q.word;if(ok){const ns=streak+1;setStreak(ns);const earned=Math.max(2,Math.round(10*1.5*(1-((state.levelMastery?.eng?.[2])||0))));setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});if(ns>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');setFeedback({type:'win',msg:['Great! 🎉','Correct! ✅','Perfect! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP`});setTimeout(()=>speakEn(q.word),300)}else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`It's "${q.word}" ${q.emoji}`});setTimeout(()=>speakEn(q.word),300)}}
-  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:2,value:p*0.4+((state.levelMastery?.eng?.[2])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);}}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:2,value:p*0.4+((state.levelMastery?.eng?.[2])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
   if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
-      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'8px 20px',padding:'18px 16px'}}>
+      <GameHeader cur={cur} total={10} xp={xp} streak={streak}/>
+      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'0 20px',padding:'18px 16px'}}>
         <div style={{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:6}}>Hear the word → pick the spelling</div>
         <div style={{fontSize:64,textAlign:'center',cursor:'pointer',marginBottom:4,lineHeight:1.2}} onClick={()=>speakEn(q.word,.8)}>{q.emoji}</div>
         <div style={{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:14}}>แตะเพื่อฟัง 🔊</div>
@@ -110,12 +129,13 @@ function SightGame({ lv, onBack }) {
   const choices = React.useMemo(() => q ? shuffle([...q.choices]) : [], [cur]) // eslint-disable-line
   useEffect(() => { if(q) setTimeout(()=>speakEn(q.sentence.replace('___','blank'),.8),300) },[cur]) // eslint-disable-line
   const check=(w)=>{if(answered||!q)return;setAnswered(true);const ok=w===q.blank;if(ok){const ns=streak+1;setStreak(ns);const earned=Math.max(2,Math.round(10*2));setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});playTone('correct');setFeedback({type:'win',msg:q.sentence.replace('___',q.blank)+` +${earned} XP`});setTimeout(()=>speakEn(q.sentence.replace('___',q.blank),.85),300)}else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`"${q.blank}" is correct!`})}}
-  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:3,value:p*0.4+((state.levelMastery?.eng?.[3])||0)*0.6}});}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:3,value:p*0.4+((state.levelMastery?.eng?.[3])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
   if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
-      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'8px 20px',padding:'18px 16px'}}>
+      <GameHeader cur={cur} total={qs.length} xp={xp} streak={streak}/>
+      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'0 20px',padding:'18px 16px'}}>
         <div style={{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:8}}>เลือกคำที่หายไป</div>
         <div style={{fontSize:42,textAlign:'center',marginBottom:8}}>{q.emoji}</div>
         <div style={{fontFamily:"'Fredoka One',cursive",fontSize:22,color:'var(--text)',textAlign:'center',marginBottom:16,lineHeight:1.6}}>{q.sentence}</div>
@@ -146,12 +166,13 @@ function SentenceGame({ lv, onBack }) {
       else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:'Answer: '+q.words.join(' ')})}
     }
   }
-  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:4,value:p*0.4+((state.levelMastery?.eng?.[4])||0)*0.6}});}else setCur(c=>c+1)}
+  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:4,value:p*0.4+((state.levelMastery?.eng?.[4])||0)*0.6}});if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else setCur(c=>c+1)}
   if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
-      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'8px 20px',padding:'18px 16px'}}>
+      <GameHeader cur={cur} total={qs.length} xp={xp} streak={streak}/>
+      <div style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:16,margin:'0 20px',padding:'18px 16px'}}>
         <div style={{fontSize:12,color:'var(--muted)',textAlign:'center',marginBottom:8}}>เรียงคำให้เป็นประโยค</div>
         <div style={{fontSize:48,textAlign:'center',cursor:'pointer',marginBottom:8}} onClick={()=>speakEn(q.words.join(' '),.8)}>{q.emoji}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',minHeight:42,marginBottom:12,padding:8,background:'var(--bg)',borderRadius:10,border:'1.5px dashed var(--border)'}}>

@@ -30,44 +30,113 @@ Familiar, warm, and completely in range for a 5-year-old.
 
 ---
 
-## Mission Flow (MVP — 4 steps)
+## Difficulty Layers
+
+This mission has three layers. **Only Core is implemented in Phase C.**
+
+| Layer | When available | Content level | Required? |
+|-------|---------------|---------------|-----------|
+| **Core** | Always | Kindergarten | Yes — required for completion |
+| **Stretch** | After Core mastery signal | Early Grade 1 | Optional |
+| **Challenge** | After Stretch mastery signal | Early Grade 1 (harder) | Optional, bonus reward only |
+
+See `mission-system.md` → Mastery-Gated Stretch Unlock for the mastery signal rules.
+
+---
+
+## Core Mission Flow (Phase C MVP — 4 phases / 6 questions)
 
 ```
-[Step 1] Thai Matching
-  → Show 3 items: แอปเปิ้ล 🍎, กล้วย 🍌, ส้ม 🍊
+[Phase 1] Thai Matching — 3 questions
+  → Show each of 3 items: แอปเปิ้ล 🍎, กล้วย 🍌, ส้ม 🍊 (one at a time)
   → "จับคู่ของกับชื่อ" (Match item emoji to Thai name)
-  → Mechanic: matching
+  → 4 choices per question; 3 questions total
+  → Mechanic: multipleChoice (Thai matching)
 
-[Step 2] English Vocabulary
+[Phase 2] English Vocabulary — 1 question
   → Show one item emoji (e.g. 🍌)
   → "What is this called?"
   → Choices: apple / banana / orange / bread
   → Mechanic: multipleChoice (English)
 
-[Step 3] Counting
+[Phase 3] Counting — 1 question
   → Show items on shelf (e.g. 🍎🍎🍎🍎)
   → "มีแอปเปิ้ลกี่ลูก?" (How many apples?)
   → Range 1–5 only
   → Choices: 1, 2, 3, 4, 5
   → Mechanic: counting (existing Foundation mechanic)
 
-[Step 4] Social Phrase
+[Phase 4] Social Phrase — 1 question
   → "บอกว่าอะไรตอนซื้อของเสร็จ?" (What do you say after buying?)
   → Choices: ขอบคุณครับ / ขอบคุณค่ะ / สวัสดี / หิวข้าว
+  → Accepts both ขอบคุณครับ and ขอบคุณค่ะ as correct
   → Mechanic: multipleChoice (Thai social language)
 ```
 
-**Total: 4 steps. Estimated time: 2–3 minutes.**
+**Total: 4 phases / 6 questions. Estimated time: 2–3 minutes.**
+
+Core unlock threshold to progress to next mission: **≥80% accuracy**.
+Core mastery signal (to unlock Stretch): **≥90% accuracy, ≤1 wrong answer, completed ≥2 runs**.
 
 ---
 
-## Why 4 Steps, Not 6
+## Shop Stretch — Early Grade 1 (mastery-gated, not Phase C)
 
-The original 6-step design included a quantity-difference problem and a price/addition problem. These were removed from the MVP because:
+Stretch steps are **not implemented in Phase C**. Document them here for future reference.
 
-1. **Quantity difference** ("need 3, have 1, need how many more?") requires two-step reasoning. Appropriate for Early Grade 1 stretch, not Kindergarten MVP.
-2. **Price/addition** ("1 apple = 2 baht, buy 2, pay how much?") introduces money concepts that are conceptually rich but not necessary for a first mission. Saves it as a meaningful stretch reward.
-3. **4 steps is the right size** for a 5-year-old's first mission experience. Validates the concept without over-committing.
+**Unlock trigger:** Core mastery signal met — all three must be true:
+- Accuracy ≥ 90%
+- Wrong answers ≤ 1
+- Completed ≥ 2 successful runs
+
+Speed is never part of the unlock requirement.
+Unlock message: **"เก่งมาก! มีภารกิจท้าทายเล็ก ๆ ให้ลองแล้วนะ"**
+Core remains replayable forever. Stretch is never forced.
+
+### Stretch Step A — Quantity Difference
+```
+"แม่ต้องการแอปเปิ้ล 3 ลูก แต่มีแค่ 1 ลูก ต้องซื้อเพิ่มกี่ลูก?"
+(Mom needs 3 apples. There is 1. How many more do we need to buy?)
+→ Mechanic: multipleChoice (Math — subtraction / difference 1–4)
+→ Choices: 1, 2, 3, 4
+```
+Requires two-step reasoning — Early Grade 1 appropriate, not Kindergarten.
+
+### Stretch Step B — Simple Price Concept
+```
+"แอปเปิ้ล 1 ลูก ราคา 2 บาท ซื้อ 2 ลูก จ่ายกี่บาท?"
+(1 apple = 2 baht. Buy 2 apples. How much do you pay?)
+→ Mechanic: multipleChoice (Math — addition, visual: 🍎💰🍎💰)
+→ Choices: 2, 3, 4, 5
+```
+Money is **conceptual only** — no real currency, no denomination matching, no change-making.
+Not a money education feature. Just a contextual addition problem.
+
+---
+
+## Shop Challenge — Optional (future, not Phase C)
+
+Challenge is an optional harder variant for Stretch masters. No implementation plan yet.
+
+Ideas only:
+- Count 6–10 items (extends counting range)
+- Choose "มากกว่า / น้อยกว่า" (more / less) between two groups
+- Very simple change concept: "มี 5 บาท ของราคา 3 บาท เหลือกี่บาท?" (have 5 baht, item costs 3, change?)
+
+⚠️ Challenge should only be added after Stretch is tested and validated. Do not implement in Phase C or even Phase D planning until Shop Core and Stretch are confirmed fun.
+
+---
+
+## Why 4 Core Phases (6 Questions), Not More
+
+The original design included quantity-difference and price/addition problems. These are now **Shop Stretch** — not Core:
+
+1. **Quantity difference** requires two-step reasoning — Early Grade 1, not Kindergarten.
+2. **Price/addition** is conceptually rich but not needed for the first experience — saved as a meaningful mastery-gated reward after Core is mastered.
+3. **4 Core phases validates the concept** without over-committing. Stretch gives Chopin something to grow into naturally once Core is mastered.
+
+Shop Core MVP = 4 phases / 6 questions: Thai matching (×3) + English vocabulary (×1) + Counting 1–5 (×1) + Social phrase (×1).
+Shop Stretch = Quantity difference + Simple price concept (both unlocked by mastery signal, not by default).
 
 ---
 
@@ -115,8 +184,10 @@ const SHOP_V1 = {
   id: 'shop-v1',
   name: 'ร้านค้า',
   emoji: '🏪',
+  layer: 'core',           // 'core' | 'stretch' | 'challenge'
   unlockAfter: null,       // always available from start
-  unlockThreshold: 0.80,   // complete with ≥80% to unlock next mission
+  unlockThreshold: 0.80,   // ≥80% to unlock next mission
+  masteryThreshold: 0.90,  // ≥90% + ≤1 wrong + ≥2 runs → unlock Stretch
   steps: [
     {
       id: 's1', type: 'matching', subject: 'thai',
@@ -171,36 +242,21 @@ Do not over-engineer before validating the pattern with a real play session.
 
 ---
 
-## Later Expansion — Early Grade 1 Stretch
+## Later Expansion — Other Shop Variants
 
-These steps were intentionally moved out of MVP. Add them only after the 4-step version is validated and Chopin is approaching Grade 1:
+After Core + Stretch are tested and validated:
 
-### Quantity Difference (stretch step 5)
-```
-"แม่ต้องการแอปเปิ้ล 3 ลูก แต่มีแค่ 1 ลูก ต้องซื้อเพิ่มกี่ลูก?"
-(Mom needs 3 apples. There is 1. How many more do we need to buy?)
-→ Mechanic: multipleChoice (Math — subtraction / difference 1–4)
-→ Choices: 1, 2, 3, 4
-```
-Requires two-step reasoning — Early Grade 1 appropriate, not Kindergarten MVP.
-
-### Price / Addition (stretch step 6)
-```
-"แอปเปิ้ล 1 ลูก ราคา 2 บาท ซื้อ 2 ลูก จ่ายกี่บาท?"
-(1 apple = 2 baht. Buy 2 apples. How much do you pay?)
-→ Mechanic: multipleChoice (Math — addition, visual: 🍎💰🍎💰)
-→ Choices: 2, 3, 4, 5
-```
-Money is **conceptual only** — no real currency, no denomination matching, no change-making. Add when Chopin is comfortable with addition to 10.
-
-**Do not include price steps in the first MVP. This is not a money education game.**
+- Add more shop items (ขนมปัง, ไข่, น้ำ, ผัก — bread, egg, water, vegetables)
+- Add a second shop variant (fruit shop 🍓, stationery shop 📝, toy shop 🧸)
+- Each variant = new data only, no new components
+- Animate a simple shopkeeper character (emoji-based) — cosmetic only
 
 ---
 
-## What NOT to Build for MVP
+## What NOT to Build in Phase C
 
-- ❌ Price/money steps (moved to stretch — see above)
-- ❌ Quantity difference problem (moved to stretch — see above)
+- ❌ Stretch steps (quantity difference, price/addition) — implement only after Core mastery signal
+- ❌ Challenge steps — implement only after Stretch is validated
 - ❌ Drag-and-drop item placement
 - ❌ Animated cart / basket
 - ❌ Real currency denomination coins/notes
@@ -209,3 +265,4 @@ Money is **conceptual only** — no real currency, no denomination matching, no 
 - ❌ Story dialogue trees
 - ❌ Grade 2+ pricing (multiplication, large numbers)
 - ❌ Generic MissionScreen.jsx before shop is validated
+- ❌ Mastery-gated unlock UI (track data in Phase C, show UI later)

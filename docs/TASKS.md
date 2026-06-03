@@ -2,26 +2,31 @@
 
 ## Now
 
-- [ ] **Implement Shop Mission MVP** — smallest safe path, design reviewed and approved
-  - Read `docs/research/missions/shop-mission.md` first
-  - **4 steps only**: Thai matching → English vocab → counting 1–5 → social phrase
-  - **No price/money step** — moved to Early Grade 1 stretch expansion
-  - **80% unlock threshold** to unlock next mission (aligns with subject levels)
-  - Prefer `GameShop.jsx` over a full generic `MissionScreen.jsx` for first build
-  - Minimum state: add `shopV1Complete: false` to `defaultState()` only
-  - Reuse existing XP/reward patterns from `GameMath.jsx` / `GameThai.jsx`
-  - Add shop card to Home screen between World Cards and EggRun
-  - Route via `currentWorld: 'shop'` in `GameScreen.jsx`
-  - **Do NOT build `MissionScreen.jsx` or `missionConfig.js` yet**
-  - **Do NOT implement cooking or garden yet**
+- [ ] **[CRITICAL] Commit + push Phase C app code** — `GameShop.jsx`, `Home.jsx`, `StateContext.jsx`, `GameScreen.jsx`, `state.js`, `GamePhonics.jsx` are all uncommitted. Run `npm run build` first, then commit and push to trigger Vercel deploy. Production is currently on Phase 3 (no Shop Mission visible). See workflow below.
+- [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run. (Requires Phase C to be deployed first.)
 
 ---
 
 ## Next
 
-- [ ] Review Shop Mission with Chopin — confirm fun before expanding
-- [ ] Cooking Mission MVP (after shop is confirmed working)
-- [ ] Garden Mission MVP (after cooking is confirmed working)
+### Phase D — Play Observation System (can start independently of play validation)
+
+- [ ] **D0: Shop card UX audit** — review Home screen before implementing observation. Questions: Can Chopin easily find the Shop card? Is it visually prominent? Does it look exciting? Is it above the fold? Would a first-time child notice it? Document ideas only — do not implement UI yet.
+- [ ] **D1: State + reducer** — add `sessionLog: []` to `defaultState()`; add `totalHints`, `totalDuration`, `phaseStats` to `shopV1`; add `LOG_SESSION` reducer; extend `UPDATE_SHOP_V1` to accept hints/dur/phaseStats payload
+- [ ] **D2: Dispatch from result screens** — add `LOG_SESSION` dispatch to `GameShop.jsx` done screen + `useFinishRound` in GameThai/GameMath/GamePhonics
+- [ ] **D3: Mission Analytics card in Report.jsx** — show runs, avg score, avg duration, hints, phase difficulty breakdown, replay framing, deterministic nudge
+- [ ] **D4 (optional, same PR): Replace peer-comparison card** — replace "เทียบกับเด็กวัยเดียวกัน" card in Report.jsx with a play-history timeline (no peer reference)
+- [ ] Full design spec: `docs/research/observation/play-observation-system.md`
+
+### Phase E — Shop Stretch (after play validation with Chopin)
+
+- [ ] Review Shop Core with Chopin — confirm fun before expanding
+- [ ] Add Shop Stretch (quantity difference + price concept) — only after Core mastery signal observed in play data
+- [ ] Add mastery-gated stretch unlock UI ("เก่งมาก! มีภารกิจท้าทายเล็ก ๆ")
+
+### Content expansion (after Phase D + E)
+
+- [ ] Cooking Mission MVP (after Shop Core + Stretch are confirmed working)
 - [ ] Thai Levels 6+ (fruits, everyday objects, short sentences — อนุบาล → early ป.1)
 - [ ] Math Levels 9+ (place value, counting to 100 — early ป.1 stretch)
 - [ ] English Levels 5+ (longer sentences, basic comprehension)
@@ -36,9 +41,12 @@
 - [ ] Add Math Levels 9+ (ABC patterns, multiplication intro)
 
 ### Missions
+- [ ] Shop Challenge layer (counting 6–10, more/less, simple change concept) — after Stretch validated
 - [ ] Shop Mission variant 2 (different items: stationery / toy shop)
+- [ ] Garden Mission MVP (after Cooking confirmed working)
 - [ ] Garden daily-habit loop (gentle "plant grew" indicator on Home)
 - [ ] Mission unlock cosmetic rewards (new egg pattern, creature color)
+- [ ] Refactor to generic `MissionScreen.jsx` + `missionConfig.js` (after 2+ missions share same pattern)
 
 ### Features
 - [ ] First-run onboarding flow (before ProfileModal is opened manually)
@@ -51,6 +59,22 @@
 - [ ] Multi-child profiles (state shape refactor + `children` table)
 - [ ] Payment integration (Omise or Stripe, 199 THB/month)
 - [ ] Landing / marketing page
+
+---
+
+## Development Workflow (required every session that changes app code)
+
+```
+1. npm run build          → confirm zero errors before committing
+2. git add <files>        → stage specific files (never git add -A blindly)
+3. git commit             → meaningful message
+4. git push origin main   → triggers Vercel auto-deploy
+5. Open production URL    → verify the change is live and working
+6. Update docs            → CURRENT_STATE, TASKS, CHANGELOG, GPT_HANDOFF (same commit or next commit)
+```
+
+Vercel auto-deploys from every push to `main`. There is no manual deploy step.
+Production URL: check `vercel.json` or Vercel dashboard for the live URL.
 
 ---
 
@@ -87,3 +111,4 @@
 - [x] Vision + scope documentation (PROJECT.md, VISION.md, GOALS.md, scope guardian mandate)
 - [x] Math research reorganized into topics/curriculum/learning-path/categories structure
 - [x] **Mission system designed**: shop, cooking, garden missions documented in docs/research/missions/
+- [x] **Phase C: Shop Mission MVP** — `GameShop.jsx` (4 phases / 6 Qs), `shopV1` state, `UPDATE_SHOP_V1` reducer, shop card in Home, `world === 'shop'` routing. Build passes.

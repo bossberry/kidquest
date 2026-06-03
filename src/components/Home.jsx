@@ -137,6 +137,28 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </div>
       </div>
 
+      {/* Missions */}
+      <div style={{ width:'100%', maxWidth:480, padding:'12px 20px 0' }}>
+        <div style={{ fontSize:12, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:6 }}>ภารกิจ</div>
+        <div
+          onClick={() => startWorld('shop')}
+          style={{ display:'flex', alignItems:'center', gap:12, background:'#FFF5E6', border:'1.5px solid #F0B86E', borderRadius:14, padding:'12px 16px', cursor:'pointer', transition:'transform .12s, box-shadow .12s' }}
+          onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 4px 16px rgba(239,159,39,.18)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='' }}
+        >
+          <span style={{ fontSize:36 }}>🏪</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:16, color:'#4A2A00' }}>ร้านค้า</div>
+            <div style={{ fontSize:12, color:'#7A5500', marginTop:2 }}>
+              {(state.shopV1?.runs || 0) > 0
+                ? `ดีที่สุด ${Math.round((state.shopV1?.bestScore || 0) * 100)}% · ${state.shopV1.runs} ครั้ง`
+                : '2–3 นาที · ใหม่! 🆕'}
+            </div>
+          </div>
+          <div style={{ fontSize:18, color:'var(--amber)' }}>→</div>
+        </div>
+      </div>
+
       {/* Egg Run */}
       <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
         <div

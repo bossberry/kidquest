@@ -58,6 +58,11 @@
 
 ---
 
+### Missions
+- **Shop Mission MVP** (`GameShop.jsx`): 4 phases / 6 questions — Phase 1 Thai matching ×3 (emoji → Thai name, 4 choices), Phase 2 English vocab ×1, Phase 3 counting 1–5 ×1, Phase 4 social phrase ×1 (accepts both ขอบคุณครับ/ค่ะ). XP dispatched per subject. 80% pass threshold. State: `shopV1: { bestScore, runs, mastered, stretchUnlocked }`. Mastery signal tracked (≥90% + ≤1 wrong + ≥2 runs) but not surfaced in UI yet. Always unlocked. Shop card on Home screen shows best score after first run.
+
+---
+
 ## Partially Implemented
 
 - **Single child profile**: editable via ProfileModal; `SET_PROFILE` action updates name + grade in global state

@@ -34,6 +34,7 @@ export function defaultState() {
     lastBattleDate: '',
     pendingChallenger: null,
     foundationComplete: false,
+    shopV1: { bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false },
   }
 }
 

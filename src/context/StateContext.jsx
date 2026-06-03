@@ -32,6 +32,7 @@ export const ACTIONS = {
   CLEAR_CHALLENGER:    'CLEAR_CHALLENGER',
   FOUNDATION_COMPLETE: 'FOUNDATION_COMPLETE',
   SET_PROFILE:         'SET_PROFILE',
+  UPDATE_SHOP_V1:      'UPDATE_SHOP_V1',
 }
 
 function reducer(state, action) {
@@ -242,6 +243,22 @@ function reducer(state, action) {
     case ACTIONS.SET_PROFILE: {
       const { name, grade } = action.payload
       return { ...state, name: name || state.name, grade: grade ?? state.grade }
+    }
+
+    case ACTIONS.UPDATE_SHOP_V1: {
+      const { score, wrong } = action.payload
+      const prev = state.shopV1 || { bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false }
+      const newRuns = prev.runs + 1
+      const masteryMet = score >= 0.9 && wrong <= 1 && newRuns >= 2
+      return {
+        ...state,
+        shopV1: {
+          bestScore: Math.max(prev.bestScore, score),
+          runs: newRuns,
+          mastered: prev.mastered || masteryMet,
+          stretchUnlocked: false,
+        },
+      }
     }
 
     default:

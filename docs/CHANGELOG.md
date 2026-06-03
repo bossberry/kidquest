@@ -1,5 +1,51 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Workflow Audit + Architecture Language Patch (docs only)
+
+- `docs/GPT_NOTES.md` — fixed two present-tense statements that implied `MissionScreen.jsx` + `missionConfig.js` are current architecture. Both are future targets (after 2+ missions). Current routing clarified: Home → `GameScreen.jsx` → `GameShop.jsx` (world `'shop'`).
+- `docs/research/missions/mission-system.md` — Mission Access Points navigation section updated: current implementation (GameShop.jsx) vs. future target (MissionScreen.jsx) now clearly separated.
+- `docs/TASKS.md` — Phase C app code commit added as critical Now task. Development workflow documented (build → commit → push → verify).
+- `docs/GPT_HANDOFF.md` — session updated; Phase C uncommitted code flagged as risk; workflow gap noted.
+- **Critical finding**: Phase C app code (`GameShop.jsx`, `Home.jsx`, `StateContext.jsx`, `GameScreen.jsx`, `state.js`) is uncommitted. Production is on Phase 3. Must commit + push before play testing.
+- No app code changed this session.
+
+## 2026-06-03 — Phase D Wording Patch: Observation Language + Engagement Signals (docs only)
+
+- `docs/research/observation/play-observation-system.md` — final wording improvements before implementation: `passed` → `completed`; `hardestPhase` → `challengePhase`; "most difficult phase" → "current challenge area"; `replayedImmediately` and `nextAction` added to session entry schema; new **Engagement Signals** section (explains why engagement signals outweigh scores, documents `replayedImmediately`, `nextAction`, replay count, and session duration); nudge rule updated to `runs === 1 && completed`; nudge condition updated to `challengePhaseAcc`; "pass/fail icon" in play history renamed to "completed/not completed".
+- `docs/GPT_NOTES.md` — terminology decisions section added; engagement signal rationale recorded; D0 noted in Phase D scope.
+- `docs/TASKS.md` — D0 (Shop card UX audit) added before D1 in Phase D list.
+- No app code changed.
+
+## 2026-06-03 — Phase D Design: Play Observation System (docs only)
+
+- `docs/research/observation/play-observation-system.md` — NEW: full design spec for lightweight passive play observation system. Covers: session log ring buffer (last 50 entries), `shopV1` state extensions (`totalHints`, `totalDuration`, `phaseStats`), new `LOG_SESSION` reducer action, parent report Mission Analytics card design, deterministic nudge rules, replay framing principles, explicit non-goals (no AI, no peer comparison, no child-facing UI).
+- `docs/GPT_NOTES.md` — Play Observation System decisions added (nudge rules, ring buffer cap, no-speed-gate, peer-comparison card replacement).
+- `docs/TASKS.md` — Phase D (D1–D4) and Phase E tasks structured under Next.
+- `docs/GPT_HANDOFF.md` — Updated: latest session, active tasks, recommended next GPT work.
+- No app code changed.
+
+## 2026-06-03 — Phase D Prep: Shop Mission Terminology Sync (docs only)
+
+- `docs/research/missions/shop-mission.md` — "4 steps" → "4 phases / 6 questions"; steps renamed to phases; Phase 1 annotated ×3, phases 2–4 annotated ×1; "Why 4 Core Steps" section retitled and updated.
+- `docs/research/missions/mission-system.md` — example step list replaced with actual 4-phase/6-question breakdown.
+- `docs/CURRENT_STATE.md`, `docs/GPT_HANDOFF.md`, `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md` — all updated to use "4 phases / 6 questions" terminology consistently.
+- No app code changed.
+
+## 2026-06-03 — Phase C: Shop Mission MVP
+
+- `src/games/GameShop.jsx` — NEW: 4 phases / 6 questions (Phase 1: Thai matching ×3, Phase 2: English vocab ×1, Phase 3: counting ×1, Phase 4: social phrase ×1). 4 choices per question. Accepts both ขอบคุณครับ/ค่ะ for social phrase. XP dispatched per subject. Done screen with pass/fail at 80% threshold.
+- `src/lib/state.js` — `shopV1: { bestScore, runs, mastered, stretchUnlocked }` added to `defaultState()`.
+- `src/context/StateContext.jsx` — `UPDATE_SHOP_V1` action + reducer case: tracks bestScore, runs, mastered (≥90% + ≤1 wrong + ≥2 runs). stretchUnlocked always false for MVP.
+- `src/games/GameScreen.jsx` — lazy-imports `GameShop`, adds `shop` world to `WORLD_TITLES`.
+- `src/components/Home.jsx` — Missions section added above Egg Run. Shop card shows best score and run count after first play. Always unlocked.
+
+## 2026-06-03 — Phase B+ Mastery-Gate Patch: mastery signal tightened, Stretch content confirmed
+- `mission-system.md`: Mastery signal simplified to 3 hard criteria — accuracy ≥ 90%, ≤ 1 wrong, ≥ 2 runs. Removed "hint dependency" from hard criteria (not tracked yet; can be added later). Speed re-clarified as optional context only, never a gate.
+- `shop-mission.md`: Shop Stretch section updated with explicit unlock trigger listing the 3 criteria. "Why 4 steps" section rewritten — quantity difference and price concept named as Stretch, Core MVP steps stated inline.
+- `GPT_NOTES.md`: Product Decisions — mastery signal now 3 explicit criteria; Shop Core/Stretch split named explicitly.
+- `TASKS.md`: Mastery signal note updated — speed NOT required.
+- No app code changed.
+
 ## 2026-06-03 — Phase B Review Patch: Mission MVP scope tightened
 - `shop-mission.md`: MVP reduced 6 → 4 steps. Price/money and quantity-difference steps moved to Later Expansion (Early Grade 1 stretch) — not deleted.
 - `mission-system.md`: Unlock threshold 70% → 80% (aligned with subject levels; 70% guessable on 4 questions). Engine philosophy updated: start with `GameShop.jsx`, delay generic `MissionScreen.jsx` until pattern validated.

@@ -5,7 +5,7 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ## Research Notes
 
-- **Mission system designed (2026-06-03)**: Year 1 missions use only existing mechanics (multipleChoice, matching, counting, wordOrder, spell, visualModel). No new mini-games needed. Missions are data-driven — a thin `MissionScreen.jsx` wrapper sequences steps defined in `missionConfig.js`.
+- **Mission system designed (2026-06-03)**: Year 1 missions use only existing mechanics (multipleChoice, matching, counting, wordOrder, spell, visualModel). No new mini-games needed. Each mission is currently its own component (`GameShop.jsx`). `MissionScreen.jsx` + `missionConfig.js` are the *future* target architecture — do not build until 2+ missions confirm the pattern.
 - **Three starter missions designed**: Shop (🏪) → Cooking (🍳) → Garden (🌱). Each unlocks the next. Each builds on vocabulary from the previous.
 - **Shop mission MVP (Phase B revised)**: 4 steps, ~2–3 minutes. Thai matching → English vocabulary → counting 1–5 → social phrase. Price/quantity-difference steps moved to Early Grade 1 stretch expansion.
 - **Garden daily-habit loop noted**: Garden has potential for a gentle "your plant grew" daily indicator. Design this AFTER the static mission MVP is proven. Do not add obligation/anxiety mechanics.
@@ -24,17 +24,22 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 ## Product Decisions
 
 - **Missions appear as cards on the Home screen** — between World Cards and EggRun banner. Locked missions show ??? preview.
-- **MissionScreen navigates from Home** — same pattern as GameScreen. No separate world map.
+- **Missions navigate from Home via GameScreen** — current routing: Home card → `GameScreen.jsx` → `GameShop.jsx` (world `'shop'`). Future target: → `MissionScreen.jsx`. No separate world map.
 - **Missions are self-contained** — no persistent in-mission state between sessions (except the daily garden hint, added later).
 - **Replay is always accessible** — completed missions never removed from Home. Child can replay at will.
 - **New missions gently encourage forward** with cosmetic rewards and story continuity, never lock-outs.
+- **Mastery-Gated Stretch Unlock** — missions have 3 layers: Core (Kindergarten, required) → Stretch (Early Grade 1, optional) → Challenge (Early Grade 1 harder, optional, bonus reward only). Deterministic rule, not AI.
+- **Mastery signal (3 hard criteria):** accuracy ≥ 90% AND wrong answers ≤ 1 AND ≥ 2 completed runs. Speed is tracked as optional context only — never gates any unlock.
+- **Core/Stretch/Challenge layers** — Core always available. Stretch unlocks when mastery signal met. Challenge unlocks after Stretch mastery. All layers remain replayable forever.
+- **Shop Core MVP is exactly 4 steps:** Thai matching → English vocabulary → Counting 1–5 → Social phrase. Quantity difference and price concept are Shop Stretch, not Core.
 
 ---
 
 ## Architecture Suggestions
 
 - **Phase C MVP: prefer `GameShop.jsx` first** — a focused, shop-specific component. Do not build a full generic `MissionScreen.jsx` until the shop pattern is validated through real play.
-- **Minimum state for MVP**: one field `shopV1Complete: false` in `defaultState()`. No `completedMissions: {}`, no `currentMissionId`, no `START_MISSION` action needed for first build.
+- **Minimum state for Phase C**: a small `shopV1` object in `defaultState()` to track mastery data: `{ bestScore, runs, mastered, stretchUnlocked }`. Not a full `completedMissions` map yet.
+- **Suggested future shape** (after multiple missions exist): `completedMissions: { [missionId]: { bestScore, runs, mastered, stretchUnlocked, challengeUnlocked } }`. Do not implement this map until at least 2 missions exist.
 - **Reuse existing patterns** from `GameMath.jsx` / `GameThai.jsx` / `GamePhonics.jsx` for XP, rewards, and result screen.
 - **Staged refactor path**: Shop works → Cooking adds similar structure → if pattern holds, extract into `MissionScreen.jsx` + `missionConfig.js`. Not before.
 - Do NOT create a separate save system for missions — store in the existing `kq_state` blob.
@@ -50,6 +55,23 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Play Observation System Decisions (2026-06-03)
+
+- **Observation, not evaluation.** Data is for parents only. Children see nothing from this system.
+- **Replay framing is always positive.** High replay count = engagement, never failure. No nudge ever says "still trying" or "struggling."
+- **No AI-generated nudges.** All parent-facing recommendations are deterministic rules (e.g. `mastered === true` → "Shop Stretch is waiting"). Maximum one nudge shown at a time.
+- **No speed tracking as gate.** Response time may be recorded in future but will never gate any unlock or trigger any nudge.
+- **No peer comparison.** Existing Report.jsx peer-comparison card should be replaced with a play-history timeline in Phase D.
+- **Session log is a ring buffer: last 50 sessions.** Written silently on existing result screens; no new child UI.
+- **Per-mission state extended (not replaced):** `shopV1` gets `totalHints`, `totalDuration`, `phaseStats` alongside existing `bestScore / runs / mastered / stretchUnlocked`.
+- **New action: `LOG_SESSION`.** One entry appended per completed session. Entries are small (~150 bytes each); total budget ~7.5 KB for 50 entries.
+- **Phase D scope confirmed:** D0 Shop card UX audit, D1 state/reducer additions, D2 dispatch from all result screens, D3 Mission Analytics card in Report.jsx, D4 (optional) replace peer-comparison card.
+- **Terminology (final):** use `completed` not `passed/failed`; use `challengePhase` not `hardestPhase`; use "current challenge area" not "most difficult phase". Observation uses game language, not exam language.
+- **Engagement signals are more important than scores.** Session entry includes `replayedImmediately` and `nextAction` ('shop'|'math'|'thai'|'english'|'eggRun'|'battle'|'quit'). The child's voluntary next action is one of the strongest engagement signals.
+- **Full design:** `docs/research/observation/play-observation-system.md`
+
+---
+
 ## Rejected Ideas
 
 - **Full open-world exploration map** — Too much engine work. Not Year 1. Missions access via Home screen cards instead.
@@ -59,3 +81,6 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 - **New mini-game mechanics for missions** — Rejected. All mechanics already exist. Content-only expansion.
 - **Separate mission save system** — Rejected. Use existing `kq_state` blob.
 - **Grade 2+ content in any Year 1 mission** — Rejected by Golden Rule. Fractions, large numbers, multiplication all out.
+- **AI-generated adaptive questions** — Rejected for Year 1. Mastery-gated stretch is deterministic (simple rules), not AI.
+- **Speed-required mastery** — Rejected. Speed may be tracked optionally but must never gate any unlock. Slow thinkers must not be penalised.
+- **Forced progression to Stretch** — Rejected. Core must remain fully satisfying. Stretch is a reward, not a requirement.

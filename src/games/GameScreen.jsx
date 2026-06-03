@@ -9,11 +9,13 @@ const EggCatch    = lazy(() => import('./minigames/EggCatch.jsx'))
 const EggMemory   = lazy(() => import('./minigames/EggMemory.jsx'))
 const EggTower    = lazy(() => import('./minigames/EggTower.jsx'))
 const EggFishing  = lazy(() => import('./minigames/EggFishing.jsx'))
+const GameShop    = lazy(() => import('./GameShop.jsx'))
 
 const WORLD_TITLES = {
   thai:'ภาษาไทย 🇹🇭', math:'Math 🔢', eng:'English Phonics 🔤',
   eggrun:'🏃 Egg Run', catch:'🧺 Egg Catch', memory:'🃏 Egg Memory',
   tower:'🏗️ Egg Tower', fishing:'🎣 Egg Fishing',
+  shop:'🏪 ร้านค้า',
 }
 
 export default function GameScreen({ navigate, soundOn, toggleSound }) {
@@ -37,6 +39,7 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
           {world === 'memory'  && <EggMemory navigate={navigate} />}
           {world === 'tower'   && <EggTower navigate={navigate} />}
           {world === 'fishing' && <EggFishing navigate={navigate} />}
+          {world === 'shop'    && <GameShop navigate={navigate} />}
         </Suspense>
       </div>
     </div>

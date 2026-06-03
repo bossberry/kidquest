@@ -46,17 +46,19 @@ A mission is NOT:
 
 Each mission step has a `subject` tag. Within a single mission flow, steps alternate subjects naturally based on the story context — not artificially.
 
-Example: Shop Mission steps and their subject tags:
+Example: Shop Mission phases and their subject tags (4 phases / 6 questions):
 ```
-Step 1: Read the shop sign (Thai reading)        → thai
-Step 2: Name the item in English (vocabulary)    → english
-Step 3: Count items on shelf (counting)          → math
-Step 4: Pick correct quantity (number choice)    → math
-Step 5: Calculate simple total (addition 1–5)   → math
-Step 6: Say "ขอบคุณครับ/ค่ะ" (social phrase)    → thai
+Phase 1: Thai Matching — ×3 questions            → thai
+  Match each of 3 emoji to its Thai name (แอปเปิ้ล / กล้วย / ส้ม)
+Phase 2: English Vocabulary — ×1 question        → english
+  Name the item in English (apple / banana / orange / bread)
+Phase 3: Counting 1–5 — ×1 question              → math
+  Count items on shelf; choose correct number
+Phase 4: Social Phrase — ×1 question             → thai
+  Say "ขอบคุณครับ/ค่ะ" after buying
 ```
 
-The child experiences a coherent shop visit, not six separate quiz questions.
+The child experiences a coherent shop visit, not disconnected quiz questions.
 
 ---
 
@@ -124,6 +126,89 @@ Steps use the same question format as existing game levels — they just have a 
 
 ---
 
+## Mastery-Gated Stretch Unlock
+
+### The Three Layers
+
+Every mission can have up to three layers. Only Core is required.
+
+| Layer | Content level | Required? | When available |
+|-------|--------------|-----------|----------------|
+| **Core** | Kindergarten | Yes | Always |
+| **Stretch** | Early Grade 1 | No — optional | After Core mastery signal |
+| **Challenge** | Early Grade 1 (harder) | No — optional | After Stretch mastery signal |
+
+This is not AI adaptation. It is a simple, deterministic rule applied after the child demonstrates consistent mastery.
+
+---
+
+### Mastery Signal Rule
+
+A mission layer is considered **mastered** when all of the following are true:
+
+- Accuracy ≥ 90%
+- Wrong answers ≤ 1
+- Completed ≥ 2 successful runs
+
+Speed is **optional context only** — tracked if available but never required for any unlock. Children who think slowly but accurately are not penalised.
+
+This rule is simple, deterministic, and does not require AI.
+
+---
+
+### Unlock Behavior
+
+**When Core is mastered:**
+- Stretch version becomes available
+- Show a gentle, non-pressuring message: **"เก่งมาก! มีภารกิจท้าทายเล็ก ๆ ให้ลองแล้วนะ"** ("You're great! There's a small challenge waiting for you.")
+- Core remains fully accessible and replayable forever
+- Stretch is never forced — child taps to try it
+
+**When Stretch is mastered:**
+- Challenge version becomes available (if defined)
+- Challenge gives bonus reward / cosmetic only
+- Challenge never gates progression to the next mission
+
+---
+
+### What This Is Not
+
+- ❌ Not AI tutoring — no generated questions, no model, no personalization
+- ❌ Not forced progression — child can stay on Core forever
+- ❌ Not a difficulty mode toggle — layers unlock naturally through play
+- ❌ Not punishment for not reaching Stretch — Core is complete and rewarding on its own
+
+---
+
+### Threshold Summary
+
+| Event | Threshold |
+|-------|-----------|
+| Unlock next mission | ≥80% accuracy (one pass) |
+| Unlock Stretch layer | ≥90% accuracy + ≤1 wrong + ≥2 runs |
+| Review missions give | 60% XP |
+| Challenge missions give | 1.5× XP + guaranteed item |
+
+---
+
+### Minimum State for Phase C
+
+Phase C (Shop Core MVP) should store only what's needed to support future mastery tracking:
+
+```js
+// In kq_state (added to defaultState)
+shopV1: {
+  bestScore: 0,        // highest accuracy (0–1)
+  runs: 0,             // total completions
+  mastered: false,     // true when mastery signal met
+  stretchUnlocked: false,
+}
+```
+
+Do not implement Stretch UI in Phase C. Just record the data so it's available later.
+
+---
+
 ## Reward Design
 
 | Trigger | Reward |
@@ -172,10 +257,14 @@ In the Home screen:
 - Cards showing: mission emoji, mission name, lock/unlock status
 - Locked missions show a preview with "???" like the level lock UI
 
-Navigation:
-- Tap mission card → MissionScreen
+Navigation (current implementation):
+- Tap mission card → `GameScreen.jsx` → `GameShop.jsx` (via `world === 'shop'`)
+- Each mission is its own component for now — `MissionScreen.jsx` does not exist yet
+
+Navigation (future target — after 2+ missions share the pattern):
+- Tap mission card → `MissionScreen.jsx` (generic runner, reads from `missionConfig.js`)
 - MissionScreen sequences steps, shows progress bar
-- ResultScreen at end → back to Home
+- Result screen → back to Home
 
 ---
 

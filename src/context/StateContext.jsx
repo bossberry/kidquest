@@ -27,6 +27,7 @@ export const ACTIONS = {
   CHECK_DAILY_RESET:  'CHECK_DAILY_RESET',
   DECAY_HAPPINESS:    'DECAY_HAPPINESS',
   SET_HATCHING:       'SET_HATCHING',
+  RECORD_BATTLE:      'RECORD_BATTLE',
 }
 
 function reducer(state, action) {
@@ -210,6 +211,18 @@ function reducer(state, action) {
 
     case ACTIONS.SET_HATCHING:
       return { ...state, hatching: action.payload }
+
+    case ACTIONS.RECORD_BATTLE: {
+      const { entry, bossKey, itemKey } = action.payload
+      const defeatedBosses = bossKey
+        ? [...new Set([...(state.defeatedBosses || []), bossKey])]
+        : (state.defeatedBosses || [])
+      const battleHistory = [...(state.battleHistory || []).slice(-99), entry]
+      const items = itemKey
+        ? { ...(state.items || {}), [itemKey]: ((state.items || {})[itemKey] || 0) + 1 }
+        : state.items
+      return { ...state, defeatedBosses, battleHistory, items }
+    }
 
     default:
       return state

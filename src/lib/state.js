@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { calcCreatureStats, GRADE_LABELS } from '../config/gameConfig.js'
 
 export const KEY = 'kq_state'
 
@@ -32,6 +33,26 @@ export function defaultState() {
   }
 }
 
+function _migrateEggs(s) {
+  if (!Array.isArray(s.hatchedEggs) || !s.hatchedEggs.length) return s
+  let dirty = false
+  const hatchedEggs = s.hatchedEggs.map(egg => {
+    let e = egg
+    if (e.tier === undefined || e.tier === null) {
+      const idx = GRADE_LABELS.indexOf(e.grade || 'อนุบาล')
+      e = { ...e, tier: Math.min(5, idx >= 0 ? idx : 0) }
+      dirty = true
+    }
+    if (!e.stats) {
+      e = { ...e, streak: e.streak || 0, acc: e.acc || 70,
+               stats: calcCreatureStats({ ...e, tier: e.tier }) }
+      dirty = true
+    }
+    return e
+  })
+  return dirty ? { ...s, hatchedEggs } : s
+}
+
 export async function loadState() {
   console.log('[KQ:load] start')
   try {
@@ -46,8 +67,13 @@ export async function loadState() {
           .single()
         if (data?.state_json) {
           console.log('[KQ:load] cloud has data → using cloud')
-          localStorage.setItem(KEY, JSON.stringify(data.state_json))
-          return data.state_json
+          const migrated = _migrateEggs(data.state_json)
+          if (migrated !== data.state_json) {
+            console.log('[KQ:load] migrating cloud eggs')
+            syncToSupabase(migrated)
+          }
+          localStorage.setItem(KEY, JSON.stringify(migrated))
+          return migrated
         }
         console.log('[KQ:load] cloud empty (error:', error?.code, ') → using localStorage')
       } else {
@@ -57,13 +83,20 @@ export async function loadState() {
   } catch (e) {
     console.log('[KQ:load] failed:', e.message)
   }
+  let s
   try {
-    const s = JSON.parse(localStorage.getItem(KEY)) || defaultState()
+    s = JSON.parse(localStorage.getItem(KEY)) || defaultState()
     console.log('[KQ:load] localStorage xpThai =', s.xpThai)
-    return s
   } catch (e) {
-    return defaultState()
+    s = defaultState()
   }
+  const migrated = _migrateEggs(s)
+  if (migrated !== s) {
+    console.log('[KQ:load] migrated', s.hatchedEggs?.length, 'eggs → saving')
+    localStorage.setItem(KEY, JSON.stringify(migrated))
+    syncToSupabase(migrated)
+  }
+  return migrated
 }
 
 // Push any state object to Supabase (used by StateContext on SIGNED_IN)

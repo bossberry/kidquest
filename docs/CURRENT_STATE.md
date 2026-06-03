@@ -59,7 +59,16 @@
 ---
 
 ### Missions
-- **Shop Mission MVP** (`GameShop.jsx`): 4 phases / 6 questions — Phase 1 Thai matching ×3 (emoji → Thai name, 4 choices), Phase 2 English vocab ×1, Phase 3 counting 1–5 ×1, Phase 4 social phrase ×1 (accepts both ขอบคุณครับ/ค่ะ). XP dispatched per subject. 80% pass threshold. State: `shopV1: { bestScore, runs, mastered, stretchUnlocked }`. Mastery signal tracked (≥90% + ≤1 wrong + ≥2 runs) but not surfaced in UI yet. Always unlocked. Shop card on Home screen shows best score after first run.
+- **Shop Mission MVP** (`GameShop.jsx`): 4 phases / 6 questions — Phase 1 Thai matching ×3 (emoji → Thai name, 4 choices), Phase 2 English vocab ×1, Phase 3 counting 1–5 ×1, Phase 4 social phrase ×1 (accepts both ขอบคุณครับ/ค่ะ). XP dispatched per subject. 80% pass threshold. State: `shopV1: { bestScore, runs, mastered, stretchUnlocked, totalHints, totalDuration, phaseStats }`. Mastery signal tracked (≥90% + ≤1 wrong + ≥2 runs). Always unlocked. Shop card on Home screen shows best score after first run.
+
+### Play Observation System (Phase D)
+- **`sessionLog[]`** in state (ring buffer, max 50): each completed game/mission appends an entry with `{ ts, world, missionId, level, dur, score, wrong, hints, completed, replayedImmediately, nextAction, phaseStats }`. `replayedImmediately` computed by reducer from previous same-world entry.
+- **`shopV1` extended**: `totalHints`, `totalDuration`, `phaseStats` (per-phase correct/total accumulated across all runs). Per-question correctness tracked via `perQCorrect` ref in `GameShop.jsx`.
+- **`LOG_SESSION` reducer**: appends to `sessionLog`, computes `replayedImmediately` from previous log entry.
+- **`UPDATE_SHOP_V1` extended**: now accepts `hints`, `dur`, `phaseStats` and accumulates them.
+- **Mission Analytics card** in `Report.jsx`: shows runs, avg score, avg duration, hints, per-phase difficulty (✅/⚠️), replay behavior text, one deterministic nudge. Appears only if `shopV1.runs > 0`.
+- **Play History card** in `Report.jsx`: replaces old peer-comparison card. Shows last 10 sessions with world label, date, completed/not. No peer reference.
+- **All subject games dispatch `LOG_SESSION`**: GameThai (via `useFinishRound`), GameMath (in `next()`), GamePhonics (in each game's `next()`). GameShop dispatches alongside `UPDATE_SHOP_V1`.
 
 ---
 

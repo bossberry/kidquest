@@ -146,6 +146,7 @@ function MathLevelGame({ lv, onBack }) {
   const [done, setDone] = useState(false)
   const [timeLeft, setTimeLeft] = useState(lv?.timer || 15)
   const timerRef = useRef(null)
+  const sessionStart = useRef(Date.now())
 
   const q = qs[cur]
   const timerMax = lv?.timer || 15
@@ -210,6 +211,11 @@ function MathLevelGame({ lv, onBack }) {
         if(cur2<8){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15)}
       }
       if(p>=0.9){playTone('fanfare');spawnConfetti(30)}
+      dispatch({ type: ACTIONS.LOG_SESSION, payload: {
+        ts: sessionStart.current, world: 'math', missionId: null, level: lv?.id || 1,
+        dur: Date.now() - sessionStart.current, score: p, wrong: 10 - score,
+        hints: 0, completed: p >= 0.8, nextAction: null, phaseStats: null,
+      }})
     } else { setAnswered(false);setAttempts(0);setFeedback(null);setCur(c=>c+1) }
   }
 
@@ -220,7 +226,7 @@ function MathLevelGame({ lv, onBack }) {
         <div style={{fontSize:64,marginBottom:10}}>{p>=.9?'🏆':p>=.7?'🎉':'😊'}</div>
         <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,color:'var(--purple-d)',marginBottom:8}}>{p>=.9?'อัจฉริยะเลข!':'เก่งมาก!'}</div>
         <div style={{fontSize:14,color:'var(--muted)',marginBottom:16}}>{score}/10 ถูก · +{xp} XP</div>
-        <button onClick={()=>{setQs(Array.from({length:10},()=>genQ(lv)));setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setAttempts(0);setFeedback(null);setDone(false)}} style={{width:'100%',background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer',marginBottom:8}}>🔄 เล่นอีกครั้ง</button>
+        <button onClick={()=>{sessionStart.current=Date.now();setQs(Array.from({length:10},()=>genQ(lv)));setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setAttempts(0);setFeedback(null);setDone(false)}} style={{width:'100%',background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer',marginBottom:8}}>🔄 เล่นอีกครั้ง</button>
         <button onClick={onBack} style={{width:'100%',background:'var(--purple-l)',color:'var(--purple-d)',border:'none',borderRadius:10,padding:13,fontFamily:'Mitr,sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>← Level อื่น</button>
       </div>
     )

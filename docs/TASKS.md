@@ -2,21 +2,19 @@
 
 ## Now
 
-- [ ] **[CRITICAL] Commit + push Phase C app code** — `GameShop.jsx`, `Home.jsx`, `StateContext.jsx`, `GameScreen.jsx`, `state.js`, `GamePhonics.jsx` are all uncommitted. Run `npm run build` first, then commit and push to trigger Vercel deploy. Production is currently on Phase 3 (no Shop Mission visible). See workflow below.
-- [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run. (Requires Phase C to be deployed first.)
+- [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
+- [ ] **D0: Shop card UX audit** — review Home screen before next iteration. Questions: Can Chopin easily find the Shop card? Is it prominent? Above the fold? Exciting? Document ideas only — no implementation yet.
 
 ---
 
 ## Next
 
-### Phase D — Play Observation System (can start independently of play validation)
+### Phase D — Play Observation System ✅ DONE
 
-- [ ] **D0: Shop card UX audit** — review Home screen before implementing observation. Questions: Can Chopin easily find the Shop card? Is it visually prominent? Does it look exciting? Is it above the fold? Would a first-time child notice it? Document ideas only — do not implement UI yet.
-- [ ] **D1: State + reducer** — add `sessionLog: []` to `defaultState()`; add `totalHints`, `totalDuration`, `phaseStats` to `shopV1`; add `LOG_SESSION` reducer; extend `UPDATE_SHOP_V1` to accept hints/dur/phaseStats payload
-- [ ] **D2: Dispatch from result screens** — add `LOG_SESSION` dispatch to `GameShop.jsx` done screen + `useFinishRound` in GameThai/GameMath/GamePhonics
-- [ ] **D3: Mission Analytics card in Report.jsx** — show runs, avg score, avg duration, hints, phase difficulty breakdown, replay framing, deterministic nudge
-- [ ] **D4 (optional, same PR): Replace peer-comparison card** — replace "เทียบกับเด็กวัยเดียวกัน" card in Report.jsx with a play-history timeline (no peer reference)
-- [ ] Full design spec: `docs/research/observation/play-observation-system.md`
+- [x] **D1: State + reducer** — `sessionLog: []` in `defaultState()`; `totalHints`, `totalDuration`, `phaseStats` added to `shopV1`; `LOG_SESSION` reducer; `UPDATE_SHOP_V1` extended
+- [x] **D2: Dispatch from result screens** — `LOG_SESSION` dispatch: `GameShop.jsx` (with phaseStats + dur), `GameThai.jsx` (via extended `useFinishRound`), `GameMath.jsx` (`next()` when done), `GamePhonics.jsx` (all 4 game components)
+- [x] **D3: Mission Analytics card in Report.jsx** — runs, avg score, avg duration, hints, per-phase difficulty (✅/⚠️), replay behavior text, deterministic nudge
+- [x] **D4: Replace peer-comparison card** — "เทียบกับเด็กวัยเดียวกัน" replaced with play-history timeline (last 10 sessions, no peer reference)
 
 ### Phase E — Shop Stretch (after play validation with Chopin)
 
@@ -112,3 +110,4 @@ Production URL: check `vercel.json` or Vercel dashboard for the live URL.
 - [x] Math research reorganized into topics/curriculum/learning-path/categories structure
 - [x] **Mission system designed**: shop, cooking, garden missions documented in docs/research/missions/
 - [x] **Phase C: Shop Mission MVP** — `GameShop.jsx` (4 phases / 6 Qs), `shopV1` state, `UPDATE_SHOP_V1` reducer, shop card in Home, `world === 'shop'` routing. Build passes.
+- [x] **Phase D: Play Observation System** — `sessionLog` ring buffer (50 entries), `shopV1` extended (totalHints/totalDuration/phaseStats), `LOG_SESSION` reducer, dispatched from all 8 game result points, Mission Analytics card in Report, play history timeline replaces peer-comparison card.

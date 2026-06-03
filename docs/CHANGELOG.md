@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Phase D: Play Observation System
+
+- `src/lib/state.js` — `sessionLog: []` added to `defaultState()`; `shopV1` extended with `totalHints: 0`, `totalDuration: 0`, `phaseStats: { 1–4 }`.
+- `src/context/StateContext.jsx` — `LOG_SESSION` action + reducer (appends to ring buffer, computes `replayedImmediately`); `UPDATE_SHOP_V1` extended to accumulate `hints`, `dur`, `phaseStats` per run.
+- `src/games/GameShop.jsx` — `sessionStart` + `perQCorrect` refs added; per-question correctness tracked; `LOG_SESSION` + extended `UPDATE_SHOP_V1` payload dispatched on done screen; `replay()` resets refs.
+- `src/games/GameThai.jsx` — `useFinishRound` extended with `sessionStartRef` param; dispatches `LOG_SESSION` after each subject round; `sessionStart` refs added to ThaiMatchGame, ThaiSpellGame, ThaiWordOrderGame with reset on replay.
+- `src/games/GameMath.jsx` — `sessionStart` ref added to `MathLevelGame`; `LOG_SESSION` dispatched in `next()` when done; replay resets ref.
+- `src/games/GamePhonics.jsx` — `useRef` import added; `sessionStart` refs added to all 4 game components (PhonicsGame, CVCGame, SightGame, SentenceGame); `LOG_SESSION` dispatched in each `next()` when done; replay resets refs.
+- `src/components/Report.jsx` — `MissionAnalytics` component added (runs, avg score, avg duration, hints, phase difficulty table, replay framing, deterministic nudge); peer-comparison card replaced with play-history timeline (last 10 sessions).
+- Build: ✅ zero errors.
+
 ## 2026-06-03 — Workflow Audit + Architecture Language Patch (docs only)
 
 - `docs/GPT_NOTES.md` — fixed two present-tense statements that implied `MissionScreen.jsx` + `missionConfig.js` are current architecture. Both are future targets (after 2+ missions). Current routing clarified: Home → `GameScreen.jsx` → `GameShop.jsx` (world `'shop'`).

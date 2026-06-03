@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
@@ -61,6 +61,7 @@ function PhonicsGame({ lv, onBack }) {
   const [cur, setCur] = useState(0)
   const [score, setScore] = useState(0); const [streak, setStreak] = useState(0); const [xp, setXp] = useState(0)
   const [answered, setAnswered] = useState(false); const [feedback, setFeedback] = useState(null); const [done, setDone] = useState(false)
+  const sessionStart = useRef(Date.now())
   const q = qs[cur]
   const wrong = shuffle(EN_ALPHA.filter(a=>a.letter!==q?.letter)).slice(0,3)
   const choices = React.useMemo(() => q ? shuffle([q,...wrong]) : [], [cur]) // eslint-disable-line
@@ -72,9 +73,9 @@ function PhonicsGame({ lv, onBack }) {
     if(ok){const ns=streak+1;setStreak(ns);const earned=10+(ns>=3?5:0);setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});if(ns>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');setFeedback({type:'win',msg:['Great! 🎉','Correct! ✅','Awesome! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP`});setTimeout(()=>speakEn(q.letter+' for '+q.word,.8),300)}
     else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`It's "${q.letter}" for ${q.emoji} ${q.word}`});setTimeout(()=>playPhonicsSound(q,()=>speakEn(q.letter+' for '+q.word,.78)),300)}
   }
-  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:1,value:p*0.4+((state.levelMastery?.eng?.[1])||0)*0.6}});if(p>=0.8){const cur2=state.subjectLevels?.eng||1;if(cur2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:cur2+1}});showToast(`✨ Level ${cur2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:1,value:p*0.4+((state.levelMastery?.eng?.[1])||0)*0.6}});if(p>=0.8){const cur2=state.subjectLevels?.eng||1;if(cur2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:cur2+1}});showToast(`✨ Level ${cur2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}dispatch({type:ACTIONS.LOG_SESSION,payload:{ts:sessionStart.current,world:'eng',missionId:null,level:1,dur:Date.now()-sessionStart.current,score:p,wrong:10-score,hints:0,completed:p>=0.8,nextAction:null,phaseStats:null}})}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
 
-  if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
+  if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{sessionStart.current=Date.now();setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
@@ -97,12 +98,13 @@ function CVCGame({ lv, onBack }) {
   const { state, dispatch } = useAppState()
   const [qs] = useState(() => shuffle([...CVC_WORDS]).slice(0,10))
   const [cur, setCur] = useState(0); const [score, setScore] = useState(0); const [streak, setStreak] = useState(0); const [xp, setXp] = useState(0); const [answered, setAnswered] = useState(false); const [feedback, setFeedback] = useState(null); const [done, setDone] = useState(false)
+  const sessionStart = useRef(Date.now())
   const q = qs[cur]
   const choices = React.useMemo(() => q ? shuffle([q.word,...q.alts]) : [], [cur]) // eslint-disable-line
   useEffect(() => { if(q) setTimeout(()=>speakEn(q.word,.8),300) },[cur]) // eslint-disable-line
   const check=(w)=>{if(answered||!q)return;setAnswered(true);const ok=w===q.word;if(ok){const ns=streak+1;setStreak(ns);const earned=Math.max(2,Math.round(10*1.5*(1-((state.levelMastery?.eng?.[2])||0))));setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});if(ns>=3){playTone('streak');spawnConfetti(5)}else playTone('correct');setFeedback({type:'win',msg:['Great! 🎉','Correct! ✅','Perfect! 🌟'][Math.floor(Math.random()*3)]+` +${earned} XP`});setTimeout(()=>speakEn(q.word),300)}else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`It's "${q.word}" ${q.emoji}`});setTimeout(()=>speakEn(q.word),300)}}
-  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:2,value:p*0.4+((state.levelMastery?.eng?.[2])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
-  if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
+  const next=()=>{playTone('next');if(cur+1>=10){setDone(true);const p=score/10;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:2,value:p*0.4+((state.levelMastery?.eng?.[2])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}dispatch({type:ACTIONS.LOG_SESSION,payload:{ts:sessionStart.current,world:'eng',missionId:null,level:2,dur:Date.now()-sessionStart.current,score:p,wrong:10-score,hints:0,completed:p>=0.8,nextAction:null,phaseStats:null}})}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  if(done)return<ResultScreen score={score} total={10} xp={xp} streak={streak} onReplay={()=>{sessionStart.current=Date.now();setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
@@ -125,12 +127,13 @@ function SightGame({ lv, onBack }) {
   const { state, dispatch } = useAppState()
   const [qs] = useState(() => shuffle([...SIGHT_DATA]).slice(0,8))
   const [cur, setCur] = useState(0); const [score, setScore] = useState(0); const [streak, setStreak] = useState(0); const [xp, setXp] = useState(0); const [answered, setAnswered] = useState(false); const [feedback, setFeedback] = useState(null); const [done, setDone] = useState(false)
+  const sessionStart = useRef(Date.now())
   const q = qs[cur]
   const choices = React.useMemo(() => q ? shuffle([...q.choices]) : [], [cur]) // eslint-disable-line
   useEffect(() => { if(q) setTimeout(()=>speakEn(q.sentence.replace('___','blank'),.8),300) },[cur]) // eslint-disable-line
   const check=(w)=>{if(answered||!q)return;setAnswered(true);const ok=w===q.blank;if(ok){const ns=streak+1;setStreak(ns);const earned=Math.max(2,Math.round(10*2));setXp(x=>x+earned);setScore(s=>s+1);dispatch({type:ACTIONS.ADD_XP,payload:{world:'eng',amount:earned,accDelta:100}});playTone('correct');setFeedback({type:'win',msg:q.sentence.replace('___',q.blank)+` +${earned} XP`});setTimeout(()=>speakEn(q.sentence.replace('___',q.blank),.85),300)}else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:`"${q.blank}" is correct!`})}}
-  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:3,value:p*0.4+((state.levelMastery?.eng?.[3])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
-  if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
+  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:3,value:p*0.4+((state.levelMastery?.eng?.[3])||0)*0.6}});if(p>=0.8){const c2=state.subjectLevels?.eng||1;if(c2<4){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'eng',newLevel:c2+1}});showToast(`✨ Level ${c2+1} Unlocked!`);spawnConfetti(15)}}if(p>=0.9){playTone('fanfare');spawnConfetti(30)}dispatch({type:ACTIONS.LOG_SESSION,payload:{ts:sessionStart.current,world:'eng',missionId:null,level:3,dur:Date.now()-sessionStart.current,score:p,wrong:qs.length-score,hints:0,completed:p>=0.8,nextAction:null,phaseStats:null}})}else{setAnswered(false);setFeedback(null);setCur(c=>c+1)}}
+  if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{sessionStart.current=Date.now();setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false);setAnswered(false);setFeedback(null)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>
@@ -153,6 +156,7 @@ function SentenceGame({ lv, onBack }) {
   const { state, dispatch } = useAppState()
   const [qs] = useState(() => shuffle([...ENG_SENTS]).slice(0,8))
   const [cur, setCur] = useState(0); const [score, setScore] = useState(0); const [streak, setStreak] = useState(0); const [xp, setXp] = useState(0); const [typed, setTyped] = useState([]); const [usedIdxs, setUsedIdxs] = useState([]); const [done, setDone] = useState(false); const [feedback, setFeedback] = useState(null); const [submitted, setSubmitted] = useState(false)
+  const sessionStart = useRef(Date.now())
   const q = qs[cur]
   const tiles = React.useMemo(() => q ? shuffle([...q.words]) : [], [cur]) // eslint-disable-line
   useEffect(() => { setTyped([]); setUsedIdxs([]); setFeedback(null); setSubmitted(false); if(q)setTimeout(()=>speakEn(q.words.join(' '),.8),300) },[cur]) // eslint-disable-line
@@ -166,8 +170,8 @@ function SentenceGame({ lv, onBack }) {
       else{setStreak(0);playTone('wrong');setFeedback({type:'lose',msg:'Answer: '+q.words.join(' ')})}
     }
   }
-  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:4,value:p*0.4+((state.levelMastery?.eng?.[4])||0)*0.6}});if(p>=0.9){playTone('fanfare');spawnConfetti(30)}}else setCur(c=>c+1)}
-  if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false)}} onBack={onBack}/>
+  const next=()=>{playTone('next');if(cur+1>=qs.length){setDone(true);const p=score/qs.length;dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}});dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'eng',levelId:4,value:p*0.4+((state.levelMastery?.eng?.[4])||0)*0.6}});if(p>=0.9){playTone('fanfare');spawnConfetti(30)}dispatch({type:ACTIONS.LOG_SESSION,payload:{ts:sessionStart.current,world:'eng',missionId:null,level:4,dur:Date.now()-sessionStart.current,score:p,wrong:qs.length-score,hints:0,completed:p>=0.8,nextAction:null,phaseStats:null}})}else setCur(c=>c+1)}
+  if(done)return<ResultScreen score={score} total={qs.length} xp={xp} streak={streak} onReplay={()=>{sessionStart.current=Date.now();setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false)}} onBack={onBack}/>
   if(!q)return null
   return(
     <div style={{width:'100%',maxWidth:480,padding:'8px 0'}}>

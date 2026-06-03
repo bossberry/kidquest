@@ -1,6 +1,89 @@
 import React from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 
+const WORLD_LABELS = { thai: '📖 ภาษาไทย', math: '🔢 Math', eng: '🔤 English', shop: '🏪 ร้านค้า' }
+
+function fmtDur(ms) {
+  const m = Math.floor(ms / 60000)
+  const s = Math.round((ms % 60000) / 1000)
+  return m > 0 ? `${m} นาที ${s} วิ` : `${s} วิ`
+}
+
+function MissionAnalytics({ shopV1, name }) {
+  if (!shopV1 || shopV1.runs === 0) return null
+  const { runs, mastered, totalHints, totalDuration, phaseStats = {} } = shopV1
+
+  const ps = phaseStats
+  const phaseLabels = { 1: 'จับคู่ภาษาไทย', 2: 'คำศัพท์อังกฤษ', 3: 'นับของในร้าน', 4: 'มารยาทดี' }
+  const phaseAccs = [1,2,3,4].map(ph => {
+    const d = ps[ph]
+    return d && d.total > 0 ? d.correct / d.total : null
+  })
+
+  const validAccs = phaseAccs.map((a, i) => a !== null ? { ph: i+1, acc: a } : null).filter(Boolean)
+  const challengePhase = validAccs.length ? validAccs.reduce((a, b) => a.acc <= b.acc ? a : b) : null
+  const easiestPhase   = validAccs.length ? validAccs.reduce((a, b) => a.acc >= b.acc ? a : b) : null
+
+  const totalCorrect = [1,2,3,4].reduce((sum, ph) => sum + (ps[ph]?.correct || 0), 0)
+  const totalQs = [1,2,3,4].reduce((sum, ph) => sum + (ps[ph]?.total || 0), 0)
+  const avgScore = totalQs > 0 ? Math.round(totalCorrect / totalQs * 100) : 0
+  const avgDur = runs > 0 ? Math.round(totalDuration / runs) : 0
+  const avgHints = runs > 0 ? (totalHints / runs).toFixed(1) : '0'
+
+  const replayText = runs === 1
+    ? 'เล่นครั้งแรกสำเร็จ'
+    : runs === 2
+    ? 'เล่นสองครั้งแล้ว'
+    : mastered
+    ? `เลือกเล่นซ้ำ ${runs - 1} ครั้งหลังจากผ่านครั้งแรก — สัญญาณการมีส่วนร่วมที่ดีมาก`
+    : `เล่นไป ${runs} ครั้ง — ยังคงพยายามอยู่`
+
+  let nudge = null
+  if (mastered) {
+    nudge = `${name} ผ่านเกณฑ์ mastery แล้ว — Shop Stretch พร้อมเมื่อถึงเวลา`
+  } else if (avgScore >= 90 && runs >= 3) {
+    nudge = `${name} ทำได้ดีสม่ำเสมอ`
+  } else if (challengePhase && challengePhase.acc < 0.6 && runs >= 2) {
+    nudge = `${phaseLabels[challengePhase.ph]} คือจุดที่ท้าทายอยู่ตอนนี้ — เล่น Shop Mission ซ้ำหรือฝึกวิชานั้นเพิ่มจะช่วยได้`
+  } else if (runs === 1) {
+    nudge = `เริ่มต้นดี — เล่นอีกสักสองสามครั้งจะเห็นภาพชัดขึ้น`
+  }
+
+  return (
+    <div className="report-card">
+      <div className="rc-title"><span className="rc-icon">🏪</span>Shop Mission</div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px', marginBottom:12 }}>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>จำนวนครั้ง</span><div style={{ fontWeight:700 }}>{runs} ครั้ง</div></div>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>คะแนนเฉลี่ย</span><div style={{ fontWeight:700 }}>{avgScore}%</div></div>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>เวลาเฉลี่ย</span><div style={{ fontWeight:700 }}>{fmtDur(avgDur)}</div></div>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>Hint ที่ใช้</span><div style={{ fontWeight:700 }}>{totalHints} ครั้ง (เฉลี่ย {avgHints}/เล่น)</div></div>
+      </div>
+      <div style={{ fontSize:12, color:'var(--muted)', marginBottom:4 }}>ความยากแต่ละช่วง:</div>
+      {[1,2,3,4].map(ph => {
+        const acc = phaseAccs[ph-1]
+        const pct = acc !== null ? Math.round(acc * 100) : null
+        const isChallenge = challengePhase?.ph === ph
+        const isEasiest   = easiestPhase?.ph === ph && validAccs.length > 1
+        return (
+          <div key={ph} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, fontSize:13 }}>
+            <span>{isChallenge ? '⚠️' : '✅'}</span>
+            <span style={{ flex:1 }}>{phaseLabels[ph]}</span>
+            <span style={{ color: isChallenge ? 'var(--amber-d)' : 'var(--green-d)', fontWeight:600 }}>
+              {pct !== null ? `${pct}%` : '—'}
+            </span>
+            {isChallenge && <span style={{ fontSize:11, color:'var(--amber-d)' }}>(จุดท้าทาย)</span>}
+            {isEasiest    && <span style={{ fontSize:11, color:'var(--green-d)' }}>(ง่ายที่สุด)</span>}
+          </div>
+        )
+      })}
+      <div style={{ marginTop:10, fontSize:13, color:'var(--text)', lineHeight:1.6 }}>{replayText}</div>
+      {nudge && (
+        <div style={{ marginTop:8, fontSize:12, color:'var(--purple-d)', background:'var(--purple-l)', borderRadius:8, padding:'6px 10px' }}>{nudge}</div>
+      )}
+    </div>
+  )
+}
+
 export default function Report() {
   const { state, totalXP } = useAppState()
   const totalTime = Math.round(state.mins || 0)
@@ -61,14 +144,22 @@ export default function Report() {
             </div>
           ))}
         </div>
-        <div className="report-card" style={{ background:'var(--purple-l)', borderColor:'var(--purple)' }}>
-          <div className="rc-title" style={{ color:'var(--purple-d)' }}><span className="rc-icon">📈</span>เทียบกับเด็กวัยเดียวกัน</div>
-          <div style={{ fontSize:13, color:'var(--purple-d)', lineHeight:1.7 }}>
-            เด็กอายุ 5-6 ขวบส่วนใหญ่จะเล่นได้ประมาณ <strong>5-10 นาที/วัน</strong> —{' '}
-            {state.name||'ลูก'}เล่นไป <strong>{totalTime} นาที</strong> รวม {rounds} รอบ{' '}
-            {totalTime > 15 ? ' ซึ่งสูงกว่าค่าเฉลี่ย 👏' : ' ยังมีพื้นที่พัฒนาได้อีก'}
-          </div>
-          <div style={{ fontSize:12, color:'var(--purple-d)', marginTop:8, opacity:.8 }}>* ข้อมูลอ้างอิงจากงานวิจัยด้านพัฒนาการเด็ก 5-6 ขวบ</div>
+        <MissionAnalytics shopV1={state.shopV1} name={state.name || 'ลูก'} />
+        <div className="report-card">
+          <div className="rc-title"><span className="rc-icon">📅</span>ประวัติการเล่น</div>
+          {(!state.sessionLog || state.sessionLog.length === 0) ? (
+            <div style={{ fontSize:13, color:'var(--muted)' }}>ยังไม่มีประวัติ — เล่นเกมแล้วจะแสดงที่นี่</div>
+          ) : (
+            [...state.sessionLog].reverse().slice(0, 10).map((s, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', borderBottom: i < 9 ? '1px solid var(--border)' : 'none', fontSize:13 }}>
+                <span style={{ minWidth:110 }}>{WORLD_LABELS[s.world] || s.world}</span>
+                <span style={{ flex:1, color:'var(--muted)', fontSize:11 }}>
+                  {new Date(s.ts).toLocaleDateString('th-TH', { day:'numeric', month:'short' })}
+                </span>
+                <span>{s.completed ? '✅' : '❌'}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

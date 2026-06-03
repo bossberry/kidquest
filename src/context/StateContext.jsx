@@ -33,6 +33,7 @@ export const ACTIONS = {
   FOUNDATION_COMPLETE: 'FOUNDATION_COMPLETE',
   SET_PROFILE:         'SET_PROFILE',
   UPDATE_SHOP_V1:      'UPDATE_SHOP_V1',
+  LOG_SESSION:         'LOG_SESSION',
 }
 
 function reducer(state, action) {
@@ -246,19 +247,43 @@ function reducer(state, action) {
     }
 
     case ACTIONS.UPDATE_SHOP_V1: {
-      const { score, wrong } = action.payload
-      const prev = state.shopV1 || { bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false }
+      const { score, wrong, hints = 0, dur = 0, phaseStats: ps } = action.payload
+      const prev = state.shopV1 || { bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false, totalHints: 0, totalDuration: 0, phaseStats: {} }
       const newRuns = prev.runs + 1
       const masteryMet = score >= 0.9 && wrong <= 1 && newRuns >= 2
+      const nextPhaseStats = { ...(prev.phaseStats || {}) }
+      if (ps) {
+        ps.forEach(({ phase, correct, total }) => {
+          nextPhaseStats[phase] = {
+            correct: ((nextPhaseStats[phase]?.correct) || 0) + correct,
+            total:   ((nextPhaseStats[phase]?.total)   || 0) + total,
+          }
+        })
+      }
       return {
         ...state,
         shopV1: {
-          bestScore: Math.max(prev.bestScore, score),
-          runs: newRuns,
-          mastered: prev.mastered || masteryMet,
-          stretchUnlocked: false,
+          ...prev,
+          bestScore:     Math.max(prev.bestScore, score),
+          runs:          newRuns,
+          mastered:      prev.mastered || masteryMet,
+          stretchUnlocked: prev.stretchUnlocked || false,
+          totalHints:    (prev.totalHints || 0) + hints,
+          totalDuration: (prev.totalDuration || 0) + dur,
+          phaseStats:    nextPhaseStats,
         },
       }
+    }
+
+    case ACTIONS.LOG_SESSION: {
+      const entry = action.payload
+      const prevLog = state.sessionLog || []
+      const lastSame = [...prevLog].reverse().find(s => s.world === entry.world)
+      const replayedImmediately = lastSame
+        ? (entry.ts - (lastSame.ts + (lastSame.dur || 0))) < 60000
+        : false
+      const nextLog = [...prevLog, { ...entry, replayedImmediately }].slice(-50)
+      return { ...state, sessionLog: nextLog }
     }
 
     default:

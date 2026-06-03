@@ -68,10 +68,12 @@ function GameHeader({ cur, total, xp, streak }) {
 }
 
 // ── finish round helper ────────────────────────────────────────────────
-function useFinishRound({ score, total, world, levelId, maxLevels, streak }) {
+function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessionStartRef }) {
   const { state, dispatch } = useAppState()
   return () => {
     const p = score / total
+    const now = Date.now()
+    const ts = sessionStartRef?.current || now
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
     dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world, levelId, value: p * 0.4 + ((state.levelMastery?.[world]?.[levelId]) || 0) * 0.6 } })
     if (p >= 0.8) {
@@ -82,6 +84,11 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak }) {
       }
     }
     if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
+    dispatch({ type: ACTIONS.LOG_SESSION, payload: {
+      ts, world, missionId: null, level: levelId,
+      dur: now - ts, score: p, wrong: total - score,
+      hints: 0, completed: p >= 0.8, nextAction: null, phaseStats: null,
+    }})
   }
 }
 
@@ -96,6 +103,7 @@ function ThaiMatchGame({ lv, onBack }) {
   const [answered, setAnswered] = useState(false)
   const [done, setDone]   = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const sessionStart = useRef(Date.now())
 
   const question = q[cur]
   const wrong    = shuffle(TH_ALPHA.filter(a => a.char !== question?.char)).slice(0, 3)
@@ -121,7 +129,7 @@ function ThaiMatchGame({ lv, onBack }) {
     }
   }
 
-  const finish = useFinishRound({ score, total:10, world:'thai', levelId:1, maxLevels:5, streak })
+  const finish = useFinishRound({ score, total:10, world:'thai', levelId:1, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const next = () => {
     if (cur + 1 >= 10) { setDone(true); finish() }
@@ -133,7 +141,7 @@ function ThaiMatchGame({ lv, onBack }) {
   if (done) {
     const p = score / 10
     return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'เยี่ยมมาก!':p>=.7?'เก่งมาก!':'ทำได้ดี!'} sub={`${score}/10 ถูก · +${xp} XP`}
-      onReplay={() => { setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setFeedback(null);setDone(false);setQ(shuffle([...TH_ALPHA]).slice(0,10)) }}
+      onReplay={() => { sessionStart.current = Date.now(); setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setFeedback(null);setDone(false);setQ(shuffle([...TH_ALPHA]).slice(0,10)) }}
       onBack={onBack} />
   }
   if (!question) return null
@@ -173,6 +181,7 @@ function ThaiSpellGame({ lv, onBack, words }) {
   const [feedback, setFeedback] = useState(null)
   const [usedTiles, setUsedTiles] = useState([])
   const [errTiles, setErrTiles]   = useState([])
+  const sessionStart = useRef(Date.now())
 
   const question = q[cur]
   const diff = lv?.diff || 1.5
@@ -192,7 +201,7 @@ function ThaiSpellGame({ lv, onBack, words }) {
   useEffect(() => { setUsedTiles([]); setErrTiles([]); setTyped([]); setAttempts(0); setFeedback(null) }, [cur])
   useEffect(() => { if (question) setTimeout(() => speakTh(question.word), 200) }, [cur]) // eslint-disable-line
 
-  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:lv?.id || 2, maxLevels:5, streak })
+  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:lv?.id || 2, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const tapTile = (ch, idx) => {
     if (usedTiles.includes(idx) || !question) return
@@ -242,7 +251,7 @@ function ThaiSpellGame({ lv, onBack, words }) {
     if (done) {
       const p = score / q.length
       return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'นักสะกดแชมเปียน!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
-        onReplay={() => { const nq=shuffle([...words]).slice(0,10); setQ(nq); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
+        onReplay={() => { sessionStart.current = Date.now(); const nq=shuffle([...words]).slice(0,10); setQ(nq); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
         onBack={onBack} />
     }
     return null
@@ -293,6 +302,7 @@ function ThaiWordOrderGame({ lv, onBack }) {
   const [submitted, setSubmitted] = useState(false)
   const [feedback, setFeedback]   = useState(null)
   const [done, setDone]   = useState(false)
+  const sessionStart = useRef(Date.now())
 
   const question = q[cur]
   const tiles    = React.useMemo(() => question ? shuffle([...question.words]) : [], [cur]) // eslint-disable-line
@@ -302,7 +312,7 @@ function ThaiWordOrderGame({ lv, onBack }) {
     if (question) setTimeout(() => speakTh(question.sound || question.words.join('')), 250)
   }, [cur]) // eslint-disable-line
 
-  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:5, maxLevels:5, streak })
+  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:5, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const tapTile = (w, idx) => {
     if (submitted || usedIdxs.includes(idx) || !question) return
@@ -339,7 +349,7 @@ function ThaiWordOrderGame({ lv, onBack }) {
     if (done) {
       const p = score / q.length
       return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'ยอดเยี่ยม!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
-        onReplay={() => { setQ(shuffle([...TH_L5]).slice(0,8)); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
+        onReplay={() => { sessionStart.current = Date.now(); setQ(shuffle([...TH_L5]).slice(0,8)); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
         onBack={onBack} />
     }
     return null

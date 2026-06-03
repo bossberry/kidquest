@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { playTone } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
@@ -84,6 +84,8 @@ export default function GameShop({ navigate }) {
   const [attempts, setAttempts] = useState(0)
   const [feedback, setFeedback] = useState(null)
   const [done, setDone] = useState(false)
+  const sessionStart = useRef(Date.now())
+  const perQCorrect = useRef(Array(TOTAL).fill(false))
 
   const q = questions[cur]
 
@@ -93,6 +95,7 @@ export default function GameShop({ navigate }) {
   const check = (val) => {
     if (answered) return
     if (isCorrect(val)) {
+      perQCorrect.current[cur] = true
       setAnswered(true)
       const ns = streak + 1; setStreak(ns)
       const earned = 8 + (ns >= 3 ? 5 : 0)
@@ -119,8 +122,20 @@ export default function GameShop({ navigate }) {
     playTone('next')
     if (cur + 1 >= TOTAL) {
       const p = score / TOTAL
+      const dur = Date.now() - sessionStart.current
+      const pqc = perQCorrect.current
+      const phaseStats = [
+        { phase: 1, subject: 'thai',    correct: (pqc[0]?1:0)+(pqc[1]?1:0)+(pqc[2]?1:0), total: 3 },
+        { phase: 2, subject: 'english', correct: pqc[3]?1:0, total: 1 },
+        { phase: 3, subject: 'math',    correct: pqc[4]?1:0, total: 1 },
+        { phase: 4, subject: 'thai',    correct: pqc[5]?1:0, total: 1 },
+      ]
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
-      dispatch({ type: ACTIONS.UPDATE_SHOP_V1, payload: { score: p, wrong } })
+      dispatch({ type: ACTIONS.UPDATE_SHOP_V1, payload: { score: p, wrong, hints: 0, dur, phaseStats } })
+      dispatch({ type: ACTIONS.LOG_SESSION, payload: {
+        ts: sessionStart.current, world: 'shop', missionId: 'shop-v1', level: null,
+        dur, score: p, wrong, hints: 0, completed: p >= 0.8, nextAction: null, phaseStats,
+      }})
       if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
       else if (p >= 0.8) spawnConfetti(15)
       setDone(true)
@@ -131,6 +146,8 @@ export default function GameShop({ navigate }) {
   }
 
   const replay = () => {
+    sessionStart.current = Date.now()
+    perQCorrect.current = Array(TOTAL).fill(false)
     setQuestions(buildQuestions())
     setCur(0); setScore(0); setWrong(0); setStreak(0)
     setXp(0); setAnswered(false); setAttempts(0)

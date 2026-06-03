@@ -34,7 +34,12 @@ export function defaultState() {
     lastBattleDate: '',
     pendingChallenger: null,
     foundationComplete: false,
-    shopV1: { bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false },
+    shopV1: {
+      bestScore: 0, runs: 0, mastered: false, stretchUnlocked: false,
+      totalHints: 0, totalDuration: 0,
+      phaseStats: { 1: { correct: 0, total: 0 }, 2: { correct: 0, total: 0 }, 3: { correct: 0, total: 0 }, 4: { correct: 0, total: 0 } },
+    },
+    sessionLog: [],
   }
 }
 

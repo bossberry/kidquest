@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react'
-import { KEY, defaultState, loadState, saveState } from '../lib/state.js'
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
+import { KEY, defaultState, loadState, saveState, syncToSupabase } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle } from '../config/gameConfig.js'
@@ -209,6 +209,10 @@ export function StateProvider({ children }) {
     catch { return defaultState() }
   })
 
+  // Always-current ref so auth callbacks see real state, not mount-time snapshot
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
+
   // Save to localStorage on every state change
   useEffect(() => { saveState(state) }, [state])
 
@@ -234,10 +238,34 @@ export function StateProvider({ children }) {
     // Auth listener
     let sub = null
     if (supabase) {
-      const { data } = supabase.auth.onAuthStateChange(async (event) => {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN') {
-          const s = await loadState()
-          if (s) dispatch({ type: ACTIONS.INIT, payload: s })
+          const userId = session?.user?.id
+          const email = session?.user?.email
+          console.log('[KQ:auth] SIGNED_IN', email)
+          if (!userId) return
+
+          try {
+            const { data: row, error } = await supabase
+              .from('eggs')
+              .select('state_json')
+              .eq('user_id', userId)
+              .single()
+
+            if (row?.state_json) {
+              // Cloud has data → overwrite local with cloud
+              console.log('[KQ:auth] cloud has data → dispatch INIT')
+              localStorage.setItem(KEY, JSON.stringify(row.state_json))
+              dispatch({ type: ACTIONS.INIT, payload: row.state_json })
+            } else {
+              // Cloud empty → push current in-memory state (stateRef = real current state)
+              console.log('[KQ:auth] cloud empty (', error?.code, ') → pushing current state up, xpThai:', stateRef.current.xpThai)
+              await syncToSupabase(stateRef.current)
+              // state stays as-is (already correct in memory)
+            }
+          } catch (e) {
+            console.log('[KQ:auth] SIGNED_IN error:', e.message)
+          }
         }
       })
       sub = data?.subscription

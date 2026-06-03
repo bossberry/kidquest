@@ -30,61 +30,60 @@ export function defaultState() {
 }
 
 export async function loadState() {
+  console.log('[KQ:load] start')
   try {
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data } = await supabase
+        console.log('[KQ:load] user =', user.email)
+        const { data, error } = await supabase
           .from('eggs')
           .select('state_json')
           .eq('user_id', user.id)
           .single()
         if (data?.state_json) {
+          console.log('[KQ:load] cloud has data → using cloud')
           localStorage.setItem(KEY, JSON.stringify(data.state_json))
           return data.state_json
         }
-        // Supabase empty — push localStorage up immediately
-        let local
-        try { local = JSON.parse(localStorage.getItem(KEY)) } catch {}
-        if (local) {
-          await supabase.from('eggs').upsert({
-            user_id: user.id,
-            child_name: local.name || 'โชแปง',
-            state_json: local,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' })
-          return local
-        }
+        console.log('[KQ:load] cloud empty (error:', error?.code, ') → using localStorage')
+      } else {
+        console.log('[KQ:load] no user → using localStorage')
       }
     }
   } catch (e) {
-    console.log('Supabase load failed, using localStorage')
+    console.log('[KQ:load] failed:', e.message)
   }
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || defaultState()
+    const s = JSON.parse(localStorage.getItem(KEY)) || defaultState()
+    console.log('[KQ:load] localStorage xpThai =', s.xpThai)
+    return s
   } catch (e) {
     return defaultState()
   }
 }
 
-export function saveState(s) {
-  localStorage.setItem(KEY, JSON.stringify(s))
-  _sbSave(s)
+// Push any state object to Supabase (used by StateContext on SIGNED_IN)
+export async function syncToSupabase(s) {
+  try {
+    if (!supabase) { console.log('[KQ:sync] no client'); return }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { console.log('[KQ:sync] no user'); return }
+    console.log('[KQ:sync] pushing state for', user.email, '— xpThai:', s.xpThai, 'rounds:', s.rounds)
+    const { error } = await supabase.from('eggs').upsert({
+      user_id: user.id,
+      child_name: s.name || 'โชแปง',
+      state_json: s,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' })
+    if (error) console.log('[KQ:sync] upsert error:', error.message)
+    else console.log('[KQ:sync] ✓ done')
+  } catch (e) {
+    console.log('[KQ:sync] failed:', e.message)
+  }
 }
 
-async function _sbSave(s) {
-  try {
-    if (!supabase) return
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('eggs').upsert({
-        user_id: user.id,
-        child_name: s.name || 'โชแปง',
-        state_json: s,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' })
-    }
-  } catch (e) {
-    console.log('Supabase save failed, using localStorage only')
-  }
+export function saveState(s) {
+  localStorage.setItem(KEY, JSON.stringify(s))
+  syncToSupabase(s)
 }

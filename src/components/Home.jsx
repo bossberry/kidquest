@@ -1,10 +1,38 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import { supabase } from '../lib/supabase.js'
 import { MG_UNLOCK, MG_COLORS, todayStr } from '../config/gameConfig.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { showToast } from './Toasts.jsx'
+
+function XpBoostBadge({ xpBoostEnd, xpBoost }) {
+  const [ms, setMs] = useState(() => Math.max(0, (xpBoostEnd || 0) - Date.now()))
+  const idRef = useRef(null)
+
+  useEffect(() => {
+    clearInterval(idRef.current)
+    const left = Math.max(0, (xpBoostEnd || 0) - Date.now())
+    setMs(left)
+    if (left > 0) {
+      idRef.current = setInterval(() => {
+        const remaining = Math.max(0, (xpBoostEnd || 0) - Date.now())
+        setMs(remaining)
+        if (remaining <= 0) clearInterval(idRef.current)
+      }, 1000)
+    }
+    return () => clearInterval(idRef.current)
+  }, [xpBoostEnd])
+
+  if (ms <= 0 || (xpBoost || 1) <= 1) return null
+  const m = Math.floor(ms / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  return (
+    <div style={{ background:'var(--amber)', color:'var(--amber-d)', borderRadius:8, padding:'3px 8px', fontSize:11, fontFamily:'Mitr,sans-serif', fontWeight:700, display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
+      ⭐ ×2 {m}:{String(s).padStart(2,'0')}
+    </div>
+  )
+}
 
 export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
@@ -51,6 +79,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         <div className="home-logo">KidQuest</div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <div className="home-xp">⚡ <span>{totalXP}</span> XP</div>
+          <XpBoostBadge xpBoostEnd={state.xpBoostEnd} xpBoost={state.xpBoost} />
           <button onClick={onOpenProfile} style={{ fontSize:11, background:'var(--purple-l)', border:'none', borderRadius:8, padding:'4px 8px', color:'var(--purple-d)', cursor:'pointer', fontFamily:'Mitr,sans-serif', fontWeight:600, maxWidth:80, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             👤 {state.name}
           </button>

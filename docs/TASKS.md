@@ -9,8 +9,7 @@ _(nothing urgent — Phase 1 UX complete)_
 ## Next
 
 - [ ] Add `AI_OPPONENTS` tiers 2–5 (only tier 0+1 defined; older grades silently fall back)
-- [ ] Sound toggle that persists across sessions (currently resets on reload)
-- [ ] XP boost timer display on Home (star item active indicator)
+_(Phase 2 complete — see Done)_
 
 ---
 
@@ -62,3 +61,4 @@ _(nothing urgent — Phase 1 UX complete)_
 - [x] Parent Report page (time, accuracy, subject breakdown, AI insights)
 - [x] Project docs system (docs/ folder, CLAUDE.md, AI_SYSTEMS.md, GPT_HANDOFF workflow)
 - [x] **Phase 1 UX**: replace alert() with showToast(); ProfileModal with name + grade; SET_PROFILE action
+- [x] **Phase 2 UX**: sound toggle persists via `kq_sound` localStorage key; XpBoostBadge countdown in Home header

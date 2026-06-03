@@ -52,6 +52,8 @@
 - **Profile button** (👤 + name) in Home header — opens `ProfileModal` to change child name and grade
 - **ProfileModal**: name input + grade grid (อนุบาล–ป.6), saves via `SET_PROFILE` action, persists to localStorage + Supabase
 - **Lock toasts**: EggRun and minigame lock feedback now uses `showToast()` — no more `alert()` calls
+- **Persistent sound toggle**: sound preference stored in `localStorage` key `kq_sound`; survives page reload
+- **XP boost indicator**: `XpBoostBadge` in Home header shows `⭐ ×2 M:SS` countdown when star item is active
 
 ---
 

@@ -16,7 +16,9 @@ import ChallengerOverlay from './components/ChallengerOverlay.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
-  const [soundOn, setSoundOnState] = useState(true)
+  const [soundOn, setSoundOnState] = useState(() => {
+    try { return localStorage.getItem('kq_sound') !== 'off' } catch { return true }
+  })
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -48,7 +50,11 @@ export default function App() {
         <Home
           navigate={navigate}
           soundOn={soundOn}
-          toggleSound={() => setSoundOnState(v => !v)}
+          toggleSound={() => setSoundOnState(v => {
+            const next = !v
+            try { localStorage.setItem('kq_sound', next ? 'on' : 'off') } catch {}
+            return next
+          })}
           onOpenEggPopup={() => setEggPopupOpen(true)}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
@@ -60,7 +66,11 @@ export default function App() {
         <GameScreen
           navigate={navigate}
           soundOn={soundOn}
-          toggleSound={() => setSoundOnState(v => !v)}
+          toggleSound={() => setSoundOnState(v => {
+            const next = !v
+            try { localStorage.setItem('kq_sound', next ? 'on' : 'off') } catch {}
+            return next
+          })}
         />
       )}
 

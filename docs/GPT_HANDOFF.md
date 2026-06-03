@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-03 (Phase 1 UX Readiness)_
+_Last updated: 2026-06-03 (Phase 2 UX — Sound Persist + XP Boost Indicator)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -8,12 +8,9 @@ _Last updated: 2026-06-03 (Phase 1 UX Readiness)_
 
 ## Latest Session Summary
 
-**What changed this session (Phase 1 UX Readiness):**
-- `alert()` in `Home.jsx` fully replaced with `showToast()` — no blocking browser dialogs remain
-- New `ProfileModal.jsx` — child name input + 7-grade selector; saves via `SET_PROFILE` action to global state (auto-persisted to localStorage + Supabase)
-- Profile button (👤 + child name) added to Home header; always visible
-- `SET_PROFILE` action + reducer case added to `StateContext.jsx`
-- `App.jsx` mounts `ProfileModal` alongside `LoginModal`
+**What changed this session (Phase 2 UX):**
+- Sound preference now persists across reloads via `localStorage` key `kq_sound` (device-local, not in state blob)
+- `XpBoostBadge` component added to Home header — shows amber `⭐ ×2 M:SS` countdown when star item active; self-managing 1s timer; hides when boost expires
 
 ---
 
@@ -35,6 +32,8 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - Parent Report tab
 - **ProfileModal**: child name and grade now editable via 👤 button in Home header
 - **No alert() calls remain** — all lock messages are friendly toasts
+- **Sound persists** across reloads (`kq_sound` localStorage key)
+- **XP boost badge** in header shows live countdown when star item is active
 
 **Not done:** single child per account, no payment, no landing page, no multi-child, no PWA.
 
@@ -42,11 +41,10 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 
 ## Active Tasks
 
-**Now:** _(nothing urgent — Phase 1 UX complete)_
+**Now:** _(nothing urgent — Phase 2 UX complete)_
 
 **Next:**
 - Add `AI_OPPONENTS` tiers 2–5 (only 0+1 defined; older grades fall back to tier 1)
-- Sound toggle that persists across sessions
 
 **Later:**
 - Multi-child profiles; per-session Supabase logging; payment (199 THB/month); landing page; PWA

@@ -48,11 +48,16 @@
 - **On SIGNED_IN**: cloud wins if data exists; else pushes local state up silently
 - **Egg migration**: `_migrateEggs()` backfills `tier` + `stats` on legacy hatched egg records
 
+### UI / Navigation
+- **Profile button** (👤 + name) in Home header — opens `ProfileModal` to change child name and grade
+- **ProfileModal**: name input + grade grid (อนุบาล–ป.6), saves via `SET_PROFILE` action, persists to localStorage + Supabase
+- **Lock toasts**: EggRun and minigame lock feedback now uses `showToast()` — no more `alert()` calls
+
 ---
 
 ## Partially Implemented
 
-- **Single child profile**: hardcoded `name:'โชแปง', grade:0`; no UI to change
+- **Single child profile**: editable via ProfileModal; `SET_PROFILE` action updates name + grade in global state
 - **Challenger tiers**: only `AI_OPPONENTS` tier 0 and 1 defined; grades 2–6 silently fall back to tier 1
 - **Foundation mode**: Level 0 count-objects game exists; shown only when `grade===0 && !foundationComplete`
 
@@ -85,7 +90,7 @@
 
 ## Known Risks
 
-- `alert()` in `Home.jsx` for EggRun/minigame lock messages — child-unfriendly, not yet replaced
+- Single-child profile is editable but still one child per account (no multi-child support)
 - Single-child assumption baked into `defaultState()` — multi-child requires state shape refactor
 - No session audit trail — all progress in one Supabase blob per user
 - `SPEC.md` in repo root describes old HTML prototype — deprecated, do not use

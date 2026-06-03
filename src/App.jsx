@@ -10,6 +10,7 @@ import BottomNav from './components/BottomNav.jsx'
 import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
 import LoginModal from './components/LoginModal.jsx'
+import ProfileModal from './components/ProfileModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer } from './components/Toasts.jsx'
 import ChallengerOverlay from './components/ChallengerOverlay.jsx'
 
@@ -18,6 +19,7 @@ export default function App() {
   const [soundOn, setSoundOnState] = useState(true)
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const { state, dispatch } = useAppState()
 
   useEffect(() => { initVoices() }, [])
@@ -38,6 +40,7 @@ export default function App() {
       <EggPopup open={eggPopupOpen} onClose={() => setEggPopupOpen(false)} />
       <HatchOverlay onClose={() => navigate('home')} />
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       <ChallengerOverlay />
 
       {/* Screens */}
@@ -48,6 +51,7 @@ export default function App() {
           toggleSound={() => setSoundOnState(v => !v)}
           onOpenEggPopup={() => setEggPopupOpen(true)}
           onOpenLogin={() => setLoginOpen(true)}
+          onOpenProfile={() => setProfileOpen(true)}
         />
       )}
       {screen === 'collection' && <Collection />}

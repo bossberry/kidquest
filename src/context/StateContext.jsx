@@ -31,6 +31,7 @@ export const ACTIONS = {
   SET_CHALLENGER:      'SET_CHALLENGER',
   CLEAR_CHALLENGER:    'CLEAR_CHALLENGER',
   FOUNDATION_COMPLETE: 'FOUNDATION_COMPLETE',
+  SET_PROFILE:         'SET_PROFILE',
 }
 
 function reducer(state, action) {
@@ -237,6 +238,11 @@ function reducer(state, action) {
 
     case ACTIONS.FOUNDATION_COMPLETE:
       return { ...state, foundationComplete: true }
+
+    case ACTIONS.SET_PROFILE: {
+      const { name, grade } = action.payload
+      return { ...state, name: name || state.name, grade: grade ?? state.grade }
+    }
 
     default:
       return state

@@ -2,8 +2,7 @@
 
 ## Now
 
-- [ ] Replace `alert()` in `Home.jsx` with child-friendly in-app lock messages (EggRun + minigames)
-- [ ] Add UI to change child name and grade (currently hardcoded `name:'โชแปง', grade:0`)
+_(nothing urgent — Phase 1 UX complete)_
 
 ---
 
@@ -24,7 +23,6 @@
 - [ ] Add Math Levels 9+ (ABC patterns, multiplication intro)
 
 ### Features
-- [ ] Profile / onboarding screen (name + grade selection)
 - [ ] Parent dashboard (protected route, separate from Report tab)
 - [ ] PWA manifest + service worker (offline support)
 
@@ -63,3 +61,4 @@
 - [x] Migrate hosting Netlify → Vercel; phonics audio → static .m4a files
 - [x] Parent Report page (time, accuracy, subject breakdown, AI insights)
 - [x] Project docs system (docs/ folder, CLAUDE.md, AI_SYSTEMS.md, GPT_HANDOFF workflow)
+- [x] **Phase 1 UX**: replace alert() with showToast(); ProfileModal with name + grade; SET_PROFILE action

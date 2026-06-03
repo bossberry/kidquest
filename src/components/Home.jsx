@@ -4,8 +4,9 @@ import EggCanvas from './EggCanvas.jsx'
 import { supabase } from '../lib/supabase.js'
 import { MG_UNLOCK, MG_COLORS, todayStr } from '../config/gameConfig.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
+import { showToast } from './Toasts.jsx'
 
-export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin }) {
+export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
   const [authUser, setAuthUser] = useState(null)
 
@@ -27,12 +28,12 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
 
   const onEggRunClick = () => {
     const dr = state.dailyRounds || 0
-    if (dr < 10) { alert('เรียนให้ครบ 10 ด่านก่อนนะ! 📚'); return }
+    if (dr < 10) { showToast(`📚 เรียนอีก ${10 - dr} ด่านเพื่อ Unlock Egg Run!`); return }
+    if ((state.eggRunLives ?? 3) <= 0) { showToast('🌙 หมดชีวิตแล้ว มาเรียนพรุ่งนี้นะ!'); return }
     startWorld('eggrun')
   }
 
   const onMgClick = (id) => {
-    if (eggsHatched < MG_UNLOCK[id]) { alert(`ฟักไข่ให้ครบ ${MG_UNLOCK[id]} ใบก่อนนะ! 🥚`); return }
     startWorld(id)
   }
 
@@ -50,6 +51,9 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         <div className="home-logo">KidQuest</div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <div className="home-xp">⚡ <span>{totalXP}</span> XP</div>
+          <button onClick={onOpenProfile} style={{ fontSize:11, background:'var(--purple-l)', border:'none', borderRadius:8, padding:'4px 8px', color:'var(--purple-d)', cursor:'pointer', fontFamily:'Mitr,sans-serif', fontWeight:600, maxWidth:80, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            👤 {state.name}
+          </button>
           {authUser ? (
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <div className="auth-avatar" title={authUser.email}>{(authUser.email || '?')[0].toUpperCase()}</div>

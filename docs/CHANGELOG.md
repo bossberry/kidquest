@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-03 — Phase 1 UX Readiness
+- **Replaced `alert()`** in `Home.jsx` with `showToast()` calls — EggRun lock and no-lives both show friendly toast messages; minigame dead-guard removed.
+- **New `ProfileModal.jsx`**: name input + grade grid (อนุบาล–ป.6); saves via `SET_PROFILE` action; persisted to localStorage + Supabase automatically.
+- **Profile button** (👤 + child name) added to Home header — always visible, opens ProfileModal.
+- **`SET_PROFILE` action** added to `StateContext.jsx` + reducer case.
+- `App.jsx`: ProfileModal mounted alongside LoginModal; `onOpenProfile` prop wired to Home.
+
 ## 2026-06-03 — Docs Sync (Current State Audit)
 - `CURRENT_STATE.md` updated: Math level count corrected (6 → 9), visual models added, tier system detailed, minigame unlock conditions expanded, Vercel/phonics audio noted accurately.
 - `TASKS.md` restructured: consolidated Done list, added visual models + tiers + AI_OPPONENTS entries, removed duplicate items, added Math L9+ and English L5+ to Later.

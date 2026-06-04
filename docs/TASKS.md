@@ -24,6 +24,7 @@
 - [ ] **Play Math Battle with Chopin** — Is the battle mode more engaging? Does Chopin prefer it over normal Math? How many questions feel right (8)? Report to GPT_NOTES.md.
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
 - [ ] **D0: Home UX audit** — review simplified Home with Chopin. Does Continue Adventure feel like the obvious action? Does the "อยากเลือกเอง?" toggle feel discoverable?
+- [x] **Egg Companion Adventure design doc** — `docs/research/gameplay/egg-companion-adventure.md` created. Covers: egg as emotional companion (not just progress bar), companion framing per mode (DefenseMode highest impact), visual/audio/progress spec, relationship data fields (adventuresWith/questionsAnswered/daysTogetherCount/favoriteSubject), MVP recommendation, 5 open questions for GPT.
 
 ---
 
@@ -41,6 +42,17 @@
 - [x] **Subject Readiness spec** — added to `play-observation-system.md`: 4 readiness states (Strong / Comfortable / Exploring / Not Ready), derivation logic (last 10 sessions, avgScore + goodRuns + completionRate), explicit non-goals. No new code.
 - [x] **Mission system updated** — `mission-system.md` now includes "Subject Readiness and Mission Design" section: explains why unlock level is unreliable, how mission weighting should follow readiness profile, when to apply.
 - [x] **GPT_NOTES.md updated** — Subject Readiness decisions recorded.
+
+### Egg Companion Adventure — Implementation Queue (designed 2026-06-04)
+
+_Spec: `docs/research/gameplay/egg-companion-adventure.md`. Implement only after GPT answers open questions._
+
+- [ ] **ECA-MVP-1: DefenseMode egg replacement** — Replace generic 🥚 placeholder in `DefenseMode.jsx` with actual current-egg canvas component. One prop change. Highest emotional impact, lowest risk. No state changes.
+- [ ] **ECA-MVP-2: BattleMode egg companion** — Add egg canvas portrait beside player in `BattleMode.jsx`. Apply `adv-jump` keyframe on correct answers (already exists in styles.css). No state changes.
+- [ ] **ECA-MVP-3: Relationship data fields** — Add `adventuresWith`, `questionsAnswered`, `eggStartDate` to egg object in `defaultState()`. Increment in `ADD_XP` reducer. Non-breaking (defaults 0/null). No migration needed.
+- [ ] **ECA-3: Post-session egg moment** — Show egg portrait + growth text on session result screens when XP was added. "ไข่ของเราโตขึ้นนะ!" / "อีกนิดเดียวก็ฟักแล้ว!" (stage 5–6). Requires ECA-MVP-3.
+- [ ] **ECA-4: Hatch biography summary** — Show relationship data on hatch overlay: "ผจญภัยด้วยกัน N ครั้ง, ตอบคำถาม N ข้อ". Requires ECA-MVP-3. Add as second phase in HatchOverlay before creature reveal.
+- [ ] **ECA-5: Shop + Mission egg presence** — Small egg canvas in corner of GameShop.jsx and future missions. Low priority after adventure modes.
 
 ### Phase E — Shop Stretch (after play validation with Chopin)
 

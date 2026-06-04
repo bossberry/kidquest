@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Subject Adventure Engine MVP)_
+_Last updated: 2026-06-04 (Egg Companion Adventure Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,21 @@ _Last updated: 2026-06-04 (Subject Adventure Engine MVP)_
 
 ## Latest Session Summary
 
-**What changed this session (Subject Adventure Engine MVP — code change):**
+**What changed this session (Egg Companion Adventure Design — docs only):**
+
+- `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design document. Egg as emotional companion (not progress bar). The child takes their egg on adventures — it reacts, grows, and hatching becomes a relationship payoff.
+- Core framing: DefenseMode child literally shields their own egg. BattleMode egg beside player. ChaseMode egg dashes with player. BattleScreen (challenger) egg portrait in corner.
+- Visual spec: egg reacts per event (adv-jump on correct, wobble on wrong, gold pulse on streak, continuous glow near hatch stage 5–6).
+- Audio spec: brief chirp underscoring correct-answer tone. `eggReady` on session end near hatch. No new audio dominates the learning feedback.
+- Relationship data: `adventuresWith`, `questionsAnswered`, `eggStartDate`, `daysTogetherCount`, `favoriteSubject` per egg. Shown as biography at hatch reveal. Never shown during journey.
+- MVP recommendation: (1) DefenseMode egg canvas replacement — one prop change, no state change; (2) BattleMode egg portrait + adv-jump; (3) relationship data fields in ADD_XP reducer.
+- Non-goals: no egg HP, no egg health from wrong answers, no XP numbers during play, no egg naming system (deferred to GPT question), no new reward economy.
+- 5 open questions documented for GPT (see GPT_NOTES.md → Egg Companion Adventure Philosophy).
+- No code changes. No build.
+
+---
+
+**What changed last session (Subject Adventure Engine MVP — code change):**
 
 - `src/games/GameSubjectAdventure.jsx` — NEW orchestrator. Selects mode deterministically: `['battle','chase','defense'][(dayN + subjectPlayCount) % 3]`. Generates 8 questions per session: genMathQ (uses player's current level + visual models), genThaiQ (TH_ALPHA: show emoji, choose starting letter), genEngQ (EN_ALPHA: see emoji+word, choose letter). TTS via useEffect on cur change (speakTh/speakEn, 400ms delay). Dispatches ADD_XP per correct answer (10 XP + 5 crit bonus), ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL (≥80%), LOG_SESSION. Key-based session reset for replay — remounting generates fresh questions and re-picks mode.
 - `src/games/BattleMode.jsx` — NEW. Subject-specific enemies. Enemy HP + player HP bars. Correct: adv-jump + red flash + floating damage number. Streak≥2 = crit (×1.5 dmg + confetti). Wrong ×3 = enemy counter-attack + player shake. "dash" and "block" tones unused here; uses `correct`/`streak`/`wrong`.
@@ -289,11 +303,12 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 ## Recommended Next Work
 
 **GPT — next:**
-1. **Play Home 2.0 with Chopin** — does the Adventure Director feel natural? Does Chopin tap the big recommendation card? Does the Surprise section delight? Write to `GPT_NOTES.md`.
-2. **Play Shop Mission with Chopin** — validate fun, timing, and which phases feel clear vs confusing. Write to `GPT_NOTES.md`.
-3. **Shop Stretch design review** — is the quantity-difference question at the right Early Grade 1 level? Write to `GPT_NOTES.md`.
-4. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
-5. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
+1. **Answer Egg Companion open questions** — see `GPT_NOTES.md` → Egg Companion Adventure Philosophy. Key decisions: (a) egg naming at creation? (b) hatch biography before or after creature reveal? (c) companion framing: explicit text or implicit visuals for a 5-year-old? Write answers to `GPT_NOTES.md`.
+2. **Play Home 2.0 with Chopin** — does the Adventure Director feel natural? Does Chopin tap the big recommendation card? Does the Surprise section delight? Write to `GPT_NOTES.md`.
+3. **Play Shop Mission with Chopin** — validate fun, timing, and which phases feel clear vs confusing. Write to `GPT_NOTES.md`.
+4. **Shop Stretch design review** — is the quantity-difference question at the right Early Grade 1 level? Write to `GPT_NOTES.md`.
+5. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
+6. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
 
 **Claude Code — after play validation:**
 1. Phase E: Shop Stretch implementation + mastery-gate UI

@@ -1,21 +1,32 @@
-# Session Summary — 2026-06-04 (Subject Adventure Engine MVP)
+# Session Summary — 2026-06-04 (Egg Companion Adventure Design)
 
-**Session type:** Code change. Build ✅ zero errors.
+**Session type:** Documentation / design only. No code changes. No build.
 
 **Files changed:**
-- `src/games/GameSubjectAdventure.jsx` — NEW. Orchestrator. Generates questions per subject+level, picks mode deterministically (battle/chase/defense rotates by day+playCount). Dispatches ADD_XP, ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL, LOG_SESSION. TTS via useEffect on question change. Key-based session reset for replay.
-- `src/games/BattleMode.jsx` — NEW. Enemy HP + player HP bars. Enemy per subject. Correct: adv-jump + enemy flash + floating damage. Crit (streak≥2): confetti + streak-bounce badge. Wrong ×3: enemy counter-attack + player shake.
-- `src/games/ChaseMode.jsx` — NEW. Horizontal distance track. Correct: +14% progress + adv-dash + "dash" SFX. Wrong ×3: -10% + target flee. Caught at 100%.
-- `src/games/DefenseMode.jsx` — NEW. Baby creature + shield pip HP + attacker. Correct: adv-shield pulse + "block" SFX. Wrong ×3: shield HP -1 + hit flash.
-- `src/games/GameScreen.jsx` — Added lazy import + 3 routes: adventure-thai/math/eng → GameSubjectAdventure with subject prop.
-- `src/components/Home.jsx` — All "learn" recommendations now route to `adventure-{world}` instead of mathbattle/plain subject. Label shows "{subject} ผจญภัย" with mode-appropriate icon/sub.
-- `src/lib/audio.js` — Added `dash` (chase correct: ascending sweep) and `block` (defense correct: low thump) playTone types.
-- `src/styles.css` — Added `adv-jump`, `adv-dash`, `adv-shield` keyframes.
+- `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design doc for Egg Companion Adventure system.
+- `docs/RESEARCH_INDEX.md` — Added Gameplay section.
+- `docs/GPT_NOTES.md` — Added Egg Companion Adventure Philosophy section.
+- `docs/TASKS.md` — Design task marked done; ECA implementation queue (ECA-MVP-1 through ECA-5) added.
+- `docs/CHANGELOG.md` — New entry appended.
+- `docs/SESSION_SUMMARY.md` — This file.
 
-**Architecture:** Session orchestrator (GameSubjectAdventure) owns all dispatch logic. 3 mode adapters (BattleMode/ChaseMode/DefenseMode) are purely visual — receive question + callbacks. Mode is chosen deterministically per day+playCount.
+**Core design decision:**
+The egg is the companion, not a progress bar. The child takes their egg on adventures — it reacts to correct/wrong answers, grows visibly, and hatching feels like a relationship payoff. The design reframes every existing activity without changing any mechanics.
 
-**Subjects:** All 3 (thai/math/eng). TTS on Thai/English every question (400ms delay). 🔊 replay button in Thai/English modes.
+**MVP recommendation:**
+1. DefenseMode: replace generic 🥚 placeholder with child's actual current egg canvas (one prop change, highest emotional impact).
+2. BattleMode: add egg portrait beside player with adv-jump on correct (CSS already exists).
+3. Relationship data: `adventuresWith` + `questionsAnswered` + `eggStartDate` fields on egg object — show as biography at hatch.
 
-**XP/sessionLog:** Unchanged dispatch pattern identical to GameMath/GameThai/GamePhonics.
+**Key constraints preserved:**
+- eggAlgorithm.js: NOT touched. Egg visual uses existing drawEgg() only.
+- No egg HP / health from wrong answers. Egg never in danger.
+- No XP numbers during gameplay. Progress shown post-session only.
+- No new reward economy.
 
-**Classic games:** Untouched. "อยากเลือกเอง?" grid still routes to Thai/Math/Phonics.
+**5 open questions sent to GPT:**
+1. Should egg react differently by subject (color/tone)?
+2. Should the child name the egg at creation?
+3. Hatch biography before or after creature reveal?
+4. Companion framing explicit in text or implicit in visuals?
+5. Should `adventuresWith` count sessions or rounds?

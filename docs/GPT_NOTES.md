@@ -3,6 +3,21 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Egg Companion Adventure Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/gameplay/egg-companion-adventure.md`
+
+- **The egg is the companion, not a progress bar.** The egg should appear in every learning session reacting to correct/wrong answers. The child is not answering questions — they are taking their egg on adventures.
+- **The egg is the hero before it hatches.** Every activity is an adventure with the current egg. DefenseMode is the strongest example: the child literally shields their egg from attackers.
+- **Egg reactions must never create pressure.** Wrong answers make the egg look worried, not hurt. The egg is never in danger from the child's mistakes. No egg HP, no egg health depletion.
+- **MVP is DefenseMode first.** Replace the generic 🥚 placeholder in DefenseMode with the child's actual current egg canvas. Highest emotional impact, lowest risk — one prop change.
+- **Relationship data is biography, not score.** Track `adventuresWith`, `questionsAnswered`, `daysTogetherCount`, `favoriteSubject` per egg. Show as flavor biography after hatch. Never show during journey. Never gate anything on these counts.
+- **Hatching is relationship payoff.** Summary should include "ผจญภัยด้วยกัน N ครั้ง" before or during creature reveal. Makes hatching feel like a graduation, not a gacha pull.
+- **New egg = new journey begins.** After hatch, the companion framing resets with the new egg. "เพื่อนใหม่กำลังรอการผจญภัย!"
+- **Open questions for GPT:** (1) Should the egg react differently by subject (color/tone)? (2) Should the child name the egg at creation? (3) Should hatch biography appear before or after creature reveal? (4) Should companion framing be explicit in text or implicit in visuals? (5) Should `adventuresWith` count sessions or rounds?
+
+---
+
 ## Observation Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/observation/observation-philosophy.md`

@@ -51,6 +51,12 @@ _Last updated: 2026-06-04_
 
 ---
 
+## Gameplay
+
+- [docs/research/gameplay/egg-companion-adventure.md](research/gameplay/egg-companion-adventure.md) — Egg Companion Adventure design: egg as emotional center, companion framing across all game modes, visual/audio/progress behavior spec, relationship data, MVP recommendation, open questions
+
+---
+
 ## Next Planned Research
 
 1. Thai reading foundation age 5–6 (reading/spelling curriculum)

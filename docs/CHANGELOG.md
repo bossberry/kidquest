@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Egg Companion Adventure Design
+
+- `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design document. Covers: egg as emotional companion (not progress bar), companion framing across all modes (DefenseMode = egg being defended, BattleMode = egg beside player, ChaseMode = egg dashes with player), visual/audio/progress behavior spec, relationship data fields (adventuresWith/questionsAnswered/daysTogetherCount/favoriteSubject/bornFrom), MVP recommendation (DefenseMode egg first, then BattleMode, then relationship data), hatch biography payoff design, non-goals (no egg HP, no egg health from mistakes, no numbers during gameplay), 5 open questions for GPT.
+- `docs/RESEARCH_INDEX.md` — Gameplay section added with egg-companion-adventure.md entry.
+- `docs/GPT_NOTES.md` — Egg Companion Adventure Philosophy section added.
+- `docs/TASKS.md` — Design task marked done; ECA implementation queue added (ECA-MVP-1 through ECA-5).
+- No code changes. No build.
+
 ## 2026-06-04 — Subject Adventure Engine MVP
 
 - `src/games/GameSubjectAdventure.jsx` — NEW. Orchestrator: generates 8 questions per session from existing content (genMathQ respects player level; genThaiQ from TH_ALPHA emoji→letter; genEngQ from EN_ALPHA emoji→letter). Picks mode deterministically: `MODES[(dayN + playCount) % 3]` so it rotates battle→chase→defense daily per subject. Dispatches ADD_XP, ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL (≥80% score), LOG_SESSION. TTS via useEffect on cur change (speakTh for Thai, speakEn for English). Key-based replay (session key increments → full remount = fresh state + new mode).

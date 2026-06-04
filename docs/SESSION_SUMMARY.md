@@ -1,28 +1,57 @@
-# Session Summary — 2026-06-04 (Shop feedback + hatch overlay fix)
+# Session Summary — 2026-06-04 (Egg pacing + creature stat rebalance)
 
-**Files changed:** `src/games/GameShop.jsx`, `src/components/HatchOverlay.jsx`, `src/App.jsx`, `docs/`×4
+**Files changed:** `src/context/StateContext.jsx`, `src/config/gameConfig.js`, `src/lib/state.js`, `src/components/Home.jsx`, `docs/`×4
 
-## Issue 1: Shop Mission feels flat
+## Part 1 — Egg Progression Pacing
 
-**Root cause**: Wrong answers had no visual feedback — the `.wrong` shake CSS class existed but was never applied. Streak messages were not prominent enough for a 5-year-old.
+**Old behavior:** Every egg required exactly 300–350 XP (fixed). All eggs felt the same. No progression sense.
 
-**Fixes:**
-- `wrongChoice` state tracks the last wrong click. Applied `.wrong` CSS class (shake animation, red bg) to that button. Cleared on correct / next / replay.
-- `STREAK_MSGS` array: fire messages when streak ≥ 3 (`🔥 ไฟลุก!`, `⚡ ไม่หยุดเลย!` etc.) replace generic `CORRECT_MSGS`.
-- Streak counter in header: amber bold font at ≥ 3 (was 12px muted grey — invisible to a child).
-- Wrong feedback: "ลองอีกครั้ง! 💪" (second attempt reveal friendlier: `คำตอบที่ถูกคือ "..." 😊`).
-- All existing `playTone` calls preserved. No new audio system.
+**New formula:** `required = min(800, 120 + hatchedEggs.length × 60)`
 
-## Issue 2: Hatch overlay freeze + mid-game interruption
+| Egg | hatched count | Required XP | ~Correct answers (8 XP each) |
+|-----|--------------|-------------|------------------------------|
+| 1st | 0 | 120 XP | ~15 answers — first win quickly |
+| 2nd | 1 | 180 XP | ~23 answers |
+| 3rd | 2 | 240 XP | ~30 answers |
+| 4th | 3 | 300 XP | ~38 answers |
+| 5th | 4 | 360 XP | ~45 answers |
+| 6th | 5 | 420 XP | ~53 answers |
+| 12th+ | 11+ | 780–800 XP | ~100 answers (cap) |
 
-**Root cause A (freeze):** `phase` is local component state, set to `'done'` after hatching completes. `handleClose()` dispatched global state changes but never reset `phase`. After dispatch, `isOpen = false` but `phase === 'done'`, so `!isOpen && phase === 'tapping'` = `false` → overlay stayed rendered (frozen) until page refresh.
+**Design logic:**
+- `scaledEggProgress(state)` in StateContext.jsx — pure helper, not in locked eggAlgorithm.js
+- Dynamic `xpPerStage = required / 7` — egg visual stages scale with the same proportion
+- `eggStatsData.stage` overridden so `drawEgg()` canvas matches the displayed progress (no visual mismatch)
+- ADD_XP reducer: `readyToHatch = newTotal >= hatchRequired` (replaces old stage-based trigger)
+- Home.jsx: stage 6 shows "เกือบฟักแล้ว!" + fills bar before triggering hatch; uses `xpPerStage` not hardcoded 50
 
-**Fix**: `setPhase('tapping')` added as first line of `handleClose()`. On next render, `isOpen = false` AND `phase = 'tapping'` → condition is true → overlay returns null → unmounts cleanly.
+## Part 2 — Creature Battle Stats
 
-**Root cause B (mid-game interruption):** `isOpen = state.hatching || (state.readyToHatch && !state.hatched)`. When XP crosses 350 mid-game, `readyToHatch` becomes true → overlay fires as portal regardless of active screen. Game state was lost when user closed overlay (navigated to home).
+**Old formula:** Thai=ATK, Math=DEF, English=SPD (exclusive). If child only studies Math: ATK = base × thaiShare = base × 0 = 0.
 
-**Fix**: `suppressAutoOpen` prop added to `HatchOverlay`. When `true`, the auto-trigger `readyToHatch && !state.hatched` is disabled. Only explicit `state.hatching` (user-tapped hatch button on Home) opens the overlay. `App.jsx` passes `suppressAutoOpen={screen === 'game'}`. After game ends and user returns home, `readyToHatch` is still true → overlay appears naturally.
+**New formula:** Weighted 40% base guarantee + 60% subject-weighted contribution.
+
+```
+HP  = base × (1.50 + 0.30×tShare + 0.10×mShare + 0.10×eShare)
+ATK = base × (0.40 + 0.30×mShare + 0.20×eShare + 0.10×tShare)
+DEF = base × (0.40 + 0.30×tShare + 0.20×mShare + 0.10×eShare)
+SPD = base × (0.40 + 0.30×eShare + 0.20×mShare + 0.10×tShare)
+```
+
+Minimum any stat (single-subject learner): `base × 0.50` — never 0.
+Deterministic ±5% personality variation from XP seed.
+
+**3 example creatures at tier 0 (base=100):**
+
+| Profile | tShare | mShare | eShare | HP | ATK | DEF | SPD |
+|---------|--------|--------|--------|-----|-----|-----|-----|
+| Balanced (33% each) | .33 | .33 | .33 | ~167 | ~60 | ~60 | ~60 |
+| Thai-heavy (80/10/10) | .80 | .10 | .10 | ~188 | ~52 | ~72 | ~52 |
+| Math-only (0/100/0) | 0 | 1.0 | 0 | ~160 | ~70 | ~60 | ~60 |
+
+**Migration:** `_migrateEggs()` now recalculates stats if any of ATK/DEF/SPD is 0 or NaN — covers pre-rebalance eggs.
 
 ## Known Risks
-- If a child earns enough XP to hatch during gameplay and immediately navigates home without completing the game, the hatch overlay appears at home as expected.
-- `suppressAutoOpen` only blocks auto-trigger. Explicit `state.hatching` always works — but this can only be set from the Home screen's hatch button, so no risk of conflicting triggers.
+- BattleScreen still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but new formula uses Math for ATK. Minor text inconsistency — not changed per task instructions.
+- New creature stats are ~1.8× higher ATK/DEF/SPD vs old average. Battles remain player-wins (AI was already weak). No rebalancing of AI opponents done.
+- Existing saved eggs with good stats are NOT forced to recalculate (only 0/NaN triggers migration). This preserves players' existing creatures while fixing broken ones.

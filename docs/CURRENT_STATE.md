@@ -58,6 +58,8 @@
 - **Home 2.0 — Adventure Director**: `Home.jsx` restructured. Single `⭐ ผจญภัยต่อ` recommendation card (deterministic: hatch → shop-first-run → weakest-subject). Subject grid relabeled "หรือเลือกเรียน" (secondary). 2×2 minigame grid replaced with `🎁 เซอร์ไพรส์วันนี้` single-event rotation (date-hash of unlocked minigames; played-today check via `sessionLog`; teaser card when none unlocked). `getRecommendation()` and `getSurpriseEvent()` helpers (no new state).
 - **Hatch overlay fix**: `suppressAutoOpen` prop added — overlay no longer interrupts gameplay (`screen === 'game'`). Freeze-after-hatch fixed: `setPhase('tapping')` called in `handleClose()` before dispatches, ensuring `!isOpen && phase === 'tapping'` → overlay unmounts cleanly.
 - **Shop Mission feedback**: wrong choice now shows `.wrong` shake animation; streak >= 3 shows `STREAK_MSGS` (🔥 messages) with louder celebration; streak counter styled amber/bold when active. All existing `playTone` calls preserved.
+- **Egg pacing (graduated)**: `scaledEggProgress()` in StateContext. Required XP = `min(800, 120 + n×60)` where n = hatched egg count. Egg 1: 120 XP (fast). Egg 5: 360 XP. Cap 800 at egg 12+. `eggStatsData.stage` overridden in derived useMemo so canvas and display stay in sync. Home XP label uses dynamic `xpPerStage`, shows "เกือบฟักแล้ว!" in stage 6.
+- **Creature stats rebalanced**: `calcCreatureStats()` uses weighted formula. Every stat: 40% base guarantee + 60% subject-weighted. ATK weighted to Math, DEF to Thai, SPD to English. Minimum any stat = base × 0.50 (no zeros). ±5% deterministic personality. Migration recalculates broken (0/NaN) stats on load.
 
 ---
 

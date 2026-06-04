@@ -53,9 +53,13 @@ function _migrateEggs(s) {
       e = { ...e, tier: Math.min(5, idx >= 0 ? idx : 0) }
       dirty = true
     }
-    if (!e.stats) {
+    const needsRecalc = !e.stats ||
+      isNaN(e.stats.ATK) || e.stats.ATK === 0 ||
+      isNaN(e.stats.DEF) || e.stats.DEF === 0 ||
+      isNaN(e.stats.SPD) || e.stats.SPD === 0
+    if (needsRecalc) {
       e = { ...e, streak: e.streak || 0, acc: e.acc || 70,
-               stats: calcCreatureStats({ ...e, tier: e.tier }) }
+               stats: calcCreatureStats({ ...e, tier: e.tier || 0 }) }
       dirty = true
     }
     return e

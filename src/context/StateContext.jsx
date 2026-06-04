@@ -7,6 +7,27 @@ import { getCreatureForHatch } from './creatureHelpers.js'
 
 export const StateContext = createContext(null)
 
+// Dynamic egg progression — first egg fast, later eggs gradually harder
+// requiredXP = min(800, 120 + hatchedCount * 60)
+// Eggs 1–5: 120 / 180 / 240 / 300 / 360 XP; cap 800 at egg 12+
+function scaledEggProgress(state) {
+  const eggsHatched = (state.hatchedEggs || []).length
+  const required = Math.min(800, 120 + eggsHatched * 60)
+  const xpPerStage = required / EGG_STAGES
+  const total = (state.xpThai || 0) + (state.xpEng || 0) + (state.xpMath || 0)
+  const capped = Math.min(total, required)
+  const rawStage = capped / xpPerStage
+  const stage = Math.min(EGG_STAGES - 1, Math.floor(rawStage))
+  const lastStageStart = (EGG_STAGES - 1) * xpPerStage
+  const inLast = stage >= EGG_STAGES - 1
+  const withinStage = inLast ? Math.max(0, capped - lastStageStart) : capped % xpPerStage
+  const stageXP = Math.round(withinStage)
+  const pct = inLast
+    ? Math.min(100, withinStage / xpPerStage * 100)
+    : withinStage / xpPerStage * 100
+  return { stage, stageXP, pct, xpPerStage: Math.round(xpPerStage), required }
+}
+
 export const ACTIONS = {
   INIT:               'INIT',
   ADD_XP:             'ADD_XP',
@@ -49,9 +70,9 @@ function reducer(state, action) {
       const key = 'xp' + world.charAt(0).toUpperCase() + world.slice(1)
       const newXp = (state[key] || 0) + earned
       const newTotal = (state.xpThai || 0) + (state.xpEng || 0) + (state.xpMath || 0) + earned
-      const maxXP = EGG_STAGES * STAGE_XP_NEEDED
-      const newStage = Math.min(EGG_STAGES - 1, Math.floor(Math.min(newTotal, maxXP) / STAGE_XP_NEEDED))
-      const readyToHatch = newStage >= EGG_STAGES - 1 && !state.hatched
+      const eggsHatched = (state.hatchedEggs || []).length
+      const hatchRequired = Math.min(800, 120 + eggsHatched * 60)
+      const readyToHatch = newTotal >= hatchRequired && !state.hatched
       return {
         ...state,
         [key]: newXp,
@@ -379,11 +400,15 @@ export function StateProvider({ children }) {
     }
   }, [state.dailyBattleRounds]) // eslint-disable-line
 
-  const derived = useMemo(() => ({
-    totalXPValue: totalXP(state),
-    eggProgressData: eggProgress(state),
-    eggStatsData: buildEggStats(state),
-  }), [state.xpThai, state.xpEng, state.xpMath, state.streak, state.acc, state.speed, state.mins, state.eggDow, state.eggMonth, state.eggDay, state.eggHour, state.firstSubject, state.name, state.grade]) // eslint-disable-line
+  const derived = useMemo(() => {
+    const sp = scaledEggProgress(state)
+    const rawStats = buildEggStats(state)
+    return {
+      totalXPValue: totalXP(state),
+      eggProgressData: sp,
+      eggStatsData: { ...rawStats, stage: sp.stage }, // stage overridden to scaled value
+    }
+  }, [state.xpThai, state.xpEng, state.xpMath, state.streak, state.acc, state.speed, state.mins, state.eggDow, state.eggMonth, state.eggDay, state.eggHour, state.firstSubject, state.name, state.grade, state.hatchedEggs]) // eslint-disable-line
 
   const value = useMemo(() => ({
     state,

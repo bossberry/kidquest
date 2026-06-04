@@ -323,19 +323,38 @@ export const TIERS = {
 export function calcCreatureStats(egg) {
   const tier = TIERS[egg.tier || 0]
   const base = tier.baseStat
-  const total = (egg.xpThai || 0) + (egg.xpEng || 0) + (egg.xpMath || 0) || 1
-  const ATK = Math.round(base * (egg.xpThai || 0) / total)
-  const DEF = Math.round(base * (egg.xpMath || 0) / total)
-  const SPD = Math.round(base * (egg.xpEng  || 0) / total)
-  const critRate    = Math.min(0.5, (egg.acc    || 70) / 200)
+  const xpT = egg.xpThai || 0
+  const xpM = egg.xpMath || 0
+  const xpE = egg.xpEng  || 0
+  const total = xpT + xpM + xpE || 1
+
+  // Normalized subject shares (each 0–1, sum = 1)
+  const tShare = xpT / total
+  const mShare = xpM / total
+  const eShare = xpE / total
+
   const streakBonus = 1 + Math.floor((egg.streak || 0) / 7) * 0.1
+  const critRate    = Math.min(0.5, (egg.acc || 70) / 200)
+
+  // Deterministic ±5% personality variation per stat, stable per egg
+  const seed = (xpT * 7 + xpM * 13 + xpE * 17) >>> 0
+  const vary = (offset) => 0.95 + ((seed + offset * 97) % 100) / 100 * 0.10
+
+  // Weighted formula: 40% base guarantee + 60% subject-weighted contribution
+  // Every stat gets a base floor — no stat reaches 0 regardless of learning profile
+  // HP: Thai builds resilience; ATK: Math drives power; DEF: Thai builds guard; SPD: English agility
+  const HP  = base * (1.50 + 0.30 * tShare + 0.10 * mShare + 0.10 * eShare)
+  const ATK = base * (0.40 + 0.30 * mShare + 0.20 * eShare + 0.10 * tShare)
+  const DEF = base * (0.40 + 0.30 * tShare + 0.20 * mShare + 0.10 * eShare)
+  const SPD = base * (0.40 + 0.30 * eShare + 0.20 * mShare + 0.10 * tShare)
+
   return {
-    HP:       Math.round(base * 1.5 * streakBonus),
-    ATK:      Math.round(ATK * streakBonus),
-    DEF:      Math.round(DEF * streakBonus),
-    SPD:      Math.round(SPD * streakBonus),
-    CRIT:     critRate,
-    tier:     egg.tier || 0,
+    HP:      Math.round(HP  * streakBonus * vary(1)),
+    ATK:     Math.round(ATK * streakBonus * vary(2)),
+    DEF:     Math.round(DEF * streakBonus * vary(3)),
+    SPD:     Math.round(SPD * streakBonus * vary(4)),
+    CRIT:    critRate,
+    tier:    egg.tier || 0,
     tierName: tier.name,
   }
 }

@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Egg pacing + creature stat rebalance
+
+### Part 1 — Egg progression pacing
+- `src/context/StateContext.jsx` — `scaledEggProgress(state)` helper added (module-level). Computes `required = min(800, 120 + hatchedEggs.length * 60)`, divides into 7 stages dynamically, returns `{stage, stageXP, pct, xpPerStage, required}`. `ADD_XP` reducer: replaced static `newStage`-based `readyToHatch` with `newTotal >= hatchRequired` (dynamic). `derived` useMemo: `eggProgressData` now uses `scaledEggProgress()`; `eggStatsData.stage` overridden to scaled stage so `drawEgg()` visual matches progress display. `state.hatchedEggs` added to useMemo deps.
+- `src/components/Home.jsx` — destructures `xpPerStage` from `eggProgressData`; egg XP label updated: shows "เกือบฟักแล้ว!" in stage 6 before ready, uses dynamic `xpPerStage` denominator instead of hardcoded 50.
+
+### Part 2 — Creature battle stat rebalance
+- `src/config/gameConfig.js` — `calcCreatureStats()` rewritten with weighted formula. Old: ATK=base×thaiShare (exclusive ownership — ATK=0 if no Thai XP). New: every stat has 40% base guarantee + 60% subject-weighted. HP: 1.5+0.3t+0.1m+0.1e; ATK: 0.4+0.3m+0.2e+0.1t; DEF: 0.4+0.3t+0.2m+0.1e; SPD: 0.4+0.3e+0.2m+0.1t. Deterministic ±5% personality variation from XP seed. Minimum possible any stat = base × 0.5 (Thai-only learner) — no more 0 stats.
+- `src/lib/state.js` — `_migrateEggs()` updated: recalculates stats if any of ATK/DEF/SPD is 0 or NaN (covers pre-rebalance eggs with broken stats).
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Shop feedback + hatch overlay fix
 
 - `src/games/GameShop.jsx` — feedback improvements:

@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Shop feedback + hatch overlay fix)_
+_Last updated: 2026-06-04 (Egg pacing + creature stat rebalance)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,18 +22,19 @@ _Last updated: 2026-06-04 (Shop feedback + hatch overlay fix)_
 
 ## Latest Session Summary
 
-**What changed this session (Shop feedback + hatch overlay fix):**
+**What changed this session (Egg pacing + creature stat rebalance):**
 
-### Shop Mission feedback
-- **`src/games/GameShop.jsx`** — wrong choice now shows `.wrong` shake animation (CSS class was defined but never applied); `STREAK_MSGS` array — fire messages when streak ≥ 3; streak counter in header is amber/bold at ≥ 3; wrong hint text updated to be child-friendly. All `playTone` calls preserved.
+### Egg progression pacing
+- **`src/context/StateContext.jsx`** — `scaledEggProgress(state)` helper added. `required = min(800, 120 + hatchedEggs.length × 60)` — first egg 120 XP (fast), gradual to 800 cap. Dynamic `xpPerStage = required/7`. `ADD_XP` now uses `newTotal >= hatchRequired` for `readyToHatch`. `derived` useMemo uses `scaledEggProgress`; `eggStatsData.stage` overridden to scaled value so canvas matches display.
+- **`src/components/Home.jsx`** — egg label uses dynamic `xpPerStage`; stage 6 shows "เกือบฟักแล้ว!" before hatch trigger.
 
-### Hatch overlay — two bugs fixed
-- **`src/components/HatchOverlay.jsx`** — **freeze fix**: `setPhase('tapping')` called first in `handleClose()` — on next React render `!isOpen && phase === 'tapping'` is true → overlay unmounts cleanly (no more refresh needed). **Mid-game fix**: `suppressAutoOpen` prop — when `true`, auto-trigger from `readyToHatch` is disabled; only explicit `state.hatching` opens overlay.
-- **`src/App.jsx`** — passes `suppressAutoOpen={screen === 'game'}`. Hatch overlay won't interrupt active gameplay. After leaving game → home, overlay appears naturally.
+### Creature stat rebalance
+- **`src/config/gameConfig.js`** — `calcCreatureStats()` rewritten. Old: Thai=ATK, Math=DEF, Eng=SPD (exclusive, ATK=0 if no Thai). New: weighted formula — `ATK = base×(0.4 + 0.3×mShare + 0.2×eShare + 0.1×tShare)`. Every stat has 40% base floor, no stat can reach 0.
+- **`src/lib/state.js`** — `_migrateEggs()` now recalculates stats if ATK/DEF/SPD is 0 or NaN.
 - **Build: ✅ zero errors.**
 
-**Previous session (Home 2.0 Adventure Director):**
-- `Home.jsx` rewritten as Adventure Director: `⭐ ผจญภัยต่อ` recommendation card + `🎁 เซอร์ไพรส์วันนี้` daily event rotation. `Report.jsx` NaN bug fixes.
+**Previous session (Shop feedback + hatch overlay fix):**
+- `GameShop.jsx`: wrong-button shake, streak fire messages. `HatchOverlay.jsx`: freeze fix + `suppressAutoOpen` prop. `App.jsx`: no mid-game hatch interruption.
 
 ---
 
@@ -53,6 +54,8 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Home 2.0 — Adventure Director**: Single recommendation card (⭐ ผจญภัยต่อ) + daily surprise event (🎁 เซอร์ไพรส์วันนี้). Replaces 2×2 minigame grid.
 - **Shop Mission feedback polished**: wrong-button shake, streak fire messages, amber streak counter. `playTone` calls unchanged.
 - **Hatch overlay stable**: freeze-after-hatch fixed; no longer auto-interrupts gameplay (`suppressAutoOpen` prop).
+- **Egg pacing**: first egg 120 XP (fast onboarding), later eggs scale by `min(800, 120 + n×60)`. Visual progress and drawEgg canvas both use scaled stage.
+- **Creature stats rebalanced**: weighted formula — every stat has 40% base floor. No stat can be 0. Deterministic ±5% personality variation. Migration recalculates broken (0/NaN) stats.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
 - Turn-based battle; challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
@@ -151,6 +154,9 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 - **Cooking Mission readiness dependency** — step sequence must not be designed until readiness data from real play is available.
 - **Home 2.0 recommendation is always lowest-XP subject** — intentional for balance. May feel repetitive if Chopin wants to replay a preferred subject. Could add "last played" tie-breaker later if needed.
 - **Surprise rotation with one unlocked game** — shows same game daily until a second is unlocked. Acceptable for now.
+- **Egg pacing affects only new eggs** — existing players with old state see correct new pacing on their NEXT egg (current egg's readyToHatch is recalculated on next ADD_XP).
+- **BattleScreen advice text mismatch** — BattleScreen still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but new formula maps Math→ATK. Minor UI text inconsistency; not fixed per task scope.
+- **Creature stats ~1.8× higher than before** — battles remain strongly player-favored. AI opponents were already weak. No rebalancing done.
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
 - No session audit trail in Supabase — all progress in one blob per user
 

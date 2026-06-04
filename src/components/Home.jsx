@@ -88,7 +88,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
     return () => data?.subscription?.unsubscribe()
   }, [])
 
-  const { stage, stageXP, pct } = eggProgressData
+  const { stage, stageXP, pct, xpPerStage = 50 } = eggProgressData
   const eggsHatched = (state.hatchedEggs || []).length
 
   const startWorld = (world) => {
@@ -158,7 +158,13 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         />
         <div className="egg-name-txt">{EGG_STAGE_NAMES[stage] || 'ไข่ลึกลับ'}</div>
         <div className="egg-xp-bar-wrap"><div className="egg-xp-bar" style={{ width: pct + '%' }} /></div>
-        <div className="egg-xp-label">{stage >= 6 ? '🐣 พร้อมฟักแล้ว!' : `${stageXP} / 50 XP ถึง Stage ถัดไป`}</div>
+        <div className="egg-xp-label">
+          {state.readyToHatch
+            ? '🐣 พร้อมฟักแล้ว!'
+            : stage >= 6
+            ? `${stageXP} / ${xpPerStage} XP เกือบฟักแล้ว!`
+            : `${stageXP} / ${xpPerStage} XP ถึง Stage ถัดไป`}
+        </div>
         <div className={`spoil-txt${stage >= 3 ? ' lit' : ''}`}>
           {state.readyToHatch && stage >= 6
             ? <button onClick={() => dispatch({ type: ACTIONS.SET_HATCHING, payload: true })} style={{ background:'var(--amber)', color:'var(--amber-d)', border:'none', borderRadius:20, padding:'8px 20px', fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>🥚 แตะเพื่อฟักไข่!</button>

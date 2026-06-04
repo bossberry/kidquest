@@ -24,18 +24,20 @@ Source-of-truth: `docs/research/gameplay/battle-feel-philosophy.md`
 
 ---
 
-## Pokémon-Style Learning Battle (2026-06-04)
+## Pokémon-Style Learning Battle — Updated (2026-06-04, Battle Feel Polish Pass)
 
 Source-of-truth: `docs/research/gameplay/pokemon-style-learning-battle.md`
+Authority: `docs/research/gameplay/battle-feel-philosophy.md` governs all sensory/emotional decisions.
 
-- **This is battle-first design, not a quiz with battle decoration.** The child should feel "I choose a move to help my egg win" — not "I answered a question and saw an animation."
-- **Answer choices ARE attack moves.** Each move button shows: emoji icon + move name + the answer content. Correct answer = that move fires and deals damage. Wrong answer = miss/fizzle.
-- **Same battle shell for all subjects.** Math encodes numbers as damage values. Thai and English encode emoji picture options + TTS. The battle mechanics (HP, enemy, animations) are identical across subjects.
-- **Egg is the hero.** The child's current egg is the player character. All Egg Companion Adventure reactions apply (jump, glow, shake, near-hatch pulse).
-- **MVP is Math first.** Numbers map directly to move damage — no TTS dependency. After Math playtest with Chopin, add Thai then English.
-- **Move names are flavor, not learning content.** "Thunderbolt — 5" means: the move is called Thunderbolt and the answer is 5. The child taps it because 5 is correct, not because they know what Thunderbolt means.
-- **Wrong answer = miss, not punishment.** Move fizzles with a soft sound. No harsh buzzer. 3 misses → gentle enemy counter-attack. Player HP optional — test without it first.
-- **Open questions for GPT:** (1) Correct move = consistent damage vs. correct = most damage? (2) Enemy counter on wrong × 3 only vs. every N turns? (3) Does player HP bar add stakes or pressure for a 5-year-old? (4) Move names random per turn or loosely subject-themed? (5) Replace BattleMode in Subject Adventure entirely, or keep both?
+- **This is battle-first design, not a quiz with battle decoration.** The child feels "I choose attacks" — not "I answer quizzes."
+- **Answer choices ARE attack moves.** Each move button: large icon + large answer content + tiny optional flavor name. **Icons and answers are primary. Move names are tiny flavor text or hidden entirely.**
+- **Player HP removed. DECIDED.** The egg never loses HP. No defeat screen. No losing state. Wrong answers = attack misses → soft fizzle → enemy laughs/taunts → battle continues. Emotional message: mistakes are safe, the egg is always with you.
+- **Wrong answer = miss, not punishment.** No "❌ผิด!" banner. No harsh buzzer. No strike count. No accumulating consequence. "โจมตีพลาด!" in battle log + enemy reacts + next turn.
+- **Same battle shell for all subjects.** Math encodes numbers as answer content. Thai and English encode emoji picture options + TTS. Battle mechanics (HP, enemy, animations) identical across subjects.
+- **Egg is the hero.** The child's current egg is the player character. All Egg Companion Adventure reactions apply (jump, glow, near-hatch pulse). Egg never takes damage.
+- **MVP is Math first.** Numbers map directly to move answers — no TTS dependency. After Math playtest with Chopin, add Thai then English.
+- **Battle log: short only.** Examples: "⚡ Thunder!", "โจมตีพลาด!", "คอมโบ!", "CRITICAL!", "ชนะแล้ว!". Never full sentences.
+- **Open questions remaining:** (1) Correct move = consistent damage vs. most damage? (2) Enemy taunt every wrong or every N wrongs? (3) Move names visible (tiny) or hidden entirely? (4) Replace BattleMode in Subject Adventure entirely, or keep both?
 
 ---
 

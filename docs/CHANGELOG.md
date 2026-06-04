@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle Feel Polish Pass (docs only)
+
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — Updated to align fully with `battle-feel-philosophy.md`. Removed: player HP bar, defeat screen, gentle defeat section, losing states, "every 3 wrong = counter attack" mechanic. Wrong answer philosophy changed: wrong → attack misses → soft fizzle → enemy laughs/taunts → continue (no punishment accumulation, no strike count, no anxiety). Move names reduced: icons + answers are primary; move names are tiny flavor text below icon (or hidden entirely). Move card examples updated to show icon + answer only. Battle log aligned to short format: "⚡ Thunder!", "โจมตีพลาด!", "คอมโบ!", "CRITICAL!", "ชนะแล้ว!". Open question 3 (player HP) resolved: removed. Audio: `gentle-defeat` tone removed; `enemy-taunt` added. Session structure: defeat condition removed, replaced with "child cannot lose" statement. Visual anatomy: player HP bar removed from diagram. Authority note added: Battle Feel Philosophy governs all conflicts.
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section updated with all Battle Feel Polish decisions.
+- `docs/TASKS.md` — Battle Feel Polish Pass task added and marked done.
+- No code changes. No build.
+
 ## 2026-06-04 — Battle Feel Philosophy Design
 
 - `docs/research/gameplay/battle-feel-philosophy.md` — NEW. Defines the sensory and emotional grammar for all Subject Battle implementations. Covers: core "battle is the experience" principle, visual hierarchy (enemy > HP > log > move panel), player HP removal rationale, wrong-answer philosophy (miss not punishment), full anticipation sequence (10-step tap-to-result chain), sound philosophy (cute/positive/Pokémon-like), combo system (streak 2→3→4 = crit ×1.5), victory sequence (enemy defeat → stars → confetti → egg celebrates), battle log spec (1-line, Thai-first), animation philosophy (fast/CSS/reuse existing keyframes), screen layout reference, implementation priority (feel before content), 5 open questions before implementation.

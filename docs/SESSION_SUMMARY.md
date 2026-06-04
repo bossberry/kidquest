@@ -1,39 +1,47 @@
-# Session Summary — 2026-06-04 (Battle Feel Philosophy Design)
+# Session Summary — 2026-06-04 (Battle Feel Polish Pass)
 
 **Session type:** Documentation / design only. No code changes. No build.
 
 **Files changed:**
-- `docs/research/gameplay/battle-feel-philosophy.md` — NEW. Full design doc.
-- `docs/RESEARCH_INDEX.md` — Gameplay section updated.
-- `docs/GPT_NOTES.md` — Battle Feel Philosophy section added.
-- `docs/TASKS.md` — PSLB-0 (feel baseline) added before PSLB-1; Battle Feel task marked done.
-- `docs/CHANGELOG.md` — New entry appended.
-- `docs/GPT_HANDOFF.md` — Latest session updated.
-- `docs/SESSION_SUMMARY.md` — This file.
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — Updated (Battle Feel alignment)
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section updated
+- `docs/TASKS.md` — Battle Feel Polish Pass task added and marked done
+- `docs/CHANGELOG.md` — New entry prepended
+- `docs/GPT_HANDOFF.md` — Latest session updated
+- `docs/SESSION_SUMMARY.md` — This file
 
-**Core design decisions:**
+**Core decisions made this session:**
 
-**1. Player HP removed.**
-The egg never loses HP. No game over. No losing. Wrong answers cause misses, slow progress, and enemy reactions — but the egg is never in danger. Emotional message: mistakes are safe. The egg is always with you. This is not a weakness; it is correct design for a 5-year-old learner.
+**1. Player HP: Removed.**
+No player HP bar. No defeat screen. No gentle defeat. No losing states.
+The egg never loses HP. The egg never dies. The child never loses.
+Wrong answer → attack misses → soft fizzle → enemy reacts → continue.
+This is the correct design for a 5-year-old learner. Not a concession — it is the philosophy.
 
-**2. Wrong answer = miss, not punishment.**
-No ❌ banner. No harsh buzzer. No HP loss. "โจมตีพลาด!" in the battle log + soft fizzle + enemy reacts. Battle continues immediately.
+**2. Wrong answer philosophy: Miss, not punishment.**
+Removed: every-3-wrong counter-attack mechanic.
+New: wrong → attack misses → enemy laughs/taunts → battle continues immediately.
+No strike count. No punishment accumulation. No anxiety.
+"โจมตีพลาด!" in battle log. Soft fizzle particle on move card. Enemy reacts playfully.
 
-**3. Anticipation sequence before content.**
-10-step tap-to-result chain: tap → pulse → charge → egg lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check. Total ≤ 1000ms. CSS-driven. Implement this baseline BEFORE adding Math/Thai/English content (PSLB-0 before PSLB-1).
+**3. Move names: Reduced to flavor only.**
+Icons and answers are primary. Move names are tiny text below icon — or hidden entirely.
+The child chooses attacks by recognizing icon + answer, not by reading names.
+Move card examples updated to show icon large, answer large, name tiny/optional.
 
-**4. Combo system: streak → crit.**
-Streak 2 = gold glow. Streak 3 = screen flash. Streak 4+ = critical hit (×1.5 damage, ascending fanfare, large damage number). Combo resets gracefully on miss.
+**4. Battle log: Short only.**
+Max one line. Always moving. Never stacked. Never tutorial-like.
+Examples: "⚡ Thunder!", "โจมตีพลาด!", "คอมโบ!", "CRITICAL!", "ชนะแล้ว!"
 
-**5. Victory must feel amazing.**
-Enemy fades → stars → confetti → fanfare → egg celebrates → XP progress appears. This is the emotional peak of the learning loop.
+**5. Authority rule established.**
+`battle-feel-philosophy.md` wins all conflicts with `pokemon-style-learning-battle.md`.
+Authority note added to top of pokemon-style doc.
 
-**Implementation priority defined:**
-Battle Feel baseline (PSLB-0) → Math content (PSLB-1) → Thai (PSLB-2) → English (PSLB-3) → polish pass (PSLB-4/5).
-
-**5 open questions before implementation:**
+**Remaining open questions before PSLB-0/PSLB-1:**
 1. 2×2 grid vs. horizontal row for move panel
 2. Damage number above enemy vs. center screen
-3. Enemy counter every-3-misses vs. every-N-turns
+3. Enemy taunt on every wrong answer vs. every N wrongs
 4. Combo reset rules between sessions
-5. New `playTone()` naming for battle sounds
+5. New `playTone()` naming for battle sounds (move-select, attack-fire variants, miss-fizzle)
+6. Move names visible (tiny) or hidden entirely?
+7. Replace BattleMode in Subject Adventure entirely, or keep both?

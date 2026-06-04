@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle Feel Philosophy Design)_
+_Last updated: 2026-06-04 (Battle Feel Polish Pass)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,17 @@ _Last updated: 2026-06-04 (Battle Feel Philosophy Design)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle Feel Philosophy Design — docs only):**
+**What changed this session (Battle Feel Polish Pass — docs only):**
+
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — Updated to align fully with `battle-feel-philosophy.md`. Authority note added: Battle Feel Philosophy governs all conflicts. Key changes: (1) Player HP removed — no HP bar, no defeat screen, no gentle defeat, no losing states; wrong answer = miss → fizzle → enemy taunts → continue; (2) Enemy counter-attack mechanic removed — replaced with: wrong → miss → enemy laughs → continue; no punishment accumulation, no strike count; (3) Move names reduced to tiny flavor text — icons and answers are primary; move card examples updated; (4) Battle log aligned to short format: "⚡ Thunder!", "โจมตีพลาด!", "คอมโบ!", "CRITICAL!", "ชนะแล้ว!"; (5) `gentle-defeat` audio removed, `enemy-taunt` added; (6) Session structure updated: "child cannot lose" is the stated design; (7) Open question 3 (player HP) resolved: removed.
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section updated with all Battle Feel Polish decisions.
+- `docs/TASKS.md` — Battle Feel Polish Pass task added and marked done.
+- `docs/CHANGELOG.md` — Entry prepended.
+- No code changes. No build.
+
+---
+
+**What changed last session (Battle Feel Philosophy Design — docs only):**
 
 - `docs/research/gameplay/battle-feel-philosophy.md` — NEW. Required reading before implementing any Subject Battle. Defines the sensory and emotional grammar for all battle implementations. Core principle: battle is the experience — not a quiz with animation. Covers: visual hierarchy (enemy first, question disappears into move panel), player HP removal rationale (egg is never in danger, mistakes are safe), wrong-answer philosophy (miss not punishment — soft fizzle, "โจมตีพลาด!", no harsh buzzer), 10-step anticipation sequence (tap → card pulse → charge → egg lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check, total ≤ 1000ms CSS-driven), sound philosophy (cute/positive/Pokémon-like, 10 named sound moments, no harsh sounds), combo system (streak 2=glow, 3=flash, 4+=crit ×1.5 + fanfare), victory sequence (enemy fade → stars → confetti → fanfare → egg celebrates → XP progress), battle log spec (single line, Thai-first, short labels), animation philosophy (fast/CSS/reuse existing keyframes, 8 new keyframes named), screen layout reference, implementation priority (PSLB-0 feel baseline before PSLB-1 content), 5 open questions before implementation.
 - `docs/RESEARCH_INDEX.md` — Battle Feel Philosophy entry added to Gameplay section.

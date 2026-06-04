@@ -1,6 +1,8 @@
 # Pokémon-Style Learning Battle — Design Document
 
-_Created: 2026-06-04. Design only — no code. Related: `egg-companion-adventure.md`, `battle-progression.md`_
+_Created: 2026-06-04. Updated: 2026-06-04 (Battle Feel Polish Pass — aligned with battle-feel-philosophy.md). Design only — no code. Related: `egg-companion-adventure.md`, `battle-progression.md`, `battle-feel-philosophy.md`_
+
+> **Authority rule:** `battle-feel-philosophy.md` governs all sensory and emotional decisions. When this document conflicts with it, Battle Feel Philosophy wins.
 
 ---
 
@@ -51,13 +53,13 @@ Enemy HP: ████████████ 🐉 "Dragon Cub"
 
 Your egg is ready to attack!
 
-⚡ Thunderbolt ............. 5
-🔥 Fireball ............... 6
-❄️ Ice Beam ............... 4
-🌪 Wind Slash ............. 8
+⚡  5
+🔥  6
+❄️  4
+🌪️  8
 ```
 
-The move name is decoration. The **number IS the answer.** Correct number = that move fires and deals real damage. Wrong numbers = moves that miss or deal less damage.
+Icons are primary. Numbers are the answer. Move names are small flavor text below the icon (or hidden entirely). The child taps by icon + number — not by reading the name.
 
 ### Thai Example
 
@@ -68,13 +70,13 @@ Enemy HP: ████████████ 🐻 "Shadow Bear"
 
 ไข่ของเราเตรียมโจมตี!
 
-🌊 Water Slash ............ 🐟
-🔥 Fire Fang .............. 🐱
-⚡ Thunder Kick ........... 🐶
-🌪 Wind Claw .............. 🐰
+🌊  🐟
+🔥  🐱
+⚡  🐶
+🌪️  🐰
 ```
 
-The child hears "ปลา" and selects the matching emoji. The emoji IS the answer. The move name is flavor. Water Slash fires because the child matched the word to the fish — not because they tapped "Water Slash."
+The child hears "ปลา" and taps the card with 🐟. They choose an attack by matching sound to picture. Move names are tiny flavor text below the icon, or hidden entirely. They are not the answer.
 
 ### English Example
 
@@ -85,13 +87,13 @@ Enemy HP: ████████████ 👾 "Space Blob"
 
 Your egg is ready!
 
-🐾 Scratch ................ 🐱
-🦴 Bark ................... 🐶
-💦 Splash ................. 🐟
-🥕 Hop .................... 🐰
+🐾  🐱
+🦴  🐶
+💦  🐟
+🥕  🐰
 ```
 
-Same pattern. The child hears "cat" and taps 🐾 Scratch because it has 🐱 on it. They're not thinking "match the word to the picture" — they're thinking "use the cat attack!"
+Same pattern. The child hears "cat" and taps the card with 🐱. Icons and answers drive the choice. Move names are tiny flavor text or hidden.
 
 ---
 
@@ -104,7 +106,7 @@ Same pattern. The child hears "cat" and taps 🐾 Scratch because it has 🐱 on
 
 2. Current egg appears as player hero (bottom-left)
    → Egg has the near-hatch glow if stage ≥ 5 (from egg-companion-adventure)
-   → Player HP bar shown (or skip if child doesn't need to lose)
+   → No player HP bar — the egg is never in danger (see battle-feel-philosophy.md)
 
 3. "Turn begins" signal
    → Brief egg bounce: "ไข่พร้อมสู้!"
@@ -118,7 +120,7 @@ Same pattern. The child hears "cat" and taps 🐾 Scratch because it has 🐱 on
 
 6. Correct move:
    → Egg leaps forward (adv-jump)
-   → Announcer: "ไข่ใช้ [move name]!"
+   → Battle log: "⚡ [icon] [short name]!"
    → Move animation plays (elemental particle effect matching the icon)
    → Enemy flashes red / shakes
    → HP drains (animated bar)
@@ -126,10 +128,11 @@ Same pattern. The child hears "cat" and taps 🐾 Scratch because it has 🐱 on
    → Streak ≥ 2 → "Crit!" badge + ×1.5 damage
 
 7. Wrong move:
-   → Move fizzles or misses (partial animation, no impact effect)
-   → Announcer: "โจมตีพลาด!" (gentle, not "wrong")
-   → No damage dealt
-   → 3 wrong in a row → enemy counter-attacks (enemy lunge + egg shakes + player HP loss)
+   → Attack misses — soft fizzle particle on the move card
+   → Battle log: "โจมตีพลาด!"
+   → Enemy laughs or taunts (brief reaction animation — not punishing)
+   → No damage dealt. No HP loss. No strike counter.
+   → Battle continues to next turn immediately
 
 8. Enemy defeated (HP = 0):
    → Enemy fades / explodes with stars
@@ -138,54 +141,34 @@ Same pattern. The child hears "cat" and taps 🐾 Scratch because it has 🐱 on
    → XP reward
 
 9. If enemy still alive:
-   → Enemy counter-attack after every Nth turn (every 3 correct answers, or when HP > 50%)
-   → Enemy lunge animation + egg shakes (no big HP damage — keep pressure low)
+   → Enemy taunts briefly (animation only — no damage to egg)
    → Next turn begins
 ```
 
 ---
 
-## Move Names by Subject
+## Move Icons and Flavor Text
 
-Move names are purely decorative — they exist to make the child feel like they're choosing an attack, not an answer. The actual learning content is the number or image shown after the move name.
+**Icons are primary. The answer content is primary. Move names are low-importance flavor.**
 
-### Math Move Names
+The child is choosing attacks by icon + answer. They are NOT reading move names.
+
+### Move icon pool (assign randomly per turn)
 ```
-⚡ Thunderbolt
-🔥 Fireball
-❄️ Ice Beam
-🌪 Wind Slash
-🌊 Tidal Wave
-🌟 Star Blast
-💥 Explosion
-🗡️ Sword Strike
+⚡ 🔥 ❄️ 🌪️ 🌊 🌟 💥 🗡️ 🐾 🌿
 ```
 
-### Thai Move Names
-```
-🌊 Water Slash
-🔥 Fire Fang
-⚡ Thunder Kick
-🌪 Wind Claw
-🌿 Leaf Blade
-🔥 Flame Burst
-❄️ Frost Bite
-🌟 Light Beam
-```
+### Move name flavor text (tiny, below icon — optional, can be hidden)
 
-### English Move Names
-```
-🐾 Scratch
-🦴 Bark
-💦 Splash
-🥕 Hop
-🌀 Spin
-⚡ Zap
-🌿 Vine Whip
-🔥 Ember
-```
+Examples only — not learning content:
+- Thunder / Fire Spin / Blizzard / Whirlwind
+- Scratch / Bark / Splash / Vine Whip
 
-Move names should feel age-appropriate (Pokémon-ish but not exact copies). Rotate assignment randomly each session — the child should encounter different names each battle.
+**Rules:**
+- Move names must never be larger than the icon or the answer content
+- The child should be able to ignore move names entirely and still play perfectly
+- Names exist to add battle personality, not to teach vocabulary
+- Rotate randomly per session for freshness
 
 ---
 
@@ -236,19 +219,19 @@ English content is always TTS-first. No reading required at Kindergarten level.
 │  [Turn counter: Turn 1/8]        │
 ├─────────────────────────────────┤
 │  BATTLE LOG / ANNOUNCER          │
-│  "ไข่ใช้ Thunderbolt!"           │
+│  "⚡ Thunder!"                   │
 ├─────────────────────────────────┤
 │  PLAYER                          │
-│  [egg canvas]   ████████ HP     │
+│  [egg canvas + combo glow]       │
 │  [egg stage name]                │
 ├─────────────────────────────────┤
 │  MOVE PANEL                      │
 │  ┌──────────┐  ┌──────────┐     │
-│  │⚡Thunder │  │🔥Fireball│     │
+│  │    ⚡    │  │    🔥    │     │
 │  │    5     │  │    6     │     │
 │  └──────────┘  └──────────┘     │
 │  ┌──────────┐  ┌──────────┐     │
-│  │❄️Ice Beam│  │🌪Wind    │     │
+│  │    ❄️    │  │    🌪️   │     │
 │  │    4     │  │    8     │     │
 │  └──────────┘  └──────────┘     │
 └─────────────────────────────────┘
@@ -257,9 +240,11 @@ English content is always TTS-first. No reading required at Kindergarten level.
 Key layout rules:
 - Move panel takes bottom 40% of screen (primary interaction zone)
 - Enemy occupies top 30% (visual target, focus of the battle)
-- Egg occupies middle-left (companion, always visible)
-- Battle log is a single line (one announcer message at a time)
+- Enemy HP is the only HP bar — player has no HP bar
+- Egg occupies middle-left (companion, always visible, with combo glow)
+- Battle log is a single line (one announcer message at a time, short)
 - No scrolling, no small text, no reading required for core play
+- Move card shows icon (large) + answer content (large) + name (tiny flavor, optional)
 
 ---
 
@@ -299,10 +284,9 @@ Follow existing `playTone()` pattern in `src/lib/audio.js`. New types:
 | `attack-fire` | Move animation plays | Subject-matched: lightning crackle / fire whoosh / ice shatter / wind gust |
 | `hit-impact` | Enemy takes damage | 3-layer thud (existing `hit` tone is close) |
 | `crit-sound` | Streak crit | Ascending 4-note burst (existing `streak`/`crit` is close) |
-| `enemy-counter` | Enemy attacks | Different than `hit` — a growl + lower thud |
 | `miss-sound` | Wrong answer | Soft fizzle — no harsh buzzer; just "that didn't land" |
+| `enemy-taunt` | Enemy reacts to miss | Light growl or squeak — playful, not scary |
 | `victory` | Enemy defeated | Existing `win` / `fanfare` tone |
-| `gentle-defeat` | Player HP = 0 | Soft descending 3-note — no jarring sound |
 
 TTS: Thai/English questions always fire TTS on move panel appear. `speakTh` / `speakEn` with 200ms delay to allow panel animation to settle. Sound toggle respected.
 
@@ -316,7 +300,8 @@ The player hero is always the child's current egg canvas (from `EggCanvas` compo
 - Egg reacts to every battle event (existing keyframes apply)
 - Near-hatch egg (stage ≥ 5) glows continuously during battle
 - After battle win: egg growth progress shows on result screen
-- The egg is not at risk — wrong answers make it stumble, not take lethal damage
+- The egg is never at risk — wrong answers cause the attack to miss, not harm the egg
+- The egg faces forward at all times. It never takes damage from mistakes.
 
 The emotional message: **"Your egg is fighting beside you. Help it win by choosing the right move."**
 
@@ -330,10 +315,9 @@ A standard Pokémon Battle session:
 - Each turn = 1 question embedded in 4 move choices
 - Session ends: enemy defeated → XP reward → result screen
 
-If player HP reaches 0 before enemy is defeated:
-- Gentle defeat screen: "สู้ต่อไปนะ! เดี๋ยวลองอีกครั้ง"
-- No XP loss. Full XP for correct answers already given
-- Option to replay same battle or exit
+**There is no defeat condition. The child cannot lose.**
+
+Wrong answers slow progress (missed attacks) but do not end the battle. The egg is never in danger. The session always ends in victory — the only question is how many turns it takes.
 
 Result screen:
 - Enemy HP drain display (enemy defeated = bar empty)
@@ -416,11 +400,11 @@ This design passes the Scope Guardian test:
 
 1. **Move damage values:** Should the correct move always deal the most damage (strategy-free) or should correct moves deal consistent damage and wrong moves just miss (no strategy needed)? Recommendation: correct = consistent damage, wrong = miss. Avoids the child "guessing the big number" instead of answering the question.
 
-2. **Enemy counter-attack timing:** Should enemies counter only on wrong answers (3×) or also after every N turns regardless of accuracy? Recommendation: only on wrong answers × 3 — keeps the counter-attack as a natural consequence, not random.
+2. **Enemy taunt on wrong answers:** Should the enemy react every time (every wrong) or only every N wrongs? Recommendation: every wrong — keeps the battle feeling alive, enemy is responsive. Should feel playful, not threatening.
 
-3. **Player HP necessity:** Does a 5-year-old benefit from having a player HP bar (stakes) or does it add pressure? Consider: no player HP at all, just an enemy HP bar. Child always survives; the question is how fast they defeat the enemy. Recommendation: defer to play observation after Math MVP. Test both variants if possible.
+3. ~~**Player HP necessity**~~ — **DECIDED: Player HP removed.** The egg never loses HP. No defeat screen. No losing state. Wrong answers = miss + enemy reacts + continue. This is the correct design for a 5-year-old learner. (See `battle-feel-philosophy.md`.)
 
-4. **Move name variety:** Should move names be completely random per turn (freshness) or loosely themed to the subject (Thai vocabulary words learn move names of animals, Math gets physics-y names)? Recommendation: loosely themed — adds subtle reinforcement. Thai battle uses animal-themed move names; Math uses power/force names.
+4. **Move name visibility:** Show tiny move names below the icon, or hide entirely and show only icon + answer? Recommendation: show tiny names for personality, but never emphasize. Can be hidden on smaller screens.
 
 5. **Integration with existing BattleMode:** Replace BattleMode in Subject Adventure Engine entirely, or offer both modes? Recommendation: replace. The move-select design is strictly superior (more immersive). Avoid maintaining two parallel systems.
 

@@ -4,6 +4,12 @@ _Last updated: 2026-06-04_
 
 ---
 
+## Progression
+
+- [docs/research/progression/subject-progression.md](research/progression/subject-progression.md) — Subject progression philosophy: unlock thresholds (70/80/90), replay always valid, mastery = confidence not perfection, subject independence, stretch/challenge layers, readiness vs. highest level
+
+---
+
 ## Battle
 
 - [docs/research/battle/creature-stats.md](research/battle/creature-stats.md) — Creature stat design philosophy: weighted formula, subject-to-stat mapping, personality variation, migration rules, non-goals, future scaling

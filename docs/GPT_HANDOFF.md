@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Creature stats documentation)_
+_Last updated: 2026-06-04 (Subject progression documentation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Creature stats documentation)_
 
 ## Latest Session Summary
 
-**What changed this session (Creature stats documentation — docs only):**
+**What changed this session (Subject progression documentation — docs only):**
+
+- `docs/research/progression/subject-progression.md` — source-of-truth created. Covers: core philosophy (subjects primary, missions secondary), unlock thresholds (70 soft pass / 80 unlock / 90 mastery), replay always valid with full XP, mastery = confidence not perfection, stretch/challenge optional layers, subject independence, readiness vs. highest unlock, non-goals, future grade roadmap, 5 open questions.
+- `docs/RESEARCH_INDEX.md` — Progression section added.
+- `docs/GPT_NOTES.md` — Subject Progression Philosophy section added.
+- No code changes. No build.
+
+**Previous session (Creature stats documentation — docs only):**
 
 - `docs/research/battle/creature-stats.md` — source-of-truth created. Covers: design philosophy (every creature battle-viable), why one-subject-one-stat fails (ATK=0 for Thai-only learner), weighted formula with 40% base floor, example weightings for HP/ATK/DEF/SPD/CRIT, personality variation (±10% deterministic from XP seed), migration rules (recalc on 0/NaN, never delete eggs), explicit non-goals (no AI, no rerolls, no pay-to-win), future scaling (learning profile always the foundation), 5 open implementation questions.
 - `docs/RESEARCH_INDEX.md` — Battle section added.

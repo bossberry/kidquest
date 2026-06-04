@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Subject progression documentation
+
+- `docs/research/progression/subject-progression.md` — created. Source-of-truth for subject progression philosophy: core philosophy (subjects primary, missions secondary), progression flow, unlock thresholds (70/80/90%), replay always valid with full XP, mastery = confidence not perfection, stretch/challenge optional bonus layers, subject independence, readiness vs. highest unlock level, explicit non-goals, future grade roadmap, implementation reference, 5 open questions.
+- `docs/RESEARCH_INDEX.md` — Progression section added.
+- `docs/GPT_NOTES.md` — Subject Progression Philosophy section added (thresholds, replay, mastery, independence, open questions for GPT).
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Creature stats documentation
 
 - `docs/research/battle/creature-stats.md` — created. Source-of-truth for creature stat design philosophy: why one-subject-one-stat fails, weighted formula with 40% base floor, example weightings (HP/ATK/DEF/SPD/CRIT), personality variation (±10% deterministic from XP seed), migration rules (recalc on 0/NaN, never delete eggs), explicit non-goals, future scaling notes, 5 open implementation questions.

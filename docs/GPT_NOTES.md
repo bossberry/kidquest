@@ -3,6 +3,22 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Subject Progression Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/progression/subject-progression.md`
+
+- **Subjects are the primary progression axis.** Thai / Math / English are the core. Missions are secondary contexts that apply subject skills.
+- **Unlock thresholds locked:** < 70% → try again; 70–79% → soft pass (encouragement, partial reward, no unlock); ≥ 80% → unlock; ≥ 90% → mastery fanfare. These thresholds apply across all subjects and align with mission rules.
+- **Replay is never punished.** Replay gives full XP. Replay at any level is a valid learning behavior. The system never frames replay negatively.
+- **Mastery = confidence + consistency + enjoyment.** Not speed. Not perfection. Not competition. Response time is never a gate.
+- **Subject independence:** Thai, Math, English progress independently. Children do not need balanced levels. No subject is more important.
+- **Highest unlock level ≠ readiness.** Readiness comes from session logs, accuracy trends, and replay behavior. See `play-observation-system.md`.
+- **Stretch/Challenge are optional bonuses.** Core always playable. Stretch unlocks at ≥ 90% + ≤ 1 wrong + ≥ 2 runs. Challenge unlocks after Stretch mastery. Neither is ever required.
+- **Year 1 scope is fixed:** Kindergarten core + Early Grade 1 stretch. Grade 2+ is not planned.
+- **Open questions for GPT:** (1) Should Stretch unlock be per-level or per-subject? (2) Should Adventure Director ever recommend Stretch explicitly? (3) What readiness threshold signals it's time to design Grade 1 core content?
+
+---
+
 ## Creature Stat Design Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/battle/creature-stats.md`

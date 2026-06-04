@@ -1,36 +1,38 @@
-# Session Summary — 2026-06-04 (Creature stats documentation)
+# Session Summary — 2026-06-04 (Subject progression documentation)
 
 **Session type:** Documentation only. No code changes. No build.
 
 **Files created/changed:**
-- `docs/research/battle/creature-stats.md` — new (created)
-- `docs/RESEARCH_INDEX.md` — Battle section added
-- `docs/GPT_NOTES.md` — Creature Stat Design Philosophy section added
-- `docs/TASKS.md` — creature stats doc task marked done
+- `docs/research/progression/subject-progression.md` — new (created)
+- `docs/RESEARCH_INDEX.md` — Progression section added
+- `docs/GPT_NOTES.md` — Subject Progression Philosophy section added
+- `docs/TASKS.md` — task marked done
 - `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
 
 ## What was documented
 
-`docs/research/battle/creature-stats.md` is the source-of-truth for creature stat design philosophy.
+`docs/research/progression/subject-progression.md` is the source-of-truth for subject progression philosophy.
 
 Covers:
-1. Design philosophy — creatures feel different (style), never broken (viability), every creature is battle-viable
-2. Why one-subject-one-stat fails — punishes subject preference, creates stat locks (ATK=0 for Thai-only learner)
-3. Weighted stat philosophy — every subject contributes to every stat; style via weighting, not ownership; 40% base floor prevents 0 stats
-4. Learning profile inputs — thaiShare, mathShare, engShare, avgAccuracy, avgMastery, streakBonus, basePower
-5. Example weightings — HP (Thai-weighted), ATK (Math-weighted), DEF (Thai-weighted), SPD (English-weighted), CRIT (Math+English balanced)
-6. Personality variation — ±10% max, deterministic from XP seed, creates personality without breaking viability
-7. Migration philosophy — safe recalculation when stat is 0/NaN; never delete eggs
-8. Explicit non-goals — no AI, no random rerolls, no pay-to-win, no subject punishment
-9. Future battle scaling — rarity/tier/equipment/evolution may extend stats; learning profile always remains the foundation
-10. Open questions — HP design, explicit accuracy/mastery inputs, streak multipliers, stat range cap, AI opponent formula alignment
+1. Core philosophy — subjects (Thai/Math/English) are primary; missions are secondary applied contexts
+2. Progression flow — Play → Score → XP → Replay → Mastery → Unlock
+3. Unlock thresholds — <70% try again; 70–79% soft pass; ≥80% unlock; ≥90% mastery fanfare
+4. Replay philosophy — replay is never punished; full XP always; replay is a valid learning behavior
+5. Mastery philosophy — confidence + consistency + enjoyment; not speed, not perfection, not competition
+6. Stretch/Challenge layers — Core always playable; Stretch/Challenge are optional bonuses, never required
+7. Subject independence — Thai/Math/English progress independently; no subject is more important
+8. Observation relationship — highest unlock ≠ readiness; readiness comes from session logs
+9. Explicit non-goals — no forced progression, no streak pressure, no timers, no leaderboards, no peer comparison
+10. Future grade progression — Year 1 scope fixed (KG + Early G1); Grade 1 full only when Chopin shows readiness
+11. Implementation reference — key files for each subject
+12. 5 open questions for future design
 
-## Open questions for implementation
+## Open questions
 
 | Question | Status |
 |----------|--------|
-| Should HP be purely basePower-derived? | 🔵 Open |
-| Should accuracy/mastery be explicit stat inputs? | 🔵 Open |
-| Should streaks affect stats directly (not just XP)? | 🔵 Open |
-| What is the max readable stat range? | 🔵 Open |
-| Should AI opponents use the same formula? | 🔵 Open |
+| Should Stretch unlock be per-level or per-subject? | 🔵 Open |
+| Should Adventure Director recommend Stretch explicitly? | 🔵 Open |
+| How to handle a subject with a long gap in sessions? | 🔵 Open |
+| What readiness threshold signals Grade 1 content readiness? | 🔵 Open |
+| Should replay at lower levels give reduced XP? | 🔵 Open |

@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Home 2.0: Adventure Director + NaN bug fixes
+
+- `src/components/Home.jsx` — rewritten as Adventure Director.
+  - **`⭐ ผจญภัยต่อ`** section: single large recommended card above the world grid. Deterministic priority: (1) hatch if egg ready, (2) Shop if never played, (3) weakest subject by XP. No AI, no state.
+  - **`🎁 เซอร์ไพรส์วันนี้`** section: replaces the 2×2 minigame grid. One unlocked minigame shown per day (date-hash mod count of unlocked games). After playing, shows "เล่นแล้ว! มาพรุ่งนี้นะ 🌙" (derived from `sessionLog`, no new state). If no minigames unlocked yet, shows a teaser card.
+  - World-label text changed to "หรือเลือกเรียน" (secondary framing).
+  - `getRecommendation()` and `getSurpriseEvent()` helper functions added (module-level, no hooks).
+- `src/components/Report.jsx` — **NaN bug fixes** in `MissionAnalytics`:
+  - `totalHints = 0`, `totalDuration = 0` default values added to destructuring (handles pre-Phase-D state with no analytics fields).
+  - `avgScore` now returns `null` when `totalQs === 0` (renders as `—` not `0%`).
+  - `avgDur` now returns `null` when `totalDuration === 0` (renders as `—` not `NaN`).
+  - `nudge` guard updated: `avgScore !== null && avgScore >= 90`.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Subject Readiness Report display
 
 - `src/components/Report.jsx` — `computeReadiness(sessionLog, world)` added: filters last 10 `sessionLog` entries per world, derives one of 4 states (strong / comfortable / exploring / notready) from avgScore + goodRuns + completionRate thresholds. `SubjectReadiness` component renders a card with color-coded Thai-language badges for ภาษาไทย / คณิต / อังกฤษ. Observation footnote: "ดูจากการเล่นล่าสุด ไม่ใช่เลเวลที่ปลดล็อก". No new state fields.

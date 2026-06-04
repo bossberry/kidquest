@@ -55,6 +55,7 @@
 - **Lock toasts**: EggRun and minigame lock feedback now uses `showToast()` — no more `alert()` calls
 - **Persistent sound toggle**: sound preference stored in `localStorage` key `kq_sound`; survives page reload
 - **XP boost indicator**: `XpBoostBadge` in Home header shows `⭐ ×2 M:SS` countdown when star item is active
+- **Home 2.0 — Adventure Director**: `Home.jsx` restructured. Single `⭐ ผจญภัยต่อ` recommendation card (deterministic: hatch → shop-first-run → weakest-subject). Subject grid relabeled "หรือเลือกเรียน" (secondary). 2×2 minigame grid replaced with `🎁 เซอร์ไพรส์วันนี้` single-event rotation (date-hash of unlocked minigames; played-today check via `sessionLog`; teaser card when none unlocked). `getRecommendation()` and `getSurpriseEvent()` helpers (no new state).
 
 ---
 

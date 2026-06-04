@@ -34,6 +34,49 @@ function XpBoostBadge({ xpBoostEnd, xpBoost }) {
   )
 }
 
+function getRecommendation(state, stage) {
+  if (state.readyToHatch && stage >= 6) {
+    return {
+      type: 'hatch', icon: '🥚',
+      label: 'ฟักไข่!', sub: 'ไข่พร้อมฟักแล้ว ✨',
+      bg: '#FFF8E1', border: '#FFD700', textColor: '#5A3A00', subColor: '#8A5500',
+    }
+  }
+  if ((state.shopV1?.runs || 0) === 0) {
+    return {
+      type: 'shop', icon: '🏪',
+      label: 'ร้านค้า', sub: '🆕 ลองภารกิจใหม่ — 2–3 นาที',
+      bg: '#FFF5E6', border: '#F0B86E', textColor: '#4A2A00', subColor: '#7A5500',
+    }
+  }
+  const levels = state.subjectLevels || {}
+  const subs = [
+    { world:'thai', xp:state.xpThai||0, label:'ภาษาไทย', icon:'🇹🇭', lv:levels.thai||1, bg:'#E1F5EE', border:'#9FE1CB', textColor:'#085041', subColor:'#0F6E56' },
+    { world:'math', xp:state.xpMath||0, label:'Math',     icon:'🔢', lv:levels.math||1, bg:'#EEEDFE', border:'#CECBF6', textColor:'#3C3489', subColor:'#534AB7' },
+    { world:'eng',  xp:state.xpEng ||0, label:'English',  icon:'🔤', lv:levels.eng ||1, bg:'#E6F1FB', border:'#B5D4F4', textColor:'#0C447C', subColor:'#185FA5' },
+  ]
+  const weak = subs.reduce((a, b) => a.xp <= b.xp ? a : b)
+  return {
+    type: 'learn', world: weak.world, icon: weak.icon,
+    label: weak.label, sub: `Lv ${weak.lv} — เรียนต่อ!`,
+    bg: weak.bg, border: weak.border, textColor: weak.textColor, subColor: weak.subColor,
+  }
+}
+
+function getSurpriseEvent(state, eggsHatched) {
+  const all = ['catch', 'memory', 'tower', 'fishing']
+  const unlocked = all.filter(id => eggsHatched >= MG_UNLOCK[id])
+  if (!unlocked.length) return null
+  const n = parseInt(todayStr().replace(/-/g, ''))
+  const id = unlocked[n % unlocked.length]
+  const today = new Date().toDateString()
+  const played = (state.sessionLog || []).some(s => s.world === id && new Date(s.ts).toDateString() === today)
+  return { id, played }
+}
+
+const MG_ICONS = { catch:'🧺', memory:'🃏', tower:'🏗️', fishing:'🎣' }
+const MG_NAMES = { catch:'Egg Catch', memory:'Egg Memory', tower:'Egg Tower', fishing:'Egg Fishing' }
+
 export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
   const [authUser, setAuthUser] = useState(null)
@@ -61,16 +104,25 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
     startWorld('eggrun')
   }
 
-  const onMgClick = (id) => {
-    startWorld(id)
-  }
-
   const dr = state.dailyRounds || 0
   const lives = state.eggRunLives ?? 3
   const erUnlocked = dr >= 10
   const erHasLives = lives > 0
 
   const spoilHint = ['🔮 เรียนเพื่อปลุกลวดลาย!','✨ ไข่เริ่มอบอุ่น...','👁️ มีบางอย่างขยับ...','🐾 เห็นเงาข้างใน...','👀 มีดวงตามองออกมา!','💥 ไข่สั่นแล้ว!!!','🎉 กำลังจะฟัก!!!'][stage] || ''
+
+  const rec = getRecommendation(state, stage)
+  const surprise = getSurpriseEvent(state, eggsHatched)
+
+  const handleRecommendedAction = () => {
+    if (rec.type === 'hatch') {
+      dispatch({ type: ACTIONS.SET_HATCHING, payload: true })
+    } else if (rec.type === 'shop') {
+      startWorld('shop')
+    } else if (rec.type === 'learn') {
+      startWorld(rec.world)
+    }
+  }
 
   return (
     <div id="home" style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', minHeight:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
@@ -114,8 +166,34 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </div>
       </div>
 
-      {/* World selector */}
-      <div className="world-label">เลือกด่านที่อยากเล่น</div>
+      {/* ⭐ Continue Adventure — primary action */}
+      <div style={{ width:'100%', maxWidth:480, padding:'16px 20px 0' }}>
+        <div style={{ fontSize:11, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:8, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' }}>⭐ ผจญภัยต่อ</div>
+        <div
+          onClick={handleRecommendedAction}
+          style={{
+            display:'flex', alignItems:'center', gap:16,
+            background: rec.bg,
+            border: `2px solid ${rec.border}`,
+            borderRadius:18, padding:'20px 22px',
+            cursor:'pointer',
+            boxShadow:'0 4px 24px rgba(0,0,0,.08)',
+            transition:'transform .12s, box-shadow .12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,.13)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 24px rgba(0,0,0,.08)' }}
+        >
+          <span style={{ fontSize:52, lineHeight:1 }}>{rec.icon}</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color: rec.textColor, lineHeight:1.1 }}>{rec.label}</div>
+            <div style={{ fontSize:14, color: rec.subColor, marginTop:5 }}>{rec.sub}</div>
+          </div>
+          <div style={{ fontSize:26, color: rec.textColor, opacity:.45, flexShrink:0 }}>→</div>
+        </div>
+      </div>
+
+      {/* Subject grid — secondary */}
+      <div className="world-label">หรือเลือกเรียน</div>
       <div className="world-grid">
         <div className="world-card" style={{ background:'#E1F5EE' }} onClick={() => startWorld('thai')}>
           <span className="world-icon">🇹🇭</span>
@@ -137,9 +215,8 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </div>
       </div>
 
-      {/* Missions */}
+      {/* Shop Mission */}
       <div style={{ width:'100%', maxWidth:480, padding:'12px 20px 0' }}>
-        <div style={{ fontSize:12, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:6 }}>ภารกิจ</div>
         <div
           onClick={() => startWorld('shop')}
           style={{ display:'flex', alignItems:'center', gap:12, background:'#FFF5E6', border:'1.5px solid #F0B86E', borderRadius:14, padding:'12px 16px', cursor:'pointer', transition:'transform .12s, box-shadow .12s' }}
@@ -196,29 +273,44 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </div>
       </div>
 
-      {/* Mini-games grid */}
-      <div className="minigames-grid">
-        {['catch','memory','tower','fishing'].map(id => {
-          const unlocked = eggsHatched >= MG_UNLOCK[id]
-          const far = eggsHatched < MG_UNLOCK[id] - 3
-          const icons = { catch:'🧺', memory:'🃏', tower:'🏗️', fishing:'🎣' }
-          const names = { catch:'Egg Catch', memory:'Egg Memory', tower:'Egg Tower', fishing:'Egg Fishing' }
-          return (
-            <div
-              key={id}
-              className={`mg-card${unlocked ? '' : far ? ' mystery-lock' : ' locked'}`}
-              style={unlocked ? { background: MG_COLORS[id], borderColor:'transparent', cursor:'pointer' } : {}}
-              onClick={() => unlocked && onMgClick(id)}
-            >
-              <span className="mg-icon">{icons[id]}</span>
-              <div className="mg-name" style={unlocked ? { color:'#fff' } : {}}>{far ? '???' : names[id]}</div>
-              <div className="mg-sub" style={unlocked ? { color:'rgba(255,255,255,.7)' } : {}}>
-                {far ? '???' : unlocked ? 'พร้อมเล่น! →' : `ฟักอีก ${MG_UNLOCK[id] - eggsHatched} ใบ 🔒`}
-              </div>
+      {/* 🎁 Today's Surprise — single event rotation */}
+      {surprise ? (
+        <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
+          <div style={{ fontSize:11, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:8, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' }}>🎁 เซอร์ไพรส์วันนี้</div>
+          {surprise.played ? (
+            <div style={{ background:'#f9f9f9', border:'1.5px solid var(--border)', borderRadius:14, padding:'14px 18px', textAlign:'center', color:'var(--muted)', fontSize:13, fontFamily:'Mitr,sans-serif' }}>
+              เล่นแล้ว! มาพรุ่งนี้นะ 🌙
             </div>
-          )
-        })}
-      </div>
+          ) : (
+            <div
+              onClick={() => startWorld(surprise.id)}
+              style={{
+                display:'flex', alignItems:'center', gap:14,
+                background: MG_COLORS[surprise.id],
+                borderRadius:14, padding:'16px 18px',
+                cursor:'pointer',
+                boxShadow:'0 2px 14px rgba(0,0,0,.12)',
+                transition:'transform .12s, box-shadow .12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(0,0,0,.2)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 14px rgba(0,0,0,.12)' }}
+            >
+              <span style={{ fontSize:42, lineHeight:1 }}>{MG_ICONS[surprise.id]}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:19, color:'#fff' }}>{MG_NAMES[surprise.id]}</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,.85)', marginTop:3 }}>แตะเพื่อเล่น!</div>
+              </div>
+              <div style={{ fontSize:22, color:'rgba(255,255,255,.65)', flexShrink:0 }}>→</div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
+          <div style={{ background:'linear-gradient(135deg,#1D1B3A,#3C3489)', borderRadius:14, padding:'14px 18px', textAlign:'center', color:'rgba(255,255,255,.55)', fontSize:13, fontFamily:'Mitr,sans-serif' }}>
+            🎁 ฟักไข่เพื่อปลดล็อกเซอร์ไพรส์!
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="stats-strip">

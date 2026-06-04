@@ -64,7 +64,7 @@ function fmtDur(ms) {
 
 function MissionAnalytics({ shopV1, name }) {
   if (!shopV1 || shopV1.runs === 0) return null
-  const { runs, mastered, totalHints, totalDuration, phaseStats = {} } = shopV1
+  const { runs, mastered, totalHints = 0, totalDuration = 0, phaseStats = {} } = shopV1
 
   const ps = phaseStats
   const phaseLabels = { 1: 'จับคู่ภาษาไทย', 2: 'คำศัพท์อังกฤษ', 3: 'นับของในร้าน', 4: 'มารยาทดี' }
@@ -79,8 +79,8 @@ function MissionAnalytics({ shopV1, name }) {
 
   const totalCorrect = [1,2,3,4].reduce((sum, ph) => sum + (ps[ph]?.correct || 0), 0)
   const totalQs = [1,2,3,4].reduce((sum, ph) => sum + (ps[ph]?.total || 0), 0)
-  const avgScore = totalQs > 0 ? Math.round(totalCorrect / totalQs * 100) : 0
-  const avgDur = runs > 0 ? Math.round(totalDuration / runs) : 0
+  const avgScore = totalQs > 0 ? Math.round(totalCorrect / totalQs * 100) : null
+  const avgDur = totalDuration > 0 && runs > 0 ? Math.round(totalDuration / runs) : null
   const avgHints = runs > 0 ? (totalHints / runs).toFixed(1) : '0'
 
   const replayText = runs === 1
@@ -94,7 +94,7 @@ function MissionAnalytics({ shopV1, name }) {
   let nudge = null
   if (mastered) {
     nudge = `${name} ผ่านเกณฑ์ mastery แล้ว — Shop Stretch พร้อมเมื่อถึงเวลา`
-  } else if (avgScore >= 90 && runs >= 3) {
+  } else if (avgScore !== null && avgScore >= 90 && runs >= 3) {
     nudge = `${name} ทำได้ดีสม่ำเสมอ`
   } else if (challengePhase && challengePhase.acc < 0.6 && runs >= 2) {
     nudge = `${phaseLabels[challengePhase.ph]} คือจุดที่ท้าทายอยู่ตอนนี้ — เล่น Shop Mission ซ้ำหรือฝึกวิชานั้นเพิ่มจะช่วยได้`
@@ -107,8 +107,8 @@ function MissionAnalytics({ shopV1, name }) {
       <div className="rc-title"><span className="rc-icon">🏪</span>Shop Mission</div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px', marginBottom:12 }}>
         <div><span style={{ color:'var(--muted)', fontSize:12 }}>จำนวนครั้ง</span><div style={{ fontWeight:700 }}>{runs} ครั้ง</div></div>
-        <div><span style={{ color:'var(--muted)', fontSize:12 }}>คะแนนเฉลี่ย</span><div style={{ fontWeight:700 }}>{avgScore}%</div></div>
-        <div><span style={{ color:'var(--muted)', fontSize:12 }}>เวลาเฉลี่ย</span><div style={{ fontWeight:700 }}>{fmtDur(avgDur)}</div></div>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>คะแนนเฉลี่ย</span><div style={{ fontWeight:700 }}>{avgScore !== null ? `${avgScore}%` : '—'}</div></div>
+        <div><span style={{ color:'var(--muted)', fontSize:12 }}>เวลาเฉลี่ย</span><div style={{ fontWeight:700 }}>{avgDur !== null ? fmtDur(avgDur) : '—'}</div></div>
         <div><span style={{ color:'var(--muted)', fontSize:12 }}>Hint ที่ใช้</span><div style={{ fontWeight:700 }}>{totalHints} ครั้ง (เฉลี่ย {avgHints}/เล่น)</div></div>
       </div>
       <div style={{ fontSize:12, color:'var(--muted)', marginBottom:4 }}>ความยากแต่ละช่วง:</div>

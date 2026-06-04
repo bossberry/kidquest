@@ -1,26 +1,32 @@
-# Session Summary — 2026-06-04 (Subject Readiness Report display)
+# Session Summary — 2026-06-04 (Home 2.0 Adventure Director)
 
-## What Changed
+**Files changed:** `src/components/Home.jsx`, `src/components/Report.jsx`, `docs/`×5
 
-### Modified files (app code + docs)
+## Bug Fixes (Priority 1)
 
-- `src/components/Report.jsx` — `computeReadiness()` function + `SubjectReadiness` component added. Rendered between MissionAnalytics and Play History cards. No new state fields.
-- `docs/CURRENT_STATE.md` — Subject Readiness card added to Play Observation System section.
-- `docs/TASKS.md` — Subject Readiness Report display marked done.
-- `docs/CHANGELOG.md` — Session entry appended.
-- `docs/GPT_HANDOFF.md` — Regenerated.
-- `docs/SESSION_SUMMARY.md` — This file.
+**Report.jsx — MissionAnalytics NaN:**
+- Root cause: pre-Phase-D state has `shopV1` without `totalDuration`, `totalHints`, `phaseStats`. Destructuring without defaults → `undefined` in math → NaN.
+- Fix: `totalHints = 0`, `totalDuration = 0` destructuring defaults.
+- Fix: `avgScore` returns `null` when `totalQs === 0` (no phaseStats data) → renders `—` not `0%`.
+- Fix: `avgDur` returns `null` when `totalDuration === 0` → renders `—` not `NaN`.
+- No state migration needed — pure display fix.
 
-## Key Decisions Made
+## Home 2.0 (Priority 2)
 
-1. **Computed at render time** — `computeReadiness(sessionLog, world)` filters the last 10 entries for each world and derives state on the fly. No new state fields.
-2. **Observation tone throughout** — Parent sees Thai labels (แข็งแรงมาก / กำลังมั่นใจ / กำลังสำรวจ / ยังไม่มีข้อมูลพอ) with footnote clarifying the derivation source.
-3. **No child-facing UI** — component is inside Report.jsx only, which is the parent report tab.
-4. **Color-coded badges** — green for Strong, blue for Comfortable, amber for Exploring, muted for Not Ready. Matches existing report card color variables.
+**Adventure Director philosophy:** Home answers "What should I do next?" not "What do you want to choose?"
 
-## What's Left
+**`⭐ ผจญภัยต่อ`** — single large recommendation card (top of page, below egg):
+- Priority: hatch → shop first run → weakest-subject-by-XP
+- Deterministic, no AI, no new state
 
-- Play Shop Mission with Chopin (play validation)
-- D0: Shop card UX audit
-- Phase E: Shop Stretch (after play validation, independent of readiness)
-- Cooking Mission design (deferred — needs readiness data from real play)
+**`🎁 เซอร์ไพรส์วันนี้`** — replaces 2×2 minigame grid:
+- One minigame per day via `dateHash % unlockedMinigames.length`
+- Played-today check: reads `sessionLog` (no new state)
+- If no minigames unlocked: teaser "ฟักไข่เพื่อปลดล็อกเซอร์ไพรส์!"
+- If played today: "เล่นแล้ว! มาพรุ่งนี้นะ 🌙"
+
+**Preserved:** Egg, Shop Mission card, Egg Run, subject grid (relabeled "หรือเลือกเรียน"), stats strip.
+
+## Known Risks
+- Recommendation always picks lowest-XP subject; intentional for balance, but may feel repetitive early on.
+- Surprise rotation is date-based only — if only one minigame is unlocked it repeats daily. Acceptable.

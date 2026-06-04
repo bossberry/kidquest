@@ -36,20 +36,14 @@ function EggCard({ egg, isSelected, onSelect }) {
   )
 }
 
-export default function ChallengerOverlay() {
+export default function ChallengerOverlay({ open, onClose }) {
   const { state, dispatch } = useAppState()
-  const [visible, setVisible] = useState(false)
   const [phase, setPhase] = useState('toast') // toast | eggSelect | battle
   const [selectedEgg, setSelectedEgg] = useState(null)
 
   const challenger = state.pendingChallenger
 
-  // Show toast whenever a new challenger appears
-  useEffect(() => {
-    if (challenger) setVisible(true)
-  }, [challenger])
-
-  if (!challenger || !visible) return null
+  if (!challenger || !open) return null
 
   if (phase === 'battle' && selectedEgg) {
     return (
@@ -58,7 +52,7 @@ export default function ChallengerOverlay() {
         opponent={challenger}
         opponentType="normal"
         onClose={() => {
-          setVisible(false)
+          onClose()
           setPhase('toast')
           setSelectedEgg(null)
         }}
@@ -157,7 +151,7 @@ export default function ChallengerOverlay() {
           รับคำท้า! ⚔️
         </button>
         <button
-          onClick={() => setVisible(false)}
+          onClick={onClose}
           style={{ width:'100%', background:'rgba(255,255,255,.08)', color:'rgba(255,255,255,.6)', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:'10px 0', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer' }}
         >
           ไว้ทีหลัง (เก็บไว้รอ)

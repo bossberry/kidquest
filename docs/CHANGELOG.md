@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle Home experience
+
+- `src/components/BottomNav.jsx` — ⚔️ badge removed from Collection tab. `hasChallenger` and `useAppState` import removed.
+- `src/App.jsx` — `challengerOpen` state added; useEffect watches `state.pendingChallenger`; `<ChallengerOverlay open={challengerOpen} onClose=.../>` and `<Home onOpenChallenger=.../>` wired.
+- `src/components/ChallengerOverlay.jsx` — internal `visible` useState and its useEffect removed; now accepts `open`/`onClose` props. All `setVisible(false)` replaced with `onClose()`.
+- `src/components/Home.jsx` — `onOpenChallenger` prop added. Battle case in `getRecommendation()` (priority: hatch → battle → shop → subject). Battle card: dark gradient, challenger emoji, "มอนสเตอร์ปรากฏตัว!". `handleRecommendedAction` calls `onOpenChallenger()` for battle type.
+- `docs/CURRENT_STATE.md` — Home 2.0 Adventure Director entry updated.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Shop Mission speech feedback
 
 - `src/games/GameShop.jsx` — speech added after correct answers. Import: `speakTh, speakEn` from audio.js. `THAI_NUMS` array added (หนึ่ง–สิบ). After correct: Thai questions → `speakTh(val)` after 380ms; English → `speakEn(val)` after 380ms; Math/counting → `speakTh(THAI_NUMS[val])` after 380ms. Social phrase question speaks the child's actual choice (ขอบคุณครับ or ขอบคุณค่ะ). All tones preserved. Sound toggle respected.

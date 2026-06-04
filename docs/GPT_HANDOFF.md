@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Shop Mission speech feedback)_
+_Last updated: 2026-06-04 (Battle Home experience)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,15 @@ _Last updated: 2026-06-04 (Shop Mission speech feedback)_
 
 ## Latest Session Summary
 
-**What changed this session (Shop Mission speech feedback — code change):**
+**What changed this session (Battle Home experience — code change):**
+
+- `src/components/BottomNav.jsx` — ⚔️ badge removed from Collection tab entirely.
+- `src/App.jsx` — `challengerOpen` state lifted from ChallengerOverlay; useEffect fires when `pendingChallenger` set; props wired to ChallengerOverlay and Home.
+- `src/components/ChallengerOverlay.jsx` — internal visible state replaced by `open`/`onClose` props.
+- `src/components/Home.jsx` — battle added to Adventure Director priority (hatch → battle → shop → weakest subject). When `pendingChallenger` exists: dark gradient card with challenger emoji + "มอนสเตอร์ปรากฏตัว!" — tap opens ChallengerOverlay.
+- Build: ✅ zero errors.
+
+**Previous session (Shop Mission speech feedback — code change):**
 
 - `src/games/GameShop.jsx` — `speakTh`/`speakEn` imported. `THAI_NUMS` array added. After each correct answer: Thai → speak Thai word (380ms delay); English → speak English word (380ms); Math/counting → speak Thai number word (หนึ่ง/สอง/สาม...). Social phrase question speaks the child's actual choice (ขอบคุณครับ or ขอบคุณค่ะ). All existing tones preserved. Sound toggle respected via `_soundOn` inside speak functions.
 - `docs/research/progression/gameplay-loop.md` — "Learning Feedback Principles" section added: visual/sound/speech pattern, principles, implementation status table, what to avoid.

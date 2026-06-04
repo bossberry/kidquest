@@ -1,45 +1,52 @@
-# Session Summary — 2026-06-04 (Shop Mission speech feedback)
+# Session Summary — 2026-06-04 (Battle Home experience)
 
 **Session type:** Code change. Build ✅ zero errors.
 
 **Files changed:**
-- `src/games/GameShop.jsx` — speech added after correct answers
-- `docs/research/progression/gameplay-loop.md` — Learning Feedback Principles section added
-- `docs/GPT_NOTES.md` — Learning Feedback Principles section added
-- `docs/TASKS.md` — task marked done
-- `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
+- `src/components/BottomNav.jsx` — ⚔️ badge removed
+- `src/App.jsx` — `challengerOpen` state lifted; useEffect watches `pendingChallenger`; props passed to ChallengerOverlay and Home
+- `src/components/ChallengerOverlay.jsx` — accepts `open`/`onClose` props; internal `visible` state and its useEffect removed
+- `src/components/Home.jsx` — `onOpenChallenger` prop; battle case in `getRecommendation` and `handleRecommendedAction`
+- `docs/CURRENT_STATE.md`, `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
 
-## What changed in GameShop.jsx
+## What changed
 
-Three additions:
-1. `speakTh, speakEn` added to import from `'../lib/audio.js'`
-2. `THAI_NUMS` array added (หนึ่ง through สิบ) for math/counting speech
-3. After each correct answer, in the `check()` function:
-   - Thai questions → `setTimeout(() => speakTh(val), 380)` — speaks the Thai word/phrase the child just matched
-   - English questions → `setTimeout(() => speakEn(val), 380)` — speaks the English word
-   - Math/counting → `setTimeout(() => speakTh(THAI_NUMS[val] || String(val)), 380)` — speaks Thai number word
+### Problem
+When a challenger appeared and the child dismissed it with "ไว้ทีหลัง", the only re-entry point was a small ⚔️ badge on the Collection tab in BottomNav — which looked like a UI bug to a child.
 
-## Why 380ms delay
-The `playTone('correct')` tone plays for ~280ms. The `playTone('streak')` plays for ~320ms. 380ms gives the tone time to finish before speech starts, avoiding audio collision. Speech uses `speechSynthesis`, which is separate from Web Audio API, so they technically don't block each other — but the delay makes the feedback feel sequential and clean rather than simultaneous.
+### Solution
 
-## Sound toggle
-`speakTh` and `speakEn` both check `_soundOn` internally before doing anything. If the user has muted, no speech plays. No extra guard needed at the call site.
+**BottomNav**: Removed `hasChallenger` check and the ⚔️ badge. Collection tab is now a clean icon with no badge.
 
-## What was NOT changed
-- All tone calls preserved (correct, wrong, streak, fanfare, next)
-- All game logic unchanged
-- No new audio assets
-- No new audio engine
+**ChallengerOverlay**: Internal `visible` useState removed. Now controlled by `open`/`onClose` props from App. Removed the useEffect that auto-set `visible=true`. The "ไว้ทีหลัง" button now calls `onClose()` instead of `setVisible(false)`. The BattleScreen's onClose also calls `onClose()` + resets `phase` + `selectedEgg`.
 
-## Learning goal
-After tapping the correct answer:
-1. Visual: green highlight + feedback message
-2. Sound: correct/streak tone
-3. Speech: spoken word (380ms after)
+**App.jsx**: 
+- `challengerOpen` state added (default: false)
+- `useEffect(() => { if (state.pendingChallenger) setChallengerOpen(true) }, [state.pendingChallenger])` — auto-shows overlay when a new challenger arrives
+- `<ChallengerOverlay open={challengerOpen} onClose={() => setChallengerOpen(false)} />`
+- `<Home ... onOpenChallenger={() => setChallengerOpen(true)} />`
 
-Child hears the word they just learned to recognize → written word + spoken sound + meaning all fire together. This is especially important for Thai and English vocabulary acquisition.
+**Home.jsx**:
+- `getRecommendation()` — battle added between hatch and shop:
+  ```
+  hatch (readyToHatch && stage >= 6)
+  → battle (pendingChallenger)  ← NEW
+  → shop (shopV1.runs === 0)
+  → weakest subject
+  ```
+- Battle card: dark gradient bg `linear-gradient(135deg,#1a0a3a,#3c1a6e)`, challenger emoji as icon, "มอนสเตอร์ปรากฏตัว!" label, "[challenger name] กำลังท้าทายคุณ — รับคำท้า!" sub
+- `handleRecommendedAction()` — battle case calls `onOpenChallenger()`
+
+## Visual result
+When a challenger is pending, the Home screen shows:
+- Egg (as before)
+- Continue Adventure card with dark purple gradient: `[challenger emoji]` + "มอนสเตอร์ปรากฏตัว!" + challenger name and call to action
+- "อยากเลือกเอง?" toggle (below)
+- Egg Run, Surprise Event, Stats (as before)
+
+When the child taps the battle card → ChallengerOverlay appears with full dramatic presentation.
+When no challenger is pending → Continue Adventure shows shop (first run) or weakest subject as before.
 
 ## Known risks
-- **Browser TTS voice availability varies.** If no Thai voice is installed (common on some Android/Windows), `speakTh` falls back to the default voice with `lang='th-TH'`. The speech may sound wrong but won't crash.
-- **iOS requires user interaction to initiate audio.** First tap on a choice should satisfy this requirement. `getACtx()` is already called on first `playTone`, which primes the audio context.
-- **Speech may feel slow on low-end devices.** If TTS is slow to initialize, the 380ms delay might feel tight. Acceptable risk — the feedback is still correct if delayed.
+- `phase` state in ChallengerOverlay persists between open/close cycles. If a child enters eggSelect, dismisses, and re-opens, they'll see eggSelect again (not toast). This is acceptable UX — they were already selecting, re-show is reasonable. If it's a problem, add `useEffect(() => { if (open) setPhase('toast') }, [open])`.
+- `useEffect` in App.jsx fires on every `pendingChallenger` change. If state is loaded from localStorage with an existing challenger, the overlay will show on app start. This is correct behavior — the challenger has been waiting.

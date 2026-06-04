@@ -42,6 +42,15 @@ function getRecommendation(state, stage) {
       bg: '#FFF8E1', border: '#FFD700', textColor: '#5A3A00', subColor: '#8A5500',
     }
   }
+  if (state.pendingChallenger) {
+    const ch = state.pendingChallenger
+    return {
+      type: 'battle', icon: ch.emoji || '⚔️',
+      label: 'มอนสเตอร์ปรากฏตัว!', sub: `${ch.name} กำลังท้าทายคุณ — รับคำท้า!`,
+      bg: 'linear-gradient(135deg,#1a0a3a,#3c1a6e)',
+      border: '#7F77DD', textColor: '#fff', subColor: 'rgba(255,255,255,.75)',
+    }
+  }
   if ((state.shopV1?.runs || 0) === 0) {
     return {
       type: 'shop', icon: '🏪',
@@ -77,7 +86,7 @@ function getSurpriseEvent(state, eggsHatched) {
 const MG_ICONS = { catch:'🧺', memory:'🃏', tower:'🏗️', fishing:'🎣' }
 const MG_NAMES = { catch:'Egg Catch', memory:'Egg Memory', tower:'Egg Tower', fishing:'Egg Fishing' }
 
-export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile }) {
+export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile, onOpenChallenger }) {
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
   const [authUser, setAuthUser] = useState(null)
   const [subjectsOpen, setSubjectsOpen] = useState(false)
@@ -118,6 +127,8 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
   const handleRecommendedAction = () => {
     if (rec.type === 'hatch') {
       dispatch({ type: ACTIONS.SET_HATCHING, payload: true })
+    } else if (rec.type === 'battle') {
+      onOpenChallenger()
     } else if (rec.type === 'shop') {
       startWorld('shop')
     } else if (rec.type === 'learn') {

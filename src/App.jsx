@@ -22,7 +22,12 @@ export default function App() {
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [challengerOpen, setChallengerOpen] = useState(false)
   const { state, dispatch } = useAppState()
+
+  useEffect(() => {
+    if (state.pendingChallenger) setChallengerOpen(true)
+  }, [state.pendingChallenger])
 
   useEffect(() => { initVoices() }, [])
   useEffect(() => { setSoundOn(soundOn) }, [soundOn])
@@ -43,7 +48,7 @@ export default function App() {
       <HatchOverlay onClose={() => navigate('home')} suppressAutoOpen={screen === 'game'} />
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <ChallengerOverlay />
+      <ChallengerOverlay open={challengerOpen} onClose={() => setChallengerOpen(false)} />
 
       {/* Screens */}
       {screen === 'home' && (
@@ -58,6 +63,7 @@ export default function App() {
           onOpenEggPopup={() => setEggPopupOpen(true)}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
+          onOpenChallenger={() => setChallengerOpen(true)}
         />
       )}
       {screen === 'collection' && <Collection />}

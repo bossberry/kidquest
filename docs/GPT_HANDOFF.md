@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle Feel Polish Pass)_
+_Last updated: 2026-06-04 (Pokémon-Style Learning Battle — all 3 subjects)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,17 @@ _Last updated: 2026-06-04 (Battle Feel Polish Pass)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle Feel Polish Pass — docs only):**
+**What changed this session (Pokémon-Style Learning Battle — code change):**
+
+- `src/games/MoveSelectBattleMode.jsx` — NEW. Pokémon-style battle shell for all 3 subjects (Math/Thai/English). Move panel: 2×2 grid, each card = `[element icon] [answer content]`. No player HP — egg never in danger. Wrong = miss fizzle + "โจมตีพลาด!" + continue. Combo system: streak 2=glow, 3=combo flash, 4+=CRITICAL ×1.5 damage. Ultimate: after 3 consecutive correct, charges (×2 damage on next correct, huge effect). Boss at 12% rate (more HP, "BOSS" badge). Teach intro overlay on first-ever level play. Anticipation sequence: tap → card pulse (CSS) → egg charge → egg lunge → hit/miss effects (total ≤ 1000ms). Egg companion: charge/lunge animations, combo glow ring (builds with streak), near-hatch glow, victory bounce. Victory always at end of question 8: enemy defeat animation → confetti → fanfare → result screen.
+- `src/games/GameSubjectAdventure.jsx` — Modified. Added `genThaiMoveQ()` (emoji choices instead of letter choices — hear word → tap picture) and `genEngMoveQ()` (same). `genMoveQuestion()` dispatches by subject. Session now generates battle-format questions when `mode === 'battle'`, classic questions for chase/defense. Replaced `BattleMode` import with `MoveSelectBattleMode`. Passes `isFirstLevel` prop. `ResultScreen` updated: hides score/accuracy from child — only shows `+XP` and `🥚 ไข่โตขึ้น!`. Score still recorded in sessionLog for parent Report.
+- `src/lib/audio.js` — 3 new tones: `miss` (soft descending fizzle, no harsh sound), `combo` (rising 3-note chime), `ultimate` (7-note ascending power fanfare).
+- `src/styles.css` — 5 new keyframes: `move-pulse`, `egg-charge`, `miss-fizzle`, `enemy-defeat`, `crit-flash`. All under `prefers-reduced-motion` suppression.
+- Build: ✅ zero errors. GameSubjectAdventure chunk: 36.39KB (was 32.40KB).
+
+---
+
+**What changed last session (Battle Feel Polish Pass — docs only):**
 
 - `docs/research/gameplay/pokemon-style-learning-battle.md` — Updated to align fully with `battle-feel-philosophy.md`. Authority note added: Battle Feel Philosophy governs all conflicts. Key changes: (1) Player HP removed — no HP bar, no defeat screen, no gentle defeat, no losing states; wrong answer = miss → fizzle → enemy taunts → continue; (2) Enemy counter-attack mechanic removed — replaced with: wrong → miss → enemy laughs → continue; no punishment accumulation, no strike count; (3) Move names reduced to tiny flavor text — icons and answers are primary; move card examples updated; (4) Battle log aligned to short format: "⚡ Thunder!", "โจมตีพลาด!", "คอมโบ!", "CRITICAL!", "ชนะแล้ว!"; (5) `gentle-defeat` audio removed, `enemy-taunt` added; (6) Session structure updated: "child cannot lose" is the stated design; (7) Open question 3 (player HP) resolved: removed.
 - `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section updated with all Battle Feel Polish decisions.
@@ -237,7 +247,8 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Egg pacing**: first egg 120 XP (fast onboarding), later eggs scale by `min(800, 120 + n×60)`. Visual progress and drawEgg canvas both use scaled stage.
 - **Creature stats rebalanced**: weighted formula — every stat has 40% base floor. No stat can be 0. Deterministic ±5% personality variation. Migration recalculates broken (0/NaN) stats.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
-- **Subject Adventure Engine**: Continue Adventure routes all subjects to GameSubjectAdventure. 3 modes: BattleMode (attack enemy), ChaseMode (close distance), DefenseMode (shield baby). Mode rotates daily per subject. All 3 subjects. TTS on Thai/English. Full XP/sessionLog/level-unlock dispatch.
+- **Pokémon-Style Learning Battle**: `MoveSelectBattleMode.jsx` is the new battle mode in Subject Adventure Engine for all 3 subjects. Battle-first: move panel replaces quiz panel. No player HP. Combo/ultimate system. Boss encounters. Teach intro first play. Child result screen hides accuracy/score.
+- **Subject Adventure Engine**: Continue Adventure routes all subjects to GameSubjectAdventure. 3 modes: MoveSelectBattleMode (Pokémon-style), ChaseMode (close distance), DefenseMode (shield baby). Mode rotates daily per subject. All 3 subjects. TTS on Thai/English. Full XP/sessionLog/level-unlock dispatch.
 - Turn-based battle (BattleScreen) + learning special move (mid-battle emoji question, TTS); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
 - Supabase auth + cloud sync; full guest mode
@@ -354,9 +365,9 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 6. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
 7. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
 
-**Claude Code — after GPT answers open questions:**
-1. **PSLB-0: Battle Feel Baseline** — implement `MoveSelectBattleMode.jsx` anticipation sequence shell first. Tap → pulse → charge → egg lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check. CSS-driven, ≤ 1000ms. No content yet. Spec: `docs/research/gameplay/battle-feel-philosophy.md`.
-2. **PSLB-1: Math Move-Select Battle** — new `MoveSelectBattleMode.jsx`. Move panel (4 buttons: icon + name + number). Correct = attack fires; wrong = miss. Reuse EggCanvas + existing BattleMode HP/enemy/animation.
+**Claude Code — next:**
+1. **Play Pokémon Battle with Chopin** — Test all 3 subjects. Does it feel like battle not quiz? Are tap targets large enough? Does the combo/ultimate feel exciting? Report to `GPT_NOTES.md`.
 2. **ECA-MVP-3: Relationship data fields** — `adventuresWith`, `questionsAnswered`, `eggStartDate` to egg object in `defaultState()`. Increment in `ADD_XP` reducer.
-3. Phase E: Shop Stretch implementation + mastery-gate UI (after play validation)
-4. (Later) Cooking Mission MVP — only after Subject Readiness data from real play accumulates
+3. **BattleMode.jsx cleanup** — `BattleMode.jsx` is now dead code (no imports). Safe to delete in a cleanup pass. Confirm no other file references it before deleting.
+4. Phase E: Shop Stretch implementation + mastery-gate UI (after play validation)
+5. (Later) Cooking Mission MVP — only after Subject Readiness data from real play accumulates

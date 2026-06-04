@@ -53,6 +53,10 @@ export function playTone(type) {
     // Adventure modes
     else if(type==='dash'){t(400,0,.1,.14,'sawtooth');t(600,.05,.08,.12,'sawtooth');t(900,.1,.1,.1,'sine')}
     else if(type==='block'){t(150,0,.08,.28,'square');t(220,.05,.08,.22,'square');t(330,.1,.1,.16,'sine')}
+    // Battle move sounds
+    else if(type==='miss'){t(320,0,.18,.22,'sawtooth');t(250,.1,.14,.20,'sawtooth');t(180,.2,.1,.18,'sawtooth')}
+    else if(type==='combo'){t(659,0,.18,.18,'triangle');t(784,.08,.18,.18,'triangle');t(1047,.16,.2,.22,'triangle')}
+    else if(type==='ultimate'){[523,659,784,1047,1319,1568,2093].forEach((f,i)=>t(f,i*.07,.28,.45,'triangle'));t(2093,.6,.3,.5,'sine')}
   } catch(e) {}
 }
 

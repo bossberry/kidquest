@@ -3,7 +3,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, shuffle } from '../config/gameConfig.js'
 import { playTone, speakTh, speakEn } from '../lib/audio.js'
 import { showToast, spawnConfetti } from '../components/Toasts.jsx'
-import BattleMode from './BattleMode.jsx'
+import MoveSelectBattleMode from './MoveSelectBattleMode.jsx'
 import ChaseMode from './ChaseMode.jsx'
 import DefenseMode from './DefenseMode.jsx'
 
@@ -81,6 +81,40 @@ function genQuestion(subject, lv) {
   return genEngQ()
 }
 
+// ── Battle-mode question generators (emoji choices for Thai/Eng) ───────────────
+
+function genThaiMoveQ() {
+  const items = shuffle([...TH_ALPHA])
+  const correct = items[0]
+  const wrongs  = items.slice(1, 4)
+  return {
+    isThai:  true,
+    ttsWord: correct.word,
+    answer:  correct.emoji,
+    choices: shuffle([correct.emoji, ...wrongs.map(w => w.emoji)]),
+    word:    correct.word,
+  }
+}
+
+function genEngMoveQ() {
+  const items = shuffle([...EN_ALPHA])
+  const correct = items[0]
+  const wrongs  = items.slice(1, 4)
+  return {
+    isEng:   true,
+    ttsWord: correct.word,
+    answer:  correct.emoji,
+    choices: shuffle([correct.emoji, ...wrongs.map(w => w.emoji)]),
+    word:    correct.word,
+  }
+}
+
+function genMoveQuestion(subject, lv) {
+  if (subject === 'math') return genMathQ(lv)
+  if (subject === 'thai') return genThaiMoveQ()
+  return genEngMoveQ()
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function pickMode(sessionLog, subject) {
@@ -108,16 +142,13 @@ function getLevelConfig(subject, state) {
 
 const SUBJECT_COLORS = { math:'#1a1040', thai:'#0d2b1d', eng:'#0a1f3d' }
 
-function ResultScreen({ score, total, xp, subject, onReplay, onHome }) {
-  const p = score / total
-  const won = p >= 0.5
+function ResultScreen({ xp, subject, onReplay, onHome }) {
   return (
     <div style={{ minHeight:'100%', background:SUBJECT_COLORS[subject]||'#1a1040', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Mitr,sans-serif', textAlign:'center' }}>
-      <div style={{ fontSize:80, marginBottom:8 }} className={won ? 'victory-bounce' : ''}>{won ? '🎉' : '💪'}</div>
-      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:won?'#FFD700':'#fff', marginBottom:8 }}>
-        {won ? 'ยอดเยี่ยม!' : 'สู้ต่อไปนะ!'}
-      </div>
-      <div style={{ fontSize:14, color:'rgba(255,255,255,.7)', marginBottom:20 }}>{score}/{total} ถูก · +{xp} XP</div>
+      <div style={{ fontSize:80, marginBottom:8, animation:'victory-bounce .7s ease' }}>🎉</div>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'#FFD700', marginBottom:6 }}>ชนะแล้ว!</div>
+      <div style={{ fontSize:15, color:'rgba(255,255,255,.85)', marginBottom:4 }}>🥚 ไข่ของเราโตขึ้น!</div>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'#fff', marginBottom:24 }}>+{xp} XP</div>
       <button onClick={onReplay} style={{ width:'100%', maxWidth:320, background:'#7F77DD', color:'#fff', border:'none', borderRadius:12, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:700, cursor:'pointer', marginBottom:10 }}>
         🔄 เล่นอีกครั้ง!
       </button>
@@ -132,10 +163,14 @@ function ResultScreen({ score, total, xp, subject, onReplay, onHome }) {
 
 function Session({ navigate, subject, onReset }) {
   const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
-  const lv = useMemo(() => getLevelConfig(subject, state), [subject]) // eslint-disable-line
-  const mode = useMemo(() => pickMode(state.sessionLog, subject), []) // eslint-disable-line
+  const lv   = useMemo(() => getLevelConfig(subject, state), [subject]) // eslint-disable-line
+  const mode = useMemo(() => pickMode(state.sessionLog, subject), [])   // eslint-disable-line
+  const isFirstLevel = !(state.levelMastery?.[subject]?.[lv?.id || 1])
 
-  const [qs] = useState(() => Array.from({ length:TOTAL_QS }, () => genQuestion(subject, lv)))
+  const [qs] = useState(() => {
+    const gen = mode === 'battle' ? genMoveQuestion : genQuestion
+    return Array.from({ length:TOTAL_QS }, () => gen(subject, lv))
+  })
   const [cur, setCur]       = useState(0)
   const [score, setScore]   = useState(0)
   const [streak, setStreak] = useState(0)
@@ -210,14 +245,19 @@ function Session({ navigate, subject, onReset }) {
   }
 
   if (done) {
-    return <ResultScreen score={score} total={TOTAL_QS} xp={xp} subject={subject} onReplay={onReset} onHome={() => navigate('home')} />
+    return <ResultScreen xp={xp} subject={subject} onReplay={onReset} onHome={() => navigate('home')} />
   }
   if (!q) return null
 
-  const modeProps = { q, cur, total:TOTAL_QS, streak, subject, onCorrect:handleCorrect, onWrong:handleWrong, onNext:handleNext, onSpeak,
-    eggStats:eggStatsData, eggProgress:eggProgressData, readyToHatch:state.readyToHatch }
+  const modeProps = {
+    q, cur, total:TOTAL_QS, streak, subject,
+    onCorrect:handleCorrect, onWrong:handleWrong, onNext:handleNext, onSpeak,
+    eggStats:eggStatsData, eggProgress:eggProgressData,
+    readyToHatch:state.readyToHatch,
+    isFirstLevel,
+  }
 
-  if (mode === 'battle') return <BattleMode {...modeProps} />
+  if (mode === 'battle') return <MoveSelectBattleMode {...modeProps} />
   if (mode === 'chase')  return <ChaseMode {...modeProps} />
   return <DefenseMode {...modeProps} />
 }

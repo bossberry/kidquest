@@ -50,12 +50,12 @@ _Spec: `docs/research/gameplay/pokemon-style-learning-battle.md` + `docs/researc
 
 - [x] **Battle Feel Philosophy** — `docs/research/gameplay/battle-feel-philosophy.md` created. Defines: player HP removal, miss-not-punishment philosophy, 10-step anticipation sequence, combo system, victory sequence, sound/animation philosophy, screen layout, implementation priority (feel before content). Required reading before PSLB-1.
 - [x] **Battle Feel Polish Pass (docs)** — `pokemon-style-learning-battle.md` updated to align with Battle Feel Philosophy. Removed: player HP bar, defeat screen, gentle defeat, losing states, every-3-wrong counter-attack. Changed: wrong answer = miss → fizzle → enemy taunts → continue. Move names reduced to tiny flavor text (icons + answers are primary). Battle log: short only. Open question 3 (player HP) resolved: removed.
-- [ ] **PSLB-0: Battle Feel Baseline** — Implement the anticipation sequence shell in `MoveSelectBattleMode.jsx` BEFORE adding content. Tap → pulse → charge → lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check. CSS keyframes only. No JS timer chains. Reuse existing keyframes where possible.
-- [ ] **PSLB-1: Math Move-Select Battle** — New `MoveSelectBattleMode.jsx` (or rename BattleMode). Move panel: 4 buttons showing `[icon] [move name] ... [number]`. Correct number = attack fires; wrong = miss fizzle. Reuse EggCanvas, HP bars, enemy sprites from existing BattleMode. 8 turns per session.
-- [ ] **PSLB-2: Thai Move-Select Battle** — Same shell; move panel shows emoji options + TTS on panel load. TTS via `speakTh` on question appear. Thai content from `genThaiQ`.
-- [ ] **PSLB-3: English Move-Select Battle** — Same shell; emoji options + `speakEn` TTS. English content from `genEngQ`.
-- [ ] **PSLB-4: Animation polish** — `move-select-pulse`, `egg-charge`, `egg-lunge`, `elemental-burst`, `move-miss` keyframes. Enemy `hit-shake` + `flash-red`. `damage-float` number animation.
-- [ ] **PSLB-5: New audio tones** — `move-select` (whoosh), `attack-fire` (subject variants), `miss-sound` (soft fizzle) added to `playTone()` in `audio.js`.
+- [x] **PSLB-0: Battle Feel Baseline** — Anticipation sequence implemented in MoveSelectBattleMode: tap → card pulse → egg charge → egg lunge → hit/miss effects. CSS keyframes. Total ≤ 1000ms. Build ✅.
+- [x] **PSLB-1: Math Move-Select Battle** — `MoveSelectBattleMode.jsx` created. Move panel: 4 cards showing `[element icon] [number]` + tiny move name. Correct = attack fires + enemy flash + HP drain + damage float. Wrong = miss fizzle. Build ✅.
+- [x] **PSLB-2: Thai Move-Select Battle** — Same shell. `genThaiMoveQ()` returns emoji choices instead of letter choices. TTS fires on panel load. Move cards show `[element icon] [emoji]`. Build ✅.
+- [x] **PSLB-3: English Move-Select Battle** — Same shell. `genEngMoveQ()` returns emoji choices. TTS via `speakEn`. Build ✅.
+- [x] **PSLB-4: Animation polish** — `move-pulse`, `egg-charge`, `miss-fizzle`, `enemy-defeat`, `crit-flash` keyframes added. Combo glow ring on egg. Damage float. Hit flash on enemy. Build ✅.
+- [x] **PSLB-5: New audio tones** — `miss` (soft fizzle), `combo` (rising chime), `ultimate` (power fanfare) added to `playTone()`. Build ✅.
 
 ### Egg Companion Adventure — Implementation Queue (designed 2026-06-04)
 

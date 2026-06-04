@@ -66,9 +66,12 @@ function getRecommendation(state, stage) {
     { world:'eng',  xp:state.xpEng ||0, label:'English',  icon:'🔤', lv:levels.eng ||1, bg:'#E6F1FB', border:'#B5D4F4', textColor:'#0C447C', subColor:'#185FA5' },
   ]
   const weak = subs.reduce((a, b) => a.xp <= b.xp ? a : b)
+  const isMathBattle = weak.world === 'math'
   return {
-    type: 'learn', world: weak.world, icon: weak.icon,
-    label: weak.label, sub: `Lv ${weak.lv} — เรียนต่อ!`,
+    type: 'learn', world: weak.world,
+    icon: isMathBattle ? '⚔️' : weak.icon,
+    label: isMathBattle ? 'Math Battle' : weak.label,
+    sub: isMathBattle ? `Lv ${weak.lv} — ตอบถูก = โจมตี! ⚡` : `Lv ${weak.lv} — เรียนต่อ!`,
     bg: weak.bg, border: weak.border, textColor: weak.textColor, subColor: weak.subColor,
   }
 }
@@ -141,7 +144,8 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
     } else if (rec.type === 'shop') {
       startWorld('shop')
     } else if (rec.type === 'learn') {
-      startWorld(rec.world)
+      // Math recommendation → battle mode (experiment); Thai/English → normal flow
+      startWorld(rec.world === 'math' ? 'mathbattle' : rec.world)
     }
   }
 

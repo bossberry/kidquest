@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Subject progression documentation)_
+_Last updated: 2026-06-04 (Battle progression documentation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Subject progression documentation)_
 
 ## Latest Session Summary
 
-**What changed this session (Subject progression documentation — docs only):**
+**What changed this session (Battle progression documentation — docs only):**
+
+- `docs/research/battle/battle-progression.md` — source-of-truth created. Covers: core loop (Learn→XP→Egg→Hatch→Creature→Battle→Learn), battle as reward not primary game, creature philosophy (every creature usable), gentle enemy scaling, Challenger every 15 rounds, loss philosophy (no permanent penalties), reward design, self-directed frequency, non-goals (no PvP/leaderboards/pay-to-win/gacha/energy), future features (evolution/equipment/rarity/bosses), system relationships, known BattleScreen text bug (ATK advice still says Thai not Math), 5 open questions.
+- `docs/RESEARCH_INDEX.md` — battle-progression.md entry added.
+- `docs/GPT_NOTES.md` — Battle Progression Philosophy section added.
+- No code changes. No build.
+
+**Previous session (Subject progression documentation — docs only):**
 
 - `docs/research/progression/subject-progression.md` — source-of-truth created. Covers: core philosophy (subjects primary, missions secondary), unlock thresholds (70 soft pass / 80 unlock / 90 mastery), replay always valid with full XP, mastery = confidence not perfection, stretch/challenge optional layers, subject independence, readiness vs. highest unlock, non-goals, future grade roadmap, 5 open questions.
 - `docs/RESEARCH_INDEX.md` — Progression section added.

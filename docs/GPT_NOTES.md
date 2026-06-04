@@ -3,6 +3,21 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Battle Progression Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/battle/battle-progression.md`
+
+- **Battle is downstream from learning.** The core loop is Learn → XP → Egg → Hatch → Creature → Battle → Learn again. Battle is the payoff, not the game.
+- **Battle should feel exciting and low-pressure.** Children should want to battle, not fear losing. Loss changes nothing permanently — no lost creatures, no lost progress.
+- **Enemy scaling is gentle.** Children should usually win. Challenger every 15 `dailyBattleRounds` provides occasional challenge. No sudden difficulty spikes.
+- **Battle frequency is self-directed.** No mechanism forces battling. Adventure Director recommends learning, not battling. Battle is a child-chosen reward.
+- **Battle rewards support learning loop.** XP, cosmetics, egg progress — rewards flow back into learning motivation. Battle must not replace subject progression.
+- **No permanent penalties.** A loss leaves all state identical to before. No creature loss, no XP deduction, no item loss.
+- **Known text bug:** `BattleScreen.jsx` advice still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but ATK is now Math-weighted. Fix when next touching that file.
+- **Open questions for GPT:** (1) Should battle contribute XP to the next egg? (2) Should Challenger trigger adjust as creatures get stronger? (3) Should loss provide a learning prompt, or does that feel punishing?
+
+---
+
 ## Subject Progression Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/progression/subject-progression.md`

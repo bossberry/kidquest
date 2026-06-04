@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle progression documentation
+
+- `docs/research/battle/battle-progression.md` — created. Source-of-truth for battle progression philosophy: core loop (Learn→Battle→Learn), battle as reward not primary game, creature philosophy (every creature usable), gentle enemy scaling, Challenger every 15 rounds, loss philosophy (no permanent penalties), reward design (supports learning), self-directed frequency, explicit non-goals (no PvP/leaderboards/pay-to-win/gacha/energy), future features (evolution/equipment/rarity/bosses), system relationships, known BattleScreen text bug, 5 open design questions.
+- `docs/RESEARCH_INDEX.md` — battle-progression.md entry added to Battle section.
+- `docs/GPT_NOTES.md` — Battle Progression Philosophy section added.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Subject progression documentation
 
 - `docs/research/progression/subject-progression.md` — created. Source-of-truth for subject progression philosophy: core philosophy (subjects primary, missions secondary), progression flow, unlock thresholds (70/80/90%), replay always valid with full XP, mastery = confidence not perfection, stretch/challenge optional bonus layers, subject independence, readiness vs. highest unlock level, explicit non-goals, future grade roadmap, implementation reference, 5 open questions.

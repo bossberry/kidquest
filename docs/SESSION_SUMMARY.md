@@ -1,38 +1,39 @@
-# Session Summary — 2026-06-04 (Subject progression documentation)
+# Session Summary — 2026-06-04 (Battle progression documentation)
 
 **Session type:** Documentation only. No code changes. No build.
 
 **Files created/changed:**
-- `docs/research/progression/subject-progression.md` — new (created)
-- `docs/RESEARCH_INDEX.md` — Progression section added
-- `docs/GPT_NOTES.md` — Subject Progression Philosophy section added
+- `docs/research/battle/battle-progression.md` — new (created)
+- `docs/RESEARCH_INDEX.md` — battle-progression.md entry added
+- `docs/GPT_NOTES.md` — Battle Progression Philosophy section added
 - `docs/TASKS.md` — task marked done
 - `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
 
 ## What was documented
 
-`docs/research/progression/subject-progression.md` is the source-of-truth for subject progression philosophy.
+`docs/research/battle/battle-progression.md` is the source-of-truth for battle progression philosophy.
 
 Covers:
-1. Core philosophy — subjects (Thai/Math/English) are primary; missions are secondary applied contexts
-2. Progression flow — Play → Score → XP → Replay → Mastery → Unlock
-3. Unlock thresholds — <70% try again; 70–79% soft pass; ≥80% unlock; ≥90% mastery fanfare
-4. Replay philosophy — replay is never punished; full XP always; replay is a valid learning behavior
-5. Mastery philosophy — confidence + consistency + enjoyment; not speed, not perfection, not competition
-6. Stretch/Challenge layers — Core always playable; Stretch/Challenge are optional bonuses, never required
-7. Subject independence — Thai/Math/English progress independently; no subject is more important
-8. Observation relationship — highest unlock ≠ readiness; readiness comes from session logs
-9. Explicit non-goals — no forced progression, no streak pressure, no timers, no leaderboards, no peer comparison
-10. Future grade progression — Year 1 scope fixed (KG + Early G1); Grade 1 full only when Chopin shows readiness
-11. Implementation reference — key files for each subject
-12. 5 open questions for future design
+1. Core loop — Learn → XP → Egg → Hatch → Creature → Battle → Rewards → Learn again
+2. Battle philosophy — exciting and low-pressure; not stressful, competitive, or grindy
+3. Creature philosophy — every creature usable; style differs, not viability; learning influences personality
+4. Unlock philosophy — battle unlocks naturally (first hatch = simplest trigger); appears as a reward, not a gate
+5. Enemy scaling — gentle; children should usually win; Challenger every 15 rounds for occasional challenge
+6. Reward philosophy — XP, cosmetics, egg progress; rewards support learning, not replace it
+7. Frequency — self-directed; Adventure Director recommends learning, not battling
+8. Loss philosophy — no permanent penalties; no lost creatures, XP, or items; retry always available
+9. Explicit non-goals — no PvP, no leaderboards, no pay-to-win, no gacha, no energy systems
+10. Future possibilities — evolution, equipment, rarity, bosses, regions (Year 1 scope stays simple)
+11. Relationships to other systems — creature-stats.md, egg-economy.md, subject-progression.md, play-observation-system.md
+12. Known text bug — BattleScreen.jsx advice still references old ATK formula (Thai→ATK, should be Math→ATK)
+13. 5 open questions for future design
 
 ## Open questions
 
 | Question | Status |
 |----------|--------|
-| Should Stretch unlock be per-level or per-subject? | 🔵 Open |
-| Should Adventure Director recommend Stretch explicitly? | 🔵 Open |
-| How to handle a subject with a long gap in sessions? | 🔵 Open |
-| What readiness threshold signals Grade 1 content readiness? | 🔵 Open |
-| Should replay at lower levels give reduced XP? | 🔵 Open |
+| Should battle contribute XP to the next egg? | 🔵 Open |
+| Should Challenger trigger adjust as creatures get stronger? | 🔵 Open |
+| Should there be a visual Challenger-approaching signal? | 🔵 Open |
+| Should loss provide a learning prompt, or does that feel punishing? | 🔵 Open |
+| Should evolution exist in Year 1? | 🔵 Open |

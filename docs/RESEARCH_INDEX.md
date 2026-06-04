@@ -13,6 +13,7 @@ _Last updated: 2026-06-04_
 ## Battle
 
 - [docs/research/battle/creature-stats.md](research/battle/creature-stats.md) — Creature stat design philosophy: weighted formula, subject-to-stat mapping, personality variation, migration rules, non-goals, future scaling
+- [docs/research/battle/battle-progression.md](research/battle/battle-progression.md) — Battle progression philosophy: core loop, battle as reward not primary game, enemy scaling, loss philosophy, reward design, frequency, non-goals, future features
 
 ---
 

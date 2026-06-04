@@ -33,7 +33,8 @@
 - **Challenger system**: every 15 `dailyBattleRounds` → random `AI_OPPONENTS` opponent; grade→tier: 0→T0, 1-2→T1, 3-4→T2, 5-6→T3
 - **AI_OPPONENTS all 6 tiers** (Sonic villain theme). **Rebalanced 2026-06-04**: enemy HP ×4 regular / ×3.5 boss; ATK ×2.5 — battles now last 6–15 turns instead of 2–4. Player still usually wins but takes meaningful HP loss.
   T0: Motobug/Buzzbomber/Crabmeat → Egg Pawn → Dr. Eggman I · T1: Caterkiller/Burrobot/Chopper → Egg Gunner → Dr. Eggman II · T2–T5: same villain progression
-- **Battle SFX**: `attack` (sword swing) + `hit` (impact) + `crit` (4-tone) + `win` (6-note fanfare) + `lose` (gentle descent). Sound toggle respected via `getSoundOn()` from audio.js.
+- **Learning special move**: Before each battle a knowledge question appears (subject chosen from most-played subject in `sessionLog`; falls back to simple Math). Correct → ⚡ special attack (25% bonus damage, 5-note 'special' SFX, gold flash) fires at battle start; enemy HP re-simulated from reduced starting HP so win condition is correct. Wrong/skip → no penalty, battle continues normally. One question per battle.
+- **Battle SFX**: `attack` (sword swing) + `hit` (impact) + `crit` (4-tone) + `special` (5-note ascending) + `win` (6-note fanfare) + `lose` (gentle descent). Sound toggle respected via `getSoundOn()` from audio.js.
 - **Item reward** on win; defeated bosses tracked in `defeatedBosses[]`
 
 ### Minigames (5 total — all lazy-loaded)

@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle balance and sound)_
+_Last updated: 2026-06-04 (Battle learning special move)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,10 +22,15 @@ _Last updated: 2026-06-04 (Battle balance and sound)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle balance and sound — code change):**
+**What changed this session (Battle learning special move — code change):**
+
+- `src/components/BattleScreen.jsx` — Learning-based special move added. Before each battle a question appears: "⚡ ตอบถูก ปล่อยท่าพิเศษ!" with 4 tap-target buttons + skip link. `pickBattleQuestion(sessionLog)` selects subject from most-played recent sessions (most comfortable readiness signal). Falls back to simple Math (1+1 to 4+4) when no session data. Correct → `specialDmg = ceil(opponent.HP × 0.25)`, brief "🔥 ท่าพิเศษพร้อมแล้ว!" feedback, battle starts; special attack fires FIRST (⚡ text + 5-note ascending 'special' SFX + gold damage float + hit flash). Enemy HP re-simulated from reduced starting HP so win condition is correctly earned. Wrong/skip → "💪 สู้ต่อไปนะ!" feedback, battle continues normally — no penalty. One question per battle only. Also added 'special' sound type. Bonus fix: ATK/DEF lose-screen advice text was showing wrong subjects (was Thai→ATK, Math→DEF; now correctly Math→ATK, Thai→DEF per calcCreatureStats formula).
+- Build: ✅ zero errors. Commit: d3ef85c.
+
+**What changed last session (Battle balance and sound — code change):**
 
 - `src/config/gameConfig.js` — AI_OPPONENTS rebalanced. Enemy HP ×4 (regular/miniboss) and ×3.5 (boss). Enemy ATK ×2.5 across all 6 tiers. Result: Tier 0 regular battles now last ~7 turns (was 2). Bosses ~14 turns (was 4). Player still usually wins but takes meaningful HP damage. DEF kept unchanged.
-- `src/components/BattleScreen.jsx` — Battle SFX fixed and improved. Added `import { getSoundOn, getACtx }` from audio.js. `playBattleSound` now checks `getSoundOn()` (respects sound toggle) and reuses shared AudioContext (no more per-call context leak). Sound types: `attack` (sword-swing whoosh, fires at "โจมตี!" text), `hit` (3-layer impact), `crit` (4-tone ascending), `win` (6-note fanfare up to 1319 Hz), `lose` (gentle 4-tone descent). `attack` sound added to `runAnimation` before the hit flash.
+- `src/components/BattleScreen.jsx` — Battle SFX fixed and improved. Added `import { getSoundOn, getACtx }` from audio.js. `playBattleSound` now checks `getSoundOn()` (respects sound toggle) and reuses shared AudioContext (no more per-call context leak). Sound types: `attack` (sword-swing whoosh), `hit` (3-layer impact), `crit` (4-tone ascending), `win` (6-note fanfare), `lose` (gentle 4-tone descent).
 - Build: ✅ zero errors.
 
 **What changed last session (Battle Home experience — code change):**
@@ -127,7 +132,7 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Egg pacing**: first egg 120 XP (fast onboarding), later eggs scale by `min(800, 120 + n×60)`. Visual progress and drawEgg canvas both use scaled stage.
 - **Creature stats rebalanced**: weighted formula — every stat has 40% base floor. No stat can be 0. Deterministic ±5% personality variation. Migration recalculates broken (0/NaN) stats.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
-- Turn-based battle; challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
+- Turn-based battle + learning special move (question before battle, correct → 25% bonus damage, wrong → no penalty); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
 - Supabase auth + cloud sync; full guest mode
 - Parent Report: overview, subject time, strengths, Mission Analytics, Subject Readiness, play history
@@ -225,7 +230,7 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 - **Home 2.0 recommendation is always lowest-XP subject** — intentional for balance. May feel repetitive if Chopin wants to replay a preferred subject. Could add "last played" tie-breaker later if needed.
 - **Surprise rotation with one unlocked game** — shows same game daily until a second is unlocked. Acceptable for now.
 - **Egg pacing affects only new eggs** — existing players with old state see correct new pacing on their NEXT egg (current egg's readyToHatch is recalculated on next ADD_XP).
-- **BattleScreen advice text mismatch** — BattleScreen still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but new formula maps Math→ATK. Minor UI text inconsistency; not fixed per task scope.
+- **Battle special move question is random within subject** — no difficulty progression within the subject's question pool. Always picks from early-level content (simple letter match / 1+1 to 4+4 / letter-emoji match). This is intentional for now; always achievable by a 5-year-old.
 - **Creature stats ~1.8× higher than before vs old enemies** — now resolved by the HP×4 / ATK×2.5 rebalance. Battles last 6–15 turns; player still favored but takes real HP damage.
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
 - No session audit trail in Supabase — all progress in one blob per user

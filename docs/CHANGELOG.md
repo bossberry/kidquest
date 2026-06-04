@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle learning special move
+
+- `src/components/BattleScreen.jsx` — New question phase before each battle. `pickBattleQuestion(sessionLog)` selects subject from most-played recent sessions (safest readiness signal); falls back to simple Math (1+1→4+4) when no data. Question UI: full-screen dark overlay, 4 large tap-target buttons, skip link. Correct answer → `specialDmgRef` = 25% of enemy HP; 900ms "🔥 ท่าพิเศษพร้อมแล้ว!" feedback; `setPhase('fighting')`. Wrong/skip → 700ms "💪 สู้ต่อไปนะ!" feedback; battle starts normally. Special attack plays at battle start: ⚡ text + new 5-note ascending 'special' SFX + hit flash + gold damage float. Enemy HP re-simulated from reduced starting value so win condition is correct. Also fixed ATK/DEF advice text mismatch (was: Thai→ATK, Math→DEF; now: Math→ATK, Thai→DEF to match calcCreatureStats formula).
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Battle balance and sound
 
 - `src/config/gameConfig.js` — All AI_OPPONENTS HP scaled ×4 (regular/miniboss) and ×3.5 (boss); all ATK scaled ×2.5. Battles now last 6–15 turns instead of 2–4.

@@ -11,8 +11,9 @@
 - [x] **Creature stats source-of-truth doc** — `docs/research/battle/creature-stats.md` created. Covers: weighted stat philosophy, why one-subject-one-stat is bad, example weightings (HP/ATK/DEF/SPD/CRIT), personality variation (±10% deterministic), migration rules, non-goals, future scaling. RESEARCH_INDEX.md, GPT_NOTES.md, TASKS.md updated.
 - [x] **Egg pacing + creature stat rebalance** — `scaledEggProgress()` in StateContext (required = min(800, 120 + n×60)); `calcCreatureStats()` weighted formula (40% base + 60% weighted — no stat ever 0); migration recalculates 0/NaN stats. Build ✅.
 - [x] **Shop feedback + hatch overlay fix** — `GameShop.jsx`: wrong-button shake (`.wrong` CSS), streak fire messages, prominent streak counter. `HatchOverlay.jsx`: freeze fixed (`setPhase('tapping')` in handleClose), mid-game auto-trigger suppressed via `suppressAutoOpen` prop. `App.jsx`: `suppressAutoOpen={screen === 'game'}`. Build ✅.
+- [x] **Home UI simplification** — Subject grid now collapsible behind "อยากเลือกเอง?" toggle (closed by default). Shop Mission card removed from main Home. Visual hierarchy: Egg → Continue Adventure → "อยากเลือกเอง?" → Egg Run → Surprise. Build ✅.
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
-- [ ] **D0: Shop card UX audit** — review Home 2.0 screen with Chopin. Does the Adventure Director feel natural? Does Chopin tap the big recommendation card? Does the Surprise section delight or confuse?
+- [ ] **D0: Home UX audit** — review simplified Home with Chopin. Does Continue Adventure feel like the obvious action? Does the "อยากเลือกเอง?" toggle feel discoverable?
 
 ---
 

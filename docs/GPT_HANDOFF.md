@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Observation philosophy documentation)_
+_Last updated: 2026-06-04 (Home UI simplification)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Observation philosophy documentation)_
 
 ## Latest Session Summary
 
-**What changed this session (Observation philosophy documentation — docs only):**
+**What changed this session (Home UI simplification — code change):**
+
+- `src/components/Home.jsx` — subject cards made collapsible: "หรือเลือกเรียน" static label → "อยากเลือกเอง?" toggle button (closed by default). Shop Mission permanent card removed. Visual hierarchy now: Egg → Continue Adventure (large) → "อยากเลือกเอง?" toggle → Egg Run → Surprise Event → Stats.
+- Shop still reachable via Continue Adventure recommendation (triggers when `shopV1.runs === 0`).
+- All game logic, minigame code, and recommendation logic unchanged.
+- Build: ✅ zero errors.
+
+**Previous session (Observation philosophy documentation — docs only):**
 
 - `docs/research/observation/observation-philosophy.md` — created. Covers: observe→understand→design loop, children are not their level (behavior > history), positive interpretation (replay = confidence-building), important signals vs. signals that must not dominate (no speed/streaks/rankings), Subject Readiness as observations not labels, parent report philosophy (no anxiety/grades/fear), mission follows child (deterministic design iteration not AI), non-goals (no AI tutoring/adaptive engines/manipulation/addiction optimization), system relationships, 5 open questions.
 - `docs/RESEARCH_INDEX.md` — Observation section added.

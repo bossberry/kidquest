@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Home UI simplification
+
+- `src/components/Home.jsx` — subject section made collapsible: "หรือเลือกเรียน" static label replaced with "อยากเลือกเอง?" toggle button (`subjectsOpen` useState, default false); subject cards hidden until toggled. Shop Mission permanent card removed from Home (Shop still reachable via Continue Adventure recommendation when shopV1.runs === 0). Visual hierarchy: Egg → Continue Adventure → "อยากเลือกเอง?" → Egg Run → Surprise.
+- `docs/CURRENT_STATE.md` — Home 2.0 and Shop Mission entries updated to reflect new state.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Observation philosophy documentation
 
 - `docs/research/observation/observation-philosophy.md` — created. Source-of-truth for observation philosophy: observe→understand→design loop, children are not their level (behavior > history), positive interpretation table, important signals (accuracy/replay/completion/consistency), signals that must not dominate (speed/streaks/rankings), Subject Readiness as observations not labels, parent report philosophy (no anxiety/grades/rankings), mission follows child (deterministic design iteration not AI), explicit non-goals (no AI tutoring/adaptive engines/manipulation/addiction optimization), system relationships, implementation reference, 5 open questions.

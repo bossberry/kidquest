@@ -1,39 +1,42 @@
-# Session Summary — 2026-06-04 (Observation philosophy documentation)
+# Session Summary — 2026-06-04 (Home UI simplification)
 
-**Session type:** Documentation only. No code changes. No build.
+**Session type:** Code change. Build ✅ zero errors.
 
-**Files created/changed:**
-- `docs/research/observation/observation-philosophy.md` — new (created)
-- `docs/RESEARCH_INDEX.md` — Observation section added (philosophy + play-observation-system entries)
-- `docs/GPT_NOTES.md` — Observation Philosophy section added
-- `docs/TASKS.md` — task marked done
+**Files changed:**
+- `src/components/Home.jsx` — subject section made collapsible; Shop card removed
+- `docs/CURRENT_STATE.md` — Home 2.0 and Shop Mission entries updated
+- `docs/TASKS.md` — Home simplification task marked done; audit task updated
 - `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
 
-## What was documented
+## What changed
 
-`docs/research/observation/observation-philosophy.md` is the source-of-truth for observation philosophy.
+### Problem
+Home showed too many equal-weight choices at once: Continue Adventure + subject cards (always visible) + Shop Mission card (always visible) + Egg Run + minigame. A 5-year-old faced a menu instead of a clear answer to "what do I do next?"
 
-Covers:
-1. Core philosophy — observe first, understand second, design third; real play beats theory
-2. Observation loop — Play → session logs → patterns → Subject Readiness → better design
-3. Children are not their level — highest unlock is history; behavior is current readiness
-4. Positive interpretation — replay = confidence-building; low accuracy = new material; no child is "behind"
-5. Important signals — accuracy, replay behavior, completion rate, consistency, voluntary repetition, time spent
-6. Signals that must not dominate — speed, competition, leaderboards, peer comparison, streaks, perfection
-7. Subject Readiness — 4 states (Strong/Comfortable/Exploring/Not Ready); observations not labels; states change
-8. Parent report philosophy — understand, not anxiety; no grades, rankings, fear framing, or "falling behind"
-9. Mission design philosophy — mission follows child; adapt through deterministic design iteration, not AI
-10. Explicit non-goals — no AI tutoring, no adaptive engines, no ranking, no manipulation, no addiction optimization
-11. System relationships — observation supports all systems; runs beneath the surface, invisible to child
-12. Implementation reference — sessionLog, LOG_SESSION, computeReadiness(), Report.jsx
-13. 5 open questions for future design
+### Changes to Home.jsx
 
-## Open questions
+1. **Subject cards → collapsible.** Added `subjectsOpen` useState (default: false). Replaced the static "หรือเลือกเรียน" label + always-visible grid with a small toggle button labeled "อยากเลือกเอง?" + chevron (▼/▲). Subject cards only appear when the child taps the toggle.
 
-| Question | Status |
-|----------|--------|
-| Should Adventure Director use Readiness state (not just XP)? | 🔵 Open |
-| Should parents see session-level detail or patterns only? | 🔵 Open |
-| Should sessionLog decay by recency (recent sessions weighted more)? | 🔵 Open |
-| Should Subject Readiness gate mission Stretch/Challenge unlock? | 🔵 Open |
-| How often should GPT review play data and propose design iteration? | 🔵 Open |
+2. **Shop Mission card → removed.** The permanent Shop card below the subjects is gone. Shop is still fully accessible — it appears in the Continue Adventure recommendation when `shopV1.runs === 0`. No shop functionality was removed.
+
+3. **Visual hierarchy now:**
+   - Egg status
+   - ⭐ Continue Adventure (large, primary action)
+   - "อยากเลือกเอง?" toggle (small, secondary)
+   - Egg Run banner
+   - 🎁 Surprise Event (single minigame or teaser)
+   - Stats strip
+
+### What was NOT changed
+- `getRecommendation()` — unchanged; Shop still recommended on first visit
+- `getSurpriseEvent()` — unchanged; single daily minigame rotation
+- Egg Run — unchanged
+- All minigame code — unchanged
+- All game logic — unchanged
+
+## Build
+Zero errors. 108 modules transformed.
+
+## Known risks
+- Children may not discover the "อยากเลือกเอง?" toggle on first visit. Acceptable — the primary CTA (Continue Adventure) is the correct action. If Chopin never opens it, that is fine.
+- Shop is no longer a persistent card. If Continue Adventure recommends something other than Shop (e.g., after shopV1.runs > 0), Shop is only accessible via the subject toggle → then navigating through the game. May be worth monitoring if Shop needs a secondary access point.

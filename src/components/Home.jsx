@@ -80,6 +80,7 @@ const MG_NAMES = { catch:'Egg Catch', memory:'Egg Memory', tower:'Egg Tower', fi
 export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
   const [authUser, setAuthUser] = useState(null)
+  const [subjectsOpen, setSubjectsOpen] = useState(false)
 
   useEffect(() => {
     if (!supabase) return
@@ -198,49 +199,44 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </div>
       </div>
 
-      {/* Subject grid — secondary */}
-      <div className="world-label">หรือเลือกเรียน</div>
-      <div className="world-grid">
-        <div className="world-card" style={{ background:'#E1F5EE' }} onClick={() => startWorld('thai')}>
-          <span className="world-icon">🇹🇭</span>
-          <div className="world-name" style={{ color:'#085041' }}>ภาษาไทย</div>
-          <div className="world-sub" style={{ color:'#0F6E56' }}>ก-ฮ</div>
-          <div className="world-xp-mini" style={{ background:'#9FE1CB', color:'#085041' }}>{state.xpThai||0} XP</div>
-        </div>
-        <div className="world-card" style={{ background:'#EEEDFE' }} onClick={() => startWorld('math')}>
-          <span className="world-icon">🔢</span>
-          <div className="world-name" style={{ color:'#3C3489' }}>Math</div>
-          <div className="world-sub" style={{ color:'#534AB7' }}>บวกเลข</div>
-          <div className="world-xp-mini" style={{ background:'#CECBF6', color:'#3C3489' }}>{state.xpMath||0} XP</div>
-        </div>
-        <div className="world-card" style={{ background:'#E6F1FB' }} onClick={() => startWorld('eng')}>
-          <span className="world-icon">🔤</span>
-          <div className="world-name" style={{ color:'#0C447C' }}>English</div>
-          <div className="world-sub" style={{ color:'#185FA5' }}>Phonics</div>
-          <div className="world-xp-mini" style={{ background:'#B5D4F4', color:'#0C447C' }}>{state.xpEng||0} XP</div>
-        </div>
-      </div>
-
-      {/* Shop Mission */}
+      {/* Subject grid — collapsible secondary */}
       <div style={{ width:'100%', maxWidth:480, padding:'12px 20px 0' }}>
-        <div
-          onClick={() => startWorld('shop')}
-          style={{ display:'flex', alignItems:'center', gap:12, background:'#FFF5E6', border:'1.5px solid #F0B86E', borderRadius:14, padding:'12px 16px', cursor:'pointer', transition:'transform .12s, box-shadow .12s' }}
-          onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 4px 16px rgba(239,159,39,.18)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='' }}
+        <button
+          onClick={() => setSubjectsOpen(o => !o)}
+          style={{
+            width:'100%', background:'none', border:'1.5px solid var(--border)',
+            borderRadius:12, padding:'10px 18px',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            cursor:'pointer', fontFamily:'Mitr,sans-serif', fontSize:13,
+            color:'var(--muted)', fontWeight:600, letterSpacing:'.03em',
+          }}
         >
-          <span style={{ fontSize:36 }}>🏪</span>
-          <div style={{ flex:1 }}>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:16, color:'#4A2A00' }}>ร้านค้า</div>
-            <div style={{ fontSize:12, color:'#7A5500', marginTop:2 }}>
-              {(state.shopV1?.runs || 0) > 0
-                ? `ดีที่สุด ${Math.round((state.shopV1?.bestScore || 0) * 100)}% · ${state.shopV1.runs} ครั้ง`
-                : '2–3 นาที · ใหม่! 🆕'}
-            </div>
-          </div>
-          <div style={{ fontSize:18, color:'var(--amber)' }}>→</div>
-        </div>
+          <span>อยากเลือกเอง?</span>
+          <span style={{ fontSize:9, display:'inline-block', transition:'transform .2s', transform: subjectsOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+        </button>
       </div>
+      {subjectsOpen && (
+        <div className="world-grid" style={{ marginTop:8 }}>
+          <div className="world-card" style={{ background:'#E1F5EE' }} onClick={() => startWorld('thai')}>
+            <span className="world-icon">🇹🇭</span>
+            <div className="world-name" style={{ color:'#085041' }}>ภาษาไทย</div>
+            <div className="world-sub" style={{ color:'#0F6E56' }}>ก-ฮ</div>
+            <div className="world-xp-mini" style={{ background:'#9FE1CB', color:'#085041' }}>{state.xpThai||0} XP</div>
+          </div>
+          <div className="world-card" style={{ background:'#EEEDFE' }} onClick={() => startWorld('math')}>
+            <span className="world-icon">🔢</span>
+            <div className="world-name" style={{ color:'#3C3489' }}>Math</div>
+            <div className="world-sub" style={{ color:'#534AB7' }}>บวกเลข</div>
+            <div className="world-xp-mini" style={{ background:'#CECBF6', color:'#3C3489' }}>{state.xpMath||0} XP</div>
+          </div>
+          <div className="world-card" style={{ background:'#E6F1FB' }} onClick={() => startWorld('eng')}>
+            <span className="world-icon">🔤</span>
+            <div className="world-name" style={{ color:'#0C447C' }}>English</div>
+            <div className="world-sub" style={{ color:'#185FA5' }}>Phonics</div>
+            <div className="world-xp-mini" style={{ background:'#B5D4F4', color:'#0C447C' }}>{state.xpEng||0} XP</div>
+          </div>
+        </div>
+      )}
 
       {/* Egg Run */}
       <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>

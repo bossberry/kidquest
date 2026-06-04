@@ -40,7 +40,7 @@ export default function App() {
       <ItemToast />
       <ConfettiLayer />
       <EggPopup open={eggPopupOpen} onClose={() => setEggPopupOpen(false)} />
-      <HatchOverlay onClose={() => navigate('home')} />
+      <HatchOverlay onClose={() => navigate('home')} suppressAutoOpen={screen === 'game'} />
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       <ChallengerOverlay />

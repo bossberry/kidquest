@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Home 2.0 Adventure Director + NaN bug fixes)_
+_Last updated: 2026-06-04 (Shop feedback + hatch overlay fix)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,21 +22,18 @@ _Last updated: 2026-06-04 (Home 2.0 Adventure Director + NaN bug fixes)_
 
 ## Latest Session Summary
 
-**What changed this session (Home 2.0 Adventure Director):**
+**What changed this session (Shop feedback + hatch overlay fix):**
 
-### Bug Fixes
-- **`src/components/Report.jsx`** — `MissionAnalytics` NaN bugs fixed. Root cause: pre-Phase-D state (`shopV1` without `totalDuration`/`totalHints`/`phaseStats`) caused `NaN` renders. Fixes: `totalHints = 0`, `totalDuration = 0` destructuring defaults; `avgScore` returns `null` (renders `—`) when no phaseStats data; `avgDur` returns `null` (renders `—`) when `totalDuration === 0`. No state migration.
+### Shop Mission feedback
+- **`src/games/GameShop.jsx`** — wrong choice now shows `.wrong` shake animation (CSS class was defined but never applied); `STREAK_MSGS` array — fire messages when streak ≥ 3; streak counter in header is amber/bold at ≥ 3; wrong hint text updated to be child-friendly. All `playTone` calls preserved.
 
-### Home 2.0 — Adventure Director
-- **`src/components/Home.jsx`** — fully rewritten.
-  - **`⭐ ผจญภัยต่อ`** section: single large recommended card at top (below egg). Deterministic priority: (1) hatch if egg ready, (2) Shop if never played, (3) weakest subject by XP. `getRecommendation()` helper — no AI, no new state.
-  - **`🎁 เซอร์ไพรส์วันนี้`** section: replaces 2×2 minigame grid. One unlocked minigame per day (date-hash mod count). Played-today detection via `sessionLog` (no new state). If no minigames unlocked: teaser card. If played today: "เล่นแล้ว! มาพรุ่งนี้นะ 🌙". `getSurpriseEvent()` helper.
-  - World-label changed to "หรือเลือกเรียน" — secondary framing.
-  - Egg, Shop card, Egg Run, stats strip all preserved.
+### Hatch overlay — two bugs fixed
+- **`src/components/HatchOverlay.jsx`** — **freeze fix**: `setPhase('tapping')` called first in `handleClose()` — on next React render `!isOpen && phase === 'tapping'` is true → overlay unmounts cleanly (no more refresh needed). **Mid-game fix**: `suppressAutoOpen` prop — when `true`, auto-trigger from `readyToHatch` is disabled; only explicit `state.hatching` opens overlay.
+- **`src/App.jsx`** — passes `suppressAutoOpen={screen === 'game'}`. Hatch overlay won't interrupt active gameplay. After leaving game → home, overlay appears naturally.
 - **Build: ✅ zero errors.**
 
-**Previous session (Subject Readiness Report display):**
-- `Report.jsx` — `SubjectReadiness` component + `computeReadiness()` added. 4 states with Thai labels.
+**Previous session (Home 2.0 Adventure Director):**
+- `Home.jsx` rewritten as Adventure Director: `⭐ ผจญภัยต่อ` recommendation card + `🎁 เซอร์ไพรส์วันนี้` daily event rotation. `Report.jsx` NaN bug fixes.
 
 ---
 
@@ -54,6 +51,8 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Play Observation System** (Phase D): `sessionLog` ring buffer (50 entries), `replayedImmediately` auto-computed, Mission Analytics card in Report, play history timeline.
 - **Subject Readiness** (Phase D+): `SubjectReadiness` component in `Report.jsx`. `computeReadiness()` derives state from last 10 `sessionLog` entries per subject at render time. 4 states with Thai labels. No new state fields.
 - **Home 2.0 — Adventure Director**: Single recommendation card (⭐ ผจญภัยต่อ) + daily surprise event (🎁 เซอร์ไพรส์วันนี้). Replaces 2×2 minigame grid.
+- **Shop Mission feedback polished**: wrong-button shake, streak fire messages, amber streak counter. `playTone` calls unchanged.
+- **Hatch overlay stable**: freeze-after-hatch fixed; no longer auto-interrupts gameplay (`suppressAutoOpen` prop).
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
 - Turn-based battle; challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)

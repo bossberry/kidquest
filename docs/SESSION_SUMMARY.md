@@ -1,32 +1,28 @@
-# Session Summary — 2026-06-04 (Home 2.0 Adventure Director)
+# Session Summary — 2026-06-04 (Shop feedback + hatch overlay fix)
 
-**Files changed:** `src/components/Home.jsx`, `src/components/Report.jsx`, `docs/`×5
+**Files changed:** `src/games/GameShop.jsx`, `src/components/HatchOverlay.jsx`, `src/App.jsx`, `docs/`×4
 
-## Bug Fixes (Priority 1)
+## Issue 1: Shop Mission feels flat
 
-**Report.jsx — MissionAnalytics NaN:**
-- Root cause: pre-Phase-D state has `shopV1` without `totalDuration`, `totalHints`, `phaseStats`. Destructuring without defaults → `undefined` in math → NaN.
-- Fix: `totalHints = 0`, `totalDuration = 0` destructuring defaults.
-- Fix: `avgScore` returns `null` when `totalQs === 0` (no phaseStats data) → renders `—` not `0%`.
-- Fix: `avgDur` returns `null` when `totalDuration === 0` → renders `—` not `NaN`.
-- No state migration needed — pure display fix.
+**Root cause**: Wrong answers had no visual feedback — the `.wrong` shake CSS class existed but was never applied. Streak messages were not prominent enough for a 5-year-old.
 
-## Home 2.0 (Priority 2)
+**Fixes:**
+- `wrongChoice` state tracks the last wrong click. Applied `.wrong` CSS class (shake animation, red bg) to that button. Cleared on correct / next / replay.
+- `STREAK_MSGS` array: fire messages when streak ≥ 3 (`🔥 ไฟลุก!`, `⚡ ไม่หยุดเลย!` etc.) replace generic `CORRECT_MSGS`.
+- Streak counter in header: amber bold font at ≥ 3 (was 12px muted grey — invisible to a child).
+- Wrong feedback: "ลองอีกครั้ง! 💪" (second attempt reveal friendlier: `คำตอบที่ถูกคือ "..." 😊`).
+- All existing `playTone` calls preserved. No new audio system.
 
-**Adventure Director philosophy:** Home answers "What should I do next?" not "What do you want to choose?"
+## Issue 2: Hatch overlay freeze + mid-game interruption
 
-**`⭐ ผจญภัยต่อ`** — single large recommendation card (top of page, below egg):
-- Priority: hatch → shop first run → weakest-subject-by-XP
-- Deterministic, no AI, no new state
+**Root cause A (freeze):** `phase` is local component state, set to `'done'` after hatching completes. `handleClose()` dispatched global state changes but never reset `phase`. After dispatch, `isOpen = false` but `phase === 'done'`, so `!isOpen && phase === 'tapping'` = `false` → overlay stayed rendered (frozen) until page refresh.
 
-**`🎁 เซอร์ไพรส์วันนี้`** — replaces 2×2 minigame grid:
-- One minigame per day via `dateHash % unlockedMinigames.length`
-- Played-today check: reads `sessionLog` (no new state)
-- If no minigames unlocked: teaser "ฟักไข่เพื่อปลดล็อกเซอร์ไพรส์!"
-- If played today: "เล่นแล้ว! มาพรุ่งนี้นะ 🌙"
+**Fix**: `setPhase('tapping')` added as first line of `handleClose()`. On next render, `isOpen = false` AND `phase = 'tapping'` → condition is true → overlay returns null → unmounts cleanly.
 
-**Preserved:** Egg, Shop Mission card, Egg Run, subject grid (relabeled "หรือเลือกเรียน"), stats strip.
+**Root cause B (mid-game interruption):** `isOpen = state.hatching || (state.readyToHatch && !state.hatched)`. When XP crosses 350 mid-game, `readyToHatch` becomes true → overlay fires as portal regardless of active screen. Game state was lost when user closed overlay (navigated to home).
+
+**Fix**: `suppressAutoOpen` prop added to `HatchOverlay`. When `true`, the auto-trigger `readyToHatch && !state.hatched` is disabled. Only explicit `state.hatching` (user-tapped hatch button on Home) opens the overlay. `App.jsx` passes `suppressAutoOpen={screen === 'game'}`. After game ends and user returns home, `readyToHatch` is still true → overlay appears naturally.
 
 ## Known Risks
-- Recommendation always picks lowest-XP subject; intentional for balance, but may feel repetitive early on.
-- Surprise rotation is date-based only — if only one minigame is unlocked it repeats daily. Acceptable.
+- If a child earns enough XP to hatch during gameplay and immediately navigates home without completing the game, the hatch overlay appears at home as expected.
+- `suppressAutoOpen` only blocks auto-trigger. Explicit `state.hatching` always works — but this can only be set from the Home screen's hatch button, so no risk of conflicting triggers.

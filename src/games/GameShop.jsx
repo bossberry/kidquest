@@ -71,6 +71,7 @@ function buildQuestions() {
 
 const STEP_LABELS = ['จับคู่ภาษาไทย 🇹🇭', 'จับคู่ภาษาไทย 🇹🇭', 'จับคู่ภาษาไทย 🇹🇭', 'คำศัพท์อังกฤษ 🔤', 'นับของในร้าน 🔢', 'มารยาทดี 🙏']
 const CORRECT_MSGS = ['เก่งมาก! 🎉', 'ถูกต้อง! ✅', 'ยอดเยี่ยม! 🌟']
+const STREAK_MSGS  = ['🔥 ไฟลุก! สามต่อแล้ว!', '🔥 ฮอตมาก!', '⚡ ไม่หยุดเลย!', '🌟 สุดยอด!']
 
 export default function GameShop({ navigate }) {
   const { state, dispatch } = useAppState()
@@ -84,6 +85,7 @@ export default function GameShop({ navigate }) {
   const [attempts, setAttempts] = useState(0)
   const [feedback, setFeedback] = useState(null)
   const [done, setDone] = useState(false)
+  const [wrongChoice, setWrongChoice] = useState(null)
   const sessionStart = useRef(Date.now())
   const perQCorrect = useRef(Array(TOTAL).fill(false))
 
@@ -97,29 +99,37 @@ export default function GameShop({ navigate }) {
     if (isCorrect(val)) {
       perQCorrect.current[cur] = true
       setAnswered(true)
+      setWrongChoice(null)
       const ns = streak + 1; setStreak(ns)
       const earned = 8 + (ns >= 3 ? 5 : 0)
       setXp(x => x + earned)
       setScore(s => s + 1)
       const world = q.subject === 'eng' ? 'eng' : q.subject === 'math' ? 'math' : 'thai'
       dispatch({ type: ACTIONS.ADD_XP, payload: { world, amount: earned, accDelta: 100 } })
-      setFeedback({ type: 'win', msg: CORRECT_MSGS[Math.floor(Math.random() * CORRECT_MSGS.length)] + ` +${earned} XP` })
-      if (ns >= 3) { playTone('streak'); spawnConfetti(5) } else playTone('correct')
+      if (ns >= 3) {
+        const smsg = STREAK_MSGS[(ns - 3) % STREAK_MSGS.length]
+        setFeedback({ type: 'win', msg: `${smsg} +${earned} XP` })
+        playTone('streak'); spawnConfetti(8)
+      } else {
+        setFeedback({ type: 'win', msg: CORRECT_MSGS[Math.floor(Math.random() * CORRECT_MSGS.length)] + ` +${earned} XP` })
+        playTone('correct')
+      }
     } else {
       const na = attempts + 1; setAttempts(na)
-      setStreak(0); playTone('wrong')
+      setStreak(0); setWrongChoice(val); playTone('wrong')
       if (na < 2) {
-        setFeedback({ type: 'lose', msg: 'ไม่ถูก ลองอีกครั้ง! 🤔' })
+        setFeedback({ type: 'lose', msg: 'ลองอีกครั้ง! 💪' })
       } else {
         setAnswered(true)
         setWrong(w => w + 1)
-        setFeedback({ type: 'lose', msg: `คำตอบคือ ${q.answer}` })
+        setFeedback({ type: 'lose', msg: `คำตอบที่ถูกคือ "${q.answer}" 😊` })
       }
     }
   }
 
   const next = () => {
     playTone('next')
+    setWrongChoice(null)
     if (cur + 1 >= TOTAL) {
       const p = score / TOTAL
       const dur = Date.now() - sessionStart.current
@@ -151,7 +161,7 @@ export default function GameShop({ navigate }) {
     setQuestions(buildQuestions())
     setCur(0); setScore(0); setWrong(0); setStreak(0)
     setXp(0); setAnswered(false); setAttempts(0)
-    setFeedback(null); setDone(false)
+    setFeedback(null); setDone(false); setWrongChoice(null)
   }
 
   if (done) {
@@ -188,7 +198,9 @@ export default function GameShop({ navigate }) {
     <div style={{ width:'100%', maxWidth:480, padding:'8px 0' }}>
       <div style={{ display:'flex', justifyContent:'space-between', padding:'0 20px 4px', fontSize:12, color:'var(--muted)' }}>
         <span>ข้อ {cur + 1}/{TOTAL}</span>
-        <span>{streak >= 3 ? `${streak}🔥` : ''}</span>
+        {streak >= 3
+          ? <span style={{ color:'var(--amber-d)', fontWeight:700, fontSize:14, animation:'fadeUp .25s ease' }}>{streak}🔥</span>
+          : <span />}
         <span>+{xp} XP</span>
       </div>
       <div style={{ padding:'0 20px 8px' }}>
@@ -218,7 +230,7 @@ export default function GameShop({ navigate }) {
           {q.choices.map((c, i) => (
             <button
               key={i}
-              className={`choice-btn${answered && isCorrect(c) ? ' correct' : ''}`}
+              className={`choice-btn${answered && isCorrect(c) ? ' correct' : c === wrongChoice ? ' wrong' : ''}`}
               style={{
                 fontSize: typeof c === 'number' ? 28 : 18,
                 fontFamily: q.subject === 'eng' ? "'Fredoka One',cursive" : 'Mitr,sans-serif',

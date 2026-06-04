@@ -9,13 +9,13 @@ import { showToast, spawnConfetti } from './Toasts.jsx'
 
 const TAPS_NEEDED = 5
 
-export default function HatchOverlay({ onClose }) {
+export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const [tapCount, setTapCount] = useState(0)
   const [phase, setPhase] = useState('tapping') // 'tapping' | 'revealing' | 'done'
   const [creature, setCreature] = useState(null)
   const [savedEggStats, setSavedEggStats] = useState(null)
-  const isOpen = state.hatching || (state.readyToHatch && !state.hatched)
+  const isOpen = state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched)
 
   useEffect(() => {
     if (isOpen) {
@@ -66,6 +66,7 @@ export default function HatchOverlay({ onClose }) {
   }
 
   const handleClose = () => {
+    setPhase('tapping') // reset phase first — makes !isOpen && phase==='tapping' true → overlay unmounts
     dispatch({ type: ACTIONS.CLOSE_HATCH })
     dispatch({ type: ACTIONS.SET_HATCHING, payload: false })
     showToast('🥚 ไข่ใบใหม่เริ่มต้นแล้ว!')

@@ -56,6 +56,8 @@
 - **Persistent sound toggle**: sound preference stored in `localStorage` key `kq_sound`; survives page reload
 - **XP boost indicator**: `XpBoostBadge` in Home header shows `⭐ ×2 M:SS` countdown when star item is active
 - **Home 2.0 — Adventure Director**: `Home.jsx` restructured. Single `⭐ ผจญภัยต่อ` recommendation card (deterministic: hatch → shop-first-run → weakest-subject). Subject grid relabeled "หรือเลือกเรียน" (secondary). 2×2 minigame grid replaced with `🎁 เซอร์ไพรส์วันนี้` single-event rotation (date-hash of unlocked minigames; played-today check via `sessionLog`; teaser card when none unlocked). `getRecommendation()` and `getSurpriseEvent()` helpers (no new state).
+- **Hatch overlay fix**: `suppressAutoOpen` prop added — overlay no longer interrupts gameplay (`screen === 'game'`). Freeze-after-hatch fixed: `setPhase('tapping')` called in `handleClose()` before dispatches, ensuring `!isOpen && phase === 'tapping'` → overlay unmounts cleanly.
+- **Shop Mission feedback**: wrong choice now shows `.wrong` shake animation; streak >= 3 shows `STREAK_MSGS` (🔥 messages) with louder celebration; streak counter styled amber/bold when active. All existing `playTone` calls preserved.
 
 ---
 

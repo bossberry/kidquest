@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Shop feedback + hatch overlay fix
+
+- `src/games/GameShop.jsx` — feedback improvements:
+  - `wrongChoice` state added; `.wrong` CSS class (shake animation) applied to the wrong button on incorrect answer. Cleared on correct / next / replay.
+  - `STREAK_MSGS` array added; when streak ≥ 3 feedback message uses fire messages instead of generic correct msg.
+  - Streak counter in header styled amber bold at ≥ 3 (was muted/small).
+  - Wrong feedback text changed from "ไม่ถูก ลองอีกครั้ง! 🤔" to "ลองอีกครั้ง! 💪"; reveal message now friendlier: `คำตอบที่ถูกคือ "${q.answer}" 😊`.
+  - All existing `playTone` calls unchanged.
+- `src/components/HatchOverlay.jsx` — two bug fixes:
+  - **Freeze fix**: `setPhase('tapping')` called as first line of `handleClose()`. After dispatch+navigate, `isOpen` is `false` and `phase` is `'tapping'` → condition `!isOpen && phase === 'tapping'` is true → overlay unmounts cleanly. No more frozen screen requiring refresh.
+  - **Mid-game interruption fix**: `suppressAutoOpen` prop (default false). When `true`, `isOpen` ignores `readyToHatch && !hatched` auto-trigger. Only explicit `state.hatching` (user-initiated) can open overlay.
+- `src/App.jsx` — passes `suppressAutoOpen={screen === 'game'}` to `HatchOverlay`. During gameplay, hatch overlay won't auto-interrupt. After returning to home, `readyToHatch` is still true → overlay appears normally.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Home 2.0: Adventure Director + NaN bug fixes
 
 - `src/components/Home.jsx` — rewritten as Adventure Director.

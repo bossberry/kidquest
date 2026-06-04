@@ -151,7 +151,7 @@ export default function GameShop({ navigate }) {
         dur, score: p, wrong, hints: 0, completed: p >= 0.8, nextAction: null, phaseStats,
       }})
       if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
-      else if (p >= 0.8) spawnConfetti(15)
+      else if (p >= 0.8) { playTone('complete'); spawnConfetti(15) }
       setDone(true)
     } else {
       setAnswered(false); setAttempts(0); setFeedback(null)

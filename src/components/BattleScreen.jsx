@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { useAppState } from '../context/StateContext.jsx'
 import { ACTIONS } from '../context/StateContext.jsx'
-import { getSoundOn, getACtx } from '../lib/audio.js'
+import { getSoundOn, getACtx, playTone } from '../lib/audio.js'
 import { TH_ALPHA, EN_ALPHA } from '../config/gameConfig.js'
 
 const ITEM_REWARDS = ['food','food','food','star','ribbon','potion']
@@ -279,6 +279,7 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
     if (won) {
       const item = ITEM_REWARDS[Math.floor(Math.random() * ITEM_REWARDS.length)]
       setRewardItem(item)
+      setTimeout(() => playTone('item'), 950)
       dispatch({ type: ACTIONS.RECORD_BATTLE, payload: {
         entry: { tier: egg.tier, type: opponentType, opponent: opponent.name, result:'win', ts: Date.now() },
         bossKey: opponentType === 'boss' ? `tier_${egg.tier}_boss` : null,

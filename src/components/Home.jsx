@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase.js'
 import { MG_UNLOCK, MG_COLORS, todayStr } from '../config/gameConfig.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { showToast } from './Toasts.jsx'
+import { playTone } from '../lib/audio.js'
 
 function XpBoostBadge({ xpBoostEnd, xpBoost }) {
   const [ms, setMs] = useState(() => Math.max(0, (xpBoostEnd || 0) - Date.now()))
@@ -90,6 +91,13 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
   const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
   const [authUser, setAuthUser] = useState(null)
   const [subjectsOpen, setSubjectsOpen] = useState(false)
+  const prevReadyRef = useRef(false)
+
+  // Play a gentle chime the moment the egg becomes ready to hatch
+  useEffect(() => {
+    if (state.readyToHatch && !prevReadyRef.current) playTone('eggReady')
+    prevReadyRef.current = state.readyToHatch
+  }, [state.readyToHatch]) // eslint-disable-line
 
   useEffect(() => {
     if (!supabase) return
@@ -125,6 +133,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
   const surprise = getSurpriseEvent(state, eggsHatched)
 
   const handleRecommendedAction = () => {
+    playTone('tap')
     if (rec.type === 'hatch') {
       dispatch({ type: ACTIONS.SET_HATCHING, payload: true })
     } else if (rec.type === 'battle') {
@@ -213,7 +222,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
       {/* Subject grid — collapsible secondary */}
       <div style={{ width:'100%', maxWidth:480, padding:'12px 20px 0' }}>
         <button
-          onClick={() => setSubjectsOpen(o => !o)}
+          onClick={() => { const next = !subjectsOpen; playTone(next ? 'open' : 'click'); setSubjectsOpen(next) }}
           style={{
             width:'100%', background:'none', border:'1.5px solid var(--border)',
             borderRadius:12, padding:'10px 18px',
@@ -296,7 +305,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
             </div>
           ) : (
             <div
-              onClick={() => startWorld(surprise.id)}
+              onClick={() => { playTone('tap'); startWorld(surprise.id) }}
               style={{
                 display:'flex', alignItems:'center', gap:14,
                 background: MG_COLORS[surprise.id],

@@ -40,6 +40,16 @@ export function playTone(type) {
     else if(type==='fanfare'){[523,659,784,1047,784,1047].forEach((f,i)=>t(f,i*.09,.25,.45))}
     else if(type==='click'){t(660,0,.14,.08)}
     else if(type==='next'){t(440,0,.11,.09)}
+    // Interaction tones
+    else if(type==='tap'){t(523,0,.12,.09,'sine');t(660,.05,.09,.07,'sine')}
+    else if(type==='open'){t(440,0,.12,.1,'triangle');t(660,.09,.12,.12,'triangle')}
+    else if(type==='unlock'){[523,659,784,1047].forEach((f,i)=>t(f,i*.1,.22,.28,'triangle'))}
+    else if(type==='item'){[659,784,988,1175].forEach((f,i)=>t(f,i*.06,.14,.12,'triangle'))}
+    else if(type==='eggReady'){t(523,0,.2,.35,'sine');t(659,.22,.2,.3,'sine');t(784,.44,.22,.28,'sine')}
+    else if(type==='reveal'){[523,659,784,1047,1319].forEach((f,i)=>t(f,i*.08,.18,.28,'triangle'));t(1568,.5,.16,.35,'sine')}
+    else if(type==='start'){t(440,0,.16,.1,'square');t(659,.08,.16,.12,'square');t(880,.16,.18,.14,'sine')}
+    else if(type==='complete'){[523,784,659,1047].forEach((f,i)=>t(f,i*.1,.2,.35,'triangle'))}
+    else if(type==='cardOpen'){t(880,0,.12,.07,'sine');t(1047,.05,.1,.08,'sine')}
   } catch(e) {}
 }
 
@@ -80,7 +90,7 @@ export async function playPhonicsSound(q, onEnd) {
   try {
     const ctx = getACtx()
     const src = ctx.createMediaElementSource(audio)
-    const gain = ctx.createGain(); gain.gain.value = 2.5
+    const gain = ctx.createGain(); gain.gain.value = 4.0
     src.connect(gain); gain.connect(ctx.destination)
   } catch(e) { audio.volume = 1.0 }
   audio.onended = () => { if (onEnd) setTimeout(() => speakEn(q.word, .82), 50) }

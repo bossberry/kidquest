@@ -208,9 +208,9 @@ function MathLevelGame({ lv, onBack }) {
         if (p >= 0.8) { dispatch({type:ACTIONS.FOUNDATION_COMPLETE}); showToast('✨ ผ่าน Foundation แล้ว!'); spawnConfetti(15) }
       } else if (p>=0.8) {
         const cur2=state.subjectLevels?.math||1
-        if(cur2<8){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15)}
+        if(cur2<8){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15);playTone('unlock')}
       }
-      if(p>=0.9){playTone('fanfare');spawnConfetti(30)}
+      if(p>=0.9){playTone('fanfare');spawnConfetti(30)}else if(p>=0.8){playTone('complete')}
       dispatch({ type: ACTIONS.LOG_SESSION, payload: {
         ts: sessionStart.current, world: 'math', missionId: null, level: lv?.id || 1,
         dur: Date.now() - sessionStart.current, score: p, wrong: 10 - score,

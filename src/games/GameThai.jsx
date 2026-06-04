@@ -80,10 +80,11 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessi
       const cur = state.subjectLevels?.[world] || 1
       if (cur < maxLevels) {
         dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world, newLevel: cur + 1 } })
-        showToast(`✨ ปลดล็อก Level ${cur + 1}!`); spawnConfetti(15)
+        showToast(`✨ ปลดล็อก Level ${cur + 1}!`); spawnConfetti(15); playTone('unlock')
       }
     }
     if (p >= 0.9) { playTone('fanfare'); spawnConfetti(30) }
+    else if (p >= 0.8) { playTone('complete') }
     dispatch({ type: ACTIONS.LOG_SESSION, payload: {
       ts, world, missionId: null, level: levelId,
       dur: now - ts, score: p, wrong: total - score,

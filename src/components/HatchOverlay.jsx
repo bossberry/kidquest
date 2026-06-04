@@ -43,7 +43,8 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
     playHatchSound()
     setTimeout(() => {
       setPhase('done')
-      playTone('fanfare')
+      playTone('reveal')
+      setTimeout(() => playTone('fanfare'), 350)
       spawnConfetti(50)
       // Save hatch
       const snaps = { xpThai: state.xpThai, xpEng: state.xpEng, xpMath: state.xpMath }

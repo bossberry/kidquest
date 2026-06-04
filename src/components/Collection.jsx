@@ -4,6 +4,7 @@ import EggCanvas from './EggCanvas.jsx'
 import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
+import { playTone } from '../lib/audio.js'
 export default function Collection() {
   const { state, eggStatsData, eggProgressData } = useAppState()
   const [tab, setTab] = useState('hatched')
@@ -24,7 +25,7 @@ export default function Collection() {
           : <CurrentEgg state={state} eggStats={eggStatsData} progress={eggProgressData} />
         }
       </div>
-      {selectedEgg && <CreatureDetailPopup egg={selectedEgg} onClose={() => setSelectedEgg(null)} />}
+      {selectedEgg && <CreatureDetailPopup egg={selectedEgg} onClose={() => { playTone('click'); setSelectedEgg(null) }} />}
     </div>
   )
 }
@@ -38,7 +39,7 @@ function CreatureCard({ egg, index, onSelect }) {
   const rarityBg = {common:'#E1F5EE',uncommon:'#E6F1FB',rare:'#EEEDFE',epic:'#FAEEDA',legendary:'#1E1B3A'}
   const rar = egg.creature?.rarity || 'common'
   return (
-    <div className="catalog-item" onClick={() => onSelect(egg)}>
+    <div className="catalog-item" onClick={() => { playTone('cardOpen'); onSelect(egg) }}>
       <canvas ref={canvasRef} width={88} height={88} style={{ borderRadius:8, display:'block', margin:'0 auto 6px', background:'var(--bg)' }} />
       <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
       <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>

@@ -1,6 +1,12 @@
 # Research Index — KidQuest
 
-_Last updated: 2026-06-03_
+_Last updated: 2026-06-04_
+
+---
+
+## Rewards & Economy
+
+- [docs/research/rewards/egg-economy.md](research/rewards/egg-economy.md) — Egg progression mechanics, scaling formula, design philosophy, migration rules
 
 ---
 

@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Egg pacing + creature stat rebalance)_
+_Last updated: 2026-06-04 (Egg economy documentation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Egg pacing + creature stat rebalance)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg pacing + creature stat rebalance):**
+**What changed this session (Egg economy documentation — docs only):**
+
+- `docs/research/rewards/egg-economy.md` — source-of-truth created. Covers: core loop, design philosophy (no FOMO, no streak pressure, first egg fast), scaling formula table, visual stage system, XP sources, migration rules, implementation reference, open questions.
+- `docs/RESEARCH_INDEX.md` — Rewards & Economy section added.
+- `docs/GPT_NOTES.md` — Egg Economy Decisions + open question for GPT re: first-egg onboarding threshold.
+- No code changes.
+
+**Previous session (Egg pacing + creature stat rebalance):**
 
 ### Egg progression pacing
 - **`src/context/StateContext.jsx`** — `scaledEggProgress(state)` helper added. `required = min(800, 120 + hatchedEggs.length × 60)` — first egg 120 XP (fast), gradual to 800 cap. Dynamic `xpPerStage = required/7`. `ADD_XP` now uses `newTotal >= hatchRequired` for `readyToHatch`. `derived` useMemo uses `scaledEggProgress`; `eggStatsData.stage` overridden to scaled value so canvas matches display.

@@ -3,6 +3,7 @@
 ## Now
 
 - [x] **Home 2.0 — Adventure Director** — `Home.jsx` rewritten: single `⭐ ผจญภัยต่อ` recommendation card (deterministic: hatch → shop first run → weakest subject); minigames 2×2 grid replaced with `🎁 เซอร์ไพรส์วันนี้` single event rotation (date-hash from unlocked minigames; sessionLog marks played-today). Bug fixes: Report NaN for avgScore/avgDur/avgHints (safe migration defaults). Build ✅.
+- [x] **Egg economy source-of-truth doc** — `docs/research/rewards/egg-economy.md` created; RESEARCH_INDEX.md updated; GPT_NOTES.md updated with economy decisions.
 - [x] **Egg pacing + creature stat rebalance** — `scaledEggProgress()` in StateContext (required = min(800, 120 + n×60)); `calcCreatureStats()` weighted formula (40% base + 60% weighted — no stat ever 0); migration recalculates 0/NaN stats. Build ✅.
 - [x] **Shop feedback + hatch overlay fix** — `GameShop.jsx`: wrong-button shake (`.wrong` CSS), streak fire messages, prominent streak counter. `HatchOverlay.jsx`: freeze fixed (`setPhase('tapping')` in handleClose), mid-game auto-trigger suppressed via `suppressAutoOpen` prop. `App.jsx`: `suppressAutoOpen={screen === 'game'}`. Build ✅.
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.

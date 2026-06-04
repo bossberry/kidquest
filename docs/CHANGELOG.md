@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Egg economy documentation
+
+- `docs/research/rewards/egg-economy.md` — created. Source-of-truth for egg progression mechanics: core loop, design philosophy (first egg fast / no FOMO / no streak pressure), scaling formula (`min(800, 120+n×60)`), progression table, stage system, XP sources, migration rules, implementation reference, open questions, future considerations.
+- `docs/RESEARCH_INDEX.md` — Rewards & Economy section added.
+- `docs/GPT_NOTES.md` — Egg Economy Decisions section added (pacing formula, creature stat decisions, open question for GPT re: onboarding threshold).
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Egg pacing + creature stat rebalance
 
 ### Part 1 — Egg progression pacing

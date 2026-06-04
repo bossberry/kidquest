@@ -3,6 +3,17 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Egg Economy Decisions (2026-06-04)
+
+- **Egg pacing formula decided and implemented:** `requiredXP = min(800, 120 + hatchedEggs.length × 60)`. First egg 120 XP (fast onboarding), cap at 800 for egg 13+. See `docs/research/rewards/egg-economy.md` for full rationale.
+- **First egg must hatch within one session.** At 8–13 XP per correct answer, 120 XP ≈ 10–15 correct answers. This is the onboarding target.
+- **Slower pacing is not punishment** — the egg visual still grows proportionally. The bar always moves. XP is never deducted.
+- **No FOMO, no streak pressure, no paid acceleration.** These are non-goals permanently.
+- **Creature stats now use weighted formula** — every stat has a 40% base floor. ATK is Math-weighted; DEF is Thai-weighted; SPD is English-weighted. Creature personality varies ±5% deterministically from XP seed. See `calcCreatureStats()` in `src/config/gameConfig.js`.
+- **Open question for GPT:** Should egg 1 have a separate "onboarding" rule (e.g., always 80 XP regardless of formula)? Or is 120 XP sufficient? Decide based on real-play observation with Chopin.
+
+---
+
 ## Research Notes
 
 - **Mission system designed (2026-06-03)**: Year 1 missions use only existing mechanics (multipleChoice, matching, counting, wordOrder, spell, visualModel). No new mini-games needed. Each mission is currently its own component (`GameShop.jsx`). `MissionScreen.jsx` + `missionConfig.js` are the *future* target architecture — do not build until 2+ missions confirm the pattern.

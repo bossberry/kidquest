@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Egg Companion Adventure Design)_
+_Last updated: 2026-06-04 (Egg Companion Adventure MVP)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,18 @@ _Last updated: 2026-06-04 (Egg Companion Adventure Design)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Companion Adventure Design — docs only):**
+**What changed this session (Egg Companion Adventure MVP — code change):**
+
+- `src/games/BattleMode.jsx` — EggCanvas replaces `🦸` player avatar. New props: `eggStats`, `eggProgress`, `readyToHatch`. Egg jumps (`eggBounce`) + gold `drop-shadow` + `✨` sparkle float (500ms) on correct answer. Egg shakes (`eggShake`) when enemy counter-attacks (3rd wrong). Continuous `egg-near-hatch` pulse/glow when stage ≥ 5 or `readyToHatch`. Egg growth progress panel below battle log: stage name (EGG_STAGE_NAMES) + progress bar + pct%. Golden bar + "✨ ใกล้ฟักแล้ว!" when near-hatch. Sparkle `item` tone fires 200ms after every correct answer (layered over existing `correct`/`streak` tone). Graceful fallback: shows `🦸` if `eggStats` is null.
+- `src/games/DefenseMode.jsx` — EggCanvas replaces baby emoji (`BABIES[subject]`). Props: added `eggStats`. Egg bounces (`eggBounce`) + gold glow on shield-block (`shieldPulse`); shakes (`eggShake`) when shield is hit. The framing is now: the child is literally shielding their own egg. Sparkle `item` tone on correct.
+- `src/games/ChaseMode.jsx` — EggCanvas replaces `🦸` runner. Props: added `eggStats`. Egg dashes (`adv-dash`) on correct. Sparkle `item` tone on correct.
+- `src/games/GameSubjectAdventure.jsx` — `Session` destructures `eggStatsData`, `eggProgressData` from `useAppState()`. `modeProps` now includes `eggStats`, `eggProgress`, `readyToHatch` — passed to all 3 modes.
+- `src/styles.css` — `@keyframes egg-near-hatch`: combined scale (1→1.05) + golden `drop-shadow` pulse, 2s looping. Used for near-hatch continuous glow in BattleMode.
+- Build: ✅ zero errors. GameSubjectAdventure chunk: 32.40KB.
+
+---
+
+**What changed last session (Egg Companion Adventure Design — docs only):**
 
 - `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design document. Egg as emotional companion (not progress bar). The child takes their egg on adventures — it reacts, grows, and hatching becomes a relationship payoff.
 - Core framing: DefenseMode child literally shields their own egg. BattleMode egg beside player. ChaseMode egg dashes with player. BattleScreen (challenger) egg portrait in corner.

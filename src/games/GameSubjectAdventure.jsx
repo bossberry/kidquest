@@ -131,7 +131,7 @@ function ResultScreen({ score, total, xp, subject, onReplay, onHome }) {
 // ── Session (mounted fresh per replay via key) ─────────────────────────────────
 
 function Session({ navigate, subject, onReset }) {
-  const { state, dispatch } = useAppState()
+  const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
   const lv = useMemo(() => getLevelConfig(subject, state), [subject]) // eslint-disable-line
   const mode = useMemo(() => pickMode(state.sessionLog, subject), []) // eslint-disable-line
 
@@ -214,7 +214,8 @@ function Session({ navigate, subject, onReset }) {
   }
   if (!q) return null
 
-  const modeProps = { q, cur, total:TOTAL_QS, streak, subject, onCorrect:handleCorrect, onWrong:handleWrong, onNext:handleNext, onSpeak }
+  const modeProps = { q, cur, total:TOTAL_QS, streak, subject, onCorrect:handleCorrect, onWrong:handleWrong, onNext:handleNext, onSpeak,
+    eggStats:eggStatsData, eggProgress:eggProgressData, readyToHatch:state.readyToHatch }
 
   if (mode === 'battle') return <BattleMode {...modeProps} />
   if (mode === 'chase')  return <ChaseMode {...modeProps} />

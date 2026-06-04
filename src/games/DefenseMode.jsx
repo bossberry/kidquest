@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { playTone } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
+import EggCanvas from '../components/EggCanvas.jsx'
 
 const ATTACKERS = {
   math: [{ name:'หุ่นร้าย', emoji:'🤖' }, { name:'ผีเลข', emoji:'👻' }, { name:'ปีศาจจ้อน', emoji:'😈' }],
@@ -62,7 +63,7 @@ function QuestionDisplay({ q, subject, onSpeak }) {
   )
 }
 
-export default function DefenseMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak }) {
+export default function DefenseMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak, eggStats }) {
   const [attacker] = useState(() => {
     const pool = ATTACKERS[subject] || ATTACKERS.math
     return pool[Math.floor(Math.random() * pool.length)]
@@ -92,6 +93,7 @@ export default function DefenseMode({ q, cur, total, streak, subject, onCorrect,
       setAttackerPush(true); setTimeout(() => setAttackerPush(false), 450)
       if (isCrit) { playTone('streak'); spawnConfetti(4); setDefText(`💥 คอมโบ! ป้องกันสำเร็จ! +${earned} XP`) }
       else         { playTone('block');                   setDefText(`🛡️ ป้องกันสำเร็จ! +${earned} XP`) }
+      setTimeout(() => playTone('item'), 200) // egg sparkle growth sound
     } else {
       const na = (attempts || 0) + 1; setAttempts(na)
       if (na === 1) { onWrong(); setDefText('💨 พลาดแล้ว! ลองอีกครั้ง') }
@@ -147,10 +149,22 @@ export default function DefenseMode({ q, cur, total, streak, subject, onCorrect,
             </div>
           </div>
 
-          {/* Baby */}
-          <div style={{ fontSize:36, lineHeight:1,
-            animation: shieldHit && shieldHP <= 1 ? 'battle-shake .4s ease' : 'none' }}>
-            {babyEmoji}
+          {/* Egg — what we protect */}
+          <div style={{ lineHeight:1 }}>
+            {eggStats ? (
+              <EggCanvas stats={eggStats} width={42} height={50} style={{
+                animation: shieldHit ? 'eggShake .4s ease'
+                         : shieldPulse ? 'eggBounce .45s ease'
+                         : 'none',
+                filter: shieldPulse ? 'drop-shadow(0 0 8px gold)' : 'none',
+                transition:'filter .2s', display:'block',
+              }} />
+            ) : (
+              <div style={{ fontSize:36,
+                animation: shieldHit && shieldHP <= 1 ? 'battle-shake .4s ease' : 'none' }}>
+                {babyEmoji}
+              </div>
+            )}
           </div>
         </div>
       </div>

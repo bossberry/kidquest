@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Egg Companion Adventure MVP
+
+- `src/games/BattleMode.jsx` — EggCanvas replaces `🦸` player avatar. Egg jumps (`eggBounce`) + gold glow + `✨` sparkle float on correct answer. Egg shakes (`eggShake`) when enemy counter-attacks. Continuous `egg-near-hatch` pulse/glow at stage ≥ 5. Egg growth progress bar below battle log: stage name + progress bar + %. `item` sparkle tone fires 200ms after every correct answer.
+- `src/games/DefenseMode.jsx` — EggCanvas replaces generic baby emoji. Egg bounces on shield-block; shakes when hit. Sparkle tone on correct.
+- `src/games/ChaseMode.jsx` — EggCanvas replaces `🦸` runner. Egg dashes on correct. Sparkle tone on correct.
+- `src/games/GameSubjectAdventure.jsx` — Passes `eggStats`, `eggProgress`, `readyToHatch` props from `useAppState()` to all 3 modes.
+- `src/styles.css` — `egg-near-hatch` keyframe: combined scale + golden glow pulse (looping, for stage 5–6 eggs).
+- Build ✅ zero errors.
+
 ## 2026-06-04 — Egg Companion Adventure Design
 
 - `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design document. Covers: egg as emotional companion (not progress bar), companion framing across all modes (DefenseMode = egg being defended, BattleMode = egg beside player, ChaseMode = egg dashes with player), visual/audio/progress behavior spec, relationship data fields (adventuresWith/questionsAnswered/daysTogetherCount/favoriteSubject/bornFrom), MVP recommendation (DefenseMode egg first, then BattleMode, then relationship data), hatch biography payoff design, non-goals (no egg HP, no egg health from mistakes, no numbers during gameplay), 5 open questions for GPT.

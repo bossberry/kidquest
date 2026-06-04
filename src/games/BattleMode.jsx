@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { playTone } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
+import EggCanvas from '../components/EggCanvas.jsx'
+import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 
 const ENEMIES = {
   math: [{ name:'หุ่นยนต์เลข', emoji:'🤖' }, { name:'ผีคณิต', emoji:'👻' }, { name:'ปีศาจจ้อน', emoji:'😈' }, { name:'มังกรเลข', emoji:'🐲' }],
@@ -75,7 +77,7 @@ function QuestionDisplay({ q, subject, onSpeak }) {
   )
 }
 
-export default function BattleMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak }) {
+export default function BattleMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak, eggStats, eggProgress, readyToHatch }) {
   const [enemy] = useState(() => {
     const pool = ENEMIES[subject] || ENEMIES.math
     return pool[Math.floor(Math.random() * pool.length)]
@@ -95,6 +97,8 @@ export default function BattleMode({ q, cur, total, streak, subject, onCorrect, 
   const [dmgFloat, setDmgFloat]       = useState(null)
   const [jumpPlayer, setJumpPlayer]   = useState(false)
 
+  const nearHatch = readyToHatch || (eggProgress?.stage ?? 0) >= 5
+
   useEffect(() => {
     setAnswered(false); setAttempts(0)
     if (cur > 0) setBattleText('❓ โจมตีด้วยความรู้!')
@@ -112,6 +116,7 @@ export default function BattleMode({ q, cur, total, streak, subject, onCorrect, 
       setDmgFloat({ side:'enemy', val:dmg, crit:isCrit }); setTimeout(() => setDmgFloat(null), 900)
       if (isCrit) { playTone('streak'); spawnConfetti(5); setBattleText(`💥 คริติคอล! -${dmg} HP! +${earned} XP`) }
       else         { playTone('correct');                  setBattleText(`⚔️ โจมตี! -${dmg} HP! +${earned} XP`) }
+      setTimeout(() => playTone('item'), 200) // egg sparkle growth sound
     } else {
       const na = attempts + 1; setAttempts(na)
       if (na === 1) { onWrong(); setBattleText('💨 พลาด! ลองอีกครั้ง') }
@@ -155,11 +160,33 @@ export default function BattleMode({ q, cur, total, streak, subject, onCorrect, 
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:14, color:'rgba(255,255,255,.5)', flexShrink:0 }}>{cur+1}/{total}</div>
       </div>
 
-      {/* Player row */}
+      {/* Player row — egg as hero */}
       <div style={{ padding:'0 18px 6px', display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ fontSize:28, position:'relative',
-          animation: playerShake ? 'battle-shake .35s ease' : jumpPlayer ? 'adv-jump .45s ease' : 'none' }}>
-          🦸
+        <div style={{ position:'relative', flexShrink:0 }}>
+          {eggStats ? (
+            <EggCanvas stats={eggStats} width={44} height={52} style={{
+              animation: playerShake ? 'eggShake .4s ease'
+                       : jumpPlayer  ? 'eggBounce .5s ease'
+                       : nearHatch   ? 'egg-near-hatch 2s ease-in-out infinite'
+                       : 'none',
+              filter: jumpPlayer ? 'drop-shadow(0 0 10px gold) brightness(1.15)' : 'none',
+              transition: 'filter .2s',
+              display:'block',
+            }} />
+          ) : (
+            <div style={{ fontSize:28,
+              animation: playerShake ? 'battle-shake .35s ease' : jumpPlayer ? 'adv-jump .45s ease' : 'none' }}>
+              🦸
+            </div>
+          )}
+          {/* Sparkle float on correct */}
+          {jumpPlayer && (
+            <div style={{ position:'absolute', top:'-14px', left:'50%', transform:'translateX(-50%)',
+              fontSize:16, animation:'dmg-float .55s ease-out forwards', pointerEvents:'none', zIndex:10 }}>
+              ✨
+            </div>
+          )}
+          {/* Player damage float */}
           {dmgFloat?.side==='player' && (
             <div style={{ position:'absolute', top:'-16px', left:'50%', transform:'translateX(-50%)',
               fontFamily:"'Fredoka One',cursive", fontSize:16, color:'#ff6b6b',
@@ -176,6 +203,37 @@ export default function BattleMode({ q, cur, total, streak, subject, onCorrect, 
       <div style={{ margin:'0 16px 6px', background:'rgba(255,255,255,.92)', borderRadius:12, padding:'10px 16px' }}>
         <div style={{ fontSize:13, color:'#1a1a1a', lineHeight:1.5 }}>▷ {battleText}</div>
       </div>
+
+      {/* Egg growth panel */}
+      {eggProgress && (
+        <div style={{ margin:'0 16px 5px', padding:'6px 12px',
+          background: nearHatch ? 'rgba(255,215,0,.07)' : 'rgba(255,255,255,.05)',
+          borderRadius:10,
+          border: nearHatch ? '1px solid rgba(255,215,0,.3)' : '1px solid rgba(255,255,255,.09)',
+        }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:10,
+              color: nearHatch ? '#FFD700' : 'rgba(255,255,255,.5)' }}>
+              🥚 {EGG_STAGE_NAMES[eggProgress.stage] || 'ไข่ลึกลับ'}
+            </div>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:10,
+              color: nearHatch ? '#FFD700' : 'rgba(255,255,255,.4)' }}>
+              {Math.round(eggProgress.pct)}%
+            </div>
+          </div>
+          <div style={{ height:5, background:'rgba(255,255,255,.1)', borderRadius:10, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${Math.min(100, eggProgress.pct)}%`,
+              background: nearHatch ? 'linear-gradient(90deg,#FFD700,#FF9900)' : 'rgba(127,119,221,.85)',
+              transition:'width .7s ease', borderRadius:10 }} />
+          </div>
+          {nearHatch && (
+            <div style={{ fontSize:9, color:'#FFD700', marginTop:2, textAlign:'center',
+              fontFamily:"'Fredoka One',cursive" }}>
+              ✨ ใกล้ฟักแล้ว! ✨
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Streak badge */}
       {streak >= 3 && (

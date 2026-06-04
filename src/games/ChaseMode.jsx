@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { playTone } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
+import EggCanvas from '../components/EggCanvas.jsx'
 
 const TARGETS = {
   math: [{ name:'เลขวิ่งหนี', emoji:'🔢' }, { name:'ผลลัพธ์หาย', emoji:'💰' }, { name:'คำตอบหนี', emoji:'📦' }],
@@ -66,7 +67,7 @@ const START_DIST = 30   // start 30% behind
 const GAIN = 14         // close by 14% per correct
 const LOSE = 10         // widen by 10% per wrong
 
-export default function ChaseMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak }) {
+export default function ChaseMode({ q, cur, total, streak, subject, onCorrect, onWrong, onNext, onSpeak, eggStats }) {
   const [target] = useState(() => {
     const pool = TARGETS[subject] || TARGETS.math
     return pool[Math.floor(Math.random() * pool.length)]
@@ -94,6 +95,7 @@ export default function ChaseMode({ q, cur, total, streak, subject, onCorrect, o
       setDashPlayer(true); setTimeout(() => setDashPlayer(false), 450)
       if (isCrit) { playTone('streak'); spawnConfetti(4); setChaseText(`💨 เร็วมาก! Combo! +${earned} XP`) }
       else         { playTone('dash');                     setChaseText(`🏃 ตามทัน! +${earned} XP`) }
+      setTimeout(() => playTone('item'), 200) // egg sparkle growth sound
     } else {
       const na = attempts + 1; setAttempts(na)
       if (na === 1) { onWrong(); setChaseText('💨 พลาดแล้ว! หนีไปอีก') }
@@ -127,12 +129,21 @@ export default function ChaseMode({ q, cur, total, streak, subject, onCorrect, o
         <div style={{ position:'relative', height:56, background:'rgba(255,255,255,.08)', borderRadius:14, overflow:'hidden', marginBottom:6 }}>
           {/* Progress fill */}
           <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${dist}%`, background:'rgba(127,119,221,.35)', transition:'width .4s ease', borderRadius:14 }} />
-          {/* Player emoji */}
-          <div style={{
-            position:'absolute', left:`${Math.max(2, dist - 12)}%`, top:'50%', transform:'translateY(-50%)',
-            fontSize:28, transition:'left .4s ease',
-            animation: dashPlayer ? 'adv-dash .4s ease' : 'none',
-          }}>🦸</div>
+          {/* Egg — the chasing hero */}
+          {eggStats ? (
+            <EggCanvas stats={eggStats} width={34} height={40} style={{
+              position:'absolute', left:`${Math.max(2, dist - 10)}%`, top:'50%', transform:'translateY(-50%)',
+              transition:'left .4s ease',
+              animation: dashPlayer ? 'adv-dash .4s ease' : 'none',
+              display:'block',
+            }} />
+          ) : (
+            <div style={{
+              position:'absolute', left:`${Math.max(2, dist - 12)}%`, top:'50%', transform:'translateY(-50%)',
+              fontSize:28, transition:'left .4s ease',
+              animation: dashPlayer ? 'adv-dash .4s ease' : 'none',
+            }}>🦸</div>
+          )}
           {/* Target emoji */}
           <div style={{
             position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',

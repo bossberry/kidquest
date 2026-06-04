@@ -47,8 +47,9 @@
 
 _Spec: `docs/research/gameplay/egg-companion-adventure.md`. Implement only after GPT answers open questions._
 
-- [ ] **ECA-MVP-1: DefenseMode egg replacement** — Replace generic 🥚 placeholder in `DefenseMode.jsx` with actual current-egg canvas component. One prop change. Highest emotional impact, lowest risk. No state changes.
-- [ ] **ECA-MVP-2: BattleMode egg companion** — Add egg canvas portrait beside player in `BattleMode.jsx`. Apply `adv-jump` keyframe on correct answers (already exists in styles.css). No state changes.
+- [x] **ECA-MVP-1: DefenseMode egg replacement** — EggCanvas replaces `babyEmoji` in `DefenseMode.jsx`. Egg bounces (`eggBounce`) on shield-block, shakes (`eggShake`) when shield is hit. Sparkle `item` tone 200ms after correct. Build ✅ 2026-06-04.
+- [x] **ECA-MVP-2: BattleMode egg companion** — EggCanvas replaces `🦸` player in `BattleMode.jsx`. Egg jumps + golden glow + `✨` sparkle float on correct; shakes on enemy counter-attack; continuous `egg-near-hatch` pulse/glow when stage ≥ 5. Egg growth progress bar shows below battle log with stage name + %. Sparkle `item` tone 200ms after every correct answer. Build ✅ 2026-06-04.
+- [x] **ChaseMode egg companion** — EggCanvas replaces `🦸` runner in `ChaseMode.jsx`. Egg dashes (`adv-dash`) on correct. Sparkle tone. Build ✅ 2026-06-04.
 - [ ] **ECA-MVP-3: Relationship data fields** — Add `adventuresWith`, `questionsAnswered`, `eggStartDate` to egg object in `defaultState()`. Increment in `ADD_XP` reducer. Non-breaking (defaults 0/null). No migration needed.
 - [ ] **ECA-3: Post-session egg moment** — Show egg portrait + growth text on session result screens when XP was added. "ไข่ของเราโตขึ้นนะ!" / "อีกนิดเดียวก็ฟักแล้ว!" (stage 5–6). Requires ECA-MVP-3.
 - [ ] **ECA-4: Hatch biography summary** — Show relationship data on hatch overlay: "ผจญภัยด้วยกัน N ครั้ง, ตอบคำถาม N ข้อ". Requires ECA-MVP-3. Add as second phase in HatchOverlay before creature reveal.

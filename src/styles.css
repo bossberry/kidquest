@@ -376,6 +376,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 @keyframes adv-jump{0%,100%{transform:translateY(0)}30%{transform:translateY(-14px) scaleX(1.1)}60%{transform:translateY(-4px)}}
 @keyframes adv-dash{0%{transform:translateX(0)}30%{transform:translateX(14px) scaleY(.88)}70%{transform:translateX(6px)}100%{transform:translateX(0)}}
 @keyframes adv-shield{0%,100%{transform:scale(1)}40%{transform:scale(1.25) rotate(-5deg)}70%{transform:scale(1.1) rotate(3deg)}}
+@keyframes egg-near-hatch{0%,100%{transform:scale(1);filter:drop-shadow(0 0 4px rgba(255,215,0,.5))}50%{transform:scale(1.05);filter:drop-shadow(0 0 18px rgba(255,215,0,.95))}}
 
 /* Utility classes */
 .rec-card-float{animation:pulse-float 3s ease-in-out infinite}

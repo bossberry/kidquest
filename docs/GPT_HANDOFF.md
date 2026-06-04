@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle Home experience)_
+_Last updated: 2026-06-04 (Battle balance and sound)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,13 @@ _Last updated: 2026-06-04 (Battle Home experience)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle Home experience — code change):**
+**What changed this session (Battle balance and sound — code change):**
+
+- `src/config/gameConfig.js` — AI_OPPONENTS rebalanced. Enemy HP ×4 (regular/miniboss) and ×3.5 (boss). Enemy ATK ×2.5 across all 6 tiers. Result: Tier 0 regular battles now last ~7 turns (was 2). Bosses ~14 turns (was 4). Player still usually wins but takes meaningful HP damage. DEF kept unchanged.
+- `src/components/BattleScreen.jsx` — Battle SFX fixed and improved. Added `import { getSoundOn, getACtx }` from audio.js. `playBattleSound` now checks `getSoundOn()` (respects sound toggle) and reuses shared AudioContext (no more per-call context leak). Sound types: `attack` (sword-swing whoosh, fires at "โจมตี!" text), `hit` (3-layer impact), `crit` (4-tone ascending), `win` (6-note fanfare up to 1319 Hz), `lose` (gentle 4-tone descent). `attack` sound added to `runAnimation` before the hit flash.
+- Build: ✅ zero errors.
+
+**What changed last session (Battle Home experience — code change):**
 
 - `src/components/BottomNav.jsx` — ⚔️ badge removed from Collection tab entirely.
 - `src/App.jsx` — `challengerOpen` state lifted from ChallengerOverlay; useEffect fires when `pendingChallenger` set; props wired to ChallengerOverlay and Home.
@@ -220,7 +226,7 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 - **Surprise rotation with one unlocked game** — shows same game daily until a second is unlocked. Acceptable for now.
 - **Egg pacing affects only new eggs** — existing players with old state see correct new pacing on their NEXT egg (current egg's readyToHatch is recalculated on next ADD_XP).
 - **BattleScreen advice text mismatch** — BattleScreen still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but new formula maps Math→ATK. Minor UI text inconsistency; not fixed per task scope.
-- **Creature stats ~1.8× higher than before** — battles remain strongly player-favored. AI opponents were already weak. No rebalancing done.
+- **Creature stats ~1.8× higher than before vs old enemies** — now resolved by the HP×4 / ATK×2.5 rebalance. Battles last 6–15 turns; player still favored but takes real HP damage.
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
 - No session audit trail in Supabase — all progress in one blob per user
 

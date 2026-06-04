@@ -14,6 +14,7 @@
 - [x] **Battle Home experience** — ⚔️ badge removed from BottomNav. Battle card added to Adventure Director (priority: hatch → battle → shop → weakest subject). Shows challenger emoji + "มอนสเตอร์ปรากฏตัว!" on dark gradient card. Tapping opens ChallengerOverlay (visible state lifted to App.jsx). Build ✅.
 - [x] **Shop Mission speech feedback** — `speakTh`/`speakEn` added to `GameShop.jsx`. After each correct answer: Thai questions speak the Thai word (380ms delay), English speaks the English word, Math/counting speaks Thai number word (หนึ่ง/สอง/...). Sound toggle respected. Build ✅.
 - [x] **Home UI simplification** — Subject grid now collapsible behind "อยากเลือกเอง?" toggle (closed by default). Shop Mission card removed from main Home. Visual hierarchy: Egg → Continue Adventure → "อยากเลือกเอง?" → Egg Run → Surprise. Build ✅.
+- [x] **Battle balance and sound** — enemy HP ×4, ATK ×2.5; battles last 6–15 turns. BattleScreen sound respects toggle; attack/hit/crit/win/lose SFX improved. Build ✅.
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
 - [ ] **D0: Home UX audit** — review simplified Home with Chopin. Does Continue Adventure feel like the obvious action? Does the "อยากเลือกเอง?" toggle feel discoverable?
 

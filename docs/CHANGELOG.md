@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle balance and sound
+
+- `src/config/gameConfig.js` — All AI_OPPONENTS HP scaled ×4 (regular/miniboss) and ×3.5 (boss); all ATK scaled ×2.5. Battles now last 6–15 turns instead of 2–4.
+- `src/components/BattleScreen.jsx` — Imported `getSoundOn`/`getACtx` from audio.js. `playBattleSound` now respects sound toggle and reuses shared AudioContext. Added `attack` sound type (sword-swing whoosh). Improved `hit` (3-layer impact), `crit` (4-tone ascending), `win` (6-note fanfare), `lose` (gentler 4-tone descent). `attack` sound fires when attack text is shown; `hit` fires on flash.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Battle Home experience
 
 - `src/components/BottomNav.jsx` — ⚔️ badge removed from Collection tab. `hasChallenger` and `useAppState` import removed.

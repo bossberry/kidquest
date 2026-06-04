@@ -3,14 +3,16 @@ import { createPortal } from 'react-dom'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { useAppState } from '../context/StateContext.jsx'
 import { ACTIONS } from '../context/StateContext.jsx'
+import { getSoundOn, getACtx } from '../lib/audio.js'
 
 const ITEM_REWARDS = ['food','food','food','star','ribbon','potion']
 const ITEM_EMOJI   = { food:'🍗', star:'⭐', ribbon:'🎀', potion:'💧' }
 const delay = ms => new Promise(res => setTimeout(res, ms))
 
 function playBattleSound(type) {
+  if (!getSoundOn()) return
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getACtx()
     const now = ctx.currentTime
     const tone = (freq, t, dur, vol=0.25, wave='square') => {
       const o = ctx.createOscillator(), g = ctx.createGain()
@@ -20,12 +22,31 @@ function playBattleSound(type) {
       o.connect(g); g.connect(ctx.destination)
       o.start(now+t); o.stop(now+t+dur)
     }
-    if (type==='hit')     { tone(200,0,.12); tone(120,.05,.1) }
-    if (type==='crit')    { tone(440,0,.08); tone(660,.09,.12); tone(880,.2,.18) }
-    if (type==='warning') { tone(880,0,.1); tone(880,.18,.1) }
-    if (type==='win')     { [523,659,784,1047].forEach((f,i)=>tone(f,i*.13,.28,.2,'sine')) }
-    if (type==='lose')    { [400,300,220,150].forEach((f,i)=>tone(f,i*.18,.2,.15,'sine')) }
-    setTimeout(()=>ctx.close(), 3000)
+    if (type==='attack') {
+      tone(300, 0,    0.06, 0.18, 'sawtooth')
+      tone(500, 0.05, 0.08, 0.14, 'sawtooth')
+    }
+    if (type==='hit') {
+      tone(180, 0,    0.14, 0.30, 'square')
+      tone(100, 0.04, 0.12, 0.22, 'square')
+      tone(60,  0.08, 0.10, 0.18, 'sawtooth')
+    }
+    if (type==='crit') {
+      tone(440,  0,    0.08, 0.30, 'square')
+      tone(660,  0.08, 0.12, 0.30, 'square')
+      tone(880,  0.18, 0.16, 0.28, 'square')
+      tone(1100, 0.32, 0.22, 0.22, 'sine')
+    }
+    if (type==='warning') {
+      tone(880, 0,    0.12, 0.22, 'sine')
+      tone(880, 0.22, 0.12, 0.22, 'sine')
+    }
+    if (type==='win') {
+      [523,659,784,880,1047,1319].forEach((f,i) => tone(f, i*0.12, 0.34, 0.22, 'sine'))
+    }
+    if (type==='lose') {
+      [400,320,240,160].forEach((f,i) => tone(f, i*0.20, 0.25, 0.15, 'sine'))
+    }
   } catch {}
 }
 
@@ -111,6 +132,7 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
       const defSide  = isPlayer ? 'opponent' : 'player'
 
       setBattleText(`${atkEmoji} ${atkName} โจมตี!`)
+      playBattleSound('attack')
       await delay(900)
       if (!alive()) return
 

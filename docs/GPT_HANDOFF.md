@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Animation juice polish)_
+_Last updated: 2026-06-04 (Fix: rewards from Continue Adventure)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,11 @@ _Last updated: 2026-06-04 (Animation juice polish)_
 
 ## Latest Session Summary
 
-**What changed this session (Animation juice polish — code change):**
+**What changed this session (Fix: rewards from Continue Adventure — bug fix):**
+
+- `src/context/StateContext.jsx` — Fixed state-overwrite race condition. Both `loadState().then()` (mount) and the `SIGNED_IN` auth-refresh handler previously called `dispatch(INIT, remoteState)` unconditionally. If Supabase hadn't synced the latest local progress yet (async), `remote.rounds` would be behind `stateRef.current.rounds`, causing XP, items, and egg progress to silently revert. Fix: compare `remote.rounds` against `stateRef.current.rounds` before dispatching INIT. If local is ahead, skip INIT and push local state to cloud instead. Guest mode (no Supabase) and fresh-install (local rounds=0) are unaffected.
+
+**What changed last session (Animation juice polish — code change):**
 
 - `src/styles.css` — 10 new `@keyframes` + utility classes: `pulse-float` (3s bob on adventure card), `battle-glow-pulse` (purple ring on battle card), `shimmer-bright` (Surprise card), `slide-down-in` (subject grid), `victory-bounce` (win emoji), `item-pop-in` (reward box spring), `streak-bounce` (streak feedback), `hatch-glow` (golden drop-shadow on creature reveal), `modal-pop` (creature detail popup), `answer-correct-glow` (correct choice ring). `@media(prefers-reduced-motion:reduce)` disables all decorative animations.
 - `src/components/Home.jsx` — rec card: `rec-card-float` or `rec-card-battle`; Surprise card: `rec-card-surprise`; subject grid: `subjects-slide-in` on mount.

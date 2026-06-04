@@ -1,5 +1,9 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Fix: rewards from Continue Adventure
+
+- `src/context/StateContext.jsx` — Fixed race condition where `loadState()` async callback and the `SIGNED_IN` auth handler could dispatch `INIT` with stale Supabase data, silently reverting XP, items, and egg progress earned since app start. Fix: before dispatching `INIT`, compare `remote.rounds` against `stateRef.current.rounds` (the always-current ref already wired in the context). If local is ahead (user made progress before the async resolve or token refresh fired), keep local state and push it to Supabase instead. Guest mode and new-device/fresh-install paths unaffected.
+
 ## 2026-06-04 — Animation juice polish
 
 - `src/styles.css` — 10 new `@keyframes` + utility classes: `pulse-float` (Continue Adventure gentle bob), `battle-glow-pulse` (purple glow ring for battle card), `shimmer-bright` (Surprise card), `slide-down-in` (subject grid open), `victory-bounce` (win/done emoji), `item-pop-in` (reward box), `streak-bounce` (Shop streak feedback), `hatch-glow` (creature reveal golden drop-shadow), `modal-pop` (creature detail card), `answer-correct-glow` (correct choice ring). `.catalog-item:hover` lift + shadow; `.choice-btn.correct` enhanced with dual animation. `@media(prefers-reduced-motion:reduce)` block disables all decorative animations.

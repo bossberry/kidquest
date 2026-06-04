@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle learning special move)_
+_Last updated: 2026-06-04 (Audio polish and louder phonics)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,18 @@ _Last updated: 2026-06-04 (Battle learning special move)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle learning special move — code change):**
+**What changed this session (Audio polish and louder phonics — code change):**
+
+- `src/lib/audio.js` — 9 new `playTone()` types: `tap` (warm pop), `open` (2-note upward), `unlock` (4-note jingle), `item` (sparkle), `eggReady` (3-note pulse), `reveal` (5-note sweep), `start` (burst), `complete` (4-note), `cardOpen` (soft pop). Phonics GainNode raised from 2.5 → 4.0.
+- `src/components/Home.jsx` — `tap` on Continue Adventure + Surprise tap; `open`/`click` on subject-grid toggle; `eggReady` fires once on readyToHatch transition.
+- `src/components/Collection.jsx` — `cardOpen` on creature card tap; `click` on popup close.
+- `src/components/HatchOverlay.jsx` — `reveal` + staggered `fanfare` (350ms) at creature reveal.
+- `src/components/BattleScreen.jsx` — `item` tone 950ms after win (reward popup). Added `playTone` import.
+- `src/games/GameShop.jsx` — `complete` at ≥80% pass (was silent); ≥90% keeps `fanfare`.
+- `src/games/GamePhonics/Math/Thai.jsx` — `unlock` on level unlock; `complete` on 80–89% pass.
+- Build: ✅ zero errors. Commit: 78a6ddd.
+
+**What changed last session (Battle learning special move — code change):**
 
 - `src/components/BattleScreen.jsx` — Learning-based special move added. Before each battle a question appears: "⚡ ตอบถูก ปล่อยท่าพิเศษ!" with 4 tap-target buttons + skip link. `pickBattleQuestion(sessionLog)` selects subject from most-played recent sessions (most comfortable readiness signal). Falls back to simple Math (1+1 to 4+4) when no session data. Correct → `specialDmg = ceil(opponent.HP × 0.25)`, brief "🔥 ท่าพิเศษพร้อมแล้ว!" feedback, battle starts; special attack fires FIRST (⚡ text + 5-note ascending 'special' SFX + gold damage float + hit flash). Enemy HP re-simulated from reduced starting HP so win condition is correctly earned. Wrong/skip → "💪 สู้ต่อไปนะ!" feedback, battle continues normally — no penalty. One question per battle only. Also added 'special' sound type. Bonus fix: ATK/DEF lose-screen advice text was showing wrong subjects (was Thai→ATK, Math→DEF; now correctly Math→ATK, Thai→DEF per calcCreatureStats formula).
 - Build: ✅ zero errors. Commit: d3ef85c.

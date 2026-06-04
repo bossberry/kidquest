@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Audio polish and louder phonics
+
+- `src/lib/audio.js` — 9 new tones added to `playTone()`: `tap` (warm pop), `open` (2-note upward chirp), `unlock` (4-note ascending jingle), `item` (sparkle arpeggio), `eggReady` (3-note glowing pulse), `reveal` (5-note sweep + sine), `start` (energetic burst), `complete` (4-note mission jingle), `cardOpen` (2-note soft pop). Phonics GainNode boosted from 2.5 → 4.0.
+- `src/components/Home.jsx` — `playTone('tap')` on Continue Adventure + Surprise Event tap. `playTone('open'/'click')` on subject grid toggle. `playTone('eggReady')` fires once when `state.readyToHatch` transitions true.
+- `src/components/Collection.jsx` — `playTone('cardOpen')` on creature card tap; `playTone('click')` on popup close.
+- `src/components/HatchOverlay.jsx` — `playTone('reveal')` + staggered `fanfare` (350ms) at creature reveal (`done` phase).
+- `src/components/BattleScreen.jsx` — `playTone('item')` fires 950ms after win (reward popup timing). Added `playTone` import.
+- `src/games/GameShop.jsx` — `playTone('complete')` at ≥80% pass (was silent); ≥90% keeps `fanfare`.
+- `src/games/GamePhonics.jsx` / `GameMath.jsx` / `GameThai.jsx` — `playTone('unlock')` on level unlock; `playTone('complete')` on pass (80–89%).
+- Build: ✅ zero errors. Commit: 78a6ddd.
+
 ## 2026-06-04 — Battle learning special move
 
 - `src/components/BattleScreen.jsx` — New question phase before each battle. `pickBattleQuestion(sessionLog)` selects subject from most-played recent sessions (safest readiness signal); falls back to simple Math (1+1→4+4) when no data. Question UI: full-screen dark overlay, 4 large tap-target buttons, skip link. Correct answer → `specialDmgRef` = 25% of enemy HP; 900ms "🔥 ท่าพิเศษพร้อมแล้ว!" feedback; `setPhase('fighting')`. Wrong/skip → 700ms "💪 สู้ต่อไปนะ!" feedback; battle starts normally. Special attack plays at battle start: ⚡ text + new 5-note ascending 'special' SFX + hit flash + gold damage float. Enemy HP re-simulated from reduced starting value so win condition is correct. Also fixed ATK/DEF advice text mismatch (was: Thai→ATK, Math→DEF; now: Math→ATK, Thai→DEF to match calcCreatureStats formula).

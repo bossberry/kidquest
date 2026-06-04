@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Observation philosophy documentation
+
+- `docs/research/observation/observation-philosophy.md` — created. Source-of-truth for observation philosophy: observe→understand→design loop, children are not their level (behavior > history), positive interpretation table, important signals (accuracy/replay/completion/consistency), signals that must not dominate (speed/streaks/rankings), Subject Readiness as observations not labels, parent report philosophy (no anxiety/grades/rankings), mission follows child (deterministic design iteration not AI), explicit non-goals (no AI tutoring/adaptive engines/manipulation/addiction optimization), system relationships, implementation reference, 5 open questions.
+- `docs/RESEARCH_INDEX.md` — Observation section added with entries for both observation-philosophy.md and play-observation-system.md.
+- `docs/GPT_NOTES.md` — Observation Philosophy section added.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Gameplay loop documentation
 
 - `docs/research/progression/gameplay-loop.md` — created. Highest-level philosophy document for KidQuest. Covers: Home as Adventure Director (not a menu), core loop (learn→battle→learn), replay philosophy (healthy/full XP), surprise philosophy (rare=special, daily date-hash rotation), minigame philosophy (rewards not primary game), intrinsic motivation (curiosity/collection/surprise/progress/mastery), child autonomy (suggest not force), explicit non-goals (no daily chores/energy systems/FOMO/competition), system relationships (subordinate docs listed), 5 open questions.

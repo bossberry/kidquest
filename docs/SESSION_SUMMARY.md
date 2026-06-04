@@ -1,37 +1,39 @@
-# Session Summary — 2026-06-04 (Gameplay loop documentation)
+# Session Summary — 2026-06-04 (Observation philosophy documentation)
 
 **Session type:** Documentation only. No code changes. No build.
 
 **Files created/changed:**
-- `docs/research/progression/gameplay-loop.md` — new (created)
-- `docs/RESEARCH_INDEX.md` — gameplay-loop.md entry added (marked as highest-level philosophy)
-- `docs/GPT_NOTES.md` — Gameplay Loop Philosophy section added
+- `docs/research/observation/observation-philosophy.md` — new (created)
+- `docs/RESEARCH_INDEX.md` — Observation section added (philosophy + play-observation-system entries)
+- `docs/GPT_NOTES.md` — Observation Philosophy section added
 - `docs/TASKS.md` — task marked done
 - `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
 
 ## What was documented
 
-`docs/research/progression/gameplay-loop.md` is the highest-level philosophy document for KidQuest. All other system documents are subordinate to it.
+`docs/research/observation/observation-philosophy.md` is the source-of-truth for observation philosophy.
 
 Covers:
-1. Core philosophy — Home answers "what next?", not "what do you choose?"; Home is an Adventure Director not a menu
-2. Main loop — Learn → XP → Egg → Hatch → Creature → Battle → Learn again; learning always upstream
-3. Home philosophy — guide, not overwhelm; one large recommendation > many equal options; Adventure Director logic documented
-4. Replay philosophy — healthy and normal for age 5; full XP always; familiarity > constant novelty
-5. Surprise philosophy — special moments (hatch, battle, minigames) should feel rare; daily Surprise Event = one game, not a grid
-6. Minigame philosophy — rewards not primary game; one daily Surprise > 2×2 grid; modest XP to avoid farming
-7. Motivation philosophy — intrinsic first (curiosity/collection/surprise/progress/mastery); no FOMO/streak/time pressure
-8. Child autonomy — game suggests, never forces; no guilt mechanics; stopping is always fine
-9. Explicit non-goals — no daily chores, no energy systems, no paid acceleration, no FOMO, no competition
-10. System relationships — this document sits above all others; lists all subordinate docs
-11. 5 open questions for future design
+1. Core philosophy — observe first, understand second, design third; real play beats theory
+2. Observation loop — Play → session logs → patterns → Subject Readiness → better design
+3. Children are not their level — highest unlock is history; behavior is current readiness
+4. Positive interpretation — replay = confidence-building; low accuracy = new material; no child is "behind"
+5. Important signals — accuracy, replay behavior, completion rate, consistency, voluntary repetition, time spent
+6. Signals that must not dominate — speed, competition, leaderboards, peer comparison, streaks, perfection
+7. Subject Readiness — 4 states (Strong/Comfortable/Exploring/Not Ready); observations not labels; states change
+8. Parent report philosophy — understand, not anxiety; no grades, rankings, fear framing, or "falling behind"
+9. Mission design philosophy — mission follows child; adapt through deterministic design iteration, not AI
+10. Explicit non-goals — no AI tutoring, no adaptive engines, no ranking, no manipulation, no addiction optimization
+11. System relationships — observation supports all systems; runs beneath the surface, invisible to child
+12. Implementation reference — sessionLog, LOG_SESSION, computeReadiness(), Report.jsx
+13. 5 open questions for future design
 
 ## Open questions
 
 | Question | Status |
 |----------|--------|
-| Should Adventure Director ever recommend battle? | 🔵 Open |
-| How should Home behave right after a hatch? | 🔵 Open |
-| Should minigame XP be reduced vs. subject XP? | 🔵 Open |
-| How does Surprise Event scale as more minigames unlock? | 🔵 Open |
-| Should the loop ever signal a natural session end? | 🔵 Open |
+| Should Adventure Director use Readiness state (not just XP)? | 🔵 Open |
+| Should parents see session-level detail or patterns only? | 🔵 Open |
+| Should sessionLog decay by recency (recent sessions weighted more)? | 🔵 Open |
+| Should Subject Readiness gate mission Stretch/Challenge unlock? | 🔵 Open |
+| How often should GPT review play data and propose design iteration? | 🔵 Open |

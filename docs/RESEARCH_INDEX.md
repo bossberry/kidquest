@@ -44,6 +44,13 @@ _Last updated: 2026-06-04_
 
 ---
 
+## Observation
+
+- [docs/research/observation/observation-philosophy.md](research/observation/observation-philosophy.md) — Observation philosophy: observe→understand→design, positive interpretation, important signals, Subject Readiness states, parent report philosophy, mission follows child, non-goals (no AI/ranking/manipulation)
+- [docs/research/observation/play-observation-system.md](research/observation/play-observation-system.md) — Play observation system spec: sessionLog schema, Subject Readiness derivation logic, Report.jsx implementation
+
+---
+
 ## Next Planned Research
 
 1. Thai reading foundation age 5–6 (reading/spelling curriculum)

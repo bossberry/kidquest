@@ -3,6 +3,23 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Observation Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/observation/observation-philosophy.md`
+
+- **Observe first, understand second, design third. Never assume.** Real play behavior overrides curriculum theory.
+- **Children are not their level.** Highest unlock is a historical record, not current readiness. Behavior (accuracy, replay, completion) matters more.
+- **Positive interpretation always.** Replaying = building confidence. Low accuracy on new content = encountering new material. No child is "weak", "behind", or "failing."
+- **Important signals:** accuracy, replay behavior, completion rate, consistency, voluntary repetition, favorite activities, time spent. No single signal is sufficient — the combination tells the story.
+- **Signals that must not dominate:** speed, competition, leaderboards, peer comparison, daily streaks, perfect scores.
+- **Subject Readiness is an observation, not a label.** States change. "Exploring" today can be "Comfortable" next week. Always framed as "based on recent play."
+- **Parent reports must not create anxiety.** No grades, no rankings, no fear framing, no "falling behind." The report sets the emotional tone of the parent-child-game relationship.
+- **Mission follows the child.** Subject Readiness informs mission gating. Content adapts through design iteration (GPT → deterministic rules), not AI.
+- **Observation must never become manipulation.** Understanding a child's psychology is not permission to exploit it for retention.
+- **Open questions for GPT:** (1) Should Adventure Director use Readiness state (not just XP share)? (2) Should sessionLog decay by recency? (3) Should Readiness gate mission Stretch/Challenge unlock? (4) How often should design iteration reviews happen?
+
+---
+
 ## Gameplay Loop Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/progression/gameplay-loop.md` — **This is the highest-level philosophy document.**

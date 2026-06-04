@@ -349,3 +349,49 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 
 
 #root{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+
+/* ===== ANIMATION JUICE ===== */
+
+/* Home cards */
+@keyframes pulse-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes battle-glow-pulse{0%,100%{box-shadow:0 4px 24px rgba(127,119,221,.1)}50%{box-shadow:0 0 0 4px rgba(127,119,221,.22),0 4px 32px rgba(127,119,221,.28)}}
+@keyframes shimmer-bright{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}
+@keyframes slide-down-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Celebrations */
+@keyframes victory-bounce{0%{transform:scale(1)}25%{transform:scale(1.22)rotate(-5deg)}55%{transform:scale(1.14)rotate(5deg)}80%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes item-pop-in{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.16)}100%{transform:scale(1);opacity:1}}
+@keyframes streak-bounce{0%,100%{transform:translateY(0)scale(1)}35%{transform:translateY(-9px)scale(1.12)}65%{transform:translateY(-2px)scale(1.05)}}
+
+/* Correct answer additional glow */
+@keyframes answer-correct-glow{0%{box-shadow:0 0 0 0 rgba(29,158,117,.7)}100%{box-shadow:0 0 0 14px rgba(29,158,117,0)}}
+
+/* Hatch creature reveal */
+@keyframes hatch-glow{0%{filter:drop-shadow(0 0 0 rgba(255,215,0,.9))}50%{filter:drop-shadow(0 0 22px rgba(255,215,0,.7))}100%{filter:drop-shadow(0 0 0 rgba(255,215,0,0))}}
+
+/* Creature detail modal */
+@keyframes modal-pop{0%{transform:scale(.8)translateY(10px);opacity:0}70%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+
+/* Utility classes */
+.rec-card-float{animation:pulse-float 3s ease-in-out infinite}
+.rec-card-battle{animation:battle-glow-pulse 1.5s ease-in-out infinite}
+.rec-card-surprise{animation:shimmer-bright 2.5s ease-in-out infinite}
+.subjects-slide-in{animation:slide-down-in .22s cubic-bezier(.4,0,.2,1)}
+.victory-bounce{animation:victory-bounce .55s cubic-bezier(.36,.07,.19,.97)}
+.item-pop-in{animation:item-pop-in .38s cubic-bezier(.36,.07,.19,.97)}
+.streak-bounce{animation:streak-bounce .42s cubic-bezier(.36,.07,.19,.97)}
+.hatch-reveal-glow{animation:hatch-glow .9s ease-out}
+
+/* Enhanced states */
+.catalog-item{transition:transform .12s,box-shadow .12s}
+.catalog-item:hover{transform:translateY(-3px);box-shadow:0 5px 16px rgba(0,0,0,.1)}
+.creature-detail-card{animation:modal-pop .26s cubic-bezier(.36,.07,.19,.97)}
+.choice-btn.correct{animation:correct .4s ease,answer-correct-glow .5s ease!important}
+.feedback.streak-win{animation:streak-bounce .42s cubic-bezier(.36,.07,.19,.97)}
+
+/* Reduced motion — disable all decorative animations */
+@media(prefers-reduced-motion:reduce){
+  .rec-card-float,.rec-card-battle,.rec-card-surprise,.streak-bounce,
+  .victory-bounce,.item-pop-in,.hatch-reveal-glow{animation:none!important}
+  .choice-btn.correct{animation:correct .4s ease!important}
+}

@@ -88,7 +88,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
           />
         )}
         {phase === 'done' && (
-          <div style={{ fontSize:80 }}>{creature?.e || '🐣'}</div>
+          <div style={{ fontSize:80 }} className="hatch-reveal-glow">{creature?.e || '🐣'}</div>
         )}
       </div>
 

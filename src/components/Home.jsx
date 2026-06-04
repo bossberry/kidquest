@@ -198,6 +198,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         <div style={{ fontSize:11, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:8, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' }}>⭐ ผจญภัยต่อ</div>
         <div
           onClick={handleRecommendedAction}
+          className={rec.type === 'battle' ? 'rec-card-battle' : 'rec-card-float'}
           style={{
             display:'flex', alignItems:'center', gap:16,
             background: rec.bg,
@@ -236,7 +237,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
         </button>
       </div>
       {subjectsOpen && (
-        <div className="world-grid" style={{ marginTop:8 }}>
+        <div className="world-grid subjects-slide-in" style={{ marginTop:8 }}>
           <div className="world-card" style={{ background:'#E1F5EE' }} onClick={() => startWorld('thai')}>
             <span className="world-icon">🇹🇭</span>
             <div className="world-name" style={{ color:'#085041' }}>ภาษาไทย</div>
@@ -306,6 +307,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, o
           ) : (
             <div
               onClick={() => { playTone('tap'); startWorld(surprise.id) }}
+              className="rec-card-surprise"
               style={{
                 display:'flex', alignItems:'center', gap:14,
                 background: MG_COLORS[surprise.id],

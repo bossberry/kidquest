@@ -303,7 +303,7 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
     if (questionFeedback) {
       return createPortal(
         <div style={{ position:'fixed', inset:0, background:'#1a1040', zIndex:9999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontFamily:'Mitr,sans-serif' }}>
-          <div style={{ fontSize:64 }}>{questionFeedback === 'correct' ? '🔥' : '💪'}</div>
+          <div style={{ fontSize:64 }} className={questionFeedback === 'correct' ? 'victory-bounce' : ''}>{questionFeedback === 'correct' ? '🔥' : '💪'}</div>
           <div style={{ fontSize:20, fontWeight:700, marginTop:12, textAlign:'center', color: questionFeedback === 'correct' ? '#FFD700' : '#fff' }}>
             {questionFeedback === 'correct' ? 'ท่าพิเศษพร้อมแล้ว!' : 'สู้ต่อไปนะ!'}
           </div>
@@ -434,13 +434,13 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
   return createPortal(
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.7)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
       <div style={{ background:'var(--bg)', borderRadius:20, padding:24, width:'100%', maxWidth:400, fontFamily:'Mitr,sans-serif', textAlign:'center' }}>
-        <div style={{ fontSize:56, marginBottom:8 }}>{won ? '🎉' : '😤'}</div>
+        <div style={{ fontSize:56, marginBottom:8 }} className={won ? 'victory-bounce' : ''}>{won ? '🎉' : '😤'}</div>
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color: won?'var(--green-d)':'var(--red)', marginBottom:16 }}>
           {won ? 'ชนะแล้ว!' : 'สู้ต่อไปนะ!'}
         </div>
 
         {won && rewardItem && (
-          <div style={{ background:'var(--purple-l)', border:'0.5px solid var(--purple)', borderRadius:14, padding:14, marginBottom:14 }}>
+          <div className="item-pop-in" style={{ background:'var(--purple-l)', border:'0.5px solid var(--purple)', borderRadius:14, padding:14, marginBottom:14 }}>
             <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>รางวัล</div>
             <div style={{ fontSize:36 }}>{ITEM_EMOJI[rewardItem]}</div>
             <div style={{ fontSize:13, marginTop:4 }}>ได้รับ {rewardItem} +1</div>

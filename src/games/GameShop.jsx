@@ -109,7 +109,7 @@ export default function GameShop({ navigate }) {
       dispatch({ type: ACTIONS.ADD_XP, payload: { world, amount: earned, accDelta: 100 } })
       if (ns >= 3) {
         const smsg = STREAK_MSGS[(ns - 3) % STREAK_MSGS.length]
-        setFeedback({ type: 'win', msg: `${smsg} +${earned} XP` })
+        setFeedback({ type: 'win', msg: `${smsg} +${earned} XP`, streak: true })
         playTone('streak'); spawnConfetti(8)
       } else {
         setFeedback({ type: 'win', msg: CORRECT_MSGS[Math.floor(Math.random() * CORRECT_MSGS.length)] + ` +${earned} XP` })
@@ -173,7 +173,7 @@ export default function GameShop({ navigate }) {
     const passed = p >= 0.8
     return (
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
-        <div style={{ fontSize:64, marginBottom:10 }}>{p >= .9 ? '🏆' : p >= .7 ? '🎉' : '😊'}</div>
+        <div style={{ fontSize:64, marginBottom:10 }} className="victory-bounce">{p >= .9 ? '🏆' : p >= .7 ? '🎉' : '😊'}</div>
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--purple-d)', marginBottom:8 }}>
           {p >= .9 ? 'เยี่ยมมาก! 🌟' : p >= .8 ? 'ผ่านแล้ว! 🎊' : 'ลองอีกครั้งนะ 💪'}
         </div>
@@ -246,7 +246,7 @@ export default function GameShop({ navigate }) {
           ))}
         </div>
 
-        {feedback && <div className={`feedback show ${feedback.type}`}>{feedback.msg}</div>}
+        {feedback && <div className={`feedback show ${feedback.type}${feedback.streak ? ' streak-win' : ''}`}>{feedback.msg}</div>}
         {answered && (
           <button className="next-btn show" style={{ background:'var(--purple)', color:'#fff' }} onClick={next}>
             {cur + 1 >= TOTAL ? 'ดูผล 🎊' : 'ต่อไป →'}

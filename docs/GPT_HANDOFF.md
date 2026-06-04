@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Fix: rewards from Continue Adventure)_
+_Last updated: 2026-06-04 (Math Battle learning mode)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Fix: rewards from Continue Adventure)_
 
 ## Latest Session Summary
 
-**What changed this session (Fix: rewards from Continue Adventure — bug fix):**
+**What changed this session (Math Battle learning mode — code change):**
+
+- `src/games/GameMathBattle.jsx` — NEW: 8-question Math battle vs cute enemy (🤖👻😈🐲). Dark purple battle UI. Correct → attack flash + HP drain; streak≥3 → Crit × 1.5 + SFX + confetti. Wrong → gentle shake, up to 3 attempts, no punishment. All XP/LOG_SESSION/UNLOCK_LEVEL dispatches identical to GameMath → Subject Readiness, egg progress, level unlock all work. Result screen: HP drained display + replay/home buttons.
+- `src/games/GameScreen.jsx` — Lazy import + route for `mathbattle` world.
+- `src/components/Home.jsx` — Continue Adventure Math → routes to `mathbattle` (icon ⚔️, "Math Battle", "ตอบถูก = โจมตี! ⚡"). Subject grid Math card still routes to normal `math` (LevelSelector).
+- Build: ✅ zero errors. Commit: f6e5b74.
+
+**What changed last session (Fix: rewards from Continue Adventure — bug fix):**
 
 - `src/context/StateContext.jsx` — Fixed state-overwrite race condition. Both `loadState().then()` (mount) and the `SIGNED_IN` auth-refresh handler previously called `dispatch(INIT, remoteState)` unconditionally. If Supabase hadn't synced the latest local progress yet (async), `remote.rounds` would be behind `stateRef.current.rounds`, causing XP, items, and egg progress to silently revert. Fix: compare `remote.rounds` against `stateRef.current.rounds` before dispatching INIT. If local is ahead, skip INIT and push local state to cloud instead. Guest mode (no Supabase) and fresh-install (local rounds=0) are unaffected.
 

@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Math Battle learning mode
+
+- `src/games/GameMathBattle.jsx` — NEW. Battle-wrapped Math MVP. Dark purple (#1a1040) UI. 8 questions per battle against one of 4 cute enemies (🤖👻😈🐲, 64 HP each). Enemy selected randomly. Player's current math level auto-used (no level selector in battle mode). Correct answer → enemy attack flash + HP reduction + battle text. Streak ≥3 → Critical Hit (×1.5 dmg, streak SFX, confetti). Wrong → gentle enemy shake, up to 3 attempts, then reveal. No player HP — child-friendly, zero frustration punishment. All dispatches identical to GameMath: ADD_XP (same formula), ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL, LOG_SESSION (world:'math'). Result screen shows HP drained + replay/home.
+- `src/games/GameScreen.jsx` — Lazy-import for GameMathBattle; `mathbattle` added to WORLD_TITLES.
+- `src/components/Home.jsx` — Continue Adventure Math recommendation: icon `⚔️`, label "Math Battle", sub "ตอบถูก = โจมตี! ⚡". Routes to `mathbattle` world. Subject grid Math card unchanged → still routes to normal `math`.
+- Build: ✅ zero errors. Commit: f6e5b74.
+
 ## 2026-06-04 — Fix: rewards from Continue Adventure
 
 - `src/context/StateContext.jsx` — Fixed race condition where `loadState()` async callback and the `SIGNED_IN` auth handler could dispatch `INIT` with stale Supabase data, silently reverting XP, items, and egg progress earned since app start. Fix: before dispatching `INIT`, compare `remote.rounds` against `stateRef.current.rounds` (the always-current ref already wired in the context). If local is ahead (user made progress before the async resolve or token refresh fired), keep local state and push it to Supabase instead. Guest mode and new-device/fresh-install paths unaffected.

@@ -3,6 +3,20 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Creature Stat Design Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/battle/creature-stats.md`
+
+- **One-subject-one-stat mapping is rejected.** Old formula (Thai=DEF, Math=ATK, Eng=SPD exclusively) punishes children who prefer one subject. A Thai-only learner would have ATK=0. This is a design failure.
+- **Weighted formula with 40% base floor.** Every stat has a guaranteed 40% floor from basePower (total XP). The remaining 60% is distributed across subject shares. No stat can ever be 0.
+- **Subject-to-stat style (not ownership):** Math biases ATK; Thai biases DEF; English biases SPD; CRIT balanced between Math/English. These are influences, not exclusive links.
+- **Personality variation ±10% max, deterministic.** Derived from egg's XP seed at hatch. Same inputs → same creature always. No random rerolls.
+- **Migration rule:** Recalculate stats if ATK/DEF/SPD is 0 or NaN. Never delete eggs.
+- **Learning profile = foundation.** Future additions (rarity, equipment, evolution) may modify stats but never replace the learning-derived base.
+- **Open question for implementation:** Should HP be purely basePower-derived? Should accuracy/mastery be explicit inputs rather than flowing through XP? Should AI opponent stats use the same formula?
+
+---
+
 ## Egg Economy Decisions (2026-06-04)
 
 - **Egg pacing formula decided and implemented:** `requiredXP = min(800, 120 + hatchedEggs.length × 60)`. First egg 120 XP (fast onboarding), cap at 800 for egg 13+. See `docs/research/rewards/egg-economy.md` for full rationale.

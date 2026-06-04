@@ -4,6 +4,12 @@ _Last updated: 2026-06-04_
 
 ---
 
+## Battle
+
+- [docs/research/battle/creature-stats.md](research/battle/creature-stats.md) — Creature stat design philosophy: weighted formula, subject-to-stat mapping, personality variation, migration rules, non-goals, future scaling
+
+---
+
 ## Rewards & Economy
 
 - [docs/research/rewards/egg-economy.md](research/rewards/egg-economy.md) — Egg progression mechanics, scaling formula, design philosophy, migration rules

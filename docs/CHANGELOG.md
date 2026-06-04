@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Creature stats documentation
+
+- `docs/research/battle/creature-stats.md` — created. Source-of-truth for creature stat design philosophy: why one-subject-one-stat fails, weighted formula with 40% base floor, example weightings (HP/ATK/DEF/SPD/CRIT), personality variation (±10% deterministic from XP seed), migration rules (recalc on 0/NaN, never delete eggs), explicit non-goals, future scaling notes, 5 open implementation questions.
+- `docs/RESEARCH_INDEX.md` — Battle section added.
+- `docs/GPT_NOTES.md` — Creature Stat Design Philosophy section added (key decisions + open questions for implementation).
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Egg economy documentation
 
 - `docs/research/rewards/egg-economy.md` — created. Source-of-truth for egg progression mechanics: core loop, design philosophy (first egg fast / no FOMO / no streak pressure), scaling formula (`min(800, 120+n×60)`), progression table, stage system, XP sources, migration rules, implementation reference, open questions, future considerations.

@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Shop Mission speech feedback
+
+- `src/games/GameShop.jsx` — speech added after correct answers. Import: `speakTh, speakEn` from audio.js. `THAI_NUMS` array added (หนึ่ง–สิบ). After correct: Thai questions → `speakTh(val)` after 380ms; English → `speakEn(val)` after 380ms; Math/counting → `speakTh(THAI_NUMS[val])` after 380ms. Social phrase question speaks the child's actual choice (ขอบคุณครับ or ขอบคุณค่ะ). All tones preserved. Sound toggle respected.
+- `docs/research/progression/gameplay-loop.md` — "Learning Feedback Principles" section added: visual/sound/speech pattern, implementation status per game, what to avoid.
+- `docs/GPT_NOTES.md` — Learning Feedback Principles section added.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- Build: ✅ zero errors.
+
 ## 2026-06-04 — Home UI simplification
 
 - `src/components/Home.jsx` — subject section made collapsible: "หรือเลือกเรียน" static label replaced with "อยากเลือกเอง?" toggle button (`subjectsOpen` useState, default false); subject cards hidden until toggled. Shop Mission permanent card removed from Home (Shop still reachable via Continue Adventure recommendation when shopV1.runs === 0). Visual hierarchy: Egg → Continue Adventure → "อยากเลือกเอง?" → Egg Run → Surprise.

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { playTone } from '../lib/audio.js'
+import { playTone, speakTh, speakEn } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import { shuffle } from '../config/gameConfig.js'
 
@@ -69,6 +69,7 @@ function buildQuestions() {
   return [...q1, q2, q3, q4]
 }
 
+const THAI_NUMS = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ']
 const STEP_LABELS = ['จับคู่ภาษาไทย 🇹🇭', 'จับคู่ภาษาไทย 🇹🇭', 'จับคู่ภาษาไทย 🇹🇭', 'คำศัพท์อังกฤษ 🔤', 'นับของในร้าน 🔢', 'มารยาทดี 🙏']
 const CORRECT_MSGS = ['เก่งมาก! 🎉', 'ถูกต้อง! ✅', 'ยอดเยี่ยม! 🌟']
 const STREAK_MSGS  = ['🔥 ไฟลุก! สามต่อแล้ว!', '🔥 ฮอตมาก!', '⚡ ไม่หยุดเลย!', '🌟 สุดยอด!']
@@ -114,6 +115,9 @@ export default function GameShop({ navigate }) {
         setFeedback({ type: 'win', msg: CORRECT_MSGS[Math.floor(Math.random() * CORRECT_MSGS.length)] + ` +${earned} XP` })
         playTone('correct')
       }
+      if (q.subject === 'thai') setTimeout(() => speakTh(String(val)), 380)
+      else if (q.subject === 'eng') setTimeout(() => speakEn(String(val)), 380)
+      else if (q.subject === 'math') setTimeout(() => speakTh(THAI_NUMS[val] || String(val)), 380)
     } else {
       const na = attempts + 1; setAttempts(na)
       setStreak(0); setWrongChoice(val); playTone('wrong')

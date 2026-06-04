@@ -177,6 +177,50 @@ Every system document describes a part of the loop. This document describes the 
 
 ---
 
+## Learning Feedback Principles
+
+Every learning interaction should feel alive, rewarding, and worth tapping. The following principles apply to all current and future game screens.
+
+### Visual feedback
+- Correct answers: green highlight (`.correct` CSS class), confetti for high streaks
+- Wrong answers: shake animation (`.wrong` CSS class), gentle tone
+- Streak: amber bold counter, fire emoji, escalating reward message
+
+### Sound feedback
+- Correct: `playTone('correct')` — ascending three-note chime
+- Wrong: `playTone('wrong')` — gentle descending sawtooth
+- Streak (≥3): `playTone('streak')` — brighter four-note triangle tone
+- Fanfare (≥90% score): `playTone('fanfare')` — celebratory sequence
+- Navigation: `playTone('next')` — soft tick
+- All tones respect the global sound toggle (`_soundOn` in `audio.js`)
+
+### Spoken word (TTS)
+- After a correct answer, speak the vocabulary item the child just learned
+- Thai questions: `speakTh(answer)` — browser TTS, lang `th-TH`, rate 0.85
+- English questions: `speakEn(answer)` — browser TTS, lang `en-US`, rate 0.82
+- Math/counting: speak the Thai number word (หนึ่ง, สอง, สาม...)
+- Delay speech ~380ms after correct to let the reward tone finish first
+- Cancel overlapping speech before starting new utterance (`speechSynthesis.cancel()` is built into `speakTh`/`speakEn`)
+- If sound is off, no speech plays (checked in `speakTh`/`speakEn` via `_soundOn`)
+
+### Goal
+Audio and speech map **written word → sound → pronunciation → meaning → memory**. This is especially important for language learning (Thai and English vocabulary). A child who hears "แอปเปิ้ล" after tapping the apple emoji is making all four connections simultaneously.
+
+### What to avoid
+- Do not speak the answer BEFORE the child has tried (gives it away)
+- Do not overlap multiple audio streams (cancel speech before speaking)
+- Do not autoplay long narration (short words only)
+- Do not add sounds that distract or don't reinforce the learning moment
+
+### Implementation status
+- GameThai: ✅ speakTh on question load + after correct
+- GamePhonics: ✅ playPhonicsSound + speakEn
+- GameMath: ✅ playTone (no speech — math is numeric, no vocab TTS needed)
+- GameShop: ✅ playTone + speakTh/speakEn/THAI_NUMS after correct answer (added 2026-06-04)
+- Future missions: should follow the same pattern
+
+---
+
 ## Open Questions for Future Design
 
 1. **Should the Adventure Director recommendation ever include battle?** Currently it only recommends learning and hatching. Should it ever say "you have a creature — want to battle?" after a long gap with no battles?

@@ -20,6 +20,18 @@ Source-of-truth: `docs/research/observation/observation-philosophy.md`
 
 ---
 
+## Learning Feedback Principles (2026-06-04)
+
+Documented in `docs/research/progression/gameplay-loop.md` → "Learning Feedback Principles" section.
+
+- **Every correct answer should speak the vocabulary item.** Thai → `speakTh(answer)`, English → `speakEn(answer)`, Math counting → `speakTh(THAI_NUMS[n])`. Delay ~380ms to let tone finish first.
+- **Speech before the child answers gives away the answer.** Only speak AFTER correct. (Exception: GameThai speaks on load because the character/word IS the learning item being presented, not the answer to a question.)
+- **Sound toggle is always respected.** `speakTh` and `speakEn` both check `_soundOn` internally. No extra guard needed at call site.
+- **Implementation status:** GameShop ✅ (added 2026-06-04). GameThai ✅. GamePhonics ✅. GameMath — numeric, no vocab TTS needed.
+- **Pattern for future missions:** correct answer → tone → speech (~380ms) → feedback message. Follow this consistently.
+
+---
+
 ## Gameplay Loop Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/progression/gameplay-loop.md` — **This is the highest-level philosophy document.**

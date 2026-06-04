@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Home UI simplification)_
+_Last updated: 2026-06-04 (Shop Mission speech feedback)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Home UI simplification)_
 
 ## Latest Session Summary
 
-**What changed this session (Home UI simplification — code change):**
+**What changed this session (Shop Mission speech feedback — code change):**
+
+- `src/games/GameShop.jsx` — `speakTh`/`speakEn` imported. `THAI_NUMS` array added. After each correct answer: Thai → speak Thai word (380ms delay); English → speak English word (380ms); Math/counting → speak Thai number word (หนึ่ง/สอง/สาม...). Social phrase question speaks the child's actual choice (ขอบคุณครับ or ขอบคุณค่ะ). All existing tones preserved. Sound toggle respected via `_soundOn` inside speak functions.
+- `docs/research/progression/gameplay-loop.md` — "Learning Feedback Principles" section added: visual/sound/speech pattern, principles, implementation status table, what to avoid.
+- `docs/GPT_NOTES.md` — Learning Feedback Principles section added.
+- Build: ✅ zero errors.
+
+**Previous session (Home UI simplification — code change):**
 
 - `src/components/Home.jsx` — subject cards made collapsible: "หรือเลือกเรียน" static label → "อยากเลือกเอง?" toggle button (closed by default). Shop Mission permanent card removed. Visual hierarchy now: Egg → Continue Adventure (large) → "อยากเลือกเอง?" toggle → Egg Run → Surprise Event → Stats.
 - Shop still reachable via Continue Adventure recommendation (triggers when `shopV1.runs === 0`).

@@ -6,6 +6,7 @@ _Last updated: 2026-06-04_
 
 ## Progression
 
+- [docs/research/progression/gameplay-loop.md](research/progression/gameplay-loop.md) — **Highest-level philosophy.** Core loop, Home as Adventure Director, replay/surprise/minigame/motivation philosophy, child autonomy, explicit non-goals, system relationships
 - [docs/research/progression/subject-progression.md](research/progression/subject-progression.md) — Subject progression philosophy: unlock thresholds (70/80/90), replay always valid, mastery = confidence not perfection, subject independence, stretch/challenge layers, readiness vs. highest level
 
 ---

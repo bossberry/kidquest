@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle progression documentation)_
+_Last updated: 2026-06-04 (Gameplay loop documentation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-04 (Battle progression documentation)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle progression documentation — docs only):**
+**What changed this session (Gameplay loop documentation — docs only):**
+
+- `docs/research/progression/gameplay-loop.md` — highest-level philosophy document created. Covers: Home as Adventure Director (answers "what next?", not "what do you choose?"), core loop (learn→battle→learn, learning always upstream), replay philosophy (healthy/full XP), surprise philosophy (rare=special, daily date-hash rotation), minigame philosophy (rewards not primary game, one daily > 2×2 grid), intrinsic motivation (curiosity/collection/surprise/progress/mastery; no FOMO/streak/time pressure), child autonomy (suggest not force), explicit non-goals, system relationships (this doc is highest-level), 5 open questions.
+- `docs/RESEARCH_INDEX.md` — gameplay-loop.md added, marked highest-level philosophy.
+- `docs/GPT_NOTES.md` — Gameplay Loop Philosophy section added.
+- No code changes. No build.
+
+**Previous session (Battle progression documentation — docs only):**
 
 - `docs/research/battle/battle-progression.md` — source-of-truth created. Covers: core loop (Learn→XP→Egg→Hatch→Creature→Battle→Learn), battle as reward not primary game, creature philosophy (every creature usable), gentle enemy scaling, Challenger every 15 rounds, loss philosophy (no permanent penalties), reward design, self-directed frequency, non-goals (no PvP/leaderboards/pay-to-win/gacha/energy), future features (evolution/equipment/rarity/bosses), system relationships, known BattleScreen text bug (ATK advice still says Thai not Math), 5 open questions.
 - `docs/RESEARCH_INDEX.md` — battle-progression.md entry added.

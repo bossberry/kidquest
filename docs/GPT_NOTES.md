@@ -3,6 +3,21 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Gameplay Loop Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/progression/gameplay-loop.md` — **This is the highest-level philosophy document.**
+
+- **Home answers "what next?" — not "what do you choose?"** Home is an Adventure Director, not a menu. Single large recommendation > many equal options. Choice overload is harmful for a 5-year-old.
+- **Core loop:** Learn → XP → Egg → Hatch → Creature → Battle → Learn again. Learning is always upstream. The loop must never invert.
+- **Replay is healthy.** Replay gives full XP. Familiarity and repetition are developmentally appropriate at age 5. The game supports replay; it does not pressure novelty.
+- **Surprises should be rare enough to feel special.** Daily Surprise Event uses date-hash deterministic rotation — one minigame per day, not a menu of all minigames.
+- **Minigames are rewards, not the primary game.** The old 2×2 grid was replaced intentionally. One daily Surprise Event > four equal options.
+- **Intrinsic motivation only.** Curiosity, collection, surprise, progress, mastery. No FOMO, no streak pressure, no time pressure, no login rewards, no punishment.
+- **Child autonomy.** The game suggests; it never forces. Ignoring the recommendation is fine. Stopping mid-session is fine. No guilt mechanics.
+- **Open questions for GPT:** (1) Should Adventure Director ever recommend battle (not just learning/hatching)? (2) How should Home behave right after a hatch — auto-suggest battle? (3) Should minigame XP be reduced vs. subject XP to prevent farming? (4) Should the loop ever signal a natural session end?
+
+---
+
 ## Battle Progression Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/battle/battle-progression.md`

@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Gameplay loop documentation
+
+- `docs/research/progression/gameplay-loop.md` — created. Highest-level philosophy document for KidQuest. Covers: Home as Adventure Director (not a menu), core loop (learn→battle→learn), replay philosophy (healthy/full XP), surprise philosophy (rare=special, daily date-hash rotation), minigame philosophy (rewards not primary game), intrinsic motivation (curiosity/collection/surprise/progress/mastery), child autonomy (suggest not force), explicit non-goals (no daily chores/energy systems/FOMO/competition), system relationships (subordinate docs listed), 5 open questions.
+- `docs/RESEARCH_INDEX.md` — gameplay-loop.md entry added, marked as highest-level philosophy.
+- `docs/GPT_NOTES.md` — Gameplay Loop Philosophy section added.
+- `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated.
+- No code changes. No build.
+
 ## 2026-06-04 — Battle progression documentation
 
 - `docs/research/battle/battle-progression.md` — created. Source-of-truth for battle progression philosophy: core loop (Learn→Battle→Learn), battle as reward not primary game, creature philosophy (every creature usable), gentle enemy scaling, Challenger every 15 rounds, loss philosophy (no permanent penalties), reward design (supports learning), self-directed frequency, explicit non-goals (no PvP/leaderboards/pay-to-win/gacha/energy), future features (evolution/equipment/rarity/bosses), system relationships, known BattleScreen text bug, 5 open design questions.

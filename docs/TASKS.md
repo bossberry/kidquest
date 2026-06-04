@@ -25,6 +25,7 @@
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
 - [ ] **D0: Home UX audit** — review simplified Home with Chopin. Does Continue Adventure feel like the obvious action? Does the "อยากเลือกเอง?" toggle feel discoverable?
 - [x] **Egg Companion Adventure design doc** — `docs/research/gameplay/egg-companion-adventure.md` created. Covers: egg as emotional companion (not just progress bar), companion framing per mode (DefenseMode highest impact), visual/audio/progress spec, relationship data fields (adventuresWith/questionsAnswered/daysTogetherCount/favoriteSubject), MVP recommendation, 5 open questions for GPT.
+- [x] **Pokémon-Style Learning Battle design doc** — `docs/research/gameplay/pokemon-style-learning-battle.md` created. Battle-first design: answer choices ARE attack moves. Move panel anatomy, subject-specific encoding (Math=numbers, Thai/English=emoji+TTS), full animation/audio spec, session structure, scope check. MVP: Math first → Thai → English. 5 open questions for GPT.
 
 ---
 
@@ -42,6 +43,16 @@
 - [x] **Subject Readiness spec** — added to `play-observation-system.md`: 4 readiness states (Strong / Comfortable / Exploring / Not Ready), derivation logic (last 10 sessions, avgScore + goodRuns + completionRate), explicit non-goals. No new code.
 - [x] **Mission system updated** — `mission-system.md` now includes "Subject Readiness and Mission Design" section: explains why unlock level is unreliable, how mission weighting should follow readiness profile, when to apply.
 - [x] **GPT_NOTES.md updated** — Subject Readiness decisions recorded.
+
+### Pokémon-Style Learning Battle — Implementation Queue (designed 2026-06-04)
+
+_Spec: `docs/research/gameplay/pokemon-style-learning-battle.md`. Implement only after GPT answers open questions._
+
+- [ ] **PSLB-1: Math Move-Select Battle** — New `MoveSelectBattleMode.jsx` (or rename BattleMode). Move panel: 4 buttons showing `[icon] [move name] ... [number]`. Correct number = attack fires; wrong = miss fizzle. Reuse EggCanvas, HP bars, enemy sprites from existing BattleMode. 8 turns per session.
+- [ ] **PSLB-2: Thai Move-Select Battle** — Same shell; move panel shows emoji options + TTS on panel load. TTS via `speakTh` on question appear. Thai content from `genThaiQ`.
+- [ ] **PSLB-3: English Move-Select Battle** — Same shell; emoji options + `speakEn` TTS. English content from `genEngQ`.
+- [ ] **PSLB-4: Animation polish** — `move-select-pulse`, `egg-charge`, `egg-lunge`, `elemental-burst`, `move-miss` keyframes. Enemy `hit-shake` + `flash-red`. `damage-float` number animation.
+- [ ] **PSLB-5: New audio tones** — `move-select` (whoosh), `attack-fire` (subject variants), `miss-sound` (soft fizzle) added to `playTone()` in `audio.js`.
 
 ### Egg Companion Adventure — Implementation Queue (designed 2026-06-04)
 

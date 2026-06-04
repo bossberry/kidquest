@@ -3,6 +3,21 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Pokémon-Style Learning Battle (2026-06-04)
+
+Source-of-truth: `docs/research/gameplay/pokemon-style-learning-battle.md`
+
+- **This is battle-first design, not a quiz with battle decoration.** The child should feel "I choose a move to help my egg win" — not "I answered a question and saw an animation."
+- **Answer choices ARE attack moves.** Each move button shows: emoji icon + move name + the answer content. Correct answer = that move fires and deals damage. Wrong answer = miss/fizzle.
+- **Same battle shell for all subjects.** Math encodes numbers as damage values. Thai and English encode emoji picture options + TTS. The battle mechanics (HP, enemy, animations) are identical across subjects.
+- **Egg is the hero.** The child's current egg is the player character. All Egg Companion Adventure reactions apply (jump, glow, shake, near-hatch pulse).
+- **MVP is Math first.** Numbers map directly to move damage — no TTS dependency. After Math playtest with Chopin, add Thai then English.
+- **Move names are flavor, not learning content.** "Thunderbolt — 5" means: the move is called Thunderbolt and the answer is 5. The child taps it because 5 is correct, not because they know what Thunderbolt means.
+- **Wrong answer = miss, not punishment.** Move fizzles with a soft sound. No harsh buzzer. 3 misses → gentle enemy counter-attack. Player HP optional — test without it first.
+- **Open questions for GPT:** (1) Correct move = consistent damage vs. correct = most damage? (2) Enemy counter on wrong × 3 only vs. every N turns? (3) Does player HP bar add stakes or pressure for a 5-year-old? (4) Move names random per turn or loosely subject-themed? (5) Replace BattleMode in Subject Adventure entirely, or keep both?
+
+---
+
 ## Egg Companion Adventure Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/gameplay/egg-companion-adventure.md`

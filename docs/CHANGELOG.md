@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Pokémon-Style Learning Battle Design
+
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — NEW. Full design document. Battle-first framing: answer choices ARE attack moves (not a quiz with battle decoration). Covers: move-select panel anatomy (`[icon] [name] ... [answer]`), subject encoding per subject (Math=numbers as damage, Thai/English=emoji+TTS), full battle flow (8 steps per turn), move name sets per subject, screen layout spec, animation list (14 keyframes), audio list (8 new tones), egg integration (child's egg is the hero), session structure (8 turns / 1 enemy), subject battle shell principle (one component, three content types), MVP recommendation (Math first → Thai → English → polish), scope check (passes Year 1 guardian), 5 open questions for GPT.
+- `docs/RESEARCH_INDEX.md` — Gameplay section updated with pokemon-style-learning-battle.md entry.
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section added with key decisions and open questions.
+- `docs/TASKS.md` — Design task marked done; PSLB implementation queue added (PSLB-1 through PSLB-5).
+- No code changes. No build.
+
 ## 2026-06-04 — Egg Companion Adventure MVP
 
 - `src/games/BattleMode.jsx` — EggCanvas replaces `🦸` player avatar. Egg jumps (`eggBounce`) + gold glow + `✨` sparkle float on correct answer. Egg shakes (`eggShake`) when enemy counter-attacks. Continuous `egg-near-hatch` pulse/glow at stage ≥ 5. Egg growth progress bar below battle log: stage name + progress bar + %. `item` sparkle tone fires 200ms after every correct answer.

@@ -54,6 +54,7 @@ _Last updated: 2026-06-04_
 ## Gameplay
 
 - [docs/research/gameplay/egg-companion-adventure.md](research/gameplay/egg-companion-adventure.md) — Egg Companion Adventure design: egg as emotional center, companion framing across all game modes, visual/audio/progress behavior spec, relationship data, MVP recommendation, open questions
+- [docs/research/gameplay/pokemon-style-learning-battle.md](research/gameplay/pokemon-style-learning-battle.md) — Pokémon-Style Learning Battle design: battle-first (answers ARE moves), move-select panel replaces quiz UI, all 3 subjects in one shell, animations/audio spec, MVP recommendation (Math first), 5 open questions for GPT
 
 ---
 

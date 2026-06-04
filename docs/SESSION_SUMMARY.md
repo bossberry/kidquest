@@ -1,32 +1,37 @@
-# Session Summary — 2026-06-04 (Egg Companion Adventure Design)
+# Session Summary — 2026-06-04 (Pokémon-Style Learning Battle Design)
 
 **Session type:** Documentation / design only. No code changes. No build.
 
 **Files changed:**
-- `docs/research/gameplay/egg-companion-adventure.md` — NEW. Full design doc for Egg Companion Adventure system.
-- `docs/RESEARCH_INDEX.md` — Added Gameplay section.
-- `docs/GPT_NOTES.md` — Added Egg Companion Adventure Philosophy section.
-- `docs/TASKS.md` — Design task marked done; ECA implementation queue (ECA-MVP-1 through ECA-5) added.
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — NEW. Full design doc.
+- `docs/RESEARCH_INDEX.md` — Gameplay section updated.
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section added.
+- `docs/TASKS.md` — Design task marked done; PSLB-1 through PSLB-5 implementation queue added.
 - `docs/CHANGELOG.md` — New entry appended.
+- `docs/GPT_HANDOFF.md` — Latest session updated; Claude Code / GPT next steps updated.
 - `docs/SESSION_SUMMARY.md` — This file.
 
 **Core design decision:**
-The egg is the companion, not a progress bar. The child takes their egg on adventures — it reacts to correct/wrong answers, grows visibly, and hatching feels like a relationship payoff. The design reframes every existing activity without changing any mechanics.
+This is battle-first design — answer choices ARE attack moves. The child feels "I choose a move to help my egg win," not "I answered a question and saw an animation." The learning is invisible inside the move mechanic.
+
+**Move-Select Panel:**
+Each button shows: `[emoji icon] [move name] ... [answer content]`. For Math: the number IS the answer (correct number = that move fires). For Thai/English: the emoji IS the answer (TTS word → tap matching emoji move).
 
 **MVP recommendation:**
-1. DefenseMode: replace generic 🥚 placeholder with child's actual current egg canvas (one prop change, highest emotional impact).
-2. BattleMode: add egg portrait beside player with adv-jump on correct (CSS already exists).
-3. Relationship data: `adventuresWith` + `questionsAnswered` + `eggStartDate` fields on egg object — show as biography at hatch.
+1. PSLB-1: Math Move-Select Battle — numbers in move panel; implement as new `MoveSelectBattleMode.jsx` replacing BattleMode in Subject Adventure for Math subject.
+2. PSLB-2: Thai Battle — same shell, emoji options + TTS.
+3. PSLB-3: English Battle — same shell, emoji options + TTS.
 
 **Key constraints preserved:**
-- eggAlgorithm.js: NOT touched. Egg visual uses existing drawEgg() only.
-- No egg HP / health from wrong answers. Egg never in danger.
-- No XP numbers during gameplay. Progress shown post-session only.
-- No new reward economy.
+- Same battle shell for all subjects (one component, content injected per subject).
+- Reuses existing BattleMode HP/enemy/EggCanvas patterns — no new unique mechanic.
+- EggAlgorithm.js NOT touched. Egg companion reactions reuse existing keyframes.
+- Wrong answer = miss/fizzle, not punishment. No harsh buzzer.
+- Year 1 scope: uses only existing Math/Thai/English content from current levels.
 
 **5 open questions sent to GPT:**
-1. Should egg react differently by subject (color/tone)?
-2. Should the child name the egg at creation?
-3. Hatch biography before or after creature reveal?
-4. Companion framing explicit in text or implicit in visuals?
-5. Should `adventuresWith` count sessions or rounds?
+1. Correct move = consistent damage vs. most damage (strategy vs. pure learning)?
+2. Enemy counter on wrong × 3 only vs. every N turns regardless?
+3. Player HP bar — adds stakes or unwanted pressure for age 5?
+4. Move names random per turn or loosely subject-themed?
+5. Replace BattleMode in Subject Adventure entirely, or keep both?

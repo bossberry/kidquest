@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Egg Companion Adventure MVP)_
+_Last updated: 2026-06-04 (Pokémon-Style Learning Battle Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,18 @@ _Last updated: 2026-06-04 (Egg Companion Adventure MVP)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Companion Adventure MVP — code change):**
+**What changed this session (Pokémon-Style Learning Battle Design — docs only):**
+
+- `docs/research/gameplay/pokemon-style-learning-battle.md` — NEW. Full design document. Core principle: answer choices ARE attack moves — this is battle-first design, not a quiz with battle decoration. Covers: move-select panel anatomy (`[icon] [move name] ... [answer content]`), all 3 subject encodings (Math=numbers, Thai=emoji+TTS, English=emoji+TTS), 8-step battle flow per turn (enemy appears → move panel → tap → fire → hit → HP drain → counter → next), move name sets by subject, screen layout spec, 14 animation keyframes, 8 new audio tones, full egg integration (child's egg is the hero via EggCanvas), session structure (8 turns, 1 enemy, gentle defeat), subject battle shell principle (one component — three content injections), MVP phasing (Math first → Thai → English → polish), scope check passes, 5 open questions for GPT.
+- `docs/RESEARCH_INDEX.md` — Gameplay section updated.
+- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section added.
+- `docs/TASKS.md` — Design task marked done; PSLB-1 through PSLB-5 implementation queue added in Next section.
+- `docs/CHANGELOG.md` — Entry added.
+- No code changes. No build.
+
+---
+
+**What changed last session (Egg Companion Adventure MVP — code change):**
 
 - `src/games/BattleMode.jsx` — EggCanvas replaces `🦸` player avatar. New props: `eggStats`, `eggProgress`, `readyToHatch`. Egg jumps (`eggBounce`) + gold `drop-shadow` + `✨` sparkle float (500ms) on correct answer. Egg shakes (`eggShake`) when enemy counter-attacks (3rd wrong). Continuous `egg-near-hatch` pulse/glow when stage ≥ 5 or `readyToHatch`. Egg growth progress panel below battle log: stage name (EGG_STAGE_NAMES) + progress bar + pct%. Golden bar + "✨ ใกล้ฟักแล้ว!" when near-hatch. Sparkle `item` tone fires 200ms after every correct answer (layered over existing `correct`/`streak` tone). Graceful fallback: shows `🦸` if `eggStats` is null.
 - `src/games/DefenseMode.jsx` — EggCanvas replaces baby emoji (`BABIES[subject]`). Props: added `eggStats`. Egg bounces (`eggBounce`) + gold glow on shield-block (`shieldPulse`); shakes (`eggShake`) when shield is hit. The framing is now: the child is literally shielding their own egg. Sparkle `item` tone on correct.
@@ -314,13 +325,16 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 ## Recommended Next Work
 
 **GPT — next:**
-1. **Answer Egg Companion open questions** — see `GPT_NOTES.md` → Egg Companion Adventure Philosophy. Key decisions: (a) egg naming at creation? (b) hatch biography before or after creature reveal? (c) companion framing: explicit text or implicit visuals for a 5-year-old? Write answers to `GPT_NOTES.md`.
-2. **Play Home 2.0 with Chopin** — does the Adventure Director feel natural? Does Chopin tap the big recommendation card? Does the Surprise section delight? Write to `GPT_NOTES.md`.
-3. **Play Shop Mission with Chopin** — validate fun, timing, and which phases feel clear vs confusing. Write to `GPT_NOTES.md`.
-4. **Shop Stretch design review** — is the quantity-difference question at the right Early Grade 1 level? Write to `GPT_NOTES.md`.
-5. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
-6. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
+1. **Answer Pokémon Battle open questions** — see `GPT_NOTES.md` → Pokémon-Style Learning Battle. Key decisions: (a) correct move = consistent damage or most damage? (b) enemy counter on wrong × 3 only vs. every N turns? (c) player HP bar — stakes vs. pressure for age 5? (d) move names random or subject-themed? (e) replace BattleMode entirely or keep both? Write answers to `GPT_NOTES.md`.
+2. **Answer Egg Companion open questions** — see `GPT_NOTES.md` → Egg Companion Adventure Philosophy. Key decisions: (a) egg naming at creation? (b) hatch biography before or after creature reveal? (c) companion framing: explicit text or implicit visuals for a 5-year-old? Write answers to `GPT_NOTES.md`.
+3. **Play Home 2.0 with Chopin** — does the Adventure Director feel natural? Does Chopin tap the big recommendation card? Does the Surprise section delight? Write to `GPT_NOTES.md`.
+4. **Play Shop Mission with Chopin** — validate fun, timing, and which phases feel clear vs confusing. Write to `GPT_NOTES.md`.
+5. **Shop Stretch design review** — is the quantity-difference question at the right Early Grade 1 level? Write to `GPT_NOTES.md`.
+6. **Thai Levels 6–8 content** — fruits, everyday objects, short action sentences for อนุบาล/early ป.1. Write to `GPT_NOTES.md`.
+7. **Math Levels 9–10 content** — place value, counting to 100, early ป.1 stretch. Write to `GPT_NOTES.md`.
 
-**Claude Code — after play validation:**
-1. Phase E: Shop Stretch implementation + mastery-gate UI
-2. (Later) Cooking Mission MVP — only after Subject Readiness data from real play accumulates
+**Claude Code — after GPT answers open questions:**
+1. **PSLB-1: Math Move-Select Battle** — new `MoveSelectBattleMode.jsx`. Move panel (4 buttons: icon + name + number). Correct = attack fires; wrong = miss. Reuse EggCanvas + existing BattleMode HP/enemy/animation.
+2. **ECA-MVP-3: Relationship data fields** — `adventuresWith`, `questionsAnswered`, `eggStartDate` to egg object in `defaultState()`. Increment in `ADD_XP` reducer.
+3. Phase E: Shop Stretch implementation + mastery-gate UI (after play validation)
+4. (Later) Cooking Mission MVP — only after Subject Readiness data from real play accumulates

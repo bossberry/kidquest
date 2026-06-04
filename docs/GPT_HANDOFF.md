@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Battle special move timing + accessibility)_
+_Last updated: 2026-06-04 (Subject Adventure Engine MVP)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,19 @@ _Last updated: 2026-06-04 (Battle special move timing + accessibility)_
 
 ## Latest Session Summary
 
-**What changed this session (Battle special move timing + accessibility — code change):**
+**What changed this session (Subject Adventure Engine MVP — code change):**
+
+- `src/games/GameSubjectAdventure.jsx` — NEW orchestrator. Selects mode deterministically: `['battle','chase','defense'][(dayN + subjectPlayCount) % 3]`. Generates 8 questions per session: genMathQ (uses player's current level + visual models), genThaiQ (TH_ALPHA: show emoji, choose starting letter), genEngQ (EN_ALPHA: see emoji+word, choose letter). TTS via useEffect on cur change (speakTh/speakEn, 400ms delay). Dispatches ADD_XP per correct answer (10 XP + 5 crit bonus), ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL (≥80%), LOG_SESSION. Key-based session reset for replay — remounting generates fresh questions and re-picks mode.
+- `src/games/BattleMode.jsx` — NEW. Subject-specific enemies. Enemy HP + player HP bars. Correct: adv-jump + red flash + floating damage number. Streak≥2 = crit (×1.5 dmg + confetti). Wrong ×3 = enemy counter-attack + player shake. "dash" and "block" tones unused here; uses `correct`/`streak`/`wrong`.
+- `src/games/ChaseMode.jsx` — NEW. Horizontal distance track (0%=escaped, 100%=caught). Start 30%. Correct +14% (crit ×1.5). Wrong ×3: -10% + target flee. Player 🦸 dashes forward on correct (adv-dash). "dash" SFX.
+- `src/games/DefenseMode.jsx` — NEW. Baby creature (🥚/🐣/🌟 by subject) + shield HP pips + attacker emoji. Correct: shield bounces (adv-shield) + attacker pushed back. Wrong ×3: shield HP pip lost. "block" SFX on correct.
+- `src/games/GameScreen.jsx` — Added lazy import + 3 new world routes: adventure-thai/math/eng.
+- `src/components/Home.jsx` — "learn" recommendation now routes to `adventure-{world}`. Label: "{subject} ผจญภัย". Icon: Math=⚔️, Thai=🛡️, Eng=🏃. Classic games still accessible via "อยากเลือกเอง?" subject grid.
+- `src/lib/audio.js` — `dash` (ascending 3-note sawtooth sweep) and `block` (low square thump) added to playTone.
+- `src/styles.css` — `adv-jump`, `adv-dash`, `adv-shield` keyframes added.
+- Build: ✅ zero errors. GameSubjectAdventure lazy chunk: 30KB.
+
+**What changed last session (Battle special move timing + accessibility — code change):**
 
 - `src/components/BattleScreen.jsx` — Redesigned the special move flow for accessibility and surprise feel. Battle now starts immediately (no pre-battle question gate). After attack 2 or 3 (random, clamped to valid range), a semi-transparent overlay appears mid-battle showing "⚡ พลังพิเศษมาแล้ว!" Questions are now emoji-visual: Math = count the emojis shown (🍎🍎 → tap 2/1/3); Thai/English = hear the word via TTS, pick the matching emoji (🐱/🐶/🐟). 🔊 replay button for Thai/English. Correct → `specialDmgRef` set + special SFX plays immediately + `victory-bounce` "🔥 ท่าพิเศษพร้อมแล้ว!" feedback → animation fires special attack in battle. Wrong → gentle "💪 สู้ต่อไปนะ!" feedback, battle resumes. Skip → battle resumes. HP tracking changed from absolute (pre-simulated log snapshots) to relative (apply `entry.dmg` to local HP counters) — required for mid-battle HP mutations from the special move. `TH_ALPHA`/`EN_ALPHA` imports removed; inline MATH_PROMPTS (7), THAI_PROMPTS (6), EN_PROMPTS (6) defined in file. TTS via existing `speakTh`/`speakEn` from `audio.js`. Sound toggle respected.
 - Build: ✅ zero errors.
@@ -168,7 +180,8 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Egg pacing**: first egg 120 XP (fast onboarding), later eggs scale by `min(800, 120 + n×60)`. Visual progress and drawEgg canvas both use scaled stage.
 - **Creature stats rebalanced**: weighted formula — every stat has 40% base floor. No stat can be 0. Deterministic ±5% personality variation. Migration recalculates broken (0/NaN) stats.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
-- Turn-based battle + learning special move (battle starts immediately; prompt appears mid-battle after turn 2-3; emoji-visual questions + TTS; correct → 25% bonus damage; wrong/skip → no penalty); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
+- **Subject Adventure Engine**: Continue Adventure routes all subjects to GameSubjectAdventure. 3 modes: BattleMode (attack enemy), ChaseMode (close distance), DefenseMode (shield baby). Mode rotates daily per subject. All 3 subjects. TTS on Thai/English. Full XP/sessionLog/level-unlock dispatch.
+- Turn-based battle (BattleScreen) + learning special move (mid-battle emoji question, TTS); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
 - Supabase auth + cloud sync; full guest mode
 - Parent Report: overview, subject time, strengths, Mission Analytics, Subject Readiness, play history

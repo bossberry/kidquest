@@ -372,6 +372,11 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 /* Creature detail modal */
 @keyframes modal-pop{0%{transform:scale(.8)translateY(10px);opacity:0}70%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
 
+/* Adventure mode animations */
+@keyframes adv-jump{0%,100%{transform:translateY(0)}30%{transform:translateY(-14px) scaleX(1.1)}60%{transform:translateY(-4px)}}
+@keyframes adv-dash{0%{transform:translateX(0)}30%{transform:translateX(14px) scaleY(.88)}70%{transform:translateX(6px)}100%{transform:translateX(0)}}
+@keyframes adv-shield{0%,100%{transform:scale(1)}40%{transform:scale(1.25) rotate(-5deg)}70%{transform:scale(1.1) rotate(3deg)}}
+
 /* Utility classes */
 .rec-card-float{animation:pulse-float 3s ease-in-out infinite}
 .rec-card-battle{animation:battle-glow-pulse 1.5s ease-in-out infinite}

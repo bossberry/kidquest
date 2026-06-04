@@ -50,6 +50,9 @@ export function playTone(type) {
     else if(type==='start'){t(440,0,.16,.1,'square');t(659,.08,.16,.12,'square');t(880,.16,.18,.14,'sine')}
     else if(type==='complete'){[523,784,659,1047].forEach((f,i)=>t(f,i*.1,.2,.35,'triangle'))}
     else if(type==='cardOpen'){t(880,0,.12,.07,'sine');t(1047,.05,.1,.08,'sine')}
+    // Adventure modes
+    else if(type==='dash'){t(400,0,.1,.14,'sawtooth');t(600,.05,.08,.12,'sawtooth');t(900,.1,.1,.1,'sine')}
+    else if(type==='block'){t(150,0,.08,.28,'square');t(220,.05,.08,.22,'square');t(330,.1,.1,.16,'sine')}
   } catch(e) {}
 }
 

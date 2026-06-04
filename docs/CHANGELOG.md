@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Subject Adventure Engine MVP
+
+- `src/games/GameSubjectAdventure.jsx` — NEW. Orchestrator: generates 8 questions per session from existing content (genMathQ respects player level; genThaiQ from TH_ALPHA emoji→letter; genEngQ from EN_ALPHA emoji→letter). Picks mode deterministically: `MODES[(dayN + playCount) % 3]` so it rotates battle→chase→defense daily per subject. Dispatches ADD_XP, ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL (≥80% score), LOG_SESSION. TTS via useEffect on cur change (speakTh for Thai, speakEn for English). Key-based replay (session key increments → full remount = fresh state + new mode).
+- `src/games/BattleMode.jsx` — NEW. Subject-specific enemies (math: 🤖👻😈🐲, thai: 👺🐻🐉🐯, eng: 👾👽⛈️🦾). Enemy HP bar + player HP bar. Correct: adv-jump animation + enemy red flash + floating damage number. Crit at streak≥2: ×1.5 damage + confetti + streak-bounce badge. Wrong ×3: enemy counter-attack + player shake + HP damage. combo badge shown when streak≥3.
+- `src/games/ChaseMode.jsx` — NEW. Horizontal distance track. Start at 30%, +14% per correct (×1.5 on crit), -10% per 3rd wrong. adv-dash animation on correct. Target emoji at right end, player 🦸 trails behind. Distance label updates. "dash" SFX on correct.
+- `src/games/DefenseMode.jsx` — NEW. Baby creature (🥚/🐣/🌟 by subject) + shield with pip HP (one pip per question). Attacker → shield ← baby layout. Correct: adv-shield bounce + attacker pushed back + "block" SFX. Wrong ×3: shield pip lost + shake. Shield glows on block via filter.
+- `src/games/GameScreen.jsx` — Lazy import + 3 routes for adventure-thai/adventure-math/adventure-eng, each passing subject prop.
+- `src/components/Home.jsx` — "learn" recommendation routes to `adventure-{world}`. Label/icon updated per subject mode (Math→⚔️, Thai→🛡️, Eng→🏃). Classic games still accessible via "อยากเลือกเอง?" grid.
+- `src/lib/audio.js` — `dash` tone (ascending 3-note sawtooth sweep, chase correct); `block` tone (low square thump, defense correct).
+- `src/styles.css` — `adv-jump` (player leaps), `adv-dash` (player dashes forward), `adv-shield` (shield bounces on block).
+- Build: ✅ zero errors. GameSubjectAdventure lazy chunk: 30KB.
+
 ## 2026-06-04 — Battle special move timing + accessibility
 
 - `src/components/BattleScreen.jsx` — Special move prompt moved from pre-battle question phase to mid-battle surprise. Battle now starts immediately (`phase` initialised to `'fighting'`). Special prompt appears as a semi-transparent overlay after attack 2 or 3 (random), while the battle screen remains visible behind it. New question format: Math shows emoji counting (`🍎🍎` → tap 2), Thai/English uses TTS (`speakTh`/`speakEn`) with emoji choices (e.g. "ปลา" → 🐟/🐱/🐶). 🔊 replay button on Thai/English prompt. Correct → exciting special SFX fires immediately + `victory-bounce` "🔥 ท่าพิเศษพร้อมแล้ว!" feedback → special attack animates in battle; Wrong/Skip → gentle "💪 สู้ต่อไปนะ!" or no feedback, battle continues normally — no penalty. HP tracking changed from absolute (log snapshot) to relative (damage-delta) so special damage mid-battle is accurate without a second simulation. `TH_ALPHA`/`EN_ALPHA` imports removed; replaced with compact inline question sets (7 math, 6 Thai, 6 English). Build ✅.

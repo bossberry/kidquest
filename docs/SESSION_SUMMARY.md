@@ -1,52 +1,21 @@
-# Session Summary — 2026-06-04 (Battle Home experience)
+# Session Summary — 2026-06-04 (Subject Adventure Engine MVP)
 
 **Session type:** Code change. Build ✅ zero errors.
 
 **Files changed:**
-- `src/components/BottomNav.jsx` — ⚔️ badge removed
-- `src/App.jsx` — `challengerOpen` state lifted; useEffect watches `pendingChallenger`; props passed to ChallengerOverlay and Home
-- `src/components/ChallengerOverlay.jsx` — accepts `open`/`onClose` props; internal `visible` state and its useEffect removed
-- `src/components/Home.jsx` — `onOpenChallenger` prop; battle case in `getRecommendation` and `handleRecommendedAction`
-- `docs/CURRENT_STATE.md`, `docs/TASKS.md`, `docs/SESSION_SUMMARY.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md` — updated
+- `src/games/GameSubjectAdventure.jsx` — NEW. Orchestrator. Generates questions per subject+level, picks mode deterministically (battle/chase/defense rotates by day+playCount). Dispatches ADD_XP, ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL, LOG_SESSION. TTS via useEffect on question change. Key-based session reset for replay.
+- `src/games/BattleMode.jsx` — NEW. Enemy HP + player HP bars. Enemy per subject. Correct: adv-jump + enemy flash + floating damage. Crit (streak≥2): confetti + streak-bounce badge. Wrong ×3: enemy counter-attack + player shake.
+- `src/games/ChaseMode.jsx` — NEW. Horizontal distance track. Correct: +14% progress + adv-dash + "dash" SFX. Wrong ×3: -10% + target flee. Caught at 100%.
+- `src/games/DefenseMode.jsx` — NEW. Baby creature + shield pip HP + attacker. Correct: adv-shield pulse + "block" SFX. Wrong ×3: shield HP -1 + hit flash.
+- `src/games/GameScreen.jsx` — Added lazy import + 3 routes: adventure-thai/math/eng → GameSubjectAdventure with subject prop.
+- `src/components/Home.jsx` — All "learn" recommendations now route to `adventure-{world}` instead of mathbattle/plain subject. Label shows "{subject} ผจญภัย" with mode-appropriate icon/sub.
+- `src/lib/audio.js` — Added `dash` (chase correct: ascending sweep) and `block` (defense correct: low thump) playTone types.
+- `src/styles.css` — Added `adv-jump`, `adv-dash`, `adv-shield` keyframes.
 
-## What changed
+**Architecture:** Session orchestrator (GameSubjectAdventure) owns all dispatch logic. 3 mode adapters (BattleMode/ChaseMode/DefenseMode) are purely visual — receive question + callbacks. Mode is chosen deterministically per day+playCount.
 
-### Problem
-When a challenger appeared and the child dismissed it with "ไว้ทีหลัง", the only re-entry point was a small ⚔️ badge on the Collection tab in BottomNav — which looked like a UI bug to a child.
+**Subjects:** All 3 (thai/math/eng). TTS on Thai/English every question (400ms delay). 🔊 replay button in Thai/English modes.
 
-### Solution
+**XP/sessionLog:** Unchanged dispatch pattern identical to GameMath/GameThai/GamePhonics.
 
-**BottomNav**: Removed `hasChallenger` check and the ⚔️ badge. Collection tab is now a clean icon with no badge.
-
-**ChallengerOverlay**: Internal `visible` useState removed. Now controlled by `open`/`onClose` props from App. Removed the useEffect that auto-set `visible=true`. The "ไว้ทีหลัง" button now calls `onClose()` instead of `setVisible(false)`. The BattleScreen's onClose also calls `onClose()` + resets `phase` + `selectedEgg`.
-
-**App.jsx**: 
-- `challengerOpen` state added (default: false)
-- `useEffect(() => { if (state.pendingChallenger) setChallengerOpen(true) }, [state.pendingChallenger])` — auto-shows overlay when a new challenger arrives
-- `<ChallengerOverlay open={challengerOpen} onClose={() => setChallengerOpen(false)} />`
-- `<Home ... onOpenChallenger={() => setChallengerOpen(true)} />`
-
-**Home.jsx**:
-- `getRecommendation()` — battle added between hatch and shop:
-  ```
-  hatch (readyToHatch && stage >= 6)
-  → battle (pendingChallenger)  ← NEW
-  → shop (shopV1.runs === 0)
-  → weakest subject
-  ```
-- Battle card: dark gradient bg `linear-gradient(135deg,#1a0a3a,#3c1a6e)`, challenger emoji as icon, "มอนสเตอร์ปรากฏตัว!" label, "[challenger name] กำลังท้าทายคุณ — รับคำท้า!" sub
-- `handleRecommendedAction()` — battle case calls `onOpenChallenger()`
-
-## Visual result
-When a challenger is pending, the Home screen shows:
-- Egg (as before)
-- Continue Adventure card with dark purple gradient: `[challenger emoji]` + "มอนสเตอร์ปรากฏตัว!" + challenger name and call to action
-- "อยากเลือกเอง?" toggle (below)
-- Egg Run, Surprise Event, Stats (as before)
-
-When the child taps the battle card → ChallengerOverlay appears with full dramatic presentation.
-When no challenger is pending → Continue Adventure shows shop (first run) or weakest subject as before.
-
-## Known risks
-- `phase` state in ChallengerOverlay persists between open/close cycles. If a child enters eggSelect, dismisses, and re-opens, they'll see eggSelect again (not toast). This is acceptable UX — they were already selecting, re-show is reasonable. If it's a problem, add `useEffect(() => { if (open) setPhase('toast') }, [open])`.
-- `useEffect` in App.jsx fires on every `pendingChallenger` change. If state is loaded from localStorage with an existing challenger, the overlay will show on app start. This is correct behavior — the challenger has been waiting.
+**Classic games:** Untouched. "อยากเลือกเอง?" grid still routes to Thai/Math/Phonics.

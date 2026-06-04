@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Math Battle learning mode)_
+_Last updated: 2026-06-04 (Battle special move timing + accessibility)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,12 @@ _Last updated: 2026-06-04 (Math Battle learning mode)_
 
 ## Latest Session Summary
 
-**What changed this session (Math Battle learning mode — code change):**
+**What changed this session (Battle special move timing + accessibility — code change):**
+
+- `src/components/BattleScreen.jsx` — Redesigned the special move flow for accessibility and surprise feel. Battle now starts immediately (no pre-battle question gate). After attack 2 or 3 (random, clamped to valid range), a semi-transparent overlay appears mid-battle showing "⚡ พลังพิเศษมาแล้ว!" Questions are now emoji-visual: Math = count the emojis shown (🍎🍎 → tap 2/1/3); Thai/English = hear the word via TTS, pick the matching emoji (🐱/🐶/🐟). 🔊 replay button for Thai/English. Correct → `specialDmgRef` set + special SFX plays immediately + `victory-bounce` "🔥 ท่าพิเศษพร้อมแล้ว!" feedback → animation fires special attack in battle. Wrong → gentle "💪 สู้ต่อไปนะ!" feedback, battle resumes. Skip → battle resumes. HP tracking changed from absolute (pre-simulated log snapshots) to relative (apply `entry.dmg` to local HP counters) — required for mid-battle HP mutations from the special move. `TH_ALPHA`/`EN_ALPHA` imports removed; inline MATH_PROMPTS (7), THAI_PROMPTS (6), EN_PROMPTS (6) defined in file. TTS via existing `speakTh`/`speakEn` from `audio.js`. Sound toggle respected.
+- Build: ✅ zero errors.
+
+**What changed last session (Math Battle learning mode — code change):**
 
 - `src/games/GameMathBattle.jsx` — NEW: 8-question Math battle vs cute enemy (🤖👻😈🐲). Dark purple battle UI. Correct → attack flash + HP drain; streak≥3 → Crit × 1.5 + SFX + confetti. Wrong → gentle shake, up to 3 attempts, no punishment. All XP/LOG_SESSION/UNLOCK_LEVEL dispatches identical to GameMath → Subject Readiness, egg progress, level unlock all work. Result screen: HP drained display + replay/home buttons.
 - `src/games/GameScreen.jsx` — Lazy import + route for `mathbattle` world.
@@ -163,7 +168,7 @@ KidQuest is a React 18 SPA (Vite, Vercel) — educational RPG for Thai children 
 - **Egg pacing**: first egg 120 XP (fast onboarding), later eggs scale by `min(800, 120 + n×60)`. Visual progress and drawEgg canvas both use scaled stage.
 - **Creature stats rebalanced**: weighted formula — every stat has 40% base floor. No stat can be 0. Deterministic ±5% personality variation. Migration recalculates broken (0/NaN) stats.
 - Procedural egg + creature drawing on Canvas (egg algorithm LOCKED)
-- Turn-based battle + learning special move (question before battle, correct → 25% bonus damage, wrong → no penalty); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
+- Turn-based battle + learning special move (battle starts immediately; prompt appears mid-battle after turn 2-3; emoji-visual questions + TTS; correct → 25% bonus damage; wrong/skip → no penalty); challenger system every 15 rounds; AI_OPPONENTS all 6 tiers
 - 5 minigames (EggRun, EggCatch, EggMemory, EggTower, EggFishing)
 - Supabase auth + cloud sync; full guest mode
 - Parent Report: overview, subject time, strengths, Mission Analytics, Subject Readiness, play history
@@ -261,7 +266,7 @@ src/lib/eggAlgorithm.js         — LOCKED procedural egg drawing
 - **Home 2.0 recommendation is always lowest-XP subject** — intentional for balance. May feel repetitive if Chopin wants to replay a preferred subject. Could add "last played" tie-breaker later if needed.
 - **Surprise rotation with one unlocked game** — shows same game daily until a second is unlocked. Acceptable for now.
 - **Egg pacing affects only new eggs** — existing players with old state see correct new pacing on their NEXT egg (current egg's readyToHatch is recalculated on next ADD_XP).
-- **Battle special move question is random within subject** — no difficulty progression within the subject's question pool. Always picks from early-level content (simple letter match / 1+1 to 4+4 / letter-emoji match). This is intentional for now; always achievable by a 5-year-old.
+- **Battle special move questions** — Uses hardcoded inline sets (7 math / 6 Thai / 6 English). All are emoji-visual or TTS-first (no reading required). Math: count emojis shown. Thai/English: listen + tap emoji. Child can replay TTS with 🔊. If sound is off, Thai/English shows the written word as fallback (no visual emoji cue without the sound — this is acceptable since visual choices are large emoji).
 - **Creature stats ~1.8× higher than before vs old enemies** — now resolved by the HP×4 / ATK×2.5 rebalance. Battles last 6–15 turns; player still favored but takes real HP damage.
 - Single-child assumption baked into `defaultState()` — multi-child needs state refactor
 - No session audit trail in Supabase — all progress in one blob per user

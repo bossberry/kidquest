@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { useAppState } from '../context/StateContext.jsx'
 import { ACTIONS } from '../context/StateContext.jsx'
-import { getSoundOn, getACtx, playTone } from '../lib/audio.js'
-import { TH_ALPHA, EN_ALPHA } from '../config/gameConfig.js'
+import { getSoundOn, getACtx, playTone, speakTh, speakEn } from '../lib/audio.js'
 
 const ITEM_REWARDS = ['food','food','food','star','ribbon','potion']
 const ITEM_EMOJI   = { food:'🍗', star:'⭐', ribbon:'🎀', potion:'💧' }
@@ -19,49 +18,77 @@ function shuffle(arr) {
   return a
 }
 
+// Simple visual/audio questions — no reading required
+const MATH_PROMPTS = [
+  { emojis:'🍎🍎',         count:2, wrongs:[1,3] },
+  { emojis:'⭐⭐⭐',        count:3, wrongs:[2,4] },
+  { emojis:'🌙🌙',         count:2, wrongs:[1,3] },
+  { emojis:'🍭🍭🍭',       count:3, wrongs:[2,4] },
+  { emojis:'❤️❤️❤️❤️',    count:4, wrongs:[3,5] },
+  { emojis:'⚡⚡',          count:2, wrongs:[1,3] },
+  { emojis:'🌟🌟🌟',       count:3, wrongs:[2,4] },
+]
+const THAI_PROMPTS = [
+  { word:'ปลา',   correct:'🐟', wrongs:['🐱','🐶'] },
+  { word:'แมว',   correct:'🐱', wrongs:['🐟','🐶'] },
+  { word:'หมา',   correct:'🐶', wrongs:['🐟','🐱'] },
+  { word:'ดาว',   correct:'⭐', wrongs:['🌙','☀️'] },
+  { word:'ไฟ',    correct:'🔥', wrongs:['💧','⭐'] },
+  { word:'น้ำ',   correct:'💧', wrongs:['🔥','⭐'] },
+]
+const EN_PROMPTS = [
+  { word:'cat',   correct:'🐱', wrongs:['🐶','🐟'] },
+  { word:'dog',   correct:'🐶', wrongs:['🐱','🐟'] },
+  { word:'fish',  correct:'🐟', wrongs:['🐱','🐶'] },
+  { word:'star',  correct:'⭐', wrongs:['🌙','☀️'] },
+  { word:'fire',  correct:'🔥', wrongs:['💧','⭐'] },
+  { word:'heart', correct:'❤️', wrongs:['⭐','⚡'] },
+]
+
 function pickBattleQuestion(sessionLog) {
   const recent = (sessionLog || []).slice(-20)
   const counts = { thai: 0, math: 0, eng: 0 }
   for (const s of recent) {
     if (s.world in counts) counts[s.world]++
   }
-  // Prefer subject with most recent play — most comfortable = best chance of success
   const subject = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .map(([k]) => k)
     .find(s => counts[s] > 0) || 'math'
 
   if (subject === 'thai') {
-    const items = shuffle([...TH_ALPHA])
-    const correct = items[0]
-    const wrongs = items.slice(1, 4).map(x => x.char)
+    const q = THAI_PROMPTS[Math.floor(Math.random() * THAI_PROMPTS.length)]
     return {
-      question: `${correct.emoji} ${correct.word} ขึ้นต้นด้วยตัวไหน?`,
-      choices: shuffle([correct.char, ...wrongs]),
-      answer: correct.char,
+      type: 'thai',
+      display: null,
+      word: q.word,
+      choices: shuffle([q.correct, ...q.wrongs]),
+      answer: q.correct,
+      speak: () => speakTh(q.word),
     }
   }
 
   if (subject === 'eng') {
-    const items = shuffle([...EN_ALPHA])
-    const correct = items[0]
-    const wrongs = items.slice(1, 4).map(x => x.emoji)
+    const q = EN_PROMPTS[Math.floor(Math.random() * EN_PROMPTS.length)]
     return {
-      question: `${correct.letter} is for... ${correct.phonics}`,
-      choices: shuffle([correct.emoji, ...wrongs]),
-      answer: correct.emoji,
+      type: 'eng',
+      display: null,
+      word: q.word,
+      choices: shuffle([q.correct, ...q.wrongs]),
+      answer: q.correct,
+      speak: () => speakEn(q.word),
     }
   }
 
-  // Default: simple math (always safe for kindergarten)
-  const a = 1 + Math.floor(Math.random() * 4)
-  const b = 1 + Math.floor(Math.random() * 4)
-  const ans = a + b
-  const pool = [ans - 2, ans - 1, ans + 1, ans + 2].filter(n => n > 0 && n !== ans)
+  // Math: count the emojis shown
+  const q = MATH_PROMPTS[Math.floor(Math.random() * MATH_PROMPTS.length)]
   return {
-    question: `${a} + ${b} = ?`,
-    choices: shuffle([ans, ...shuffle(pool).slice(0, 3)]),
-    answer: ans,
+    type: 'math',
+    display: q.emojis,
+    word: null,
+    choices: shuffle([q.count, ...q.wrongs]),
+    answer: q.count,
+    speak: null,
   }
 }
 
@@ -94,7 +121,6 @@ function playBattleSound(type) {
       tone(1100, 0.32, 0.22, 0.22, 'sine')
     }
     if (type==='special') {
-      // Knowledge power — ascending 5-note fanfare
       tone(523,  0,    0.08, 0.30, 'square')
       tone(659,  0.08, 0.10, 0.30, 'square')
       tone(784,  0.16, 0.12, 0.28, 'square')
@@ -158,84 +184,88 @@ function HPBar({ current, max }) {
 // Props: egg (hatchedEgg with .stats), opponent ({name,emoji,HP,ATK,DEF,SPD}), opponentType, onClose
 export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
   const { state, dispatch } = useAppState()
-  const [phase, setPhase]           = useState('question')
-  const [battleText, setBattleText] = useState('⚔️ เริ่มต่อสู้!')
-  const [pHP, setPHP]               = useState(egg.stats.HP)
-  const [oHP, setOHP]               = useState(opponent.HP)
-  const [shaking, setShaking]       = useState(null)   // 'player' | 'opponent'
-  const [flashRed, setFlashRed]     = useState(null)
-  const [dmgFloat, setDmgFloat]     = useState(null)   // { key, dmg, side, crit }
-  const [winner, setWinner]         = useState(null)
-  const [rewardItem, setRewardItem] = useState(null)
-  const [questionFeedback, setQuestionFeedback] = useState(null) // null | 'correct' | 'wrong'
-  const canvasRef    = useRef(null)
-  const activeRef    = useRef(true)
-  const battleRef    = useRef(null)
-  const specialDmgRef = useRef(0)
+  const [phase, setPhase]                         = useState('fighting')
+  const [battleText, setBattleText]               = useState('⚔️ เริ่มต่อสู้!')
+  const [pHP, setPHP]                             = useState(egg.stats.HP)
+  const [oHP, setOHP]                             = useState(opponent.HP)
+  const [shaking, setShaking]                     = useState(null)
+  const [flashRed, setFlashRed]                   = useState(null)
+  const [dmgFloat, setDmgFloat]                   = useState(null)
+  const [winner, setWinner]                       = useState(null)
+  const [rewardItem, setRewardItem]               = useState(null)
+  const [specialPromptOpen, setSpecialPromptOpen] = useState(false)
+  const [specialFeedback, setSpecialFeedback]     = useState(null) // 'correct' | 'wrong' | null
+  const canvasRef       = useRef(null)
+  const activeRef       = useRef(true)
+  const battleRef       = useRef(null)
+  const specialDmgRef   = useRef(0)
+  const resumeRef       = useRef(null)
+  const specialShownRef = useRef(false)
 
-  // Pick question once from existing content, guided by sessionLog readiness
   const [questionData] = useState(() => pickBattleQuestion(state.sessionLog))
 
   const stats   = egg.stats
   const creature = egg.creature || {}
 
-  // Start battle when phase transitions to 'fighting'
+  // Speak question word when prompt opens (Thai/English only)
+  useEffect(() => {
+    if (!specialPromptOpen || specialFeedback) return
+    const t = setTimeout(() => { questionData.speak?.() }, 500)
+    return () => clearTimeout(t)
+  }, [specialPromptOpen, specialFeedback]) // eslint-disable-line
+
   useEffect(() => {
     if (phase !== 'fighting') return
     activeRef.current = true
-    // Draw creature now that canvas is in the DOM
     if (canvasRef.current) drawCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
-    const bonusDmg = specialDmgRef.current
-    // Re-simulate with reduced enemy HP so win condition is correct
-    const effectiveOpponent = bonusDmg > 0
-      ? { ...opponent, HP: Math.max(1, opponent.HP - bonusDmg) }
-      : opponent
-    battleRef.current = simulateBattle(stats, effectiveOpponent)
-    runAnimation(bonusDmg)
+    battleRef.current = simulateBattle(stats, opponent)
+    runAnimation()
     return () => { activeRef.current = false }
   }, [phase]) // eslint-disable-line
 
-  function handleAnswer(choice) {
+  function handleSpecialAnswer(choice) {
     const correct = choice === questionData.answer
     if (correct) {
       specialDmgRef.current = Math.ceil(opponent.HP * 0.25)
-      setQuestionFeedback('correct')
-      setTimeout(() => setPhase('fighting'), 900)
+      playBattleSound('special')
+      setSpecialFeedback('correct')
     } else {
-      // No penalty — battle continues normally
-      setQuestionFeedback('wrong')
-      setTimeout(() => setPhase('fighting'), 700)
+      setSpecialFeedback('wrong')
     }
+    setTimeout(() => {
+      setSpecialPromptOpen(false)
+      setSpecialFeedback(null)
+      const resolve = resumeRef.current
+      resumeRef.current = null
+      resolve?.()
+    }, 800)
   }
 
-  async function runAnimation(bonusDmg) {
-    const { log, winner: w } = battleRef.current
+  function handleSpecialSkip() {
+    setSpecialPromptOpen(false)
+    setSpecialFeedback(null)
+    const resolve = resumeRef.current
+    resumeRef.current = null
+    resolve?.()
+  }
+
+  async function runAnimation() {
+    const { log } = battleRef.current
     const alive = () => activeRef.current
+    let curPHP = stats.HP
+    let curOHP = opponent.HP
+    let finalWinner = null
+
+    // Show special prompt after attack index 1 or 2 (0-indexed), only if battle has enough turns
+    const specialTriggerAfter = log.length >= 3
+      ? 1 + Math.floor(Math.random() * 2)
+      : -1
 
     await delay(800)
 
-    // Special move animation — plays before normal battle turns
-    if (bonusDmg > 0) {
-      const atkEmoji = creature.e || '🐉'
-      setBattleText(`⚡ ${atkEmoji} ปล่อยท่าพิเศษ!`)
-      playBattleSound('special')
-      await delay(900); if (!alive()) return
-
-      setShaking('opponent'); setFlashRed('opponent')
-      playBattleSound('hit')
-      await delay(200); if (!alive()) return; setFlashRed(null)
-      await delay(150); if (!alive()) return; setFlashRed('opponent')
-      await delay(150); if (!alive()) return; setFlashRed(null); setShaking(null)
-
-      // Drop displayed oHP to match the simulation's starting point
-      setOHP(opponent.HP - bonusDmg)
-      setDmgFloat({ key: Date.now(), dmg: bonusDmg, side: 'opponent', crit: true })
-      setBattleText(`💥 ท่าพิเศษ! -${bonusDmg} HP!`)
-      await delay(700); if (!alive()) return; setDmgFloat(null)
-    }
-
-    for (const entry of log) {
+    for (let i = 0; i < log.length; i++) {
       if (!alive()) return
+      const entry = log[i]
       const isPlayer = entry.by === 'player'
       const atkEmoji = isPlayer ? (creature.e || '🐉') : opponent.emoji
       const atkName  = isPlayer ? (creature.n || 'สัตว์') : opponent.name
@@ -246,33 +276,63 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
       await delay(900)
       if (!alive()) return
 
-      // Flash + shake
       setShaking(defSide); setFlashRed(defSide)
       playBattleSound('hit')
       await delay(200); if (!alive()) return; setFlashRed(null)
       await delay(150); if (!alive()) return; setFlashRed(defSide)
       await delay(150); if (!alive()) return; setFlashRed(null); setShaking(null)
 
-      // Update HP + float damage
-      if (isPlayer) setOHP(entry.oHP); else setPHP(entry.pHP)
+      if (isPlayer) { curOHP = Math.max(0, curOHP - entry.dmg); setOHP(curOHP) }
+      else          { curPHP = Math.max(0, curPHP - entry.dmg); setPHP(curPHP) }
       setDmgFloat({ key: Date.now(), dmg: entry.dmg, side: defSide, crit: entry.crit })
       if (entry.crit) { playBattleSound('crit'); setBattleText(`💥 Critical Hit! -${entry.dmg} HP!`) }
       else              setBattleText(`-${entry.dmg} HP`)
       await delay(700); if (!alive()) return; setDmgFloat(null)
 
-      // Low HP warning
-      const hpNow = isPlayer ? entry.oHP : entry.pHP
+      const hpNow = isPlayer ? curOHP : curPHP
       const hpMax = isPlayer ? opponent.HP : stats.HP
       if (hpNow > 0 && hpNow < hpMax * 0.2) {
         playBattleSound('warning')
-        setBattleText(`⚠️ ${isPlayer ? opponent.name : creature.n} HP เหลือน้อยมาก!`)
+        setBattleText(`⚠️ ${isPlayer ? opponent.name : (creature.n || 'สัตว์')} HP เหลือน้อยมาก!`)
         await delay(800); if (!alive()) return
+      }
+
+      if (curOHP <= 0) { finalWinner = 'player'; break }
+      if (curPHP <= 0) { finalWinner = 'opponent'; break }
+
+      // Special move prompt — once per battle, mid-fight surprise
+      if (i === specialTriggerAfter && !specialShownRef.current) {
+        specialShownRef.current = true
+        playBattleSound('warning')
+        setSpecialPromptOpen(true)
+        await new Promise(resolve => { resumeRef.current = resolve })
+        if (!alive()) return
+
+        const bonusDmg = specialDmgRef.current
+        if (bonusDmg > 0) {
+          const atkE = creature.e || '🐉'
+          setBattleText(`⚡ ${atkE} ปล่อยท่าพิเศษ!`)
+          await delay(700); if (!alive()) return
+          setShaking('opponent'); setFlashRed('opponent')
+          playBattleSound('hit')
+          await delay(200); if (!alive()) return; setFlashRed(null)
+          await delay(150); if (!alive()) return; setFlashRed('opponent')
+          await delay(150); if (!alive()) return; setFlashRed(null); setShaking(null)
+          curOHP = Math.max(0, curOHP - bonusDmg)
+          setOHP(curOHP)
+          setDmgFloat({ key: Date.now(), dmg: bonusDmg, side: 'opponent', crit: true })
+          setBattleText(`💥 ท่าพิเศษ! -${bonusDmg} HP!`)
+          await delay(700); if (!alive()) return; setDmgFloat(null)
+          if (curOHP <= 0) { finalWinner = 'player'; break }
+        }
       }
     }
 
+    if (finalWinner === null) finalWinner = curPHP > 0 ? 'player' : 'opponent'
+
     await delay(600); if (!alive()) return
 
-    const won = w === 'player'
+    const won = finalWinner === 'player'
     playBattleSound(won ? 'win' : 'lose')
     setBattleText(won ? '🎉 ชนะแล้ว!' : '😤 แพ้แล้ว...')
 
@@ -294,65 +354,7 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
     dispatch({ type: ACTIONS.CLEAR_CHALLENGER })
 
     await delay(900); if (!alive()) return
-    setWinner(w); setPhase('result')
-  }
-
-  // ── QUESTION PHASE ──
-  if (phase === 'question') {
-    // Brief feedback overlay after answering
-    if (questionFeedback) {
-      return createPortal(
-        <div style={{ position:'fixed', inset:0, background:'#1a1040', zIndex:9999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontFamily:'Mitr,sans-serif' }}>
-          <div style={{ fontSize:64 }} className={questionFeedback === 'correct' ? 'victory-bounce' : ''}>{questionFeedback === 'correct' ? '🔥' : '💪'}</div>
-          <div style={{ fontSize:20, fontWeight:700, marginTop:12, textAlign:'center', color: questionFeedback === 'correct' ? '#FFD700' : '#fff' }}>
-            {questionFeedback === 'correct' ? 'ท่าพิเศษพร้อมแล้ว!' : 'สู้ต่อไปนะ!'}
-          </div>
-        </div>,
-        document.body
-      )
-    }
-
-    return createPortal(
-      <div style={{ position:'fixed', inset:0, background:'#1a1040', zIndex:9999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Mitr,sans-serif' }}>
-        <div style={{ fontSize:36, marginBottom:6 }}>⚡</div>
-        <div style={{ fontSize:16, fontWeight:700, color:'#FFD700', marginBottom:4, textAlign:'center' }}>
-          ตอบถูก ปล่อยท่าพิเศษ!
-        </div>
-        <div style={{ fontSize:12, color:'rgba(255,255,255,.6)', marginBottom:24, textAlign:'center' }}>
-          ใช้พลังความรู้โจมตีพิเศษ!
-        </div>
-
-        <div style={{ background:'rgba(255,255,255,.12)', borderRadius:16, padding:'18px 20px', width:'100%', maxWidth:340, marginBottom:20, textAlign:'center' }}>
-          <div style={{ fontSize:15, color:'#fff', lineHeight:1.9 }}>{questionData.question}</div>
-        </div>
-
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:340, marginBottom:20 }}>
-          {questionData.choices.map((choice, i) => (
-            <button
-              key={i}
-              onClick={() => handleAnswer(choice)}
-              style={{
-                background:'rgba(255,255,255,.15)', color:'#fff',
-                border:'2px solid rgba(255,255,255,.25)',
-                borderRadius:12, padding:'14px 8px', fontSize:20,
-                fontFamily:'Mitr,sans-serif', cursor:'pointer',
-                fontWeight:700, touchAction:'manipulation',
-              }}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => { setQuestionFeedback('wrong'); setTimeout(() => setPhase('fighting'), 700) }}
-          style={{ background:'transparent', color:'rgba(255,255,255,.4)', border:'none', fontSize:12, cursor:'pointer', fontFamily:'Mitr,sans-serif', padding:'8px 16px' }}
-        >
-          ข้ามไปก่อน
-        </button>
-      </div>,
-      document.body
-    )
+    setWinner(finalWinner); setPhase('result')
   }
 
   // ── FIGHTING PHASE ──
@@ -409,6 +411,76 @@ export default function BattleScreen({ egg, opponent, opponentType, onClose }) {
         <div style={{ margin:'0 16px 20px', background:'rgba(255,255,255,.95)', borderRadius:14, padding:'14px 18px', minHeight:52, border:'3px solid #fff' }}>
           <div style={{ fontSize:14, color:'#1a1a1a', lineHeight:1.6 }}>▷ {battleText}</div>
         </div>
+
+        {/* Special move prompt — slides over battle mid-fight */}
+        {specialPromptOpen && (
+          <div style={{
+            position:'absolute', inset:0,
+            background:'rgba(10,5,30,.90)',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+            padding:24, zIndex:10,
+          }}>
+            {specialFeedback ? (
+              <>
+                <div style={{ fontSize:72 }} className={specialFeedback === 'correct' ? 'victory-bounce' : ''}>
+                  {specialFeedback === 'correct' ? '🔥' : '💪'}
+                </div>
+                <div style={{ fontSize:20, fontWeight:700, marginTop:12, textAlign:'center', color: specialFeedback === 'correct' ? '#FFD700' : '#fff' }}>
+                  {specialFeedback === 'correct' ? 'ท่าพิเศษพร้อมแล้ว!' : 'สู้ต่อไปนะ!'}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="pulse-float" style={{ fontSize:36, marginBottom:8 }}>⚡</div>
+                <div style={{ fontSize:18, fontWeight:700, color:'#FFD700', marginBottom:20, textAlign:'center' }}>
+                  พลังพิเศษมาแล้ว!
+                </div>
+
+                {/* Question — emoji display for math, word + speaker for Thai/English */}
+                {questionData.type === 'math' ? (
+                  <div style={{ fontSize:44, letterSpacing:6, marginBottom:20, textAlign:'center' }}>
+                    {questionData.display}
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                    <div style={{ fontSize:32, fontWeight:700, color:'#fff' }}>{questionData.word}</div>
+                    <button
+                      onClick={() => questionData.speak?.()}
+                      aria-label="ฟังอีกครั้ง"
+                      style={{ background:'rgba(255,255,255,.18)', border:'none', borderRadius:10, padding:'6px 12px', fontSize:20, cursor:'pointer', touchAction:'manipulation' }}
+                    >🔊</button>
+                  </div>
+                )}
+
+                {/* 3 big emoji / number choices */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, width:'100%', maxWidth:300, marginBottom:18 }}>
+                  {questionData.choices.map((choice, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSpecialAnswer(choice)}
+                      style={{
+                        background:'rgba(255,255,255,.15)', color:'#fff',
+                        border:'2px solid rgba(255,255,255,.30)',
+                        borderRadius:16, padding:'18px 6px', fontSize:30,
+                        fontFamily:'Mitr,sans-serif', cursor:'pointer',
+                        fontWeight:700, touchAction:'manipulation',
+                      }}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleSpecialSkip}
+                  style={{ background:'transparent', color:'rgba(255,255,255,.38)', border:'none', fontSize:12, cursor:'pointer', fontFamily:'Mitr,sans-serif', padding:'8px 16px' }}
+                >
+                  ข้ามไปก่อน
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>,
       document.body
     )

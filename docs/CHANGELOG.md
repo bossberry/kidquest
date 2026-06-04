@@ -1,5 +1,9 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle special move timing + accessibility
+
+- `src/components/BattleScreen.jsx` — Special move prompt moved from pre-battle question phase to mid-battle surprise. Battle now starts immediately (`phase` initialised to `'fighting'`). Special prompt appears as a semi-transparent overlay after attack 2 or 3 (random), while the battle screen remains visible behind it. New question format: Math shows emoji counting (`🍎🍎` → tap 2), Thai/English uses TTS (`speakTh`/`speakEn`) with emoji choices (e.g. "ปลา" → 🐟/🐱/🐶). 🔊 replay button on Thai/English prompt. Correct → exciting special SFX fires immediately + `victory-bounce` "🔥 ท่าพิเศษพร้อมแล้ว!" feedback → special attack animates in battle; Wrong/Skip → gentle "💪 สู้ต่อไปนะ!" or no feedback, battle continues normally — no penalty. HP tracking changed from absolute (log snapshot) to relative (damage-delta) so special damage mid-battle is accurate without a second simulation. `TH_ALPHA`/`EN_ALPHA` imports removed; replaced with compact inline question sets (7 math, 6 Thai, 6 English). Build ✅.
+
 ## 2026-06-04 — Math Battle learning mode
 
 - `src/games/GameMathBattle.jsx` — NEW. Battle-wrapped Math MVP. Dark purple (#1a1040) UI. 8 questions per battle against one of 4 cute enemies (🤖👻😈🐲, 64 HP each). Enemy selected randomly. Player's current math level auto-used (no level selector in battle mode). Correct answer → enemy attack flash + HP reduction + battle text. Streak ≥3 → Critical Hit (×1.5 dmg, streak SFX, confetti). Wrong → gentle enemy shake, up to 3 attempts, then reveal. No player HP — child-friendly, zero frustration punishment. All dispatches identical to GameMath: ADD_XP (same formula), ROUND_COMPLETE, UPDATE_LEVEL_MASTERY, UNLOCK_LEVEL, LOG_SESSION (world:'math'). Result screen shows HP drained + replay/home.

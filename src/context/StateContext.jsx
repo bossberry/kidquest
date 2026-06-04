@@ -339,9 +339,20 @@ export function StateProvider({ children }) {
       }
     }
 
-    // Async Supabase load
+    // Async Supabase load — only overwrite if remote is at least as recent as local.
+    // Supabase sync is async; if the previous session's sync hadn't finished when the
+    // app reloads, remote.rounds can be behind the in-memory state that was already
+    // restored from localStorage. Blindly dispatching INIT in that case reverts XP,
+    // items, and other progress the player just earned.
     loadState().then(remote => {
-      if (remote) dispatch({ type: ACTIONS.INIT, payload: remote })
+      if (!remote) return
+      const cur = stateRef.current
+      if ((remote.rounds || 0) >= (cur.rounds || 0)) {
+        dispatch({ type: ACTIONS.INIT, payload: remote })
+      } else {
+        console.log('[KQ:load] remote behind local (remote rounds:', remote.rounds, 'local:', cur.rounds, ') — keeping local, pushing to cloud')
+        syncToSupabase(cur)
+      }
     })
 
     // Auth listener
@@ -362,10 +373,19 @@ export function StateProvider({ children }) {
               .single()
 
             if (row?.state_json) {
-              // Cloud has data → overwrite local with cloud
-              console.log('[KQ:auth] cloud has data → dispatch INIT')
-              localStorage.setItem(KEY, JSON.stringify(row.state_json))
-              dispatch({ type: ACTIONS.INIT, payload: row.state_json })
+              const remote = row.state_json
+              const cur = stateRef.current
+              if ((remote.rounds || 0) >= (cur.rounds || 0)) {
+                // Cloud is at least as recent → accept cloud state
+                console.log('[KQ:auth] cloud has data (remote rounds:', remote.rounds, ') → dispatch INIT')
+                localStorage.setItem(KEY, JSON.stringify(remote))
+                dispatch({ type: ACTIONS.INIT, payload: remote })
+              } else {
+                // Local is ahead (user played before auth resolved) → push local up, keep in-memory state
+                console.log('[KQ:auth] local is ahead (local rounds:', cur.rounds, 'remote:', remote.rounds, ') → pushing local to cloud')
+                localStorage.setItem(KEY, JSON.stringify(cur))
+                await syncToSupabase(cur)
+              }
             } else {
               // Cloud empty → push current in-memory state (stateRef = real current state)
               console.log('[KQ:auth] cloud empty (', error?.code, ') → pushing current state up, xpThai:', stateRef.current.xpThai)

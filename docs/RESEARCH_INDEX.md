@@ -55,6 +55,7 @@ _Last updated: 2026-06-04_
 
 - [docs/research/gameplay/egg-companion-adventure.md](research/gameplay/egg-companion-adventure.md) — Egg Companion Adventure design: egg as emotional center, companion framing across all game modes, visual/audio/progress behavior spec, relationship data, MVP recommendation, open questions
 - [docs/research/gameplay/pokemon-style-learning-battle.md](research/gameplay/pokemon-style-learning-battle.md) — Pokémon-Style Learning Battle design: battle-first (answers ARE moves), move-select panel replaces quiz UI, all 3 subjects in one shell, animations/audio spec, MVP recommendation (Math first), 5 open questions for GPT
+- [docs/research/gameplay/battle-feel-philosophy.md](research/gameplay/battle-feel-philosophy.md) — **Required reading before implementing any Subject Battle.** Sensory + emotional grammar: visual hierarchy (enemy first, question disappears into move panel), player HP removed, wrong answer = miss not punishment, 10-step anticipation sequence, combo system (streak 2→crit at 4), victory sequence, sound philosophy (cute/Pokémon-like), animation philosophy (fast/CSS), screen layout spec, 5 open implementation questions
 
 ---
 

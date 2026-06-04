@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Battle Feel Philosophy Design
+
+- `docs/research/gameplay/battle-feel-philosophy.md` — NEW. Defines the sensory and emotional grammar for all Subject Battle implementations. Covers: core "battle is the experience" principle, visual hierarchy (enemy > HP > log > move panel), player HP removal rationale, wrong-answer philosophy (miss not punishment), full anticipation sequence (10-step tap-to-result chain), sound philosophy (cute/positive/Pokémon-like), combo system (streak 2→3→4 = crit ×1.5), victory sequence (enemy defeat → stars → confetti → egg celebrates), battle log spec (1-line, Thai-first), animation philosophy (fast/CSS/reuse existing keyframes), screen layout reference, implementation priority (feel before content), 5 open questions before implementation.
+- `docs/RESEARCH_INDEX.md` — Battle Feel Philosophy entry added to Gameplay section.
+- `docs/GPT_NOTES.md` — Battle Feel Philosophy section added with player HP decision and combo philosophy.
+- `docs/TASKS.md` — Battle Feel design task added and marked done; PSLB-0 (feel baseline) inserted before PSLB-1.
+- No code changes. No build.
+
 ## 2026-06-04 — Pokémon-Style Learning Battle Design
 
 - `docs/research/gameplay/pokemon-style-learning-battle.md` — NEW. Full design document. Battle-first framing: answer choices ARE attack moves (not a quiz with battle decoration). Covers: move-select panel anatomy (`[icon] [name] ... [answer]`), subject encoding per subject (Math=numbers as damage, Thai/English=emoji+TTS), full battle flow (8 steps per turn), move name sets per subject, screen layout spec, animation list (14 keyframes), audio list (8 new tones), egg integration (child's egg is the hero), session structure (8 turns / 1 enemy), subject battle shell principle (one component, three content types), MVP recommendation (Math first → Thai → English → polish), scope check (passes Year 1 guardian), 5 open questions for GPT.

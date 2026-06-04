@@ -1,37 +1,39 @@
-# Session Summary — 2026-06-04 (Pokémon-Style Learning Battle Design)
+# Session Summary — 2026-06-04 (Battle Feel Philosophy Design)
 
 **Session type:** Documentation / design only. No code changes. No build.
 
 **Files changed:**
-- `docs/research/gameplay/pokemon-style-learning-battle.md` — NEW. Full design doc.
+- `docs/research/gameplay/battle-feel-philosophy.md` — NEW. Full design doc.
 - `docs/RESEARCH_INDEX.md` — Gameplay section updated.
-- `docs/GPT_NOTES.md` — Pokémon-Style Learning Battle section added.
-- `docs/TASKS.md` — Design task marked done; PSLB-1 through PSLB-5 implementation queue added.
+- `docs/GPT_NOTES.md` — Battle Feel Philosophy section added.
+- `docs/TASKS.md` — PSLB-0 (feel baseline) added before PSLB-1; Battle Feel task marked done.
 - `docs/CHANGELOG.md` — New entry appended.
-- `docs/GPT_HANDOFF.md` — Latest session updated; Claude Code / GPT next steps updated.
+- `docs/GPT_HANDOFF.md` — Latest session updated.
 - `docs/SESSION_SUMMARY.md` — This file.
 
-**Core design decision:**
-This is battle-first design — answer choices ARE attack moves. The child feels "I choose a move to help my egg win," not "I answered a question and saw an animation." The learning is invisible inside the move mechanic.
+**Core design decisions:**
 
-**Move-Select Panel:**
-Each button shows: `[emoji icon] [move name] ... [answer content]`. For Math: the number IS the answer (correct number = that move fires). For Thai/English: the emoji IS the answer (TTS word → tap matching emoji move).
+**1. Player HP removed.**
+The egg never loses HP. No game over. No losing. Wrong answers cause misses, slow progress, and enemy reactions — but the egg is never in danger. Emotional message: mistakes are safe. The egg is always with you. This is not a weakness; it is correct design for a 5-year-old learner.
 
-**MVP recommendation:**
-1. PSLB-1: Math Move-Select Battle — numbers in move panel; implement as new `MoveSelectBattleMode.jsx` replacing BattleMode in Subject Adventure for Math subject.
-2. PSLB-2: Thai Battle — same shell, emoji options + TTS.
-3. PSLB-3: English Battle — same shell, emoji options + TTS.
+**2. Wrong answer = miss, not punishment.**
+No ❌ banner. No harsh buzzer. No HP loss. "โจมตีพลาด!" in the battle log + soft fizzle + enemy reacts. Battle continues immediately.
 
-**Key constraints preserved:**
-- Same battle shell for all subjects (one component, content injected per subject).
-- Reuses existing BattleMode HP/enemy/EggCanvas patterns — no new unique mechanic.
-- EggAlgorithm.js NOT touched. Egg companion reactions reuse existing keyframes.
-- Wrong answer = miss/fizzle, not punishment. No harsh buzzer.
-- Year 1 scope: uses only existing Math/Thai/English content from current levels.
+**3. Anticipation sequence before content.**
+10-step tap-to-result chain: tap → pulse → charge → egg lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check. Total ≤ 1000ms. CSS-driven. Implement this baseline BEFORE adding Math/Thai/English content (PSLB-0 before PSLB-1).
 
-**5 open questions sent to GPT:**
-1. Correct move = consistent damage vs. most damage (strategy vs. pure learning)?
-2. Enemy counter on wrong × 3 only vs. every N turns regardless?
-3. Player HP bar — adds stakes or unwanted pressure for age 5?
-4. Move names random per turn or loosely subject-themed?
-5. Replace BattleMode in Subject Adventure entirely, or keep both?
+**4. Combo system: streak → crit.**
+Streak 2 = gold glow. Streak 3 = screen flash. Streak 4+ = critical hit (×1.5 damage, ascending fanfare, large damage number). Combo resets gracefully on miss.
+
+**5. Victory must feel amazing.**
+Enemy fades → stars → confetti → fanfare → egg celebrates → XP progress appears. This is the emotional peak of the learning loop.
+
+**Implementation priority defined:**
+Battle Feel baseline (PSLB-0) → Math content (PSLB-1) → Thai (PSLB-2) → English (PSLB-3) → polish pass (PSLB-4/5).
+
+**5 open questions before implementation:**
+1. 2×2 grid vs. horizontal row for move panel
+2. Damage number above enemy vs. center screen
+3. Enemy counter every-3-misses vs. every-N-turns
+4. Combo reset rules between sessions
+5. New `playTone()` naming for battle sounds

@@ -3,6 +3,27 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Battle Feel Philosophy (2026-06-04)
+
+Source-of-truth: `docs/research/gameplay/battle-feel-philosophy.md`
+
+**Required reading before implementing any Subject Battle.**
+
+- **Battle is the experience — not a quiz with animation.** Fun comes from anticipation, animation, sound, impact, HP drain, enemy reactions, combos, crits, and victory. Not from text or move names.
+- **Visual hierarchy:** Enemy → Enemy HP → Battle log → Move panel. The question disappears into move selection. Child feels "I choose attacks," not "I answer quizzes."
+- **Player HP removed.** The egg never loses HP. No game over. No losing. Wrong answers cause misses and slow progress, but the egg is never in danger. Emotional message: mistakes are safe, the egg is always with you.
+- **Wrong answer = miss, not punishment.** Soft fizzle effect. Enemy laughs or reacts. "โจมตีพลาด!" in battle log. No harsh buzzer. No "❌ ผิด!" banner. No HP loss.
+- **10-step anticipation sequence:** tap move → card pulse → charge effect → egg lunge → elemental burst → enemy flash → camera shake → HP drain (animated) → damage float → combo/victory check. Total: ≤ 1000ms. CSS-driven.
+- **Combo system:** streak 2 = gold glow, streak 3 = screen flash, streak 4+ = crit ×1.5 + ascending fanfare + large damage number. Reset gracefully on miss.
+- **Sound:** cute, positive, Pokémon-like. Move select / charge / attack fire / hit / enemy reaction / combo chimes / crit fanfare / miss fizzle / victory fanfare. No harsh sounds. Always respect sound toggle.
+- **Victory:** enemy fades → stars → confetti → fanfare → egg celebrates → XP progress appears. Must feel amazing.
+- **Battle log:** single line, Thai-first, short. "🥚 ไข่ใช้ [ท่า]!", "โจมตีพลาด!", "Critical hit!", "มอนสเตอร์พ่ายแพ้!", "ชนะแล้ว! 🎉"
+- **Animation:** fast, responsive, juicy. Prefer CSS over JS. Reuse existing keyframes. New needed: `move-card-pulse`, `egg-charge`, `egg-lunge`, `elemental-burst`, `hit-flash`, `miss-fizzle`, `damage-float`, `enemy-defeat-fade`.
+- **Implementation priority:** feel baseline BEFORE Math Battle MVP content. Getting the grammar right first means content layers in cleanly.
+- **Open questions before implementation:** (1) 2×2 or row move layout? (2) Damage number above enemy or center screen? (3) Enemy counter every-3-misses vs every-N-turns? (4) Combo reset rules between sessions? (5) New `playTone()` names for battle sounds?
+
+---
+
 ## Pokémon-Style Learning Battle (2026-06-04)
 
 Source-of-truth: `docs/research/gameplay/pokemon-style-learning-battle.md`

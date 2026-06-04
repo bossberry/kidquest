@@ -46,8 +46,10 @@
 
 ### Pokémon-Style Learning Battle — Implementation Queue (designed 2026-06-04)
 
-_Spec: `docs/research/gameplay/pokemon-style-learning-battle.md`. Implement only after GPT answers open questions._
+_Spec: `docs/research/gameplay/pokemon-style-learning-battle.md` + `docs/research/gameplay/battle-feel-philosophy.md`. Implement only after GPT answers open questions._
 
+- [x] **Battle Feel Philosophy** — `docs/research/gameplay/battle-feel-philosophy.md` created. Defines: player HP removal, miss-not-punishment philosophy, 10-step anticipation sequence, combo system, victory sequence, sound/animation philosophy, screen layout, implementation priority (feel before content). Required reading before PSLB-1.
+- [ ] **PSLB-0: Battle Feel Baseline** — Implement the anticipation sequence shell in `MoveSelectBattleMode.jsx` BEFORE adding content. Tap → pulse → charge → lunge → elemental burst → enemy flash → camera shake → HP drain → damage float → combo/victory check. CSS keyframes only. No JS timer chains. Reuse existing keyframes where possible.
 - [ ] **PSLB-1: Math Move-Select Battle** — New `MoveSelectBattleMode.jsx` (or rename BattleMode). Move panel: 4 buttons showing `[icon] [move name] ... [number]`. Correct number = attack fires; wrong = miss fizzle. Reuse EggCanvas, HP bars, enemy sprites from existing BattleMode. 8 turns per session.
 - [ ] **PSLB-2: Thai Move-Select Battle** — Same shell; move panel shows emoji options + TTS on panel load. TTS via `speakTh` on question appear. Thai content from `genThaiQ`.
 - [ ] **PSLB-3: English Move-Select Battle** — Same shell; emoji options + `speakEn` TTS. English content from `genEngQ`.

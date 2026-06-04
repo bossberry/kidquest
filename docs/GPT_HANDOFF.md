@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Audio polish and louder phonics)_
+_Last updated: 2026-06-04 (Animation juice polish)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,16 @@ _Last updated: 2026-06-04 (Audio polish and louder phonics)_
 
 ## Latest Session Summary
 
-**What changed this session (Audio polish and louder phonics — code change):**
+**What changed this session (Animation juice polish — code change):**
+
+- `src/styles.css` — 10 new `@keyframes` + utility classes: `pulse-float` (3s bob on adventure card), `battle-glow-pulse` (purple ring on battle card), `shimmer-bright` (Surprise card), `slide-down-in` (subject grid), `victory-bounce` (win emoji), `item-pop-in` (reward box spring), `streak-bounce` (streak feedback), `hatch-glow` (golden drop-shadow on creature reveal), `modal-pop` (creature detail popup), `answer-correct-glow` (correct choice ring). `@media(prefers-reduced-motion:reduce)` disables all decorative animations.
+- `src/components/Home.jsx` — rec card: `rec-card-float` or `rec-card-battle`; Surprise card: `rec-card-surprise`; subject grid: `subjects-slide-in` on mount.
+- `src/components/BattleScreen.jsx` — `victory-bounce` on win emoji; `item-pop-in` on reward box; `victory-bounce` on special-move correct feedback.
+- `src/components/HatchOverlay.jsx` — `hatch-reveal-glow` on creature emoji at done phase.
+- `src/games/GameShop.jsx` — `victory-bounce` on done emoji; `streak-win` class (streak-bounce) on streak feedback.
+- Build: ✅ zero errors. Commit: b5ff1a5.
+
+**What changed last session (Audio polish and louder phonics — code change):**
 
 - `src/lib/audio.js` — 9 new `playTone()` types: `tap` (warm pop), `open` (2-note upward), `unlock` (4-note jingle), `item` (sparkle), `eggReady` (3-note pulse), `reveal` (5-note sweep), `start` (burst), `complete` (4-note), `cardOpen` (soft pop). Phonics GainNode raised from 2.5 → 4.0.
 - `src/components/Home.jsx` — `tap` on Continue Adventure + Surprise tap; `open`/`click` on subject-grid toggle; `eggReady` fires once on readyToHatch transition.

@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-04 — Animation juice polish
+
+- `src/styles.css` — 10 new `@keyframes` + utility classes: `pulse-float` (Continue Adventure gentle bob), `battle-glow-pulse` (purple glow ring for battle card), `shimmer-bright` (Surprise card), `slide-down-in` (subject grid open), `victory-bounce` (win/done emoji), `item-pop-in` (reward box), `streak-bounce` (Shop streak feedback), `hatch-glow` (creature reveal golden drop-shadow), `modal-pop` (creature detail card), `answer-correct-glow` (correct choice ring). `.catalog-item:hover` lift + shadow; `.choice-btn.correct` enhanced with dual animation. `@media(prefers-reduced-motion:reduce)` block disables all decorative animations.
+- `src/components/Home.jsx` — adventure card gets `rec-card-float` (default) or `rec-card-battle` (challenger); Surprise card gets `rec-card-surprise`; subject grid gets `subjects-slide-in` on open.
+- `src/components/BattleScreen.jsx` — win emoji: `victory-bounce`; reward box: `item-pop-in`; special-move correct feedback emoji: `victory-bounce`.
+- `src/components/HatchOverlay.jsx` — creature emoji at done phase: `hatch-reveal-glow`.
+- `src/games/GameShop.jsx` — done screen emoji: `victory-bounce`; streak feedback: `streak-win` (streak-bounce); `streak: true` flag added to streak feedback state.
+- Build: ✅ zero errors. Commit: b5ff1a5.
+
 ## 2026-06-04 — Audio polish and louder phonics
 
 - `src/lib/audio.js` — 9 new tones added to `playTone()`: `tap` (warm pop), `open` (2-note upward chirp), `unlock` (4-note ascending jingle), `item` (sparkle arpeggio), `eggReady` (3-note glowing pulse), `reveal` (5-note sweep + sine), `start` (energetic burst), `complete` (4-note mission jingle), `cardOpen` (2-note soft pop). Phonics GainNode boosted from 2.5 → 4.0.

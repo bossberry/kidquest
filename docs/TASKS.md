@@ -17,6 +17,7 @@
 - [x] **Battle balance and sound** — enemy HP ×4, ATK ×2.5; battles last 6–15 turns. BattleScreen sound respects toggle; attack/hit/crit/win/lose SFX improved. Build ✅.
 - [x] **Battle learning special move** — question phase before each battle (Thai/Math/English from existing content). Correct → ⚡ special attack fires (25% bonus damage, special SFX, gold flash). Wrong/skip → no penalty. Subject chosen from most-played in sessionLog; falls back to simple Math. Also fixed ATK/DEF advice text mismatch in result screen. Build ✅.
 - [x] **Audio polish + louder phonics** — 9 new playTone types (tap, open, unlock, item, eggReady, reveal, start, complete, cardOpen). Phonics GainNode 2.5 → 4.0. Sounds wired to Home (tap/open/eggReady), Collection (cardOpen/close), HatchOverlay (reveal), BattleScreen (item), GameShop/Math/Thai/Phonics (unlock, complete). Build ✅.
+- [x] **Animation juice polish** — 10 new CSS keyframe animations + utility classes across styles.css. Wired to Home (card float/pulse/shimmer, grid slide-in), BattleScreen (victory bounce, item pop, special-move glow), HatchOverlay (creature reveal glow), GameShop (done bounce, streak bounce). `prefers-reduced-motion` respected. Build ✅.
 - [ ] **Play Shop Mission with Chopin** — validate fun and timing before expanding. Target: 2–3 min, 80% pass on first or second run.
 - [ ] **D0: Home UX audit** — review simplified Home with Chopin. Does Continue Adventure feel like the obvious action? Does the "อยากเลือกเอง?" toggle feel discoverable?
 

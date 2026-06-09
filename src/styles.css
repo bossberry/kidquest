@@ -348,7 +348,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .eggrun-banner.ready{background:linear-gradient(130deg,#3A2800 0%,#6B4500 100%);border-color:#FFD700;animation:erGlow 1.8s ease-in-out infinite;}
 
 
-#root{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+#root{height:100%;width:100%;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ===== ANIMATION JUICE ===== */
 

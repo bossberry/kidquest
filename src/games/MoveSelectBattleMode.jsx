@@ -351,7 +351,7 @@ export default function MoveSelectBattleMode({
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ height:'100%', minHeight:'100%', background:bg, display:'flex', flexDirection:'column', fontFamily:'Mitr,sans-serif', position:'relative', overflow:'hidden' }}>
+    <div style={{ flex:1, minHeight:0, background:bg, display:'flex', flexDirection:'column', fontFamily:'Mitr,sans-serif', position:'relative', overflow:'hidden' }}>
 
       {/* Screen flash on crit/ultimate */}
       {critFlash && (

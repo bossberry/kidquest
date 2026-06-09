@@ -109,7 +109,7 @@ export default function DefenseMode({ q, cur, total, streak, subject, onCorrect,
 
   return (
     <div style={{
-      height:'100%', minHeight:'100%',
+      flex:1, minHeight:0,
       background: BG[subject] || '#1a1040',
       display:'flex', flexDirection:'column',
       fontFamily:'Mitr,sans-serif',

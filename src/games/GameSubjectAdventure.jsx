@@ -144,7 +144,7 @@ const SUBJECT_COLORS = { math:'#1a1040', thai:'#0d2b1d', eng:'#0a1f3d' }
 
 function ResultScreen({ xp, subject, onReplay, onHome }) {
   return (
-    <div style={{ minHeight:'100%', background:SUBJECT_COLORS[subject]||'#1a1040', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Mitr,sans-serif', textAlign:'center' }}>
+    <div style={{ flex:1, background:SUBJECT_COLORS[subject]||'#1a1040', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Mitr,sans-serif', textAlign:'center' }}>
       <div style={{ fontSize:80, marginBottom:8, animation:'victory-bounce .7s ease' }}>🎉</div>
       <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'#FFD700', marginBottom:6 }}>ชนะแล้ว!</div>
       <div style={{ fontSize:15, color:'rgba(255,255,255,.85)', marginBottom:4 }}>🥚 ไข่ของเราโตขึ้น!</div>
@@ -266,5 +266,9 @@ function Session({ navigate, subject, onReset }) {
 
 export default function GameSubjectAdventure({ navigate, subject }) {
   const [sessionKey, setSessionKey] = useState(0)
-  return <Session key={sessionKey} navigate={navigate} subject={subject} onReset={() => setSessionKey(k => k+1)} />
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
+      <Session key={sessionKey} navigate={navigate} subject={subject} onReset={() => setSessionKey(k => k+1)} />
+    </div>
+  )
 }

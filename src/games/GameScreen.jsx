@@ -29,6 +29,38 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
   const world = state.currentWorld || 'thai'
   const isAdventure = world.startsWith('adventure-')
 
+  // ── Adventure: true full-screen overlay, escapes all parent constraints ──
+  if (isAdventure) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Minimal back escape for parents — sits above game content */}
+        <button
+          onClick={() => navigate('home')}
+          style={{
+            position: 'absolute', top: 10, left: 12, zIndex: 200,
+            background: 'rgba(0,0,0,.28)', color: 'rgba(255,255,255,.55)',
+            border: 'none', borderRadius: 8, padding: '6px 10px',
+            fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
+            fontFamily: 'Mitr,sans-serif', lineHeight: 1,
+          }}
+        >←</button>
+
+        {/* Game fills the full overlay */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <Suspense fallback={null}>
+            {world === 'adventure-thai' && <GameSubjectAdventure subject="thai" navigate={navigate} />}
+            {world === 'adventure-math' && <GameSubjectAdventure subject="math" navigate={navigate} />}
+            {world === 'adventure-eng'  && <GameSubjectAdventure subject="eng"  navigate={navigate} />}
+          </Suspense>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Classic games: existing constrained layout ───────────────────────────
   return (
     <div style={{ display:'flex', flexDirection:'column', width:'100%', height:'100%', background:'var(--bg)' }}>
       <div className="back-bar">
@@ -36,11 +68,7 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
         <div className="game-title-bar">{WORLD_TITLES[world] || world}</div>
         <div className="xp-earned">+<span>{state.sessionXP||0}</span> XP</div>
       </div>
-      <div id="game-container" style={
-        isAdventure
-          ? { width:'100%', flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }
-          : { width:'100%', maxWidth:480, flex:1, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', paddingBottom:20 }
-      }>
+      <div id="game-container" style={{ width:'100%', maxWidth:480, flex:1, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', paddingBottom:20 }}>
         <Suspense fallback={<div style={{ padding:40, color:'var(--muted)' }}>กำลังโหลด...</div>}>
           {world === 'thai'    && <GameThai navigate={navigate} soundOn={soundOn} />}
           {world === 'math'    && <GameMath navigate={navigate} soundOn={soundOn} />}
@@ -52,9 +80,6 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
           {world === 'fishing' && <EggFishing navigate={navigate} />}
           {world === 'shop'        && <GameShop navigate={navigate} />}
           {world === 'mathbattle'  && <GameMathBattle navigate={navigate} />}
-          {world === 'adventure-thai' && <GameSubjectAdventure subject="thai" navigate={navigate} />}
-          {world === 'adventure-math' && <GameSubjectAdventure subject="math" navigate={navigate} />}
-          {world === 'adventure-eng'  && <GameSubjectAdventure subject="eng"  navigate={navigate} />}
         </Suspense>
       </div>
     </div>

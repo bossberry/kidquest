@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, shuffle } from '../config/gameConfig.js'
+import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle } from '../config/gameConfig.js'
 import { playTone, speakTh, speakEn } from '../lib/audio.js'
 import { showToast, spawnConfetti } from '../components/Toasts.jsx'
 import MoveSelectBattleMode from './MoveSelectBattleMode.jsx'
@@ -9,7 +9,6 @@ import DefenseMode from './DefenseMode.jsx'
 
 const TOTAL_QS = 8
 const MODES = ['battle', 'chase', 'defense']
-const COUNTABLES = ['🥚','⭐','🍎','🐟','🌸','🏀','🍬','💎']
 
 // ── Question generators ────────────────────────────────────────────────────────
 

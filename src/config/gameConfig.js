@@ -222,13 +222,21 @@ export const MATH_WORDS = [
   {story:'แมลงปอ 🪲 มี 12 ตัว ผีเสื้อ 🦋 มี 5 ตัว แมลงปอมากกว่าผีเสื้อกี่ตัว?',    a:12, b:5, op:'-',ans:7, comparison:true},
 ]
 
+// Counting objects — grouped by semantic category so visual models pick coherent pairs
+export const COUNTABLE_GROUPS = [
+  ['🍎','🍌','🍓','🍊','🍒'],   // fruits
+  ['🐟','🐱','🐶','🐰','🐸'],   // animals
+  ['🧸','⭐','🎈','🌸','🚗'],   // everyday objects
+]
+export const COUNTABLES = COUNTABLE_GROUPS.flat()
+
 export const PATTERN_SETS = {
   AB: [
-    ['🥚','🔵'],
-    ['⭐','🍎'],
-    ['🟡','🟣'],
-    ['🐣','🌟'],
-    ['❤️','💙'],
+    ['🔺','🔵'],    // shapes: triangle + circle
+    ['🍎','🍌'],    // fruits: apple + banana
+    ['🐱','🐶'],    // animals: cat + dog
+    ['❤️','💙'],   // hearts: red + blue
+    ['⭐','🌸'],    // star + flower
   ],
   ABC: [], // reserved for Level 9
 }
@@ -269,7 +277,7 @@ export const TEACH_CONTENT = {
     5:{mascot:'💬',text:'เรียงคำให้เป็นประโยค!\nดูรูปช่วยคิด แล้วกดคำตามลำดับ',examples:['🐱🐟 แมว + กิน + ปลา → แมวกินปลา','🐦 นก + บิน + สูง → นกบินสูง']},
   },
   math:{
-    0:{mascot:'🐣',text:'มาฝึกนับด้วยกัน!\nนับสิ่งของที่เห็น แล้วเลือกตัวเลข',examples:['🥚🥚🥚 = 3','⭐⭐⭐⭐⭐ = 5']},
+    0:{mascot:'🐣',text:'มาฝึกนับด้วยกัน!\nนับสิ่งของที่เห็น แล้วเลือกตัวเลข',examples:['🍎🍎🍎 = 3','🐟🐟🐟🐟🐟 = 5']},
     1:{mascot:'🦔',text:'บวกเลข 1-5 กัน!\nนับจุดสีเหลืองช่วยได้',examples:['2 + 3 = 5 🟡🟡🔵🔵🔵','1 + 4 = 5 🟡🔵🔵🔵🔵']},
     2:{mascot:'🦔',text:'ตอนนี้เลขถึง 10!\nนับจุดให้ครบนะ',examples:['4 + 6 = 10','3 + 7 = 10']},
     3:{mascot:'🦔',text:'บวกเลขใหญ่ขึ้น 1-20\nคิดทีละก้าว ทำได้!',examples:['8 + 12 = 20','15 + 5 = 20']},
@@ -277,7 +285,7 @@ export const TEACH_CONTENT = {
     5:{mascot:'🔥',text:'บวกและลบผสมกัน!\nอ่านเครื่องหมายให้ดีนะ + หรือ −',examples:['5 + 3 - 2 = 6','8 - 3 + 1 = 6']},
     6:{mascot:'🦉',text:'โจทย์คำ: อ่านแล้วคำนวณ\nดูรูป emoji ช่วยได้!',examples:['มีแอปเปิ้ล 3 ลูก ได้เพิ่ม 2 ลูก = 5 ลูก']},
     7:{mascot:'⚖️',text:'เปรียบเทียบ "มากกว่า" หรือ "น้อยกว่า"\nลบเพื่อหาผลต่าง!',examples:['🍎🍎🍎 3 ลูก, 🍊🍊 2 ลูก → 3-2=1','แมว 5 ตัว หมา 3 ตัว → 5-3=2']},
-    8:{mascot:'🔁',text:'ดูรูปแบบที่ซ้ำกัน\nหาว่าอะไรมาถัดไป!',examples:['🥚🔵🥚🔵🥚❓ → 🔵','⭐🍎⭐🍎⭐❓ → 🍎']},
+    8:{mascot:'🔁',text:'ดูรูปแบบที่ซ้ำกัน\nหาว่าอะไรมาถัดไป!',examples:['🔺🔵🔺🔵🔺❓ → 🔵','🍎🍌🍎🍌🍎❓ → 🍌']},
   },
   eng:{
     1:{mascot:'🦔',text:'A-Z Phonics! Each letter has a sound.\nTap the right picture!',examples:['🍎 A is for Apple','🐝 B is for Bee']},

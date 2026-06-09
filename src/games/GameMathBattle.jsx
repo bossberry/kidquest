@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { MATH_WORDS, PATTERN_SETS, LEVELS, shuffle } from '../config/gameConfig.js'
+import { MATH_WORDS, PATTERN_SETS, LEVELS, COUNTABLES, shuffle } from '../config/gameConfig.js'
 import { playTone } from '../lib/audio.js'
 import { showToast, spawnConfetti } from '../components/Toasts.jsx'
 
@@ -13,7 +13,6 @@ const MATH_ENEMIES = [
 ]
 
 // ── Question generator (mirrors GameMath.genQ) ───────────────────────────────
-const COUNTABLES = ['🥚','⭐','🍎','🐟','🌸','🏀','🍬','💎']
 
 function genQ(lv) {
   if (lv?.op === 'count') {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
-import { MATH_WORDS, PATTERN_SETS, LEVELS, shuffle } from '../config/gameConfig.js'
+import { MATH_WORDS, PATTERN_SETS, LEVELS, COUNTABLES, COUNTABLE_GROUPS, shuffle } from '../config/gameConfig.js'
 import { playTone, speakTh } from '../lib/audio.js'
 import { showToast, spawnConfetti } from '../components/Toasts.jsx'
 
@@ -25,8 +25,6 @@ export default function GameMath() {
   if (view === 'teach') return <TeachOverlay world="math" levelId={activeLv?.id} onDone={() => setView('play')} />
   return <MathLevelGame lv={activeLv} onBack={() => setView('levels')} />
 }
-
-const COUNTABLES = ['🥚','⭐','🍎','🐟','🌸','🏀','🍬','💎']
 
 function VisualModel({ q }) {
   const { a, b, visualModel, emojiA, emojiB } = q
@@ -126,10 +124,12 @@ function genQ(lv) {
   }
   const w=new Set(); while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v)}
   const visModel = lv?.visualModel || null
-  const emojiA = visModel ? COUNTABLES[Math.floor(Math.random()*COUNTABLES.length)] : null
-  const emojiB = visModel === 'objects'
-    ? COUNTABLES.filter(e=>e!==emojiA)[Math.floor(Math.random()*(COUNTABLES.length-1))]
-    : null
+  let emojiA = null, emojiB = null
+  if (visModel) {
+    const group = shuffle([...COUNTABLE_GROUPS[Math.floor(Math.random() * COUNTABLE_GROUPS.length)]])
+    emojiA = group[0]
+    emojiB = visModel === 'objects' ? group[1] : null
+  }
   return {a,b,op,answer:ans,choices:shuffle([ans,...w]),visualModel:visModel,emojiA,emojiB}
 }
 

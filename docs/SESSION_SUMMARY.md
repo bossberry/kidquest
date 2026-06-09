@@ -1,3 +1,40 @@
+# Session Summary — 2026-06-09 (Procedural Character System Design v2)
+
+**Session type:** Documentation and architecture only. No code. No build.
+
+**Files changed:**
+- `docs/research/creatures/procedural-character-system.md` — REVISED (v1 → v2)
+- `docs/GPT_NOTES.md` — Procedural Character System section updated
+- `docs/TASKS.md` — Tasks updated to 5-phase path, emoji composite removed
+- `docs/CHANGELOG.md` — Entry prepended
+- `docs/SESSION_SUMMARY.md` — This file
+- `docs/GPT_HANDOFF.md` — Latest session updated
+
+**What was improved:**
+
+The v1 design doc was strong but had gaps. This session added five major sections:
+
+**1. Beauty Layer** (new layer between Art Direction and Animation)
+The Art Direction Layer prevents ugly. The Beauty Layer makes premium. Every creature passes the Sticker Test before rendering. The 8 Beauty Layer rules: tinted outline (never pure black — a darkened tint of the creature's own color), eye gloss (white highlight dot in upper-left — the single highest-impact detail for "alive" feeling), body radial gradient (3D roundness illusion), cheek radial gradient (blush not painted dot), signature feature amplification, harmony check (saturation gap, glow-body hue proximity), breathing room (no overlapping features), collection background aura (soft radial in `ha` hue per creature card).
+
+**2. 16 Family Archetypes**
+Not species. Visual themes. Determined first before all other genes. Puff/Fluff/Bear/Cat/Fox/Bunny/Bird/Dragon/Leaf/Star/Moon/Cloud/Crystal/Ocean/Flower/Dream. Each family locks 2–3 features, guides palette, establishes sibling relationship. Family determination is stat-driven: Thai-dominant → Bear/Leaf/Bunny/Dragon bias; Eng-dominant → Bird/Ocean/Fox/Cloud bias; Math-dominant → Crystal/Star/Dragon/Moon bias; hybrid → Dream/Fluff/Puff/Flower bias; night hatched → 80% Moon.
+
+**3. Signature Feature System**
+Every creature has exactly one visually prominent memorable trait. 17 options across 5 categories (body: mega-cheeks/tiny-body/extra-round; face: two-color-eyes/heart-cheek/star-freckle/big-shine/sleepy-droop; ears: mega-ears/twitch-ears/moon-mark; tail: curly-tail/mega-tail/twin-tails; accessory: large-bow/stripe-face/body-glow-spot). Selected after family with conflict resolution (max 2 retries, fallback = heart-cheek). Color pulled from `ha` hue. Each signature feature has its own idle micro-animation.
+
+**4. Existing Collection Migration**
+Old creatures (emoji `e` + name `n`, no `dna` field) → legacy emoji render path, unchanged, no data loss. New creatures → `dna` field saved at hatch time → `drawCreature()` canvas path. `renderCreature(creature)` checks `creature.dna` first. Same seed = same character forever. No retroactive reroll.
+
+**5. Implementation path revised**
+Emoji composite (old Phase 2) removed entirely. Direct to canvas. New 5-phase path: P1 DNA extraction → P2 drawCreature() canvas → P3 Animation → P4 Voice → P5 Birth sequence.
+
+**Combination math updated:** ~340M valid creatures (was ~42M; families add significant structured variation).
+
+**Open questions updated:** 8 questions (was 10). Q1 canvas vs emoji-composite resolved (emoji composite removed). Key remaining: creature evolution, name selection UX, family labels in UI.
+
+---
+
 # Session Summary — 2026-06-09 (Procedural Character System Design)
 
 **Session type:** Documentation and architecture only. No code. No build.

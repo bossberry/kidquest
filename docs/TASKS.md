@@ -4,12 +4,14 @@
 
 ### ⚡ Procedural Character System (2026-06-09)
 
-- [x] **Procedural Character System design doc** — `docs/research/creatures/procedural-character-system.md` created. Full architecture: DNA extraction from egg stats, 40+ gene attributes, art direction layer, 7 personalities, animation/voice layers, egg-to-creature continuity, 4-phase implementation path, 10 open questions. 2026-06-09.
-- [ ] **GPT: Answer 7 open questions for Procedural Character System** — See `docs/GPT_NOTES.md` → Procedural Character System. Key decisions: (1) Canvas vs emoji-composite validation path, (2) does creature evolution exist, (3) procedural name generation vs child-named, (4) continuity strength, (5) night creature "Moonborn" subtype, (6) sibling similarity in collection, (7) accessories born-with vs equippable. Write answers to `GPT_NOTES.md`.
-- [ ] **Phase 1: `creatureGenerator.js`** — DNA extraction only. `buildCreatureDNA(stats)` returns full gene object. All 40+ attributes computed deterministically. Egg gene object stored in hatched egg data in state. No visual change.
-- [ ] **Phase 2: Emoji-composite MVP** — `CreatureDisplay.jsx` renders 2–4 layered emoji (head + body + accessory + effect). Personality drives animation class. Replaces single emoji in Home.jsx and Collection.jsx. Playtest vehicle — validate identity before Phase 3.
-- [ ] **Phase 3: Canvas creature** — `drawCreature.js` + `CreatureCanvas.jsx` (after GPT answers Q1–Q3).
-- [ ] **Phase 4: Voice + birth moment** — Voice profile sounds, birth moment sequence in HatchOverlay.
+- [x] **Procedural Character System design doc v1** — `docs/research/creatures/procedural-character-system.md` created. Full architecture: DNA extraction, 40+ genes, art direction, 7 personalities, animation/voice, 10 open questions. 2026-06-09.
+- [x] **Procedural Character System design doc v2** — Revised with: Beauty Layer (sticker test, eye gloss, body gradient, outline, harmony check), 16 Family Archetypes (Puff/Fluff/Bear/Cat/Fox/Bunny/Bird/Dragon/Leaf/Star/Moon/Cloud/Crystal/Ocean/Flower/Dream), Signature Feature system (17 memorable traits), Existing Collection Migration (old emoji → legacy path, new hatches → DNA + canvas), 5-phase path (emoji composite REMOVED), updated 8 open questions. 2026-06-09.
+- [ ] **GPT: Answer 8 open questions for Procedural Character System** — See `docs/GPT_NOTES.md` → Procedural Character System. Key decisions: (1) creature evolution, (2) name selection UX, (3) family labels in UI, (4) Moonborn rarity label, (5) collection card size, (6) accessories born-with vs equippable, (7) creature companion zone size, (8) collection friendship vs gallery focus. Write answers to `GPT_NOTES.md`.
+- [ ] **Phase 1: `creatureGenerator.js`** — DNA extraction only. `buildCreatureDNA(stats)` returns full gene object including `family`, 40+ genes, `signatureFeature`. `dna` field saved in hatched egg record in state. No visual change. `buildVoiceProfile(dna)` also here.
+- [ ] **Phase 2: Canvas renderer** — `drawCreature.js` (Art Direction + Beauty Layer) + `CreatureCanvas.jsx`. `renderCreature(creature)` uses `creature.dna` → canvas, else → legacy emoji. After GPT answers Q1–Q2.
+- [ ] **Phase 3: Animation layer** — Personality idle pool, signature feature micro-animations, birth sequence begins.
+- [ ] **Phase 4: Voice layer** — `playCreatureSound(dna, moment)` wired to all interaction points.
+- [ ] **Phase 5: Birth sequence** — HatchOverlay full reveal (egg glow → creature aura, first blink/look/chirp, name selection).
 
 ---
 

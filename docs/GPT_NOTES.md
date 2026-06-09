@@ -3,52 +3,69 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
-## Procedural Character System (2026-06-09)
+## Procedural Character System (2026-06-09, revised 2026-06-09)
 
 Source-of-truth: `docs/research/creatures/procedural-character-system.md`
 
 **Design goal:** Every hatched creature should feel like "this is MY creature" — the natural result of the egg the child grew, not a fixed pool pick.
 
-### Architecture (decided)
+**Beauty standard:** Every creature must pass the Sticker Test — premium, plush-toy-worthy, Pokémon/Disney quality, warm, cute, memorable for ages 4–6. No combination should look ugly, scary, random, overcrowded, too dark, too sharp, or too realistic.
+
+### Architecture (decided, revised)
 
 ```
-Egg Stats → Base Seed → [egg algorithm LOCKED] → Creature DNA Extractor → Art Direction → Animation + Voice → Creature
+Egg Stats → Base Seed → [egg algorithm LOCKED]
+  → Creature DNA Extractor (family first, then 40+ genes, signature feature)
+  → Art Direction Layer (hard rules: cheeks always, color range, feature density)
+  → Beauty Layer (NEW: sticker test, eye gloss, body gradient, outline, harmony check)
+  → Animation Layer → Voice Layer → Creature
 ```
 
 The creature DNA extractor re-uses `hash()` + `prng()` imported from `eggAlgorithm.js`. It mixes the base seed with `hash('creature')` to get a separate deterministic stream. `eggAlgorithm.js` is never touched.
 
 ### Key Design Decisions
 
-- **40+ gene attributes**: body type (5), eye type (6), ear type (7), horn (5), wing (6), tail (6), pattern (6), accessory (8), personality (7), rarity tier (5)
-- **~42 million valid creature combinations** after art direction constraints
+- **Family Archetypes first (NEW)**: 16 visual families (Puff/Fluff/Bear/Cat/Fox/Bunny/Bird/Dragon/Leaf/Star/Moon/Cloud/Crystal/Ocean/Flower/Dream). NOT species lists. Visual themes. Determined before all other genes. Two creatures from same family feel like siblings, not identical.
+- **Signature Feature (NEW)**: Every creature has exactly one visually prominent memorable trait (mega-ears, star tail, heart cheek, two-color eyes, curly tail, body-glow-spot, etc.). The child can name it. The signature feature is amplified by the Beauty Layer.
+- **Beauty Layer (NEW)**: Layer between Art Direction and Animation. Responsible for: tinted outline (never pure black), eye gloss highlight, body radial gradient (3D roundness), cheek radial gradient, signature feature amplification, harmony check (saturation gap, glow-body relationship), breathing room (no overlapping features), collection background aura.
+- **~340 million valid combinations** after family + art direction constraints (was ~42M with fewer family constraints)
 - **Same hue values as egg** (`h1`, `h2`, `ha`, `h3`) drive creature colors — the creature is visually continuous with the egg
-- **7 personalities** derived from learning profile at hatch time: Happy (high acc + streak) / Curious (long streaks) / Brave (Thai dominant) / Playful (fast, Eng dominant) / Gentle (balanced) / Sleepy (infrequent play) / Shy (careful, low streak)
-- **Feature richness by hatch stage**: stage 2 = simple 3-4 features; stage 7-8 = full 9-10 features with glow + particles
-- **Battle mark**: creatures hatched at stage 7–8 (when cracks visible on egg) have a small continuous line near the eye — the mark of emergence. Same color as the egg's cracks were.
-- **Art direction constraints**: cheeks are mandatory (warmth anchor), all colors in 45–85% saturation range, ATK-heavy creatures are "spirited" not aggressive, pointed features only in warm colors
+- **7 personalities** derived from learning profile at hatch time: Happy / Curious / Brave / Playful / Gentle / Sleepy / Shy
+- **Feature richness by hatch stage**: stage 2 = 3–4 features; stage 7–8 = 9–10 features with glow + particles
+- **Battle mark**: creatures hatched at stage 7–8 have a small line near eye matching the egg's crack color
+- **Emoji composite removed**: No Phase 2 emoji-composite MVP. Canvas renderer is the target from Phase 2 onward.
 
-### Implementation Path (4 phases)
+### Implementation Path (5 phases — emoji composite REMOVED)
 
-1. **Phase 1**: `creatureGenerator.js` — DNA extraction, no visual change
-2. **Phase 2**: `CreatureDisplay.jsx` — emoji-composite MVP (2–4 layered emoji + personality animation)
-3. **Phase 3**: `drawCreature.js` + `CreatureCanvas.jsx` — full canvas-drawn creature
-4. **Phase 4**: Voice profile + birth moment sequence in HatchOverlay
+1. **Phase 1**: `creatureGenerator.js` — DNA extraction (family, 40+ genes, signature feature), `dna` field stored in hatched egg record. No visual change.
+2. **Phase 2**: `drawCreature.js` + `CreatureCanvas.jsx` — full canvas renderer with Art Direction + Beauty Layer
+3. **Phase 3**: Animation layer — personality idle pool, signature feature micro-animations, birth sequence begins
+4. **Phase 4**: Voice layer — `buildVoiceProfile(dna)`, `playCreatureSound(dna, moment)`
+5. **Phase 5**: Birth sequence — HatchOverlay full reveal, egg glow → creature aura transition, first blink/look/chirp
+
+### Migration (existing hatched creatures)
+
+- Old creatures (emoji `e` field, no `dna` field) → legacy emoji render path, no change, no data loss
+- New creatures (after system ships) → `dna` field saved at hatch time → `drawCreature()` canvas path
+- `renderCreature(creature)` checks `creature.dna` first → new path. Absent → emoji fallback.
+- Same seed = same character forever. Once DNA is saved, it never changes.
 
 ### Open Questions for GPT to Answer
 
-1. Canvas vs emoji-composite for the long term — or validate with Phase 2 playtest first?
-2. Does creature evolution exist? Does the creature look different as it battles and grows?
-3. Procedural name generation (Thai syllables like ลูมิ/สปริ/ชิโน) vs child picks from 5 suggestions?
-4. How strong should egg-to-creature continuity be — obvious color rhyming or subtle?
-5. Night creatures ("Moonborn" with cool palette + crescent features) — named rarity subtype or just visual variant?
-6. Multiple creatures in collection — do siblings from same subject type feel too similar?
-7. Accessories: born-with (DNA) or equippable items from shop?
+1. Does creature evolution exist? (Recommendation: born complete for Year 1; evolution is Year 2)
+2. Procedural name vs child picks from 5 suggestions vs child types name? (Recommendation: 5 suggestions as large tap targets)
+3. How prominent are family labels in the UI? (Recommendation: subtle badge in Collection detail, not a category system)
+4. Should "Moonborn" be a named rarity label? (Recommendation: yes, one extra label)
+5. Collection page layout for procedural canvas creatures — card size? Cards per row?
+6. Accessories born-with vs equippable from shop? (Recommendation: born-with Year 1)
+7. Creature companion zone in Home.jsx — should it be enlarged for canvas? (Min 60–80px zone to show signature feature)
+8. Collection "feel" — friendship focus (days together, favorite subject) vs gallery focus (beautiful grid)?
 
 ### What Claude Code Must NOT Do Until GPT Answers
 
-- Do not implement Phase 3 (Canvas creature) until Q1, Q2, Q3 are answered
-- Phase 2 (emoji-composite) can proceed independently as a playtest vehicle
+- Do not implement Phase 2 (Canvas) until Q1, Q2 are answered
 - Do not change `HATCH_CREATURES` pool in `gameConfig.js` until Phase 1 DNA extractor is ready
+- Phase 1 (DNA extraction, no visual change) can proceed independently
 
 ---
 

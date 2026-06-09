@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Procedural Character System Design)_
+_Last updated: 2026-06-09 (Procedural Character System Design v2 — Beauty Layer + Families + Migration)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,32 +22,34 @@ _Last updated: 2026-06-09 (Procedural Character System Design)_
 
 ## Latest Session Summary
 
-**What changed this session (Procedural Character System Design — docs only):**
+**What changed this session (Procedural Character System Design v2 — docs only):**
 
-Current creature system: 15 fixed emojis across 4 categories. Every Thai-dominant child gets one of 3 creatures. This replaces it with infinite procedural generation.
+Revised `docs/research/creatures/procedural-character-system.md` with five major additions. No code. No build.
 
-**Architecture:** Re-uses `hash()` + `prng()` imported from `eggAlgorithm.js` (never modified). Mixes base seed with `hash('creature')` to get a new deterministic stream. Same hue values (`h1/h2/ha/h3`) that define the egg's colors carry into the creature — same learning session made both.
+**Architecture now reads:**
+```
+Egg Stats → Base Seed → [egg LOCKED] → DNA Extractor (family first) → Art Direction → Beauty Layer → Animation → Voice → Creature
+```
 
-**Gene system (40+ attributes across 9 groups):** body type × 5 / eye type × 6 / ear type × 7 / horn × 5 / wing × 6 / tail × 6 / pattern × 6 / accessory × 8 / personality × 7. After art direction constraints: ~42 million valid combinations.
+**Beauty Layer (new — between Art Direction and Animation):**
+The Art Direction Layer prevents ugly. The Beauty Layer makes premium. Every creature passes the "Sticker Test" before rendering. 8 rules: (1) tinted outline — darkened body hue, never pure black; (2) eye gloss — white highlight dot, highest-impact single detail for "alive" feeling; (3) body radial gradient — 3D roundness illusion; (4) cheek radial gradient — blush not painted circle; (5) signature feature amplification; (6) harmony check (saturation gap ≤ 25%, glow hue ≥ 20° from body); (7) breathing room — no overlapping features; (8) collection background aura — soft radial in `ha` hue per creature card.
 
-**7 personalities derived from learning profile:**
-- Happy: acc ≥ 80% + streak ≥ 5
-- Curious: streak ≥ 10
-- Brave: Thai dominant + consistent play
-- Playful: fast responses + Eng dominant
-- Gentle: balanced stats (no subject > 50%)
-- Sleepy: infrequent play (mins < 20)
-- Shy: careful, low streak but decent acc
+**16 Family Archetypes (new):**
+Puff / Fluff / Bear / Cat / Fox / Bunny / Bird / Dragon / Leaf / Star / Moon / Cloud / Crystal / Ocean / Flower / Dream. Not species. Visual themes. Each locks 2–3 features and guides palette. Siblings feel related, not identical. Family is stat-driven: Thai → Bear/Leaf/Bunny/Dragon; Eng → Bird/Ocean/Fox/Cloud; Math → Crystal/Star/Dragon/Moon; balanced → Dream/Fluff/Puff/Flower; night-hatched → 80% Moon.
 
-**Art direction rules (7 non-negotiable):** Cheeks always present. Colors 45–85% sat. ATK creatures are "spirited" not aggressive. Eye area ≥ 25% of head. Feature richness scales with hatch stage (stage 2 = 3–4 features, stage 8 = 9–10 features).
+**Signature Feature System (new):**
+Every creature has exactly one visually prominent memorable trait (17 options: mega-cheeks / two-color-eyes / heart-cheek / star-freckle / mega-ears / curly-tail / twin-tails / large-bow / body-glow-spot / etc.). Selected after family with conflict resolution. Color from `ha`. Each has its own idle micro-animation.
 
-**Egg-to-creature continuity (the key innovation):** Same h1/h2/ha/h3 hues always carry over. 60–75% probability soft echoes (egg dots → creature spots, egg glow → creature aura). Battle mark: creatures from stage 7–8 eggs have a small line marking matching the egg's crack color.
+**Existing Collection Migration (new):**
+Old creatures (emoji `e` field, no `dna`) → legacy render, unchanged, no data loss. New creatures → `dna` field saved at hatch → canvas. Same seed = same character forever.
 
-**Implementation path:** Phase 1 (DNA extraction, no visuals) → Phase 2 (emoji-composite MVP, playtest) → Phase 3 (canvas-drawn, after GPT Q1–Q3 answered) → Phase 4 (voice + birth moment).
+**Emoji composite removed:** New 5-phase path: P1 DNA → P2 canvas → P3 Animation → P4 Voice → P5 Birth sequence.
 
-**7 open questions for GPT** in `docs/GPT_NOTES.md` → Procedural Character System. Most critical: (1) canvas vs emoji-composite long-term strategy, (2) does creature evolution exist, (3) procedural vs child-chosen names.
+**~340M valid combinations** (was ~42M).
 
-- No code changes. No build. Commit: docs only.
+**8 open questions for GPT** in `docs/GPT_NOTES.md`. Most critical: (1) creature evolution, (2) name selection UX, (3) collection page layout for canvas creatures.
+
+- No code changes. No build.
 
 **What changed last session (Dramatic Egg Stage Progression — code change):**
 

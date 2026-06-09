@@ -1,12 +1,18 @@
 # Research Index — KidQuest
 
-_Last updated: 2026-06-04_
+_Last updated: 2026-06-09_
+
+---
+
+## World & Exploration ⚡ NEW — supersedes Progression as highest-level philosophy
+
+- [docs/research/world/kidquest-world.md](research/world/kidquest-world.md) — **New highest-level philosophy (2026-06-09).** Philosophy shift: game-first, learning hidden. Emotional center: egg is the hero. High-level loop: Egg Home → explore → encounter → battle → reward → grow → hatch. Egg Home spec. Screen-based world map (Pokémon FireRed model). Green Meadow = Year 1 scope. 10 open questions for GPT before code begins.
 
 ---
 
 ## Progression
 
-- [docs/research/progression/gameplay-loop.md](research/progression/gameplay-loop.md) — **Highest-level philosophy.** Core loop, Home as Adventure Director, replay/surprise/minigame/motivation philosophy, child autonomy, explicit non-goals, system relationships
+- [docs/research/progression/gameplay-loop.md](research/progression/gameplay-loop.md) — ~~Highest-level philosophy~~ **Superseded by kidquest-world.md (2026-06-09).** Core loop, Home as Adventure Director, replay/surprise/minigame/motivation philosophy, child autonomy, explicit non-goals, system relationships
 - [docs/research/progression/subject-progression.md](research/progression/subject-progression.md) — Subject progression philosophy: unlock thresholds (70/80/90), replay always valid, mastery = confidence not perfection, subject independence, stretch/challenge layers, readiness vs. highest level
 
 ---

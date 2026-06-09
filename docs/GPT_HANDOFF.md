@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Educational Math Visuals)_
+_Last updated: 2026-06-09 (KidQuest World Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,28 @@ _Last updated: 2026-06-09 (Educational Math Visuals)_
 
 ## Latest Session Summary
 
-**What changed this session (Educational Math Visuals — code change):**
+**What changed this session (KidQuest World Design — docs only):**
+
+Philosophy shift triggered by real playtesting with Chopin. Chopin said "The game is boring" and "Not like a game." He engages with egg collecting, caring, feeding, hatching, taking eggs into battle — but not with subjects, levels, or the Adventure Director.
+
+**New model: game first, learning hidden inside.** The egg is the emotional center.
+
+**Documents created/updated:**
+- `docs/research/world/kidquest-world.md` — NEW. Full design document. Philosophy shift, emotional center, world loop, Egg Home spec, screen-based world map (Pokémon FireRed model), exploration events, battle role, learning hidden curriculum principle, Year 1 MVP scope (Green Meadow only), 10 open questions for GPT.
+- `docs/GPT_NOTES.md` — KidQuest World section added. Records all decisions. Lists what Claude Code must NOT touch until GPT answers open questions.
+- `docs/TASKS.md` — Design phase and implementation queue added at top of Now section.
+- `docs/CHANGELOG.md`, `docs/SESSION_SUMMARY.md` — Updated.
+- No code changes. No build.
+
+**Key decisions recorded:**
+- Egg Home replaces Adventure Director as the main screen. Egg is the hero.
+- World = screen-based grid (Pokémon FireRed model). Year 1 = Green Meadow only.
+- Battle = where learning questions appear. Battle feel philosophy unchanged.
+- sessionLog + parent Report unchanged. Subjects become invisible support systems.
+
+**⚠️ BLOCKED:** Nothing should be coded until GPT answers 10 open questions. See `GPT_NOTES.md` → KidQuest World.
+
+**What changed last session (Educational Math Visuals — code change):**
 
 - `src/config/gameConfig.js` — Added `COUNTABLE_GROUPS` (3 semantic categories: fruits 🍎🍌🍓🍊🍒 / animals 🐟🐱🐶🐰🐸 / everyday 🧸⭐🎈🌸🚗) and flat `COUNTABLES`. Single source of truth for all 3 math files — previously each had its own local array with `🥚` (game mascot), `💎` (abstract), `🏀` (random). Updated `PATTERN_SETS.AB`: removed `['🥚','🔵']` (egg = game mascot, confusing), replaced all pairs with educationally coherent pairs: shapes `['🔺','🔵']`, fruits `['🍎','🍌']`, animals `['🐱','🐶']`, hearts `['❤️','💙']`, `['⭐','🌸']`. Updated `TEACH_CONTENT.math[0]` examples: `🥚×3 → 🍎×3`, `⭐×5 → 🐟×5`. Updated `TEACH_CONTENT.math[8]` pattern examples to match new pattern sets.
 - `src/games/GameMath.jsx` — Removed local `COUNTABLES`. Imports `COUNTABLES, COUNTABLE_GROUPS`. For `objects` visual model, emojiA+emojiB now come from the same semantic group (shuffle one category, take first two). Example: apple+banana instead of egg+diamond. Same-group pairing makes addition visuals semantically coherent.

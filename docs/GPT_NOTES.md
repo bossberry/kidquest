@@ -3,6 +3,66 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## KidQuest World — Philosophy Shift (2026-06-09)
+
+Source-of-truth: `docs/research/world/kidquest-world.md`
+
+**This section records the most important product pivot in the project so far. Read before any future Home, navigation, or exploration work.**
+
+### Chopin's direct feedback (real playtesting)
+- Says: "The game is boring." and "Not like a game."
+- Enjoys: collecting eggs, caring for eggs, feeding eggs, giving items, watching eggs hatch, taking eggs into battle.
+- Does NOT engage with: subject selector, Adventure Director, level cards.
+
+### Philosophy decision: Game first. Learning hidden inside.
+- **Before:** Learning first, game wrapper second. Home = subject selector.
+- **After:** Game first, learning hidden. Home = Egg Home. World = what you play.
+
+### Emotional center decision: The egg is the hero.
+- Not subjects. Not levels. Not scores.
+- Every screen should reinforce: "This is my egg's journey."
+- Subjects are invisible support systems, not the main game.
+
+### High-level loop (new)
+Egg Home → Enter World → Walk/Explore → Random encounter → Battle (learning enters here) → Reward → Return home → Care for egg → Egg grows → Hatch → New egg → (repeat)
+
+### What this means for previous systems
+- **Adventure Director model is superseded.** "Continue Adventure" as main CTA is replaced by "Enter the World."
+- **Subject grid navigation is removed from child view.** Subjects are invisible.
+- **Battle remains.** Battle is the mechanism where learning questions appear. Battle feel philosophy unchanged.
+- **Egg companion reactions unchanged.** Carry forward exactly.
+- **sessionLog + parent Report unchanged.** Parents still see subject readiness and accuracy. The child never does.
+
+### Inspirations confirmed
+Tamagotchi (egg home feel), Pokémon FireRed (screen-based world, encounters), Animal Crossing (exploration is reward), Mario Party (variety, surprise), WarioWare (fast micro-bursts).
+
+### Map structure decision: screen-based (Pokémon FireRed model)
+NOT open-world scrolling. Each location = one screen. Moving to edge = adjacent screen. A region = small grid of screens (3×3 or 5×5). Reason: mobile-friendly, easy to expand, easy to implement.
+
+### Year 1 world scope: Green Meadow only
+One region. 3×3 screens. Enemy encounters use existing MoveSelectBattleMode. Treasure chests drop existing items. Full loop: explore → battle → reward → grow egg → hatch.
+
+### Open questions for GPT (all must be answered before code begins)
+1. **Egg Home layout** — What does the Egg Home screen look like? What is the primary visual? What are the interactive elements?
+2. **World entry** — Is the Year 1 MVP a full navigable screen-based map, or a simpler "choose region" screen? With only Green Meadow in Year 1, do we need a world map at all yet?
+3. **Encounter trigger** — How does a battle start? Is the child tapping to move? Tap-and-random-triggers? Auto-step? What is touch-friendly on a 390px screen?
+4. **Subject assignment in encounters** — When an enemy appears, which subject's questions appear? Random? Region-dependent? Readiness-based?
+5. **XP source** — Does XP still only come from battles? Or also from exploration (finding treasure, walking, collecting)?
+6. **Minigame repurposing** — EggRun/EggCatch/etc. — become exploration events, or remain standalone?
+7. **Creature companion in Home** — Which creature shows in Egg Home? Always latest? Player's choice? What does it look like on mobile?
+8. **Boss battle consequences** — In the world model, should boss losses have any consequence? Push back to previous screen? Or still no consequence (current policy)?
+9. **Egg naming** — Should Chopin name each new egg at creation? (Increases attachment, adds a UI step)
+10. **Session length** — In the world model, is there a natural exploration session endpoint? Or is it open-ended?
+
+### What Claude Code should NOT touch until GPT answers the above
+- Do not redesign Home.jsx
+- Do not create new world map components
+- Do not change the navigation/routing model
+- Do not change currentWorld state semantics
+- Do not add a new exploration loop
+
+---
+
 ## Battle Feel Philosophy (2026-06-04)
 
 Source-of-truth: `docs/research/gameplay/battle-feel-philosophy.md`

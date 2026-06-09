@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — KidQuest World Design (docs only)
+
+- `docs/research/world/kidquest-world.md` — NEW. Full design document for the world-based game model. Covers: philosophy shift (game-first, learning hidden), Chopin's direct playtesting feedback ("boring" / "not like a game"), emotional center (egg is the hero), high-level loop (Egg Home → explore → encounter → battle → reward → grow → hatch), Egg Home spec, World Map structure (screen-based, Pokémon FireRed model), region list (Year 1 = Green Meadow only), exploration events, battle's new role, learning hidden curriculum principle, transition from current state, Year 1 MVP scope, 10 open questions for GPT.
+- `docs/GPT_NOTES.md` — KidQuest World section added at top. Records: Chopin's feedback, philosophy decision, emotional center decision, high-level loop, map structure decision (screen-based), Year 1 scope (Green Meadow), 10 open questions, what Claude Code must NOT touch until GPT answers.
+- `docs/TASKS.md` — KidQuest World design phase tasks added at top of Now section: world doc (done), GPT open questions (pending), Egg Home design, World Map design, Encounter design, implementation queue (blocked on design).
+- `docs/SESSION_SUMMARY.md` — Updated.
+- `docs/GPT_HANDOFF.md` — Updated with new session summary and revised current state.
+- No code changes. No build.
+
 ## 2026-06-09 — Educational Visuals for Math Counting
 
 - `src/config/gameConfig.js` — Added `COUNTABLE_GROUPS` (3 semantic categories: fruits 🍎🍌🍓🍊🍒, animals 🐟🐱🐶🐰🐸, everyday 🧸⭐🎈🌸🚗) and `COUNTABLES` (flat export). Updated `PATTERN_SETS.AB`: removed game meta-item `🥚` (egg), added educationally coherent pairs — shapes `['🔺','🔵']`, fruits `['🍎','🍌']`, animals `['🐱','🐶']`. Updated `TEACH_CONTENT.math[0]` examples (🥚🥚🥚 → 🍎🍎🍎, ⭐×5 → 🐟×5). Updated `TEACH_CONTENT.math[8]` pattern examples to match new pattern sets.

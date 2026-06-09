@@ -2,6 +2,28 @@
 
 ## Now
 
+### ⚡ KidQuest World — Design Phase (2026-06-09)
+
+_Philosophy shift triggered by real playtesting. Chopin said "boring" and "not like a game." Game-first model replaces subject-first model. All items below must be designed before any code starts._
+
+- [x] **KidQuest World design doc** — `docs/research/world/kidquest-world.md` created. Covers: philosophy shift, emotional center, high-level loop, Egg Home, World Map, exploration, battle role, learning philosophy, MVP scope, open questions. GPT_NOTES.md updated. 2026-06-09.
+- [ ] **GPT: Answer 10 open questions for KidQuest World** — See `docs/GPT_NOTES.md` → KidQuest World. Must answer before any code: (1) Egg Home layout, (2) World entry MVP, (3) Encounter trigger on mobile, (4) Subject assignment in encounters, (5) XP sources, (6) Minigame repurposing, (7) Creature companion in Home, (8) Boss battle consequences, (9) Egg naming?, (10) Session length. Write answers to `GPT_NOTES.md`.
+- [ ] **Egg Home screen design** — After GPT answers open questions: design the Egg Home screen in detail. Layout spec, interactive elements, visual hierarchy, mobile layout at 390px. Must answer before implementation. Write to `docs/research/world/egg-home.md`.
+- [ ] **World Map screen design** — After Egg Home decided: design the Green Meadow region. Screen grid layout (3×3 or 5×5), tile types, encounter probability map, asset style, mobile navigation (D-pad vs tap). Write to `docs/research/world/world-map.md`.
+- [ ] **Encounter + transition design** — How does exploration → battle → return work? Entry animation, exit animation, state preservation (player position). Write to `docs/research/world/encounter-system.md`.
+
+### KidQuest World — Implementation Queue (after design phase complete)
+
+_Do NOT begin any of these until GPT answers the open questions and design docs are written._
+
+- [ ] **EggHome.jsx** — Replace current Home.jsx adventure director with egg-centric home screen. Feed, play, items, collection entry, world entry button.
+- [ ] **WorldMap.jsx** — Screen-based region navigation. Green Meadow only (Year 1). Screen state, movement, encounter triggers.
+- [ ] **ExplorationEngine** — Encounter probability, event dispatch, item drops, state for picked-up treasures.
+- [ ] **Update routing** — `App.jsx` routing updated for new screens (eggHome, world, explore).
+- [ ] **State: exploration fields** — `currentRegion`, `currentScreen`, `pickedUpTreasures[]` added to `defaultState()`.
+
+---
+
 - [x] **Home 2.0 — Adventure Director** — `Home.jsx` rewritten: single `⭐ ผจญภัยต่อ` recommendation card (deterministic: hatch → shop first run → weakest subject); minigames 2×2 grid replaced with `🎁 เซอร์ไพรส์วันนี้` single event rotation (date-hash from unlocked minigames; sessionLog marks played-today). Bug fixes: Report NaN for avgScore/avgDur/avgHints (safe migration defaults). Build ✅.
 - [x] **Egg economy source-of-truth doc** — `docs/research/rewards/egg-economy.md` created; RESEARCH_INDEX.md updated; GPT_NOTES.md updated with economy decisions.
 - [x] **Observation philosophy source-of-truth doc** — `docs/research/observation/observation-philosophy.md` created. Covers: observe→understand→design loop, children are not their level, positive interpretation, important vs. dominating signals, Subject Readiness as observation not label, parent report philosophy (no anxiety), mission follows child, explicit non-goals (no AI/ranking/manipulation), system relationships, 5 open questions. RESEARCH_INDEX.md, GPT_NOTES.md updated.

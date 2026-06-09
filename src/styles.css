@@ -384,6 +384,8 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 @keyframes miss-fizzle{0%{transform:scale(1);opacity:1;filter:none}40%{transform:scale(.95);filter:blur(.8px)}100%{transform:scale(.88);opacity:.25;filter:blur(2px)}}
 @keyframes enemy-defeat{0%{transform:scale(1) translateY(0);opacity:1}25%{transform:scale(1.1) translateY(-6px);opacity:1}100%{transform:scale(.25) translateY(-28px);opacity:0}}
 @keyframes crit-flash{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes enemy-idle{0%,100%{transform:translateY(0) scale(1)}45%{transform:translateY(-12px) scale(1.03)}75%{transform:translateY(-5px) scale(1.01)}}
+@keyframes egg-idle{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-5px) rotate(1deg)}}
 
 /* Utility classes */
 .rec-card-float{animation:pulse-float 3s ease-in-out infinite}
@@ -408,5 +410,6 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
   .victory-bounce,.item-pop-in,.hatch-reveal-glow{animation:none!important}
   .choice-btn.correct{animation:correct .4s ease!important}
   *[style*="move-pulse"],*[style*="miss-fizzle"],*[style*="egg-charge"],
-  *[style*="enemy-defeat"],*[style*="crit-flash"]{animation:none!important}
+  *[style*="enemy-defeat"],*[style*="crit-flash"],*[style*="enemy-idle"],
+  *[style*="egg-idle"]{animation:none!important}
 }

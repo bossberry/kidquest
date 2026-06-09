@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — True Full-Screen Mobile Battle Layout (bug fix)
+
+- `src/games/GameScreen.jsx` — Adventure worlds now use `position:fixed;inset:0;zIndex:50` overlay, fully escaping all parent flex constraints. Absolute-positioned `←` back button (z-index 200). Inner `flex:1` div contains the game tree.
+- `src/styles.css` — Removed `align-items:center` from `#root` rule. `#root` now only stretches children (no centering). Home still centers itself internally — safe change.
+- `src/games/GameSubjectAdventure.jsx` — Default export wrapped in `flex:1/minHeight:0` div so Session fills the overlay. `ResultScreen` root changed `minHeight:'100%'` → `flex:1` for reliable viewport fill in flex context.
+- `src/games/MoveSelectBattleMode.jsx` — Root div changed from `height:100%/minHeight:100%` → `flex:1/minHeight:0`.
+- `src/games/ChaseMode.jsx` — Root div changed from `height:100%/minHeight:100%` → `flex:1/minHeight:0`.
+- `src/games/DefenseMode.jsx` — Root div changed from `height:100%/minHeight:100%` → `flex:1/minHeight:0`.
+- Build: ✅ zero errors. Commit: 2ba7922.
+
 ## 2026-06-09 — Mobile Playtest Polish: Full-Width UI + Simplified Answer Cards
 
 - `src/games/GameScreen.jsx` — Adventure worlds (`adventure-*`) now use a dedicated full-width container: no `maxWidth`, no `alignItems:'center'` (defaults to stretch), `overflow:'hidden'`. All other worlds keep the existing `maxWidth:480 / alignItems:center` container. Root cause of white-margin bug: `alignItems:'center'` on the flex column container prevented game components from stretching to full width.

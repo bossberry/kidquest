@@ -2,6 +2,17 @@
 
 ## Now
 
+### ⚡ Procedural Character System (2026-06-09)
+
+- [x] **Procedural Character System design doc** — `docs/research/creatures/procedural-character-system.md` created. Full architecture: DNA extraction from egg stats, 40+ gene attributes, art direction layer, 7 personalities, animation/voice layers, egg-to-creature continuity, 4-phase implementation path, 10 open questions. 2026-06-09.
+- [ ] **GPT: Answer 7 open questions for Procedural Character System** — See `docs/GPT_NOTES.md` → Procedural Character System. Key decisions: (1) Canvas vs emoji-composite validation path, (2) does creature evolution exist, (3) procedural name generation vs child-named, (4) continuity strength, (5) night creature "Moonborn" subtype, (6) sibling similarity in collection, (7) accessories born-with vs equippable. Write answers to `GPT_NOTES.md`.
+- [ ] **Phase 1: `creatureGenerator.js`** — DNA extraction only. `buildCreatureDNA(stats)` returns full gene object. All 40+ attributes computed deterministically. Egg gene object stored in hatched egg data in state. No visual change.
+- [ ] **Phase 2: Emoji-composite MVP** — `CreatureDisplay.jsx` renders 2–4 layered emoji (head + body + accessory + effect). Personality drives animation class. Replaces single emoji in Home.jsx and Collection.jsx. Playtest vehicle — validate identity before Phase 3.
+- [ ] **Phase 3: Canvas creature** — `drawCreature.js` + `CreatureCanvas.jsx` (after GPT answers Q1–Q3).
+- [ ] **Phase 4: Voice + birth moment** — Voice profile sounds, birth moment sequence in HatchOverlay.
+
+---
+
 ### ⚡ KidQuest World — Design Phase (2026-06-09)
 
 _Philosophy shift triggered by real playtesting. Chopin said "boring" and "not like a game." Game-first model replaces subject-first model. All items below must be designed before any code starts._

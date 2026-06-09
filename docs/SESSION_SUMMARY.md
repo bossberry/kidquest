@@ -1,3 +1,58 @@
+# Session Summary — 2026-06-09 (Procedural Character System Design)
+
+**Session type:** Documentation and architecture only. No code. No build.
+
+**Files changed:**
+- `docs/research/creatures/procedural-character-system.md` — NEW
+- `docs/RESEARCH_INDEX.md` — Creatures section added
+- `docs/GPT_NOTES.md` — Procedural Character System section added
+- `docs/TASKS.md` — Design task marked done; Phase 1–4 implementation tasks added
+- `docs/CHANGELOG.md` — Entry prepended
+- `docs/SESSION_SUMMARY.md` — This file
+- `docs/GPT_HANDOFF.md` — Latest session updated
+
+**What was designed:**
+
+The current creature system is 15 fixed emojis. This session replaces it with a full procedural generation architecture that produces ~42 million valid creature combinations, each visually continuous with its egg.
+
+**Core architecture:**
+- Same `hash()` + `prng()` functions from `eggAlgorithm.js` (imported, never modified) generate a creature-specific prng stream
+- Same hue values (`h1`, `h2`, `ha`, `h3`) that define the egg's colors are re-used for the creature's body/pattern/glow/eyes
+- Every creature is deterministic from its egg stats — no random pull at hatch time
+
+**Gene system (40+ attributes):**
+- Body: type (5), head ratio, cheeks (mandatory), belly patch
+- Face: eye type (6), eye size, eye color, blush, mouth
+- Features: ears (7), horns (5), wings (6), tails (6)
+- Surface: pattern (6), accessories (8)
+- Effects: glow + particles (rarity-driven, 5 tiers)
+
+**Art direction constraints (7 rules):**
+- Cheeks are never absent (warmth anchor)
+- All colors in 45–85% saturation range
+- ATK creatures are "spirited", not aggressive
+- No sharp-contrast dark features on large fills
+- Eye area ≥ 25% of head area (enforced in code)
+- Pattern color harmony enforced (avoid ugly split-comp)
+- Feature richness scales with hatch stage (stage 2 = simple, stage 8 = full)
+
+**7 personality types** derived from learning profile at hatch time — not cosmetic. Each has distinct idle pool, voice pitch, behaviors.
+
+**Egg-to-creature continuity:**
+- Hard: same `h1/h2/ha/h3` hue values always carry over
+- Soft: 60–75% probability feature echoes (egg dots → creature spots, egg glow → creature aura, etc.)
+- Battle mark: creatures hatched at stage 7–8 have a small mark matching the egg's crack color
+
+**4-phase implementation path:**
+1. `creatureGenerator.js` — DNA extraction (no visual change)
+2. Emoji-composite MVP (playtest vehicle, 2–4 layered emoji)
+3. Canvas creature `drawCreature.js` (after GPT answers key questions)
+4. Voice profile + birth moment sequence
+
+**10 open questions** raised for GPT (see doc + GPT_NOTES.md). Phase 3 must not begin until Q1–Q3 are answered.
+
+---
+
 # Session Summary — 2026-06-09 (Dramatic Egg Stage Progression)
 
 **Session type:** Code change. Build: ✅.

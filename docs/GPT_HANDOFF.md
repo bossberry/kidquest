@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Dramatic Egg Stage Progression)_
+_Last updated: 2026-06-09 (Procedural Character System Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,34 @@ _Last updated: 2026-06-09 (Dramatic Egg Stage Progression)_
 
 ## Latest Session Summary
 
-**What changed this session (Dramatic Egg Stage Progression — code change):**
+**What changed this session (Procedural Character System Design — docs only):**
+
+Current creature system: 15 fixed emojis across 4 categories. Every Thai-dominant child gets one of 3 creatures. This replaces it with infinite procedural generation.
+
+**Architecture:** Re-uses `hash()` + `prng()` imported from `eggAlgorithm.js` (never modified). Mixes base seed with `hash('creature')` to get a new deterministic stream. Same hue values (`h1/h2/ha/h3`) that define the egg's colors carry into the creature — same learning session made both.
+
+**Gene system (40+ attributes across 9 groups):** body type × 5 / eye type × 6 / ear type × 7 / horn × 5 / wing × 6 / tail × 6 / pattern × 6 / accessory × 8 / personality × 7. After art direction constraints: ~42 million valid combinations.
+
+**7 personalities derived from learning profile:**
+- Happy: acc ≥ 80% + streak ≥ 5
+- Curious: streak ≥ 10
+- Brave: Thai dominant + consistent play
+- Playful: fast responses + Eng dominant
+- Gentle: balanced stats (no subject > 50%)
+- Sleepy: infrequent play (mins < 20)
+- Shy: careful, low streak but decent acc
+
+**Art direction rules (7 non-negotiable):** Cheeks always present. Colors 45–85% sat. ATK creatures are "spirited" not aggressive. Eye area ≥ 25% of head. Feature richness scales with hatch stage (stage 2 = 3–4 features, stage 8 = 9–10 features).
+
+**Egg-to-creature continuity (the key innovation):** Same h1/h2/ha/h3 hues always carry over. 60–75% probability soft echoes (egg dots → creature spots, egg glow → creature aura). Battle mark: creatures from stage 7–8 eggs have a small line marking matching the egg's crack color.
+
+**Implementation path:** Phase 1 (DNA extraction, no visuals) → Phase 2 (emoji-composite MVP, playtest) → Phase 3 (canvas-drawn, after GPT Q1–Q3 answered) → Phase 4 (voice + birth moment).
+
+**7 open questions for GPT** in `docs/GPT_NOTES.md` → Procedural Character System. Most critical: (1) canvas vs emoji-composite long-term strategy, (2) does creature evolution exist, (3) procedural vs child-chosen names.
+
+- No code changes. No build. Commit: docs only.
+
+**What changed last session (Dramatic Egg Stage Progression — code change):**
 
 - **`EGG_STAGES` changed 7→9** in `eggAlgorithm.js`. `drawEgg()` untouched — uses `progress = stage/(total-1)`, so adding 2 stages naturally spreads all visual layers across more milestones.
 - **9 stage names**: ไข่น้อย / ไข่อบอุ่น / ไข่มีความสุข / ไข่แวววาว / ไข่วิเศษ / ไข่เปล่งแสง / ไข่โบราณ / ไข่แตกร้าว / ใกล้ฟักแล้ว!!!

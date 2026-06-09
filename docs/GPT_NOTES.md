@@ -3,6 +3,55 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Procedural Character System (2026-06-09)
+
+Source-of-truth: `docs/research/creatures/procedural-character-system.md`
+
+**Design goal:** Every hatched creature should feel like "this is MY creature" — the natural result of the egg the child grew, not a fixed pool pick.
+
+### Architecture (decided)
+
+```
+Egg Stats → Base Seed → [egg algorithm LOCKED] → Creature DNA Extractor → Art Direction → Animation + Voice → Creature
+```
+
+The creature DNA extractor re-uses `hash()` + `prng()` imported from `eggAlgorithm.js`. It mixes the base seed with `hash('creature')` to get a separate deterministic stream. `eggAlgorithm.js` is never touched.
+
+### Key Design Decisions
+
+- **40+ gene attributes**: body type (5), eye type (6), ear type (7), horn (5), wing (6), tail (6), pattern (6), accessory (8), personality (7), rarity tier (5)
+- **~42 million valid creature combinations** after art direction constraints
+- **Same hue values as egg** (`h1`, `h2`, `ha`, `h3`) drive creature colors — the creature is visually continuous with the egg
+- **7 personalities** derived from learning profile at hatch time: Happy (high acc + streak) / Curious (long streaks) / Brave (Thai dominant) / Playful (fast, Eng dominant) / Gentle (balanced) / Sleepy (infrequent play) / Shy (careful, low streak)
+- **Feature richness by hatch stage**: stage 2 = simple 3-4 features; stage 7-8 = full 9-10 features with glow + particles
+- **Battle mark**: creatures hatched at stage 7–8 (when cracks visible on egg) have a small continuous line near the eye — the mark of emergence. Same color as the egg's cracks were.
+- **Art direction constraints**: cheeks are mandatory (warmth anchor), all colors in 45–85% saturation range, ATK-heavy creatures are "spirited" not aggressive, pointed features only in warm colors
+
+### Implementation Path (4 phases)
+
+1. **Phase 1**: `creatureGenerator.js` — DNA extraction, no visual change
+2. **Phase 2**: `CreatureDisplay.jsx` — emoji-composite MVP (2–4 layered emoji + personality animation)
+3. **Phase 3**: `drawCreature.js` + `CreatureCanvas.jsx` — full canvas-drawn creature
+4. **Phase 4**: Voice profile + birth moment sequence in HatchOverlay
+
+### Open Questions for GPT to Answer
+
+1. Canvas vs emoji-composite for the long term — or validate with Phase 2 playtest first?
+2. Does creature evolution exist? Does the creature look different as it battles and grows?
+3. Procedural name generation (Thai syllables like ลูมิ/สปริ/ชิโน) vs child picks from 5 suggestions?
+4. How strong should egg-to-creature continuity be — obvious color rhyming or subtle?
+5. Night creatures ("Moonborn" with cool palette + crescent features) — named rarity subtype or just visual variant?
+6. Multiple creatures in collection — do siblings from same subject type feel too similar?
+7. Accessories: born-with (DNA) or equippable items from shop?
+
+### What Claude Code Must NOT Do Until GPT Answers
+
+- Do not implement Phase 3 (Canvas creature) until Q1, Q2, Q3 are answered
+- Phase 2 (emoji-composite) can proceed independently as a playtest vehicle
+- Do not change `HATCH_CREATURES` pool in `gameConfig.js` until Phase 1 DNA extractor is ready
+
+---
+
 ## Egg Home Design (2026-06-09)
 
 Source-of-truth: `docs/research/world/egg-home.md`

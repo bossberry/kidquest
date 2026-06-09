@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Procedural Character System Design
+
+- `docs/research/creatures/procedural-character-system.md` — NEW. Full architecture for infinite creature generation without fixed monster pools. Core: re-uses `hash()` + `prng()` from `eggAlgorithm.js` (imported, never modified) to derive creature DNA from egg stats. 40+ gene attributes (body/face/ears/horns/wings/tail/pattern/accessories/glow). Art direction layer enforces cute/warm/huggable constraints for ages 4–6. 7 personality types (Happy/Curious/Brave/Playful/Gentle/Sleepy/Shy) derived from learning profile at hatch time. Animation + voice layers. Egg-to-creature visual continuity (same hue values carry over; 60–75% feature echo probability). Feature richness scales by hatch stage. ~42M valid combinations. 4-phase implementation path. 10 open questions for GPT.
+- `docs/RESEARCH_INDEX.md` — Creatures section added.
+- `docs/GPT_NOTES.md` — Procedural Character System section with key decisions and 7 GPT open questions.
+- `docs/TASKS.md` — Design task done; Phase 1–4 implementation tasks added.
+- No code changes. No build.
+
 ## 2026-06-09 — Dramatic Egg Stage Progression
 
 - `src/lib/eggAlgorithm.js` — `EGG_STAGES` changed 7→9. `EGG_STAGE_NAMES` updated to 9 Thai names: ไข่น้อย / ไข่อบอุ่น / ไข่มีความสุข / ไข่แวววาว / ไข่วิเศษ / ไข่เปล่งแสง / ไข่โบราณ / ไข่แตกร้าว / ใกล้ฟักแล้ว!!!. `drawEgg()`, `hash()`, `prng()` untouched — visual spread naturally adjusts via `progress = stage/8` (was `stage/6`).

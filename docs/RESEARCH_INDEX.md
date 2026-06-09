@@ -18,6 +18,12 @@ _Last updated: 2026-06-09_
 
 ---
 
+## Creatures
+
+- [docs/research/creatures/procedural-character-system.md](research/creatures/procedural-character-system.md) — **Procedural Character System design (2026-06-09).** Full architecture for infinite creature generation. DNA extraction from egg stats (uses same hash/prng as egg algorithm). 40+ gene attributes: body type, face, ears, horns, wings, tail, pattern, accessories, glow. Art direction rules (cute/warm/huggable constraints, color harmony, feature density by hatch stage). 7 personality types (Happy/Curious/Brave/Playful/Gentle/Sleepy/Shy) derived from learning profile. Animation layer, voice layer, egg-to-creature visual continuity, combination math (~42M valid creatures), 4-phase implementation path, 10 open questions.
+
+---
+
 ## Battle
 
 - [docs/research/battle/creature-stats.md](research/battle/creature-stats.md) — Creature stat design philosophy: weighted formula, subject-to-stat mapping, personality variation, migration rules, non-goals, future scaling

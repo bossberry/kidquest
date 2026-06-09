@@ -1,4 +1,25 @@
-# Session Summary — 2026-06-09 (KidQuest World Design)
+# Session Summary — 2026-06-09 (Egg Home Design)
+
+**Session type:** Documentation and architecture only. No code. No build.
+
+**Files changed:**
+- `docs/research/world/egg-home.md` — NEW
+- `docs/GPT_NOTES.md` — Egg Home section added
+- `docs/TASKS.md` — Egg Home task done; GPT questions task added
+- `docs/CHANGELOG.md` — Entry prepended
+- `docs/SESSION_SUMMARY.md` — This file
+- `docs/GPT_HANDOFF.md` — Latest session updated
+
+**What was designed:**
+Egg Home as the emotional center of KidQuest. Goal: "I want to visit my egg." Fully learning-free zone. Interactions: pet (tap), feed (food → warm glow), ribbon (decoration), potion (XP arc moves), star (golden orbit). Mood system — 5 states expressed through animation, not stat bars. Reunion burst on return after >4 hours. Creature companion walking in lower screen. Stage 5–7 near-hatch excitement as the strongest natural return motivator. 10 open questions for GPT before code begins.
+
+**Known risks / blockers:**
+- Nothing should be coded until GPT answers the 10 open questions (see GPT_NOTES.md → Egg Home Design)
+- Egg algorithm remains LOCKED — any visual changes must work as canvas overlays or CSS
+
+---
+
+# Previous Session Summary — 2026-06-09 (KidQuest World Design)
 
 **Session type:** Documentation and architecture only. No code. No build.
 

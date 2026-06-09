@@ -3,6 +3,56 @@ _Source of GPT → Claude knowledge. Update this when GPT makes decisions Claude
 
 ---
 
+## Egg Home Design (2026-06-09)
+
+Source-of-truth: `docs/research/world/egg-home.md`
+
+**Egg Home is the first screen the child sees. It is a place, not a menu.**
+
+### Core principles decided
+- **The egg is alive and reactive.** It breathes, bobs, reacts to every interaction. Never static.
+- **Every visit is rewarding.** Not dramatically — just warmth, a small response, something slightly new.
+- **No punishment for absence.** If the child was away 3 days, the egg shows a Reunion burst when they return. Message: "I'm so happy you're back." Never: "You forgot about me."
+- **No learning here.** No questions, no quizzes, no scores, no subject labels, no mastery bars. This screen is a learning-free zone.
+- **Mood is visual only.** Happy/content/quiet/excited/reunion states expressed through egg animation and color — never through a stat bar or number.
+
+### Interactions defined
+- **Pet egg** — tap egg → bounce + sparkle + chirp sound. After ~3 pets: big spin. After ~6 fast: sleepy-happy settle.
+- **Feed (🍗)** — food floats to egg → egg absorbs it → warm orange glow + bounce.
+- **Ribbon (🎀)** — ribbon wraps egg → decoration persists visually → proud puff animation.
+- **Potion (💧)** — XP progress moves slightly → blue glow (no number shown).
+- **Star (⭐)** — golden pulse + orbiting particles for 5-minute boost duration. Timer shown as fading ring, not countdown number.
+- **Creature companion** — walks left-right in lower screen. Tap it → happy jump → resumes walking.
+
+### Return loop motivators (intrinsic only)
+- Egg appears slightly different every visit (stage progression, idle variations)
+- Reunion animation on return after >4 hours
+- Near-hatch excitement at stages 5–7 (egg cracks, shakes, wants to hatch)
+- Items in tray waiting to be used ("I found this for you")
+- Creature does something rare occasionally (not scheduled, organic)
+
+### What is explicitly excluded
+- Streak counters, "don't break your streak" messaging
+- "Your egg is hungry!" anxiety notifications
+- Time-gated rewards that expire
+- Any "come back or else" mechanic
+- Home decoration (Year 1 deferred)
+- Learning content of any kind
+
+### Open questions for GPT (10 — must answer before Egg Home code begins)
+1. **Egg naming?** Name at creation (Tamagotchi-style)? Typed name or preset selection? Does a 5-year-old benefit from naming?
+2. **Mood indicator?** (a) animation only — no UI; (b) tiny emoji above egg (😊/😴/✨); (c) ambient background warmth shift. Which is right for age 5?
+3. **Return frequency and notifications?** Push notifications? Purely intrinsic? What is right when a parent controls app access?
+4. **Creature companion dialogue?** Should the creature occasionally "say" a Thai/English word (speech bubble)? Hidden soft learning moment?
+5. **"What does the egg want?"** Should the egg show a small desire indicator (like Tamagotchi hunger icon)? Creates return motivation without punishment.
+6. **Hatch moment in Egg Home?** Tap egg to hatch? "Hatch now!" button? Egg tries to hatch on its own until child helps?
+7. **Egg in battle vs. staying home?** Egg is currently the player avatar in battle. How is this framed when Egg Home is the "home"? "Your egg went on an adventure and came back stronger"?
+8. **Ambient sound?** Soft home theme (Animal Crossing-style)? Year 1 MVP or deferred?
+9. **Do creatures ever leave?** Permanent residents? Or Animal Crossing-style "want to move away"?
+10. **Multiple creatures in Home?** One at a time? All walking around together? Does having more make Home feel more alive?
+
+---
+
 ## KidQuest World — Philosophy Shift (2026-06-09)
 
 Source-of-truth: `docs/research/world/kidquest-world.md`

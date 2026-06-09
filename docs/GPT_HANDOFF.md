@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (KidQuest World Design)_
+_Last updated: 2026-06-09 (Egg Home Design)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,16 @@ _Last updated: 2026-06-09 (KidQuest World Design)_
 
 ## Latest Session Summary
 
-**What changed this session (KidQuest World Design — docs only):**
+**What changed this session (Egg Home Design — docs only):**
+
+- `docs/research/world/egg-home.md` — NEW. Full Egg Home design document. Emotional goal: "I want to visit my egg." Screen layout (390px portrait): egg large at center, item tray below, action row (pet/collection/explore). Five interaction rituals: pet (sparkle+chirp+bounce), feed (float+absorb+warm glow), ribbon (wrap+decoration persists), potion (XP arc moves, no number), star (golden orbit for boost duration). Five mood states (happy/content/quiet/excited/reunion) expressed through egg animation only — no stat bars. Stage progression: stage 1 = small/dim, stage 6 = glowing/cracking/excited, stage 7 = egg tries to hatch. Creature companion: walks left-right, tap for happy reaction. Return loop motivators: reunion burst after >4 hours, near-hatch excitement (stages 5–7), items waiting in tray — all intrinsic, no streak pressure. Year 1 MVP defined. 10 open questions raised.
+- `docs/GPT_NOTES.md` — Egg Home section added at top.
+- `docs/TASKS.md` — Egg Home task marked done; GPT questions task added.
+- No code changes. No build.
+
+**⚠️ BLOCKED on 10 open questions for Egg Home** — see `GPT_NOTES.md` → Egg Home Design. Must answer before `EggHome.jsx` work begins: (1) egg naming, (2) mood indicator style, (3) return/notifications, (4) creature dialogue, (5) desire indicator, (6) hatch moment, (7) egg-in-battle framing, (8) ambient sound, (9) creature permanence, (10) multiple creatures.
+
+**What changed last session (KidQuest World Design — docs only):**
 
 Philosophy shift triggered by real playtesting with Chopin. Chopin said "The game is boring" and "Not like a game." He engages with egg collecting, caring, feeding, hatching, taking eggs into battle — but not with subjects, levels, or the Adventure Director.
 

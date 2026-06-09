@@ -7,6 +7,7 @@ _Last updated: 2026-06-09_
 ## World & Exploration ⚡ NEW — supersedes Progression as highest-level philosophy
 
 - [docs/research/world/kidquest-world.md](research/world/kidquest-world.md) — **New highest-level philosophy (2026-06-09).** Philosophy shift: game-first, learning hidden. Emotional center: egg is the hero. High-level loop: Egg Home → explore → encounter → battle → reward → grow → hatch. Egg Home spec. Screen-based world map (Pokémon FireRed model). Green Meadow = Year 1 scope. 10 open questions for GPT before code begins.
+- [docs/research/world/egg-home.md](research/world/egg-home.md) — **Egg Home design (2026-06-09).** The first screen the child sees. Emotional goal: "I want to visit my egg." Screen layout, five interaction rituals (pet/feed/ribbon/potion/star), mood system (visual only, no stat bars), stage progression in Home, creature companion, intrinsic return loop motivators, Year 1 MVP scope, 10 open questions for GPT.
 
 ---
 

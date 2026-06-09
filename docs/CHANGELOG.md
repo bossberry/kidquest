@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Egg Home Design (docs only)
+
+- `docs/research/world/egg-home.md` — NEW. Full Egg Home design. Goal: child feels "I want to visit my egg." Covers: screen layout (390px portrait), egg zone (160–200px center, stage-aware appearance), item tray interactions (pet/feed/ribbon/potion/star with distinct visual rituals), mood system (happy/content/quiet/excited/reunion — visual only, no stat bars), stage progression in Home (stages 1–7 with distinct egg behaviour), creature companion (walks left-right, tap for reaction), return loop motivators (intrinsic only: reunion burst, near-hatch excitement, items waiting), Year 1 MVP scope, 10 open questions for GPT.
+- `docs/GPT_NOTES.md` — Egg Home Design section added at top.
+- `docs/TASKS.md` — Egg Home design task marked done; GPT open questions task added.
+- `docs/SESSION_SUMMARY.md` — Updated.
+- `docs/GPT_HANDOFF.md` — Latest session summary updated.
+- No code changes. No build.
+
 ## 2026-06-09 — KidQuest World Design (docs only)
 
 - `docs/research/world/kidquest-world.md` — NEW. Full design document for the world-based game model. Covers: philosophy shift (game-first, learning hidden), Chopin's direct playtesting feedback ("boring" / "not like a game"), emotional center (egg is the hero), high-level loop (Egg Home → explore → encounter → battle → reward → grow → hatch), Egg Home spec, World Map structure (screen-based, Pokémon FireRed model), region list (Year 1 = Green Meadow only), exploration events, battle's new role, learning hidden curriculum principle, transition from current state, Year 1 MVP scope, 10 open questions for GPT.

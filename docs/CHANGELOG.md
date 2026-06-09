@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Egg Home Emotional Polish
+
+- `src/components/Home.jsx` — Full rewrite. Flying food animation (fixed-position emoji flies from tray up to egg center, egg eats it). Per-item glow effects via CSS `drop-shadow` on EggCanvas (`egg-glow-warm/blue/gold/pink`). Ribbon 🎀 overlay (persists on egg after use, top-right corner). Star orbit: two `.egg-star-orbit` divs rotating around egg when XP boost active. Random idle micro-animations: every 5–12s, `idle-wiggle` or `idle-jump` fires (25% chirp, 8% begging sound) — egg feels alive without interaction. `stageRef` + `eggAnimRef` fix stale closure in `triggerAnim` and idle scheduler. Food chain: flyingItem set → 360ms → eat anim + chew sound + warm glow → 620ms: flyingItem clear → 870ms: sigh sound. Ribbon: jingle + pink glow + pet anim. Potion: slurp + blue glow + relax anim. Star: celebrate + gold glow + happy-spin. Pet streak 3 → giggle sound. Layout: inline `paddingBottom:66` removed; CSS `#egg-home` rule handles safe-area-aware padding.
+- `src/lib/audio.js` — 6 new SFX: `chew` (3-hit crunch), `slurp` (rising sine + accent), `giggle` (4-step ascending triangle pairs), `sigh` (descending sine fade), `celebrate` (6-note ascending fanfare), `begging` (rising-falling sine breath).
+- `src/styles.css` — EGG HOME section expanded: `egg-anim-eat`, `egg-anim-relax`, `egg-anim-idle-wiggle`, `egg-anim-idle-jump`, `food-fly-up`, `egg-glow-warm/blue/gold/pink`, `star-orbit` keyframes and classes. Layout: `#egg-home` `padding-bottom: calc(60px + env(safe-area-inset-bottom))` fixes iPhone safe area overlap.
+- Build ✅. Commit: `feat: egg home emotional polish`. Pushed.
+
 ## 2026-06-09 — Egg Home MVP
 
 - `src/components/Home.jsx` — REPLACED. Old Home (Adventure Director, subject grid, Egg Run, stats strip) removed. New Egg Home: large egg center (190×225px), idle float animation, stage 5+ excited pulse, pet interaction (chirp+sparkle+hearts), streak happy-spin + sleepy, reunion burst on first visit or >4h gap, item tray (food/ribbon/potion/star, count badges, tap-twice-to-use), creature companion walks left-right after first hatch (tap for chirp+bounce), action row (ลูบไข่ / คอลเลกชัน / ออกสำรวจ), warm gradient background.

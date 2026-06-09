@@ -1,3 +1,29 @@
+# Session Summary — 2026-06-09 (Egg Home Emotional Polish)
+
+**Session type:** Code change. Build: ✅.
+
+**Files changed:**
+- `src/components/Home.jsx` — Full rewrite (emotional polish)
+- `src/lib/audio.js` — 6 new SFX: chew, slurp, giggle, sigh, celebrate, begging
+- `src/styles.css` — eat/relax/idle/food-fly/glow/star-orbit keyframes + classes + safe-area layout fix
+
+**What was built:**
+Full emotional polish on Egg Home. Food: emoji flies from tray to egg (fixed-position overlay, `food-fly-up` CSS animation), egg eats with `egg-anim-eat` + chew sound + warm glow (`egg-glow-warm` drop-shadow), then sigh sound. Ribbon: 🎀 overlay persists on egg (top-right), pink glow, jingle. Potion: slurp + blue glow + relax animation. Star: celebrate fanfare + gold glow + happy-spin. Pet streak 3 now uses giggle sound. Random idle behavior: `useEffect` fires every 5–12s, triggers `idle-wiggle` or `idle-jump` (25% chirp, 8% begging); only when egg is in base float state. `stageRef` + `eggAnimRef` fix stale closure in `triggerAnim` and idle scheduler. iPhone safe-area layout fixed (inline paddingBottom removed; CSS handles it).
+
+**Architecture:**
+- `flyingItem` state: `{emoji, id}` | null — triggers fixed-position overlay + CSS animation
+- `eggGlow` state: CSS class suffix (warm/blue/gold/pink) applied to EggCanvas className
+- `hasRibbon` state: boolean — shows 🎀 absolutely positioned on egg
+- `idleAnim` state: string | null — overrides base float class when no active animation
+- `stageRef` / `eggAnimRef`: useEffect-synced refs so setTimeout callbacks always have current values
+- Glow uses CSS `filter: drop-shadow()` on canvas — works with transparent canvas background, follows egg shape
+
+**Known risks:**
+- `hasRibbon` resets when component unmounts (app reload). Not persisted to state. Could add `state.eggHasRibbon` in a future pass if child cares about persistence.
+- Flying food animation height (`-265px`) assumes egg is roughly centered at ~340px from bottom on 390px viewport. May be slightly off on very tall or very short phones — minor visual only.
+
+---
+
 # Session Summary — 2026-06-09 (Egg Home MVP)
 
 **Session type:** Code change. Build: ✅.

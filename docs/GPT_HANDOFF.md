@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Egg Home MVP)_
+_Last updated: 2026-06-09 (Egg Home Emotional Polish)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,22 +22,25 @@ _Last updated: 2026-06-09 (Egg Home MVP)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Home MVP — code change):**
+**What changed this session (Egg Home Emotional Polish — code change):**
 
-- `src/components/Home.jsx` — REPLACED. Old Home (Adventure Director, subject grid, Egg Run, Today's Surprise, stats strip, XP boost badge, login header) removed. New Egg Home: large procedural egg (190×225px) at center with idle float/excited animation. Pet interaction (chirp + sparkle particles; happy-spin at streak 3; sleepy at streak 6). Reunion burst on first visit or >4h gap. Item tray (food/ribbon/potion/star with count badges; select + use-on-egg). Creature companion walks left-right after first hatch. Action row: ลูบไข่ / คอลเลกชัน / ออกสำรวจ (Go Explore → adventure-thai).
-- `src/lib/state.js` — `lastHomeVisit: null` added to `defaultState()`.
-- `src/context/StateContext.jsx` — `UPDATE_LAST_HOME_VISIT` action and reducer case added.
-- `src/lib/audio.js` — 4 new SFX: `chirp` (cute high chirp), `sparkle` (ascending twinkle), `jingle` (ribbon jingle), `feed` (eating sound).
-- `src/styles.css` — 7 new keyframes + 6 CSS classes for all egg home animations.
-- Build ✅. Commit: `feat: egg home mvp`. Pushed to main → Vercel auto-deploy triggered.
+- `src/components/Home.jsx` — Full rewrite for emotional polish. Flying food animation: fixed-position emoji flies from tray to egg (360ms delay → eat anim + chew sound + warm glow → sigh after eating). Per-item glow CSS class on EggCanvas (`egg-glow-warm/blue/gold/pink`). Ribbon 🎀 overlay persists on egg top-right. Star orbit: two divs rotating when XP boost active. Random idle micro-animations every 5–12s (`idle-wiggle`/`idle-jump`, occasional chirp/begging). `stageRef` + `eggAnimRef` fix stale closure in triggerAnim. Removed inline `paddingBottom:66` — safe-area handled by CSS. Pet streak 3 → giggle + happy-spin. Food chain complete (fly → eat → glow → sigh). Ribbon: jingle + pink glow. Potion: slurp + blue glow + relax. Star: celebrate + gold glow + happy-spin.
+- `src/lib/audio.js` — 6 new SFX: `chew` (3-hit crunch), `slurp` (rising sine + triangle accent), `giggle` (4-step ascending triangle pairs), `sigh` (descending sine fade), `celebrate` (6-note ascending fanfare), `begging` (rising-falling sine breath).
+- `src/styles.css` — EGG HOME section expanded: `egg-anim-eat`, `egg-anim-relax`, `idle-wiggle`, `idle-jump`, `food-fly-up`, 4 glow variants, `star-orbit`. `#egg-home` padding-bottom uses `calc(60px + env(safe-area-inset-bottom))` for iPhone notch safety.
+- Build ✅. Commit: `feat: egg home emotional polish`. Pushed.
+
+**Previous session: Egg Home MVP:**
+- `src/components/Home.jsx` — replaced with Egg Home. Pet (chirp+sparkle), item tray, creature companion, action row.
+- `src/lib/state.js` — `lastHomeVisit: null` added. `src/context/StateContext.jsx` — `UPDATE_LAST_HOME_VISIT` action.
+- Build ✅. Commit: `feat: egg home mvp`. Pushed.
 
 **Current Home behavior:**
-1. Child opens app → sees their egg large at center, floating gently
-2. Reunion burst fires if >4h since last visit (sparkle explosion + chirp)
-3. Tap egg or "ลูบไข่" → chirp + sparkle; streak 3 → hearts + happy spin; streak 6 → sleepy
-4. Item tray: tap food 🍗 (select), tap egg (use, dispatches USE_ITEM) → same for ribbon/potion/star
-5. "ออกสำรวจ" → routes to adventure-thai (battle mode)
-6. Stage 5+ → excited pulse animation automatically
+1. Child opens app → egg floats gently at center. Random micro-wiggles/jumps every 5–12s make it feel alive.
+2. Reunion burst on first visit or after >4h (sparkle + chirp).
+3. Tap egg / ลูบไข่ → chirp + sparkle; streak 3 → giggle + happy-spin; streak 6 → sleepy (no punishment).
+4. Item tray: tap food (select) → tap egg (use) → food emoji flies to egg, egg eats with chewing sound + warm glow → content sigh.
+5. Ribbon: wraps egg with 🎀 overlay (persists) + pink glow + jingle. Potion: slurp + blue glow + relax. Star: golden orbit + celebrate fanfare.
+6. ออกสำรวจ → routes to adventure-thai battle mode. Stage 5+ → excited pulse auto.
 7. Creature companion (most recently hatched) walks left-right in lower zone
 
 **Known limitations / MVP defaults:**

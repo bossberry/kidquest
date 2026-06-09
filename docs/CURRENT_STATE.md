@@ -17,6 +17,10 @@
 - **L4** (`crossOut`): emoji objects with ❌ overlay on last b items
 - **L5+**: original 🟡/🔵 dot visualization
 
+### Egg Home (Home.jsx — 2026-06-09)
+- **Egg Home MVP**: Large egg (190×225px) center, idle float / stage 5+ excited pulse. Pet → chirp+sparkle+hearts; streak 3 → giggle+happy-spin; streak 6 → sleepy. Reunion burst on first visit or after >4h. Item tray: food/ribbon/potion/star with count badges. Action row: ลูบไข่ / คอลเลกชัน / ออกสำรวจ. All Adventure Director UI removed.
+- **Egg Home Emotional Polish (2026-06-09)**: Flying food animation (fixed-position emoji flies to egg, eat chain + chew sound + warm glow, sigh after). Per-item glow (drop-shadow on EggCanvas via `egg-glow-warm/blue/gold/pink` CSS classes). Ribbon 🎀 overlay persists on egg. Star orbit when XP boost active. Random idle micro-animations every 5–12s (`idle-wiggle`/`idle-jump`, occasional chirp/begging sounds). `stageRef` fixes stale closure. 6 new SFX: chew, slurp, giggle, sigh, celebrate, begging. iPhone safe-area layout (CSS `padding-bottom: calc(60px + env(safe-area-inset-bottom))`).
+
 ### RPG / Egg System
 - **Procedural egg**: 7 stages × 50 XP = 350 XP total; `drawEgg()` Canvas — **LOCKED**
 - **Hatching**: `HatchOverlay.jsx`, tap-to-hatch → `getCreatureForHatch()` → creature revealed

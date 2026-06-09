@@ -18,6 +18,7 @@ _Philosophy shift triggered by real playtesting. Chopin said "boring" and "not l
 _Do NOT begin any of these until GPT answers the open questions and design docs are written._
 
 - [x] **EggHome.jsx** — `Home.jsx` fully replaced with Egg Home MVP. Large egg (190×225px) at center, idle float animation. Pet interaction: tap→chirp+sparkle+hearts; streak 3→happy spin; streak 6→sleepy. Item tray: food/ribbon/potion/star with counts, tap-twice-to-use. Reunion burst on first visit or after >4h gap. Creature companion walks after first hatch. Action row: ลูบไข่/คอลเลกชัน/ออกสำรวจ. All subject/score/Adventure Director UI removed. New state: `lastHomeVisit`. New actions: `UPDATE_LAST_HOME_VISIT`. New SFX: `chirp`, `sparkle`, `jingle`, `feed`. Build ✅ 2026-06-09.
+- [x] **Egg Home Emotional Polish** — Flying food (fixed-position fly animation → eat chain → sigh). Per-item glow (warm/blue/gold/pink CSS drop-shadow). Ribbon overlay persists on egg. Star orbit when boost active. Random idle micro-animations every 5–12s. `stageRef`/`eggAnimRef` fix stale closures. 6 new SFX (chew/slurp/giggle/sigh/celebrate/begging). iPhone safe-area layout fix. Build ✅ 2026-06-09.
 - [ ] **WorldMap.jsx** — Screen-based region navigation. Green Meadow only (Year 1). Screen state, movement, encounter triggers.
 - [ ] **ExplorationEngine** — Encounter probability, event dispatch, item drops, state for picked-up treasures.
 - [ ] **Update routing** — `App.jsx` routing updated for new screens (eggHome, world, explore).

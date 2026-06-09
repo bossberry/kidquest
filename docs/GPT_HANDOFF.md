@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (True Full-Screen Mobile Battle Layout)_
+_Last updated: 2026-06-09 (Educational Math Visuals)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,15 @@ _Last updated: 2026-06-09 (True Full-Screen Mobile Battle Layout)_
 
 ## Latest Session Summary
 
-**What changed this session (True Full-Screen Mobile Battle Layout — bug fix):**
+**What changed this session (Educational Math Visuals — code change):**
+
+- `src/config/gameConfig.js` — Added `COUNTABLE_GROUPS` (3 semantic categories: fruits 🍎🍌🍓🍊🍒 / animals 🐟🐱🐶🐰🐸 / everyday 🧸⭐🎈🌸🚗) and flat `COUNTABLES`. Single source of truth for all 3 math files — previously each had its own local array with `🥚` (game mascot), `💎` (abstract), `🏀` (random). Updated `PATTERN_SETS.AB`: removed `['🥚','🔵']` (egg = game mascot, confusing), replaced all pairs with educationally coherent pairs: shapes `['🔺','🔵']`, fruits `['🍎','🍌']`, animals `['🐱','🐶']`, hearts `['❤️','💙']`, `['⭐','🌸']`. Updated `TEACH_CONTENT.math[0]` examples: `🥚×3 → 🍎×3`, `⭐×5 → 🐟×5`. Updated `TEACH_CONTENT.math[8]` pattern examples to match new pattern sets.
+- `src/games/GameMath.jsx` — Removed local `COUNTABLES`. Imports `COUNTABLES, COUNTABLE_GROUPS`. For `objects` visual model, emojiA+emojiB now come from the same semantic group (shuffle one category, take first two). Example: apple+banana instead of egg+diamond. Same-group pairing makes addition visuals semantically coherent.
+- `src/games/GameMathBattle.jsx` — Removed local `COUNTABLES`. Imports from gameConfig.
+- `src/games/GameSubjectAdventure.jsx` — Removed local `COUNTABLES`. Imports from gameConfig.
+- Build: ✅ zero errors. Commit: b050fd1.
+
+**What changed last session (True Full-Screen Mobile Battle Layout — bug fix):**
 
 Root cause of the white-margin problem: `height:100%`/`minHeight:100%` on flex children does not fill a flex parent — `flex:1` is needed. Every component in the adventure mode chain had this wrong. Multiple sessions only patched intermediate layers; this session fixed the full chain.
 

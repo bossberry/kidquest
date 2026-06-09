@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Educational Visuals for Math Counting
+
+- `src/config/gameConfig.js` — Added `COUNTABLE_GROUPS` (3 semantic categories: fruits 🍎🍌🍓🍊🍒, animals 🐟🐱🐶🐰🐸, everyday 🧸⭐🎈🌸🚗) and `COUNTABLES` (flat export). Updated `PATTERN_SETS.AB`: removed game meta-item `🥚` (egg), added educationally coherent pairs — shapes `['🔺','🔵']`, fruits `['🍎','🍌']`, animals `['🐱','🐶']`. Updated `TEACH_CONTENT.math[0]` examples (🥚🥚🥚 → 🍎🍎🍎, ⭐×5 → 🐟×5). Updated `TEACH_CONTENT.math[8]` pattern examples to match new pattern sets.
+- `src/games/GameMath.jsx` — Removed local `COUNTABLES`. Imports `COUNTABLES, COUNTABLE_GROUPS` from gameConfig. `genQ` for `objects` visual model now picks both `emojiA` and `emojiB` from the same semantic group (e.g. 🍎+🍌, 🐱+🐶), so addition visuals are coherent instead of random cross-category pairs.
+- `src/games/GameMathBattle.jsx` — Removed local `COUNTABLES`. Imports from gameConfig.
+- `src/games/GameSubjectAdventure.jsx` — Removed local `COUNTABLES`. Imports from gameConfig.
+- Build: ✅ zero errors. Commit: b050fd1.
+
 ## 2026-06-09 — True Full-Screen Mobile Battle Layout (bug fix)
 
 - `src/games/GameScreen.jsx` — Adventure worlds now use `position:fixed;inset:0;zIndex:50` overlay, fully escaping all parent flex constraints. Absolute-positioned `←` back button (z-index 200). Inner `flex:1` div contains the game tree.

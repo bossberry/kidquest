@@ -10,6 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direction:column;align-items:center}
+#root{height:100%;width:100%;display:flex;flex-direction:column;overflow:hidden}
 
 /* ===== BATTLE ANIMATIONS ===== */
 @keyframes battle-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
@@ -99,7 +100,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .egg-glow-pink{animation:egg-glow-pink 1s ease forwards}
 .egg-star-orbit{position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px;font-size:13px;text-align:center;line-height:20px;animation:star-orbit 2s linear infinite;pointer-events:none;z-index:8}
 /* Layout — safe-area-aware bottom padding so buttons never overlap BottomNav */
-#egg-home{background:linear-gradient(175deg,#FFF9EE 0%,#EEE6FB 100%);padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+#egg-home{background:linear-gradient(175deg,#FFF9EE 0%,#EEE6FB 100%);padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 
 /* ===== GAME SCREEN ===== */
 #game-screen{background:var(--bg)}

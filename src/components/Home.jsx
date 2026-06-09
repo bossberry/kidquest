@@ -213,7 +213,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   return (
     <div id="egg-home" style={{
       display:'flex', flexDirection:'column', alignItems:'center',
-      width:'100%', height:'100%', overflow:'hidden',
+      width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
     }}>
 
       {/* Flying food overlay — fixed position, flies from tray area to egg */}

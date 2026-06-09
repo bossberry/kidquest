@@ -450,7 +450,7 @@ function drawHorn(ctx, G, C, dna, sc) {
   }
 }
 
-function drawEyes(ctx, G, C, dna, sc) {
+function drawEyes(ctx, G, C, dna, sc, blinkAmt = 0) {
   const { eyeType, eyeSize, signatureFeature } = dna
   const { hcx, hcy, hr } = G
   const BASE_R = { small: 6, normal: 8, large: 10 }
@@ -472,16 +472,42 @@ function drawEyes(ctx, G, C, dna, sc) {
     const eyeHue = twoColor ? (side < 0 ? C.h1 : C.h3) : C.h3
     const eyeC   = hsl(eyeHue, 65, 55)
     const eyeCD  = hsl(eyeHue, 72, 30)
-    const ery    = sleepy && side < 0 ? er * 0.50 : er  // left eye droops
+    const openEry = sleepy && side < 0 ? er * 0.50 : er
+    const bScale  = Math.max(0, 1 - blinkAmt * 1.25)
+
+    // Fully closed — draw as a gentle curved line
+    if (bScale < 0.12) {
+      ctx.beginPath()
+      ctx.moveTo(ex - er * 0.75, ey)
+      ctx.quadraticCurveTo(ex, ey + er * 0.10, ex + er * 0.75, ey)
+      ctx.strokeStyle = eyeCD
+      ctx.lineWidth = Math.max(1, 1.2 * sc)
+      ctx.lineCap = 'round'
+      ctx.stroke()
+      continue
+    }
+
+    const ery = openEry * bScale
 
     if (eyeType === 'crescent') {
-      // Happy squint — U-shape
+      // Happy squint — U-shape, squash on blink
+      ctx.save()
+      ctx.translate(ex, ey)
+      ctx.scale(1, bScale)
       ctx.beginPath()
-      ctx.arc(ex, ey, er, 0, Math.PI)
+      ctx.arc(0, 0, er, 0, Math.PI)
       ctx.fillStyle = eyeCD
       ctx.fill()
+      ctx.restore()
     } else if (eyeType === 'button') {
-      fillCirc(ctx, ex, ey, er * 0.75, eyeCD)
+      ctx.save()
+      ctx.translate(ex, ey)
+      ctx.scale(1, bScale)
+      ctx.beginPath()
+      ctx.arc(0, 0, er * 0.75, 0, Math.PI * 2)
+      ctx.fillStyle = eyeCD
+      ctx.fill()
+      ctx.restore()
     } else {
       // Base eye fill
       const eG = ctx.createRadialGradient(ex - er * 0.2, ey - er * 0.2, er * 0.05, ex, ey, er * 1.1)
@@ -504,16 +530,32 @@ function drawEyes(ctx, G, C, dna, sc) {
         ctx.fill()
       }
 
-      // Dewy — extra large highlight
-      if (eyeType === 'dewy' || gloss >= 2) {
-        fillCirc(ctx, ex - er * 0.28, ey - er * 0.28, er * (bigShine ? 0.42 : 0.28), C.white)
-        fillCirc(ctx, ex + er * 0.20, ey + er * 0.20, er * 0.14, 'rgba(255,255,255,0.65)')
-      } else {
-        // Standard gloss
-        fillCirc(ctx, ex - er * 0.26, ey - er * 0.28, er * (bigShine ? 0.38 : 0.24), C.white)
+      // Gloss highlights — skip when nearly closed
+      if (bScale > 0.45) {
+        if (eyeType === 'dewy' || gloss >= 2) {
+          fillCirc(ctx, ex - er * 0.28, ey - er * 0.28, er * (bigShine ? 0.42 : 0.28), C.white)
+          fillCirc(ctx, ex + er * 0.20, ey + er * 0.20, er * 0.14, 'rgba(255,255,255,0.65)')
+        } else {
+          fillCirc(ctx, ex - er * 0.26, ey - er * 0.28, er * (bigShine ? 0.38 : 0.24), C.white)
+        }
       }
     }
   }
+}
+
+function drawSleepZ(ctx, G, C, particles, sc) {
+  if (!particles || !particles.length) return
+  ctx.save()
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (const p of particles) {
+    ctx.globalAlpha = p.alpha
+    ctx.font = `bold ${(8 + p.size * 8) * sc}px serif`
+    ctx.fillStyle = hsl(C.ha, 65, 72)
+    ctx.fillText('z', G.hcx + p.x * G.hr, G.hcy - p.y * G.hr)
+  }
+  ctx.globalAlpha = 1
+  ctx.restore()
 }
 
 function drawNose(ctx, G, C, sc) {
@@ -861,7 +903,7 @@ function drawBirthMark(ctx, G, C, dna, sc) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function drawCreature(canvas, dna) {
+export function drawCreature(canvas, dna, anim = {}) {
   if (!canvas || !dna) return
   const ctx = canvas.getContext('2d')
   const S   = canvas.width
@@ -870,6 +912,7 @@ export function drawCreature(canvas, dna) {
   const sc = S / 120
   const C  = buildColors(dna)
   const G  = buildGeometry(dna, sc)
+  const { blinkAmt = 0, sleepParticles = null } = anim
 
   // Painter's algorithm — back to front
   drawAura(ctx, G, C, dna, sc)
@@ -880,7 +923,7 @@ export function drawCreature(canvas, dna) {
   drawEars(ctx, G, C, dna, sc)           // before head so head overlaps base
   drawHead(ctx, G, C, dna, sc)
   drawHorn(ctx, G, C, dna, sc)
-  drawEyes(ctx, G, C, dna, sc)
+  drawEyes(ctx, G, C, dna, sc, blinkAmt)
   drawNose(ctx, G, C, sc)
   drawMouth(ctx, G, C, dna, sc)
   drawCheeks(ctx, G, C, dna, sc)
@@ -888,4 +931,5 @@ export function drawCreature(canvas, dna) {
   drawTail(ctx, G, C, dna, sc)
   drawSignatureOverlay(ctx, G, C, dna, sc)
   if (dna.birthMark) drawBirthMark(ctx, G, C, dna, sc)
+  if (sleepParticles) drawSleepZ(ctx, G, C, sleepParticles, sc)
 }

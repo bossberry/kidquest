@@ -488,6 +488,25 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .choice-btn.correct{animation:correct .4s ease,answer-correct-glow .5s ease!important}
 .feedback.streak-win{animation:streak-bounce .42s cubic-bezier(.36,.07,.19,.97)}
 
+/* ─── Creature idle animations ───────────────────────────────────────────── */
+@keyframes ci-happy   {0%,100%{transform:scale(1)    translateY(0)}   50%{transform:scale(1.020)translateY(-4px)}}
+@keyframes ci-curious {0%,30%,70%,100%{transform:scale(1)rotate(0)}   50%{transform:scale(1.015)rotate(-8deg)}}
+@keyframes ci-brave   {0%,100%{transform:scale(1)    translateY(0)}   50%{transform:scale(1.018)translateY(-3px)}}
+@keyframes ci-playful {0%,100%{transform:scale(1)    translateY(0)}  35%{transform:scale(1.020)translateY(-5px)} 65%{transform:scale(1.018)translateY(-3px)}}
+@keyframes ci-gentle  {0%,100%{transform:scale(1)    translateY(0)}   50%{transform:scale(1.015)translateY(-2px)}}
+@keyframes ci-sleepy  {0%,100%{transform:scale(1)}                    50%{transform:scale(1.012)}}
+@keyframes ci-shy     {0%,100%{transform:scale(1)    translateY(0)}   50%{transform:scale(1.010)translateY(-1px)}}
+@keyframes ci-celebrate{0%,100%{transform:scale(1)  translateY(0)}   25%{transform:scale(1.055)translateY(-10px)}60%{transform:scale(1.020)translateY(-4px)}}
+
+.ci-happy    {animation:ci-happy     1.8s ease-in-out infinite}
+.ci-curious  {animation:ci-curious   4.5s ease-in-out infinite}
+.ci-brave    {animation:ci-brave     2.2s ease-in-out infinite}
+.ci-playful  {animation:ci-playful   1.5s ease-in-out infinite}
+.ci-gentle   {animation:ci-gentle    3.2s ease-in-out infinite}
+.ci-sleepy   {animation:ci-sleepy    5.0s ease-in-out infinite}
+.ci-shy      {animation:ci-shy       3.5s ease-in-out infinite}
+.ci-celebrate{animation:ci-celebrate 1.2s ease-in-out infinite}
+
 /* Reduced motion — disable all decorative animations */
 @media(prefers-reduced-motion:reduce){
   .rec-card-float,.rec-card-battle,.rec-card-surprise,.streak-bounce,
@@ -496,4 +515,6 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
   *[style*="move-pulse"],*[style*="miss-fizzle"],*[style*="egg-charge"],
   *[style*="enemy-defeat"],*[style*="crit-flash"],*[style*="enemy-idle"],
   *[style*="egg-idle"]{animation:none!important}
+  .ci-happy,.ci-curious,.ci-brave,.ci-playful,.ci-gentle,
+  .ci-sleepy,.ci-shy,.ci-celebrate{animation:none!important}
 }

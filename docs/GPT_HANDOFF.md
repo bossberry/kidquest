@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Egg Home Emotional Polish)_
+_Last updated: 2026-06-09 (Home Bottom Layout Overlap Fix)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,20 @@ _Last updated: 2026-06-09 (Egg Home Emotional Polish)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Home Emotional Polish — code change):**
+**What changed this session (Home Bottom Layout Overlap Fix — bug fix):**
+
+Three compounding bugs caused action row to overlap BottomNav on iPhone Safari:
+1. `#root` had no explicit height → `height:100%` on `#egg-home` didn't resolve → `flex:1` egg zone collapsed → CSS padding-bottom had no effect
+2. `padding-bottom: calc(60px + safe)` = 94px vs actual nav height 95px (1px short: 61px buttons + 34px safe area)
+3. `height:100%` doesn't adjust for iOS Safari's retractable browser toolbar (`100dvh` does)
+
+**Fix:** `#root { height:100%; display:flex; flex-direction:column }` in CSS + `height:'100dvh'` on `#egg-home` + padding increased to `calc(76px + env(safe-area-inset-bottom))` = 110px total, 15px above the nav.
+
+Files: `src/styles.css`, `src/components/Home.jsx`. Build ✅. Commit: `fix: home bottom layout overlap`. Pushed.
+
+---
+
+**What changed last session (Egg Home Emotional Polish — code change):**
 
 - `src/components/Home.jsx` — Full rewrite for emotional polish. Flying food animation: fixed-position emoji flies from tray to egg (360ms delay → eat anim + chew sound + warm glow → sigh after eating). Per-item glow CSS class on EggCanvas (`egg-glow-warm/blue/gold/pink`). Ribbon 🎀 overlay persists on egg top-right. Star orbit: two divs rotating when XP boost active. Random idle micro-animations every 5–12s (`idle-wiggle`/`idle-jump`, occasional chirp/begging). `stageRef` + `eggAnimRef` fix stale closure in triggerAnim. Removed inline `paddingBottom:66` — safe-area handled by CSS. Pet streak 3 → giggle + happy-spin. Food chain complete (fly → eat → glow → sigh). Ribbon: jingle + pink glow. Potion: slurp + blue glow + relax. Star: celebrate + gold glow + happy-spin.
 - `src/lib/audio.js` — 6 new SFX: `chew` (3-hit crunch), `slurp` (rising sine + triangle accent), `giggle` (4-step ascending triangle pairs), `sigh` (descending sine fade), `celebrate` (6-note ascending fanfare), `begging` (rising-falling sine breath).

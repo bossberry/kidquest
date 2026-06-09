@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Home Bottom Layout Overlap Fix
+
+- `src/styles.css` — Added `#root { height:100%; width:100%; display:flex; flex-direction:column; overflow:hidden }`. This fixes the height propagation chain (html→body→#root) so that `height:100%` on children resolves correctly. Also increased `#egg-home` padding-bottom from `calc(60px + safe)` to `calc(76px + env(safe-area-inset-bottom))` — actual nav height is 95px (61px buttons + 34px safe area), previous value was 94px (1px short).
+- `src/components/Home.jsx` — Changed root div `height:'100%'` → `height:'100dvh'` and split `overflow:'hidden'` → `overflowX:'hidden', overflowY:'hidden'`. `100dvh` (dynamic viewport height) works independently of the parent height chain and adjusts correctly for iOS Safari's retractable browser toolbar. Belt-and-suspenders with the #root CSS fix.
+- Build ✅. Commit: `fix: home bottom layout overlap`. Pushed.
+
 ## 2026-06-09 — Egg Home Emotional Polish
 
 - `src/components/Home.jsx` — Full rewrite. Flying food animation (fixed-position emoji flies from tray up to egg center, egg eats it). Per-item glow effects via CSS `drop-shadow` on EggCanvas (`egg-glow-warm/blue/gold/pink`). Ribbon 🎀 overlay (persists on egg after use, top-right corner). Star orbit: two `.egg-star-orbit` divs rotating around egg when XP boost active. Random idle micro-animations: every 5–12s, `idle-wiggle` or `idle-jump` fires (25% chirp, 8% begging sound) — egg feels alive without interaction. `stageRef` + `eggAnimRef` fix stale closure in `triggerAnim` and idle scheduler. Food chain: flyingItem set → 360ms → eat anim + chew sound + warm glow → 620ms: flyingItem clear → 870ms: sigh sound. Ribbon: jingle + pink glow + pet anim. Potion: slurp + blue glow + relax anim. Star: celebrate + gold glow + happy-spin. Pet streak 3 → giggle sound. Layout: inline `paddingBottom:66` removed; CSS `#egg-home` rule handles safe-area-aware padding.

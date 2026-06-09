@@ -1,3 +1,36 @@
+# Session Summary — 2026-06-09 (Home Bottom Layout Overlap Fix)
+
+**Session type:** Bug fix. Build: ✅.
+
+**Files changed:**
+- `src/styles.css` — `#root` height fix + `#egg-home` padding increase
+- `src/components/Home.jsx` — `height:'100dvh'` + split overflow props
+
+**Root cause:**
+Three compounding issues:
+1. `#root` had no explicit height → `height:100%` on `#egg-home` resolved to nothing → `flex:1` on egg zone didn't expand → CSS padding-bottom had no visible effect
+2. `padding-bottom: calc(60px + safe)` = 94px vs actual nav height = 95px (1px short: 61px button area + 34px safe area)
+3. `height:100%` (not `100dvh`) doesn't adjust for iOS Safari's retractable browser toolbar
+
+**Safe-area strategy:**
+- Nav button height: `padding:10px 4px 8px` + icon 22px + margin 2px + text 12px + dot 7px = 61px
+- Plus `env(safe-area-inset-bottom)` = 34px on iPhone 14/15 → total nav = 95px
+- New padding: `calc(76px + env(safe-area-inset-bottom))` = 110px on iPhone 14/15 → 15px safety margin above nav
+
+**Layout hierarchy (fixed):**
+```
+html (height:100%) → body (height:100%, flex column) → #root (height:100%, flex column)
+→ #egg-home (height:100dvh, flex column, padding-bottom:calc(76px+safe))
+  → header (flex-shrink:0)
+  → egg zone (flex:1, min-height:0)
+  → item tray (flex-shrink:0)
+  → action row (flex-shrink:0)
+  → [padding space: 76px+safe area ≈ 110px]
+← BottomNav (position:fixed, bottom:0, height ≈ 95px) sits inside padding space
+```
+
+---
+
 # Session Summary — 2026-06-09 (Egg Home Emotional Polish)
 
 **Session type:** Code change. Build: ✅.

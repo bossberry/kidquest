@@ -62,6 +62,13 @@ export function playTone(type) {
     else if(type==='sparkle'){[1047,1319,1568,2093].forEach((f,i)=>t(f,i*.05,.12,.1,'triangle'))}
     else if(type==='jingle'){t(880,0,.1,.1,'triangle');t(1175,.08,.1,.1,'triangle');t(1397,.16,.1,.1,'triangle');t(880,.24,.08,.08,'triangle')}
     else if(type==='feed'){t(440,0,.1,.1,'sine');t(587,.08,.14,.12,'sine');t(659,.16,.1,.1,'sine')}
+    // Egg Home emotional sounds
+    else if(type==='chew'){[0,.1,.21].forEach((d,i)=>{t(420+i*35,d,.16,.06,'square');t(290+i*15,d+.03,.1,.04,'sine')});t(270,.38,.07,.12,'sine')}
+    else if(type==='slurp'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';const st=ctx.currentTime;o.frequency.setValueAtTime(180,st);o.frequency.exponentialRampToValueAtTime(760,st+.42);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.13,st+.06);g.gain.exponentialRampToValueAtTime(.001,st+.44);o.start(st);o.stop(st+.46);t(520,.34,.07,.12,'triangle')}
+    else if(type==='giggle'){[0,.13,.27,.41].forEach((d,i)=>{t(660+i*28,d,.13,.08,'triangle');t(880+i*18,d+.05,.09,.06,'triangle')})}
+    else if(type==='sigh'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';const st=ctx.currentTime;o.frequency.setValueAtTime(440,st);o.frequency.exponentialRampToValueAtTime(280,st+.55);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.09,st+.1);g.gain.exponentialRampToValueAtTime(.001,st+.58);o.start(st);o.stop(st+.6)}
+    else if(type==='celebrate'){[523,659,784,880,1047,1319].forEach((f,i)=>t(f,i*.06,.2,.14,'triangle'));t(1047,.44,.16,.3,'sine')}
+    else if(type==='begging'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';const st=ctx.currentTime;o.frequency.setValueAtTime(360,st);o.frequency.linearRampToValueAtTime(520,st+.18);o.frequency.linearRampToValueAtTime(390,st+.34);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.11,st+.05);g.gain.exponentialRampToValueAtTime(.001,st+.38);o.start(st);o.stop(st+.4)}
   } catch(e) {}
 }
 

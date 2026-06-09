@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Home Bottom Layout Overlap Fix)_
+_Last updated: 2026-06-09 (Egg Home Emotional Life)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,16 +22,25 @@ _Last updated: 2026-06-09 (Home Bottom Layout Overlap Fix)_
 
 ## Latest Session Summary
 
-**What changed this session (Home Bottom Layout Overlap Fix — bug fix):**
+**What changed this session (Egg Home Emotional Life — code change):**
+
+- **Idle behaviors (egg):** `idle-blink` (fast Y-squish/blink), `idle-look` (curious tilt), `idle-yawn` (slow stretch + yawn sound) added to the random idle pool. Pool is now 10 options cycling every 5–12s.
+- **Creature state machine:** 7 states (walk/wave/sit/celebrate/gift/look/sleep). Switches every 20–45s. `wave` → bounce + 👋 + chirp. `sit` → tilted 14° static. `celebrate` → jump loop + 🎊 + sparkle burst + celebrate sound. `gift` → 🎁 + jingle. `sleep` → dimmed + 💤. Patrol pauses during all non-walk states.
+- **Ambient events:** 🦋 butterfly (crosses screen, 4.4s), 🍂 falling leaf (4s), ✨ shooting star (0.85s) — triggered every 38–88s, `position:fixed`, visual only.
+- **Reunion enhanced:** hearts + sparkle + double chirp (was sparkle + single chirp).
+- **Ribbon:** proud spin (`happy-spin`) instead of `pet` animation.
+- **New sound:** `yawn` (low descending sine, 0.94s).
+- **CSS:** 12 new keyframes/classes.
+- Build ✅. Commit: `feat: egg home emotional life`. Pushed.
+
+**What changed last session (Home Bottom Layout Overlap Fix — bug fix):**
 
 Three compounding bugs caused action row to overlap BottomNav on iPhone Safari:
 1. `#root` had no explicit height → `height:100%` on `#egg-home` didn't resolve → `flex:1` egg zone collapsed → CSS padding-bottom had no effect
-2. `padding-bottom: calc(60px + safe)` = 94px vs actual nav height 95px (1px short: 61px buttons + 34px safe area)
-3. `height:100%` doesn't adjust for iOS Safari's retractable browser toolbar (`100dvh` does)
+2. `padding-bottom: calc(60px + safe)` = 94px vs actual nav height 95px (1px short)
+3. `height:100%` doesn't adjust for iOS Safari toolbar (`100dvh` does)
 
-**Fix:** `#root { height:100%; display:flex; flex-direction:column }` in CSS + `height:'100dvh'` on `#egg-home` + padding increased to `calc(76px + env(safe-area-inset-bottom))` = 110px total, 15px above the nav.
-
-Files: `src/styles.css`, `src/components/Home.jsx`. Build ✅. Commit: `fix: home bottom layout overlap`. Pushed.
+Fix: `#root { height:100%; display:flex; flex-direction:column }` + `height:'100dvh'` on `#egg-home` + padding increased to `calc(76px + env(safe-area-inset-bottom))`. Build ✅. Committed. Pushed.
 
 ---
 

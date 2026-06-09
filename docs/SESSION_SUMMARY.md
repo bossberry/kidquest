@@ -1,3 +1,46 @@
+# Session Summary — 2026-06-09 (Egg Home Emotional Life)
+
+**Session type:** Code change. Build: ✅.
+
+**Files changed:**
+- `src/components/Home.jsx` — creature state machine + ambient events + expanded idle pool
+- `src/lib/audio.js` — `yawn` sound added
+- `src/styles.css` — 12 new keyframes/classes
+
+**New idle behaviors (egg):**
+- `idle-blink` (0.26s): fast Y-squish + spring back — looks like a cartoon blink
+- `idle-look` (1s): gentle left-right tilt — curious glance
+- `idle-yawn` (1.2s): slow stretch up and settle — yawn + `yawn` sound
+- Pool now has 10 options (wiggle ×3, jump ×2, blink ×2, look, yawn, etc.)
+- Sound: yawn always plays; chirp 16-28% for wiggle/jump; begging 12% for look
+
+**Creature personality behaviors (state machine, 20–45s cycle):**
+- `walk`: default patrol (pauses during other states)
+- `wave`: bounce loop + 👋 inline + chirp
+- `sit`: tilted 14° + static (stopped at current position)
+- `celebrate`: jump loop + 🎊 inline + sparkle particles + celebrate sound
+- `gift`: shows 🎁 inline + jingle sound
+- `look`: shows 👀 inline (quiet)
+- `sleep`: 48% opacity + 💤 inline (quiet)
+
+**Ambient events (38–88s between events):**
+- 🦋 butterfly: crosses screen diagonally at 38% height (4.4s animation)
+- 🍂 leaf: falls from top center with rotation (4s animation)
+- ✨ shooting star: fast diagonal slash from top-right (0.85s animation)
+- All: `position:fixed`, `pointer-events:none`, visual only
+
+**Other enhancements:**
+- Reunion: hearts+sparkle combined + double chirp (was sparkle only + single chirp)
+- Ribbon: `happy-spin` proud spin (was `pet` bounce)
+- Star: hearts+sparkle combined burst (was sparkle only)
+
+**Architecture note:**
+- `creatureModeRef` ref tracks creature state for patrol interval (avoids stale closure)
+- Directional flip (`scaleX`) on outer div, animation class on inner div — prevents transform conflicts
+- Ambient events use `prev?.id === id` check on clear timeout to prevent stale clears
+
+---
+
 # Session Summary — 2026-06-09 (Home Bottom Layout Overlap Fix)
 
 **Session type:** Bug fix. Build: ✅.

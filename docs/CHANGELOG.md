@@ -1,5 +1,12 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Egg Home Emotional Life
+
+- `src/components/Home.jsx` — New idle behaviors: `idle-blink` (fast Y-squish, ~blink), `idle-look` (gentle tilt, curious), `idle-yawn` (slow stretch + settle) added to the 5–12s random idle pool. Creature companion gains personality state machine (walk/wave/sit/celebrate/gift/look/sleep, 20–45s cycle): `wave` → creature bounces + 👋 inline + chirp sound; `sit` → tilted 14° + static; `celebrate` → jump loop + 🎊 + sparkle particles + celebrate sound; `gift` → 🎁 shown; `look` → 👀 shown; `sleep` → dim opacity + 💤. Creature patrol pauses during non-walk states. Directional flip wrapped separately from animation class so they don't conflict. Ambient events: butterfly 🦋, falling leaf 🍂, shooting star ✨ — `position:fixed` CSS animations, triggered every 38–88 seconds, visual only, no mechanics. Reunion enhanced: hearts+sparkle combined burst + double chirp. Ribbon: changed from `pet` to `happy-spin` (proud spin). Star: combined sparkle+hearts burst.
+- `src/lib/audio.js` — Added `yawn` sound: low descending sine (290→165Hz, 0.94s).
+- `src/styles.css` — 12 new keyframes/classes: `idle-blink`, `idle-look`, `idle-yawn`, `creature-wave`, `creature-celebrate`, `creature-overlay-bob`, `ambient-butterfly`, `ambient-leaf`, `ambient-shooting-star` + CSS classes for new idle and creature animations.
+- Build ✅. Commit: `feat: egg home emotional life`. Pushed.
+
 ## 2026-06-09 — Home Bottom Layout Overlap Fix
 
 - `src/styles.css` — Added `#root { height:100%; width:100%; display:flex; flex-direction:column; overflow:hidden }`. This fixes the height propagation chain (html→body→#root) so that `height:100%` on children resolves correctly. Also increased `#egg-home` padding-bottom from `calc(60px + safe)` to `calc(76px + env(safe-area-inset-bottom))` — actual nav height is 95px (61px buttons + 34px safe area), previous value was 94px (1px short).

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
+import { buildCreatureDNA } from '../lib/creatureGenerator.js'
 
 export const StateContext = createContext(null)
 
@@ -115,6 +116,10 @@ function reducer(state, action) {
         acc:    state.acc    || 70,
         streak: state.streak || 0,
       }
+      // Generate deterministic DNA. Same eggStats always produce the same DNA.
+      // Legacy creatures (no dna field) continue to render as emojis unchanged.
+      let dna = null
+      try { dna = buildCreatureDNA(eggStats) } catch (_) { /* silent — emoji fallback */ }
       const newEgg = {
         creature,
         eggStats,
@@ -128,6 +133,7 @@ function reducer(state, action) {
         stats:  calcCreatureStats(eggSnap),
         date: new Date().toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' }),
         hatched_at: Date.now(),
+        dna,
       }
       return {
         ...state,

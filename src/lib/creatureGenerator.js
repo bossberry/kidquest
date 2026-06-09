@@ -80,8 +80,8 @@ function determineFamily(motif, stats, r0, r1, r2) {
     return 'bear'
   }
 
-  // Stat-based fallback
-  if (stats.streak >= 100) return pickWeighted(r0, ['dragon','star','crystal'],  [50,30,20])
+  // Stat-based fallback — streak >= 20 on the 0-100 scale = 4 real days
+  if (stats.streak >= 20) return pickWeighted(r0, ['dragon','star','crystal'],  [50,30,20])
   if (thaiDom)             return pickWeighted(r1, ['bear','bunny','fluff','flower','puff'], [30,25,20,15,10])
   if (engDom)              return pickWeighted(r1, ['bird','fox','cat','fluff','bunny'],     [30,25,20,15,10])
   if (mathDom)             return pickWeighted(r1, ['crystal','dragon','cat','puff'],        [30,25,25,20])
@@ -446,8 +446,15 @@ export function buildCreatureDNA(stats) {
     voicePitch,
     voiceFamily,
     // Beauty layer metadata — used by drawCreature (Phase 2)
-    birthMark:    stage >= 7,     // creature has crack birthmark
-    birthMarkHue: ha,             // matches egg's crack color
+    birthMark:    stage >= 7,
+    birthMarkHue: ha,
+    beautyProfile: {
+      outlineWeight:    2.0 + Math.min(glowTier * 0.25, 0.5),
+      gradientStrength: 0.3 + (stage / 8) * 0.5,
+      eyeGloss:         ['dewy','sparkle'].includes(eyeType) ? 2 : 1,
+      cheekGlow:        cheekSize === 'huge' ? 0.8 : cheekSize === 'puffy' ? 0.6 : cheekSize === 'normal' ? 0.45 : 0.3,
+      featureDensity:   stage <= 2 ? 0 : stage <= 4 ? 1 : stage <= 6 ? 2 : 3,
+    },
   }
 }
 
@@ -482,7 +489,7 @@ export function verifyCreatureGen() {
     'earType','hornType','wingType','tailType','patternType',
     'accessory','glowTier','rarityTier','signatureFeature','personality',
     'h1','h2','h3','ha','isNight','stage','voicePitch','voiceFamily',
-    'birthMark','birthMarkHue']
+    'birthMark','birthMarkHue','beautyProfile']
   const missingFields = required.filter(f => !(f in a))
 
   // Spot-check constraints

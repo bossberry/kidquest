@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Adventure Mode UI 2.0)_
+_Last updated: 2026-06-09 (Mobile Playtest Polish)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,12 @@ _Last updated: 2026-06-09 (Adventure Mode UI 2.0)_
 
 ## Latest Session Summary
 
-**What changed this session (Adventure Mode UI 2.0 — code change):**
+**What changed this session (Mobile Playtest Polish — code change):**
+
+- `src/games/GameScreen.jsx` — Fixed full-width layout bug. Adventure worlds now bypass the `maxWidth:480 / alignItems:center` container. Root cause: `alignItems:'center'` on a flex-column container prevents children from stretching to full width — the game appeared as a narrow column with white side margins on mobile. Fix: adventure worlds use `{ width:'100%', flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }` (no maxWidth, defaults to `alignItems:stretch`).
+- `src/games/MoveSelectBattleMode.jsx` — Removed entire attack identity layer. Deleted `ICONS`, `MOVE_NAME`, `moveIcons`, `shuffle`, `useMemo`. `MoveCard` now shows only the learning answer (the answer IS the attack). Font adapts to content length: ≤2 chars=64px, ≤4=54px, else=44px. Battle log simple-hit changed from `"⚡ Thunder! +N XP"` to `"⚔️ โจมตี! +N XP"`. Chunk: 36.72→36.22 KB. Build: ✅ zero errors. Commit: a8759ea.
+
+**What changed last session (Adventure Mode UI 2.0 — code change):**
 
 - `src/games/DefenseMode.jsx` — Full layout redesign. Enemy enlarged 90→120px. Removed large `QuestionDisplay` component (was dominating screen with 44px emoji + word + subtext). Replaced with compact `QuestionHint` (28px emoji + 🔊 only, or minimal math display). Hit flash overlay on correct. Miss animation (`miss-fizzle`) + red border highlight on wrong button. Mode text labels removed entirely. Egg gets `egg-idle 3s` continuous idle animation. Combo shown as compact top-left indicator (was large badge). Visual hierarchy: enemy top → shield → egg → log → hint → 2×2 move panel.
 - `src/games/ChaseMode.jsx` — Full layout redesign. Target enemy 64→120px, moved to top center (was top-right corner, small). Removed `QuestionDisplay`, replaced with same `QuestionHint`. Chase track slimmed 70→32px. Egg slides on slimmer track. Target shows 🎉 + `victory-bounce` at dist≥100. Track fill goes gold at dist≥80 with "⚡ ใกล้แล้ว!" label inside track. Hit flash on correct. Miss animation on wrong. Combo compact top-left.

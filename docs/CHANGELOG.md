@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Mobile Playtest Polish: Full-Width UI + Simplified Answer Cards
+
+- `src/games/GameScreen.jsx` — Adventure worlds (`adventure-*`) now use a dedicated full-width container: no `maxWidth`, no `alignItems:'center'` (defaults to stretch), `overflow:'hidden'`. All other worlds keep the existing `maxWidth:480 / alignItems:center` container. Root cause of white-margin bug: `alignItems:'center'` on the flex column container prevented game components from stretching to full width.
+- `src/games/MoveSelectBattleMode.jsx` — Removed attack identity layer entirely. Deleted: `ICONS` array, `MOVE_NAME` map, `moveIcons` useMemo, `shuffle` import, `useMemo` import. `MoveCard` now shows **only the learning answer** — no element icon above, no attack name below. Font size adapts to content: ≤2 chars→64px (emoji, digit), ≤4 chars→54px, longer→44px. Battle log for simple hit changed from `"⚡ Thunder! +N XP"` to `"⚔️ โจมตี! +N XP"`. Chunk size: 36.72→36.22 KB.
+- Build: ✅ zero errors. Commit: a8759ea.
+
 ## 2026-06-09 — Adventure Mode UI 2.0
 
 - `src/games/DefenseMode.jsx` — Full layout redesign. Enemy (attacker) enlarged from 90px → 120px emoji. Removed `QuestionDisplay` component (44px emoji + word + subtext — was dominating the screen). Replaced with compact `QuestionHint` (28px emoji + 🔊 button only, or tiny math/count display). Hit flash overlay added (crit-flash keyframe). Miss animation on wrong choice button (`miss-fizzle`). Red button highlight on wrong tap. Combo indicator top-left (no large badge). Mode text labels removed. Vertical stack unchanged: Enemy → Shield → Egg. Egg gets continuous `egg-idle 3s` idle animation. Move panel: `flex:1` takes bottom half, `flexShrink:0` on all headers.

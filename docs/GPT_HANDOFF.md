@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Procedural Character System Design v3 — Egg-to-Creature Identity)_
+_Last updated: 2026-06-10 (Procedural Character System Phase 3 — Creature Personality & Animation)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,37 +22,38 @@ _Last updated: 2026-06-09 (Procedural Character System Design v3 — Egg-to-Crea
 
 ## Latest Session Summary
 
-**What changed this session (Procedural Character System Design v3 — docs only):**
+**What changed this session (Procedural Character System Phase 3 — code change):**
+
+Implemented creature personality & animation. Creatures in `CreatureCanvas` are now alive — they breathe, bob, and blink. Sleep mode shows floating z particles.
+
+**`src/lib/drawCreature.js`** (3 changes, commit `658d25c`):
+- `drawCreature(canvas, dna, anim={})` — optional `anim` parameter with `{ blinkAmt, sleepParticles }`.
+- `drawEyes` signature now accepts `blinkAmt`. Applies blink: `bScale = max(0, 1 - blinkAmt * 1.25)`. When `bScale < 0.12` → draws closed-eye curve. Crescent/button types squash via `ctx.save/translate/scale(1, bScale)/restore`. Standard eye types use `ery = openEry * bScale`; gloss highlights hidden when `bScale < 0.45`.
+- `drawSleepZ(ctx, G, C, particles, sc)` — draws floating 'z' glyphs in accent hue; called when `anim.sleepParticles` exists.
+
+**`src/components/CreatureCanvas.jsx`** (full rewrite, commit `658d25c`):
+- Props: `dna`, `size`, `personality`, `animationEnabled` (default `true`), `idleMode` (`'idle'|'sleep'|'celebrate'`), `style`, `className`.
+- RAF loop: blink state machine (`open → closing → closed → opening`). Close: 90ms. Hold: 70ms (450ms when sleepy). Open: 120ms. Blink interval = personality rate ± 1s jitter. Rates: happy=4s, curious=5s, brave=8s, playful=3s, gentle=5s, sleepy=2s, shy=4s.
+- Sleep Z-particle system: when `idleMode='sleep'`, spawns particles (x=random right-of-head, y above head, alpha 0.7–0.9, random size). Each frame: float up, drift right, fade. Passed to `drawCreature` as `sleepParticles`. Max 3 concurrent particles.
+- CSS idle class applied to canvas element: `ci-{personality}` for idle, `ci-celebrate` for celebrate, `ci-sleepy` for sleep.
+
+**`src/styles.css`** (new block, commit `658d25c`):
+- 8 keyframes: `ci-happy` (1.8s, −4px bob + 1.020 scale), `ci-curious` (4.5s, −8° tilt + scale), `ci-brave` (2.2s, −3px + 1.018 scale), `ci-playful` (1.5s, −5px fast), `ci-gentle` (3.2s, −2px + 1.015 scale), `ci-sleepy` (5.0s, scale-only slow breathe), `ci-shy` (3.5s, −1px minimal), `ci-celebrate` (1.2s, −10px + 1.055 scale).
+- All suppressed by `@media(prefers-reduced-motion:reduce)`.
+
+**Build:** ✅ zero errors. Pushed.
+
+**What remained the same:** Phase 4 (voice) and Phase 5 (birth sequence) are NOT implemented.
+
+**What changed last session (Procedural Character System Design v3 — docs only):**
 
 Added **Egg-to-Creature Identity** section to `docs/research/creatures/procedural-character-system.md`. No code. No build.
 
-**The problem the v3 section solves:** The v2 family selection was stat-driven (Thai-dominant → Bear/Leaf, Math-dominant → Crystal/Star). This is wrong. The child has been watching the egg for days — its colors, its glow, its stars. The creature should feel like what was visibly inside that specific egg. Stats tell you how the creature developed. The egg's appearance tells you who was inside.
+Egg Motif Detection (first-match priority): isNight → Moon; ha 30–60° + streak ≥ 14 + stage ≥ 5 → Star; h1 80–160° → Leaf; h1 160–220° → Ocean; h1 220–270° → Cloud; h1 270–320° → Crystal; h1 ≥ 340° or < 30° → Ember. No match → stat-based fallback.
 
-**New rule:** Family is derived from the egg's visual motif first. Stats modify body proportions within that family.
+Open questions expanded to 10: Q9 = egg legibility; Q10 = Ember as formal 17th family.
 
-**Egg Motif Detection (first-match priority):**
-1. `isNight` → Moon
-2. `ha` in 30–60° + `streak ≥ 14` + `stage ≥ 5` → Star
-3. `h1` in 80–160° → Leaf
-4. `h1` in 160–220° → Ocean
-5. `h1` in 220–270° → Cloud
-6. `h1` in 270–320° → Crystal
-7. `h1` ≥ 340° or < 30° → Ember (no Ember family; warm Fox/Dragon/Bear selected by stats)
-8. No match → stat-based fallback
-
-**Family mapping from motif × stats:**
-- Moon × Thai → Moon Bear feeling / Moon × Eng → Moon Bunny or Moon Cat / Moon × Math → Moon Dragon / Moon × balanced → Moon Puff
-- Star × speed → Star Bird or Star Cat / Star × compact → Star Puff
-- Leaf × Thai → Leaf Bear / Leaf × Eng → Leaf Bunny
-- Ember × Eng → Ember Fox / Ember × Math → Ember Dragon / Ember × Thai → Ember Bear
-
-**Future note:** Egg Visual Identity Pass — current `drawEgg()` is LOCKED, but a future CSS/overlay approach (or planned `drawEgg()` modification) could make egg motifs more visually obvious to the child. Q9 asks GPT to decide if this matters before the creature system ships.
-
-**Open questions expanded to 10:** Q9 = egg legibility; Q10 = Ember as formal 17th family.
-
-- No code changes. No build.
-
-**What changed last session (Procedural Character System Design v2 — docs only):**
+**What changed earlier (Procedural Character System Design v2 — docs only):**
 
 Architecture: Beauty Layer added (between Art Direction and Animation). 16 Family Archetypes. Signature Feature System (17 traits, one per creature). Existing Collection Migration (legacy emoji path for old creatures; DNA + canvas for new). Emoji composite removed; 5-phase path. ~340M combinations.
 

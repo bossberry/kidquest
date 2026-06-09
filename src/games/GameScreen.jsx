@@ -27,6 +27,7 @@ const WORLD_TITLES = {
 export default function GameScreen({ navigate, soundOn, toggleSound }) {
   const { state } = useAppState()
   const world = state.currentWorld || 'thai'
+  const isAdventure = world.startsWith('adventure-')
 
   return (
     <div style={{ display:'flex', flexDirection:'column', width:'100%', height:'100%', background:'var(--bg)' }}>
@@ -35,7 +36,11 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
         <div className="game-title-bar">{WORLD_TITLES[world] || world}</div>
         <div className="xp-earned">+<span>{state.sessionXP||0}</span> XP</div>
       </div>
-      <div id="game-container" style={{ width:'100%', maxWidth:480, flex:1, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', paddingBottom:20 }}>
+      <div id="game-container" style={
+        isAdventure
+          ? { width:'100%', flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }
+          : { width:'100%', maxWidth:480, flex:1, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', paddingBottom:20 }
+      }>
         <Suspense fallback={<div style={{ padding:40, color:'var(--muted)' }}>กำลังโหลด...</div>}>
           {world === 'thai'    && <GameThai navigate={navigate} soundOn={soundOn} />}
           {world === 'math'    && <GameMath navigate={navigate} soundOn={soundOn} />}

@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { playTone, speakTh, speakEn } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { shuffle } from '../config/gameConfig.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ICONS = ['⚡','🔥','❄️','🌪️','🌊','🌟','💥','🌿']
-const MOVE_NAME = {
-  '⚡':'Thunder','🔥':'Firespin','❄️':'Blizzard','🌪️':'Whirlwind',
-  '🌊':'Surf','🌟':'Starfall','💥':'Blast','🌿':'Leafage',
-}
 const BG = { math:'#1a1040', thai:'#0d2b1d', eng:'#0a1f3d' }
+
+function answerFontSize(content) {
+  const s = String(content)
+  if (s.length <= 2) return 64   // single emoji, single digit/letter
+  if (s.length <= 4) return 54   // short emoji sequence, 3-4 char
+  return 44                       // longer (ZWJ emoji, word)
+}
 
 const REGULAR_ENEMIES = {
   math:[{name:'หุ่นยนต์เลข',emoji:'🤖'},{name:'ผีคณิต',emoji:'👻'},{name:'ปีศาจจ้อน',emoji:'😈'}],
@@ -41,10 +42,9 @@ function HPBar({ pct, isBoss }) {
   )
 }
 
-// ─── Move Card ────────────────────────────────────────────────────────────────
+// ─── Answer Card — content is the move ───────────────────────────────────────
 
-function MoveCard({ icon, moveName, content, isSelected, isMiss, onTap, disabled }) {
-  const large = typeof content === 'string' && content.length <= 2
+function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
   return (
     <button
       onClick={onTap}
@@ -54,20 +54,17 @@ function MoveCard({ icon, moveName, content, isSelected, isMiss, onTap, disabled
         border: isSelected ? '2px solid rgba(255,255,255,.75)' : '1.5px solid rgba(255,255,255,.2)',
         borderRadius:16,
         cursor: disabled ? 'default' : 'pointer',
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:5,
+        display:'flex', alignItems:'center', justifyContent:'center',
         touchAction:'manipulation',
         animation: isSelected ? 'move-pulse .22s ease' : isMiss ? 'miss-fizzle .5s ease forwards' : 'none',
         opacity: isMiss ? 0.4 : 1,
         transition:'opacity .15s, border-color .1s',
         userSelect:'none', WebkitUserSelect:'none',
-        padding:'12px 8px',
       }}
     >
-      <div style={{ fontSize:28, lineHeight:1 }}>{icon}</div>
-      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize: large ? 44 : 38, color:'#fff', lineHeight:1 }}>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize: answerFontSize(content), color:'#fff', lineHeight:1 }}>
         {content}
       </div>
-      <div style={{ fontSize:9, color:'rgba(255,255,255,.28)', letterSpacing:'0.3px', textTransform:'uppercase' }}>{moveName}</div>
     </button>
   )
 }
@@ -167,10 +164,6 @@ export default function MoveSelectBattleMode({
   const [victoryMode, setVictoryMode]   = useState(false)
   const [showTeach, setShowTeach]       = useState(() => !!isFirstLevel && cur === 0)
 
-  // ── Move icons per question ──────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const moveIcons = useMemo(() => shuffle([...ICONS]).slice(0, 4), [cur])
-
   // ── TTS on question change ───────────────────────────────────────────────
   useEffect(() => {
     if (!q?.ttsWord) return
@@ -211,7 +204,7 @@ export default function MoveSelectBattleMode({
     }, 220)
   }
 
-  function fireHit(idx) {
+  function fireHit(_idx) {
     const { earned, isCrit } = onCorrect()
     comboRef.current += 1
     const combo = comboRef.current
@@ -239,8 +232,6 @@ export default function MoveSelectBattleMode({
       setTimeout(() => mountedRef.current && setDmgFloat(null), 950)
     }
 
-    const icon = moveIcons[idx]
-    const name = MOVE_NAME[icon] || '⚔️'
     let log
     if (isUlt) {
       log = '💥 ULTIMATE!! ×2'
@@ -259,7 +250,7 @@ export default function MoveSelectBattleMode({
       log = '✨ คอมโบ! 2 ต่อเนื่อง'
       playTone('combo')
     } else {
-      log = `${icon} ${name}! +${earned} XP`
+      log = `⚔️ โจมตี! +${earned} XP`
       playTone('correct')
     }
     if (mountedRef.current) {
@@ -506,8 +497,6 @@ export default function MoveSelectBattleMode({
           {q.choices.map((choice, idx) => (
             <MoveCard
               key={idx}
-              icon={moveIcons[idx]}
-              moveName={MOVE_NAME[moveIcons[idx]] || ''}
               content={choice}
               isSelected={selectedCard === idx}
               isMiss={missCard === idx}

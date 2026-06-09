@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
-import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import { drawCreature as drawLegacyCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import { drawCreature } from '../lib/drawCreature.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
 export default function Collection() {
@@ -33,7 +34,12 @@ export default function Collection() {
 function CreatureCard({ egg, index, onSelect }) {
   const canvasRef = useRef(null)
   useEffect(() => {
-    if (canvasRef.current) drawCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
+    if (!canvasRef.current) return
+    if (egg.dna) {
+      drawCreature(canvasRef.current, egg.dna)
+    } else {
+      drawLegacyCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
+    }
   }, [egg])
   const rarityColors = {common:'#085041',uncommon:'#0C447C',rare:'#3C3489',epic:'#633806',legendary:'#C8C0F8'}
   const rarityBg = {common:'#E1F5EE',uncommon:'#E6F1FB',rare:'#EEEDFE',epic:'#FAEEDA',legendary:'#1E1B3A'}

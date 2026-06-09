@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Adventure Mode UI 2.0
+
+- `src/games/DefenseMode.jsx` — Full layout redesign. Enemy (attacker) enlarged from 90px → 120px emoji. Removed `QuestionDisplay` component (44px emoji + word + subtext — was dominating the screen). Replaced with compact `QuestionHint` (28px emoji + 🔊 button only, or tiny math/count display). Hit flash overlay added (crit-flash keyframe). Miss animation on wrong choice button (`miss-fizzle`). Red button highlight on wrong tap. Combo indicator top-left (no large badge). Mode text labels removed. Vertical stack unchanged: Enemy → Shield → Egg. Egg gets continuous `egg-idle 3s` idle animation. Move panel: `flex:1` takes bottom half, `flexShrink:0` on all headers.
+- `src/games/ChaseMode.jsx` — Full layout redesign. Target emoji enlarged from 64px → 120px, moved to top center (was top-right corner). Removed `QuestionDisplay`. Replaced with same compact `QuestionHint`. Chase track slimmed from 70px → 32px. Egg on track stays (28px canvas). Hit flash overlay added. Miss animation on wrong button. Combo indicator top-left. Target now shows "จับได้แล้ว!" + victory-bounce when dist≥100. Slim track shows gold fill when dist≥80 ("⚡ ใกล้แล้ว!" label inside).
+- `src/games/MoveSelectBattleMode.jsx` — Egg idle animation: default state now `egg-idle 3s ease-in-out infinite` instead of `none`. Question hint min-height reduced 46→36px. Minor layout tightening.
+- `src/styles.css` — New keyframe `egg-idle` (gentle float + rotate, 3s ease-in-out). Added to `prefers-reduced-motion` suppression.
+- Build: ✅ zero errors. GameSubjectAdventure chunk: 36.72KB.
+
 ## 2026-06-04 — Pokémon-Style Learning Battle (all 3 subjects)
 
 - `src/games/MoveSelectBattleMode.jsx` — NEW. Pokémon-style battle shell replacing BattleMode in Subject Adventure Engine. One component serves Math/Thai/English via subject adapters. Move panel: 2×2 grid, each card shows `[element icon] [answer content]` (number for Math, emoji for Thai/Eng). No player HP. Wrong answer = miss fizzle + "โจมตีพลาด!". Combo system: streak 2=glow, 3=combo flash, 4+=CRITICAL ×1.5 damage. Ultimate: after 3 consecutive correct, ultimate charges (×2 damage on next correct). Boss encounters at 12% rate. Victory after last question: enemy defeat animation → confetti → fanfare → result screen. Teach intro overlay shown on first-ever play of a level. Anticipation sequence: tap → card pulse → egg charge → egg lunge → hit/miss effects. TTS fires on Thai/English question load. Egg companion: all existing EggCanvas animations, near-hatch glow, combo glow ring.

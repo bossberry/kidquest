@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-04 (Pokémon-Style Learning Battle — all 3 subjects)_
+_Last updated: 2026-06-09 (Adventure Mode UI 2.0)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,15 @@ _Last updated: 2026-06-04 (Pokémon-Style Learning Battle — all 3 subjects)_
 
 ## Latest Session Summary
 
-**What changed this session (Pokémon-Style Learning Battle — code change):**
+**What changed this session (Adventure Mode UI 2.0 — code change):**
+
+- `src/games/DefenseMode.jsx` — Full layout redesign. Enemy enlarged 90→120px. Removed large `QuestionDisplay` component (was dominating screen with 44px emoji + word + subtext). Replaced with compact `QuestionHint` (28px emoji + 🔊 only, or minimal math display). Hit flash overlay on correct. Miss animation (`miss-fizzle`) + red border highlight on wrong button. Mode text labels removed entirely. Egg gets `egg-idle 3s` continuous idle animation. Combo shown as compact top-left indicator (was large badge). Visual hierarchy: enemy top → shield → egg → log → hint → 2×2 move panel.
+- `src/games/ChaseMode.jsx` — Full layout redesign. Target enemy 64→120px, moved to top center (was top-right corner, small). Removed `QuestionDisplay`, replaced with same `QuestionHint`. Chase track slimmed 70→32px. Egg slides on slimmer track. Target shows 🎉 + `victory-bounce` at dist≥100. Track fill goes gold at dist≥80 with "⚡ ใกล้แล้ว!" label inside track. Hit flash on correct. Miss animation on wrong. Combo compact top-left.
+- `src/games/MoveSelectBattleMode.jsx` — Minor: egg idle animation changed from `none` to `egg-idle 3s ease-in-out infinite` at rest. Question hint min-height 46→36px.
+- `src/styles.css` — New `@keyframes egg-idle` (5px float + 2-degree rotate, 3s loop). Added to `prefers-reduced-motion` suppression.
+- Build: ✅ zero errors. Commit: 4247ac5.
+
+**What changed last session (Pokémon-Style Learning Battle — code change):**
 
 - `src/games/MoveSelectBattleMode.jsx` — NEW. Pokémon-style battle shell for all 3 subjects (Math/Thai/English). Move panel: 2×2 grid, each card = `[element icon] [answer content]`. No player HP — egg never in danger. Wrong = miss fizzle + "โจมตีพลาด!" + continue. Combo system: streak 2=glow, 3=combo flash, 4+=CRITICAL ×1.5 damage. Ultimate: after 3 consecutive correct, charges (×2 damage on next correct, huge effect). Boss at 12% rate (more HP, "BOSS" badge). Teach intro overlay on first-ever level play. Anticipation sequence: tap → card pulse (CSS) → egg charge → egg lunge → hit/miss effects (total ≤ 1000ms). Egg companion: charge/lunge animations, combo glow ring (builds with streak), near-hatch glow, victory bounce. Victory always at end of question 8: enemy defeat animation → confetti → fanfare → result screen.
 - `src/games/GameSubjectAdventure.jsx` — Modified. Added `genThaiMoveQ()` (emoji choices instead of letter choices — hear word → tap picture) and `genEngMoveQ()` (same). `genMoveQuestion()` dispatches by subject. Session now generates battle-format questions when `mode === 'battle'`, classic questions for chase/defense. Replaced `BattleMode` import with `MoveSelectBattleMode`. Passes `isFirstLevel` prop. `ResultScreen` updated: hides score/accuracy from child — only shows `+XP` and `🥚 ไข่โตขึ้น!`. Score still recorded in sessionLog for parent Report.

@@ -1,351 +1,382 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
-import { supabase } from '../lib/supabase.js'
-import { MG_UNLOCK, MG_COLORS, todayStr } from '../config/gameConfig.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { showToast } from './Toasts.jsx'
 import { playTone } from '../lib/audio.js'
 
-function XpBoostBadge({ xpBoostEnd, xpBoost }) {
-  const [ms, setMs] = useState(() => Math.max(0, (xpBoostEnd || 0) - Date.now()))
-  const idRef = useRef(null)
+const ITEM_DEFS = [
+  { key:'food',   emoji:'🍗', label:'อาหาร' },
+  { key:'ribbon', emoji:'🎀', label:'ริบบิ้น' },
+  { key:'potion', emoji:'💧', label:'น้ำมนต์' },
+  { key:'star',   emoji:'⭐', label:'ดาว' },
+]
 
-  useEffect(() => {
-    clearInterval(idRef.current)
-    const left = Math.max(0, (xpBoostEnd || 0) - Date.now())
-    setMs(left)
-    if (left > 0) {
-      idRef.current = setInterval(() => {
-        const remaining = Math.max(0, (xpBoostEnd || 0) - Date.now())
-        setMs(remaining)
-        if (remaining <= 0) clearInterval(idRef.current)
-      }, 1000)
-    }
-    return () => clearInterval(idRef.current)
-  }, [xpBoostEnd])
+const ITEM_SFX = { food:'feed', ribbon:'jingle', potion:'sparkle', star:'item' }
 
-  if (ms <= 0 || (xpBoost || 1) <= 1) return null
-  const m = Math.floor(ms / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  return (
-    <div style={{ background:'var(--amber)', color:'var(--amber-d)', borderRadius:8, padding:'3px 8px', fontSize:11, fontFamily:'Mitr,sans-serif', fontWeight:700, display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
-      ⭐ ×2 {m}:{String(s).padStart(2,'0')}
-    </div>
-  )
-}
+export default function Home({ navigate, soundOn, toggleSound }) {
+  const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
 
-function getRecommendation(state, stage) {
-  if (state.readyToHatch && stage >= 6) {
-    return {
-      type: 'hatch', icon: '🥚',
-      label: 'ฟักไข่!', sub: 'ไข่พร้อมฟักแล้ว ✨',
-      bg: '#FFF8E1', border: '#FFD700', textColor: '#5A3A00', subColor: '#8A5500',
-    }
-  }
-  if (state.pendingChallenger) {
-    const ch = state.pendingChallenger
-    return {
-      type: 'battle', icon: ch.emoji || '⚔️',
-      label: 'มอนสเตอร์ปรากฏตัว!', sub: `${ch.name} กำลังท้าทายคุณ — รับคำท้า!`,
-      bg: 'linear-gradient(135deg,#1a0a3a,#3c1a6e)',
-      border: '#7F77DD', textColor: '#fff', subColor: 'rgba(255,255,255,.75)',
-    }
-  }
-  if ((state.shopV1?.runs || 0) === 0) {
-    return {
-      type: 'shop', icon: '🏪',
-      label: 'ร้านค้า', sub: '🆕 ลองภารกิจใหม่ — 2–3 นาที',
-      bg: '#FFF5E6', border: '#F0B86E', textColor: '#4A2A00', subColor: '#7A5500',
-    }
-  }
-  const levels = state.subjectLevels || {}
-  const subs = [
-    { world:'thai', xp:state.xpThai||0, label:'ภาษาไทย', icon:'🇹🇭', lv:levels.thai||1, bg:'#E1F5EE', border:'#9FE1CB', textColor:'#085041', subColor:'#0F6E56' },
-    { world:'math', xp:state.xpMath||0, label:'Math',     icon:'🔢', lv:levels.math||1, bg:'#EEEDFE', border:'#CECBF6', textColor:'#3C3489', subColor:'#534AB7' },
-    { world:'eng',  xp:state.xpEng ||0, label:'English',  icon:'🔤', lv:levels.eng ||1, bg:'#E6F1FB', border:'#B5D4F4', textColor:'#0C447C', subColor:'#185FA5' },
-  ]
-  const weak = subs.reduce((a, b) => a.xp <= b.xp ? a : b)
-  const MODE_ICONS = { math:'⚔️', thai:'🛡️', eng:'🏃' }
-  const MODE_SUBS = { math:'ตอบถูก = โจมตี! ⚡', thai:'ป้องกันด้วยความรู้! 🛡️', eng:'วิ่งไล่จับ! 🏃' }
-  return {
-    type: 'learn', world: weak.world,
-    icon: MODE_ICONS[weak.world] || weak.icon,
-    label: `${weak.label} ผจญภัย`,
-    sub: `Lv ${weak.lv} — ${MODE_SUBS[weak.world] || 'เรียนต่อ!'}`,
-    bg: weak.bg, border: weak.border, textColor: weak.textColor, subColor: weak.subColor,
-  }
-}
+  const [petStreak, setPetStreak] = useState(0)
+  const [eggAnim, setEggAnim] = useState('float')
+  const [activeItem, setActiveItem] = useState(null)
+  const [particles, setParticles] = useState([])
+  const [creature, setCreature] = useState({ x: 30, dir: 1 })
+  const [creatureTapped, setCreatureTapped] = useState(false)
 
-function getSurpriseEvent(state, eggsHatched) {
-  const all = ['catch', 'memory', 'tower', 'fishing']
-  const unlocked = all.filter(id => eggsHatched >= MG_UNLOCK[id])
-  if (!unlocked.length) return null
-  const n = parseInt(todayStr().replace(/-/g, ''))
-  const id = unlocked[n % unlocked.length]
-  const today = new Date().toDateString()
-  const played = (state.sessionLog || []).some(s => s.world === id && new Date(s.ts).toDateString() === today)
-  return { id, played }
-}
+  const particleIdRef = useRef(0)
+  const animTimerRef = useRef(null)
+  const creatureRef = useRef({ x: 30, dir: 1 })
+  const initVisitRef = useRef(state.lastHomeVisit)
 
-const MG_ICONS = { catch:'🧺', memory:'🃏', tower:'🏗️', fishing:'🎣' }
-const MG_NAMES = { catch:'Egg Catch', memory:'Egg Memory', tower:'Egg Tower', fishing:'Egg Fishing' }
-
-export default function Home({ navigate, soundOn, toggleSound, onOpenEggPopup, onOpenLogin, onOpenProfile, onOpenChallenger }) {
-  const { state, dispatch, totalXP, eggProgressData, eggStatsData } = useAppState()
-  const [authUser, setAuthUser] = useState(null)
-  const [subjectsOpen, setSubjectsOpen] = useState(false)
-  const prevReadyRef = useRef(false)
-
-  // Play a gentle chime the moment the egg becomes ready to hatch
-  useEffect(() => {
-    if (state.readyToHatch && !prevReadyRef.current) playTone('eggReady')
-    prevReadyRef.current = state.readyToHatch
-  }, [state.readyToHatch]) // eslint-disable-line
-
-  useEffect(() => {
-    if (!supabase) return
-    supabase.auth.getUser().then(({ data: { user } }) => setAuthUser(user)).catch(() => {})
-    const { data } = supabase.auth.onAuthStateChange((_, session) => setAuthUser(session?.user || null))
-    return () => data?.subscription?.unsubscribe()
-  }, [])
-
-  const { stage, stageXP, pct, xpPerStage = 50 } = eggProgressData
+  const { stage } = eggProgressData
   const eggsHatched = (state.hatchedEggs || []).length
+  const lastCreatureEmoji = state.hatchedEggs?.[0]?.creature?.e || null
+  const readyToHatch = state.readyToHatch && stage >= 6
 
-  const startWorld = (world) => {
-    dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: world })
-    dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
-    navigate('game')
+  // Record visit + trigger reunion on mount
+  useEffect(() => {
+    const last = initVisitRef.current
+    const now = Date.now()
+    const isReunion = !last || (now - last) > 4 * 60 * 60 * 1000
+    dispatch({ type: ACTIONS.UPDATE_LAST_HOME_VISIT, payload: now })
+    if (isReunion) {
+      triggerAnim('reunion', 1100)
+      spawnParticles('sparkle', 8)
+      playTone('chirp')
+    }
+  }, []) // eslint-disable-line
+
+  // Creature patrol
+  useEffect(() => {
+    if (eggsHatched === 0) return
+    const MAX_X = 230
+    const id = setInterval(() => {
+      const s = creatureRef.current
+      let x = s.x + s.dir * 0.5
+      let dir = s.dir
+      if (x >= MAX_X) { x = MAX_X; dir = -1 }
+      if (x <= 10) { x = 10; dir = 1 }
+      creatureRef.current = { x, dir }
+      setCreature({ x, dir })
+    }, 40)
+    return () => clearInterval(id)
+  }, [eggsHatched]) // eslint-disable-line
+
+  // Reset pet streak after 6s inactivity
+  useEffect(() => {
+    if (petStreak === 0) return
+    const t = setTimeout(() => setPetStreak(0), 6000)
+    return () => clearTimeout(t)
+  }, [petStreak])
+
+  const spawnParticles = (type, count = 5) => {
+    const ps = Array.from({ length: count }, () => {
+      const id = ++particleIdRef.current
+      const angle = Math.random() * 360
+      const r = 50 + Math.random() * 40
+      const dx = Math.cos(angle * Math.PI / 180) * r
+      const dy = Math.sin(angle * Math.PI / 180) * r - 20
+      const dur = 800 + Math.floor(Math.random() * 300)
+      return { id, type, dx, dy, dur }
+    })
+    setParticles(prev => [...prev, ...ps])
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !ps.find(np => np.id === p.id)))
+    }, 1200)
   }
 
-  const onEggRunClick = () => {
-    const dr = state.dailyRounds || 0
-    if (dr < 10) { showToast(`📚 เรียนอีก ${10 - dr} ด่านเพื่อ Unlock Egg Run!`); return }
-    if ((state.eggRunLives ?? 3) <= 0) { showToast('🌙 หมดชีวิตแล้ว มาเรียนพรุ่งนี้นะ!'); return }
-    startWorld('eggrun')
+  const triggerAnim = (name, duration) => {
+    clearTimeout(animTimerRef.current)
+    setEggAnim('float')
+    requestAnimationFrame(() => {
+      setEggAnim(name)
+      if (duration) {
+        animTimerRef.current = setTimeout(
+          () => setEggAnim(stage >= 5 ? 'excited' : 'float'),
+          duration
+        )
+      }
+    })
   }
 
-  const dr = state.dailyRounds || 0
-  const lives = state.eggRunLives ?? 3
-  const erUnlocked = dr >= 10
-  const erHasLives = lives > 0
-
-  const spoilHint = ['🔮 เรียนเพื่อปลุกลวดลาย!','✨ ไข่เริ่มอบอุ่น...','👁️ มีบางอย่างขยับ...','🐾 เห็นเงาข้างใน...','👀 มีดวงตามองออกมา!','💥 ไข่สั่นแล้ว!!!','🎉 กำลังจะฟัก!!!'][stage] || ''
-
-  const rec = getRecommendation(state, stage)
-  const surprise = getSurpriseEvent(state, eggsHatched)
-
-  const handleRecommendedAction = () => {
-    playTone('tap')
-    if (rec.type === 'hatch') {
+  const handlePetEgg = () => {
+    if (readyToHatch) {
       dispatch({ type: ACTIONS.SET_HATCHING, payload: true })
-    } else if (rec.type === 'battle') {
-      onOpenChallenger()
-    } else if (rec.type === 'shop') {
-      startWorld('shop')
-    } else if (rec.type === 'learn') {
-      // All subjects → Subject Adventure Engine (mode: battle / chase / defense picked daily)
-      startWorld(`adventure-${rec.world}`)
+      return
+    }
+    playTone('chirp')
+    const ns = petStreak + 1
+    setPetStreak(ns)
+    if (ns >= 6) {
+      triggerAnim('sleepy', 2000)
+    } else if (ns >= 3) {
+      triggerAnim('happy-spin', 700)
+      spawnParticles('hearts', 7)
+    } else {
+      triggerAnim('pet', 500)
+      spawnParticles('sparkle', 4)
     }
   }
 
+  const handleTapItem = (key) => {
+    if (activeItem === key) {
+      const count = state.items?.[key] || 0
+      if (count <= 0) return
+      dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
+      playTone(ITEM_SFX[key] || 'tap')
+      setActiveItem(null)
+      spawnParticles(key === 'food' ? 'hearts' : 'sparkle', 6)
+      triggerAnim('pet', 600)
+    } else {
+      setActiveItem(key)
+      playTone('tap')
+    }
+  }
+
+  const handleEggTap = () => {
+    if (activeItem) {
+      handleTapItem(activeItem)
+    } else {
+      handlePetEgg()
+    }
+  }
+
+  const idleClass = stage >= 5 ? 'egg-anim-excited' : 'egg-anim-float'
+  const eggClass = eggAnim === 'float' ? idleClass : `egg-anim-${eggAnim}`
+
+  const stageDots = Array.from({ length: 7 }, (_, i) => i <= stage)
+
   return (
-    <div id="home" style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', minHeight:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
+    <div
+      id="egg-home"
+      style={{
+        display:'flex', flexDirection:'column', alignItems:'center',
+        width:'100%', height:'100%', overflow:'hidden',
+        paddingBottom: 66,
+      }}
+    >
       {/* Header */}
-      <div className="home-header">
-        <div className="home-logo">KidQuest</div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div className="home-xp">⚡ <span>{totalXP}</span> XP</div>
-          <XpBoostBadge xpBoostEnd={state.xpBoostEnd} xpBoost={state.xpBoost} />
-          <button onClick={onOpenProfile} style={{ fontSize:11, background:'var(--purple-l)', border:'none', borderRadius:8, padding:'4px 8px', color:'var(--purple-d)', cursor:'pointer', fontFamily:'Mitr,sans-serif', fontWeight:600, maxWidth:80, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            👤 {state.name}
+      <div style={{
+        width:'100%', maxWidth:480, padding:'14px 20px 0',
+        display:'flex', alignItems:'flex-start', justifyContent:'space-between',
+        flexShrink:0,
+      }}>
+        <div>
+          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#5A3A8B', lineHeight:1.1 }}>
+            ไข่ของ{state.name}
+          </div>
+          <div style={{ display:'flex', gap:5, marginTop:5, alignItems:'center' }}>
+            {stageDots.map((filled, i) => (
+              <div key={i} style={{
+                width:9, height:9, borderRadius:'50%',
+                background: filled ? '#9B59B6' : 'rgba(155,89,182,0.18)',
+                transition:'background 0.4s',
+              }} />
+            ))}
+            <span style={{ fontSize:10, color:'rgba(90,58,139,0.5)', marginLeft:4, fontFamily:'Mitr,sans-serif' }}>
+              {EGG_STAGE_NAMES[stage] || 'ไข่ลึกลับ'}
+            </span>
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {readyToHatch && (
+            <div style={{
+              background:'linear-gradient(135deg,#FFD700,#FF9500)',
+              color:'#5A3A00', borderRadius:16, padding:'5px 12px',
+              fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:12,
+              animation:'challenger-pulse 1s ease-in-out infinite',
+              boxShadow:'0 2px 10px rgba(255,165,0,0.35)',
+            }}>
+              🥚 พร้อมฟัก!
+            </div>
+          )}
+          <button
+            onClick={toggleSound}
+            style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', opacity:0.5, padding:4 }}
+          >
+            {soundOn ? '🔊' : '🔇'}
           </button>
-          {authUser ? (
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <div className="auth-avatar" title={authUser.email}>{(authUser.email || '?')[0].toUpperCase()}</div>
-              <button onClick={async () => { await supabase?.auth.signOut() }} style={{ fontSize:11, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontFamily:'Mitr,sans-serif' }}>Logout</button>
-            </div>
-          ) : (
-            <button className="auth-login-btn" onClick={onOpenLogin}>Login</button>
-          )}
         </div>
       </div>
 
-      {/* Egg */}
-      <div className="home-egg" onClick={state.readyToHatch && stage >= 6 ? null : onOpenEggPopup}>
-        <div className="egg-stage-txt">ไข่ของ{state.name} — Stage {stage + 1}/{7}</div>
-        <EggCanvas
-          stats={eggStatsData}
-          width={160} height={190}
-          className={stage >= 5 ? 'egg-shaking' : ''}
-          style={{ cursor:'pointer' }}
-          onClick={state.readyToHatch ? () => { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }) } : onOpenEggPopup}
-        />
-        <div className="egg-name-txt">{EGG_STAGE_NAMES[stage] || 'ไข่ลึกลับ'}</div>
-        <div className="egg-xp-bar-wrap"><div className="egg-xp-bar" style={{ width: pct + '%' }} /></div>
-        <div className="egg-xp-label">
-          {state.readyToHatch
-            ? '🐣 พร้อมฟักแล้ว!'
-            : stage >= 6
-            ? `${stageXP} / ${xpPerStage} XP เกือบฟักแล้ว!`
-            : `${stageXP} / ${xpPerStage} XP ถึง Stage ถัดไป`}
-        </div>
-        <div className={`spoil-txt${stage >= 3 ? ' lit' : ''}`}>
-          {state.readyToHatch && stage >= 6
-            ? <button onClick={() => dispatch({ type: ACTIONS.SET_HATCHING, payload: true })} style={{ background:'var(--amber)', color:'var(--amber-d)', border:'none', borderRadius:20, padding:'8px 20px', fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>🥚 แตะเพื่อฟักไข่!</button>
-            : spoilHint}
-        </div>
-      </div>
-
-      {/* ⭐ Continue Adventure — primary action */}
-      <div style={{ width:'100%', maxWidth:480, padding:'16px 20px 0' }}>
-        <div style={{ fontSize:11, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:8, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' }}>⭐ ผจญภัยต่อ</div>
+      {/* Egg zone */}
+      <div style={{
+        flex:1, width:'100%', maxWidth:480, minHeight:0,
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        position:'relative', paddingBottom:50,
+      }}>
+        {/* Egg + particles */}
         <div
-          onClick={handleRecommendedAction}
-          className={rec.type === 'battle' ? 'rec-card-battle' : 'rec-card-float'}
-          style={{
-            display:'flex', alignItems:'center', gap:16,
-            background: rec.bg,
-            border: `2px solid ${rec.border}`,
-            borderRadius:18, padding:'20px 22px',
-            cursor:'pointer',
-            boxShadow:'0 4px 24px rgba(0,0,0,.08)',
-            transition:'transform .12s, box-shadow .12s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,.13)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 24px rgba(0,0,0,.08)' }}
+          className={eggClass}
+          onClick={handleEggTap}
+          style={{ cursor:'pointer', position:'relative', display:'inline-block' }}
         >
-          <span style={{ fontSize:52, lineHeight:1 }}>{rec.icon}</span>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color: rec.textColor, lineHeight:1.1 }}>{rec.label}</div>
-            <div style={{ fontSize:14, color: rec.subColor, marginTop:5 }}>{rec.sub}</div>
-          </div>
-          <div style={{ fontSize:26, color: rec.textColor, opacity:.45, flexShrink:0 }}>→</div>
-        </div>
-      </div>
-
-      {/* Subject grid — collapsible secondary */}
-      <div style={{ width:'100%', maxWidth:480, padding:'12px 20px 0' }}>
-        <button
-          onClick={() => { const next = !subjectsOpen; playTone(next ? 'open' : 'click'); setSubjectsOpen(next) }}
-          style={{
-            width:'100%', background:'none', border:'1.5px solid var(--border)',
-            borderRadius:12, padding:'10px 18px',
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            cursor:'pointer', fontFamily:'Mitr,sans-serif', fontSize:13,
-            color:'var(--muted)', fontWeight:600, letterSpacing:'.03em',
-          }}
-        >
-          <span>อยากเลือกเอง?</span>
-          <span style={{ fontSize:9, display:'inline-block', transition:'transform .2s', transform: subjectsOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-        </button>
-      </div>
-      {subjectsOpen && (
-        <div className="world-grid subjects-slide-in" style={{ marginTop:8 }}>
-          <div className="world-card" style={{ background:'#E1F5EE' }} onClick={() => startWorld('thai')}>
-            <span className="world-icon">🇹🇭</span>
-            <div className="world-name" style={{ color:'#085041' }}>ภาษาไทย</div>
-            <div className="world-sub" style={{ color:'#0F6E56' }}>ก-ฮ</div>
-            <div className="world-xp-mini" style={{ background:'#9FE1CB', color:'#085041' }}>{state.xpThai||0} XP</div>
-          </div>
-          <div className="world-card" style={{ background:'#EEEDFE' }} onClick={() => startWorld('math')}>
-            <span className="world-icon">🔢</span>
-            <div className="world-name" style={{ color:'#3C3489' }}>Math</div>
-            <div className="world-sub" style={{ color:'#534AB7' }}>บวกเลข</div>
-            <div className="world-xp-mini" style={{ background:'#CECBF6', color:'#3C3489' }}>{state.xpMath||0} XP</div>
-          </div>
-          <div className="world-card" style={{ background:'#E6F1FB' }} onClick={() => startWorld('eng')}>
-            <span className="world-icon">🔤</span>
-            <div className="world-name" style={{ color:'#0C447C' }}>English</div>
-            <div className="world-sub" style={{ color:'#185FA5' }}>Phonics</div>
-            <div className="world-xp-mini" style={{ background:'#B5D4F4', color:'#0C447C' }}>{state.xpEng||0} XP</div>
-          </div>
-        </div>
-      )}
-
-      {/* Egg Run */}
-      <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
-        <div
-          id="er-banner"
-          className={`eggrun-banner${!erUnlocked ? ' locked' : erHasLives ? ' ready' : ' locked'}`}
-          onClick={onEggRunClick}
-          style={{ cursor: !erUnlocked || !erHasLives ? 'default' : 'pointer' }}
-        >
-          <EggCanvas stats={eggStatsData} width={44} height={52} style={{ borderRadius:8, flexShrink:0, opacity: erUnlocked && erHasLives ? 1 : 0.3 }} />
-          <div style={{ flex:1, minWidth:0 }}>
-            {!erUnlocked ? (
-              <>
-                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:15, color:'rgba(255,255,255,.45)', marginBottom:3 }}>🏃 Egg Run 🔒</div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>เรียนอีก {10 - dr} ด่านเพื่อ Unlock</div>
-                <div style={{ marginTop:6, height:4, background:'rgba(255,255,255,.12)', borderRadius:4, overflow:'hidden' }}>
-                  <div style={{ height:4, background:'rgba(255,255,255,.4)', borderRadius:4, width:`${Math.round(dr/10*100)}%` }} />
+          {particles.length > 0 && (
+            <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:10, overflow:'visible' }}>
+              {particles.map(p => (
+                <div key={p.id} style={{
+                  position:'absolute',
+                  top:'50%', left:'50%',
+                  marginTop: p.dy, marginLeft: p.dx,
+                  fontSize: p.type === 'hearts' ? 16 : 14,
+                  animation:`particle-rise ${p.dur}ms ease forwards`,
+                  pointerEvents:'none',
+                }}>
+                  {p.type === 'hearts' ? '💗' : '✨'}
                 </div>
-                <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginTop:3 }}>{dr}/10 ด่าน</div>
-              </>
-            ) : !erHasLives ? (
-              <>
-                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:15, color:'rgba(255,255,255,.5)', marginBottom:3 }}>🏃 Egg Run 🌙</div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>มาเรียนพรุ่งนี้เพื่อเล่นอีกครั้ง!</div>
-                <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginTop:4 }}>Best: {state.erBestDist||0}m · 💛{state.erBestRings||0}</div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:16, color:'#FFD700', marginBottom:2 }}>🏃 Egg Run</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,.9)' }}>Egg Run พร้อมแล้ว! 🥚⚡</div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginTop:4 }}>{'❤️'.repeat(lives)}{'🖤'.repeat(Math.max(0,3-lives))} · Best: {state.erBestDist||0}m</div>
-              </>
-            )}
-          </div>
-          {erUnlocked && erHasLives && <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', flexShrink:0 }}>แตะเพื่อเล่น →</div>}
+              ))}
+            </div>
+          )}
+          <EggCanvas stats={eggStatsData} width={190} height={225} style={{ display:'block' }} />
         </div>
-      </div>
 
-      {/* 🎁 Today's Surprise — single event rotation */}
-      {surprise ? (
-        <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
-          <div style={{ fontSize:11, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginBottom:8, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase' }}>🎁 เซอร์ไพรส์วันนี้</div>
-          {surprise.played ? (
-            <div style={{ background:'#f9f9f9', border:'1.5px solid var(--border)', borderRadius:14, padding:'14px 18px', textAlign:'center', color:'var(--muted)', fontSize:13, fontFamily:'Mitr,sans-serif' }}>
-              เล่นแล้ว! มาพรุ่งนี้นะ 🌙
+        {/* Hatch CTA */}
+        {readyToHatch && (
+          <button
+            onClick={() => dispatch({ type: ACTIONS.SET_HATCHING, payload: true })}
+            style={{
+              marginTop:14, background:'linear-gradient(135deg,#FFD700,#FFA500)',
+              color:'#5A3A00', border:'none', borderRadius:24,
+              padding:'11px 28px', fontFamily:'Mitr,sans-serif',
+              fontWeight:700, fontSize:17, cursor:'pointer',
+              boxShadow:'0 4px 18px rgba(255,165,0,0.45)',
+            }}
+          >
+            🥚 แตะเพื่อฟักไข่!
+          </button>
+        )}
+
+        {/* Creature companion */}
+        <div style={{
+          position:'absolute', bottom:0, left:0, width:'100%', height:48,
+          overflow:'hidden',
+        }}>
+          {eggsHatched > 0 ? (
+            <div
+              style={{
+                position:'absolute', bottom:4,
+                left: creature.x,
+                fontSize:26, lineHeight:1,
+                transform:`scaleX(${creature.dir < 0 ? -1 : 1})`,
+                cursor:'pointer', userSelect:'none',
+                animation: creatureTapped ? 'egg-anim-pet 0.4s ease' : undefined,
+              }}
+              onClick={() => {
+                setCreatureTapped(true)
+                playTone('chirp')
+                setTimeout(() => setCreatureTapped(false), 500)
+              }}
+            >
+              {lastCreatureEmoji}
             </div>
           ) : (
-            <div
-              onClick={() => { playTone('tap'); startWorld(surprise.id) }}
-              className="rec-card-surprise"
-              style={{
-                display:'flex', alignItems:'center', gap:14,
-                background: MG_COLORS[surprise.id],
-                borderRadius:14, padding:'16px 18px',
-                cursor:'pointer',
-                boxShadow:'0 2px 14px rgba(0,0,0,.12)',
-                transition:'transform .12s, box-shadow .12s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(0,0,0,.2)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 2px 14px rgba(0,0,0,.12)' }}
-            >
-              <span style={{ fontSize:42, lineHeight:1 }}>{MG_ICONS[surprise.id]}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:19, color:'#fff' }}>{MG_NAMES[surprise.id]}</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,.85)', marginTop:3 }}>แตะเพื่อเล่น!</div>
-              </div>
-              <div style={{ fontSize:22, color:'rgba(255,255,255,.65)', flexShrink:0 }}>→</div>
+            <div style={{
+              position:'absolute', bottom:8, left:20,
+              fontSize:11, color:'rgba(90,58,139,0.38)', fontFamily:'Mitr,sans-serif',
+            }}>
+              ❓ ฟักไข่เพื่อพบเพื่อนใหม่!
             </div>
           )}
         </div>
-      ) : (
-        <div style={{ width:'100%', maxWidth:480, padding:'10px 20px 0' }}>
-          <div style={{ background:'linear-gradient(135deg,#1D1B3A,#3C3489)', borderRadius:14, padding:'14px 18px', textAlign:'center', color:'rgba(255,255,255,.55)', fontSize:13, fontFamily:'Mitr,sans-serif' }}>
-            🎁 ฟักไข่เพื่อปลดล็อกเซอร์ไพรส์!
-          </div>
-        </div>
-      )}
+      </div>
 
-      {/* Stats */}
-      <div className="stats-strip">
-        <div className="stat-mini"><div className="stat-mini-val">{state.streak||0}{(state.streak||0)>=3?'🔥':''}</div><div className="stat-mini-lbl">Streak</div></div>
-        <div className="stat-mini"><div className="stat-mini-val">{state.rounds||0}</div><div className="stat-mini-lbl">ด่านผ่าน</div></div>
-        <div className="stat-mini"><div className="stat-mini-val">{state.badges||0}⭐</div><div className="stat-mini-lbl">Badge</div></div>
+      {/* Item tray */}
+      <div style={{
+        width:'100%', maxWidth:480, padding:'8px 20px',
+        display:'flex', gap:10, justifyContent:'center', flexShrink:0,
+        borderTop:'1px solid rgba(155,89,182,0.1)',
+        background:'rgba(255,255,255,0.45)',
+      }}>
+        {ITEM_DEFS.map(({ key, emoji, label }) => {
+          const count = state.items?.[key] || 0
+          const isActive = activeItem === key
+          return (
+            <div
+              key={key}
+              onClick={() => count > 0 && handleTapItem(key)}
+              style={{
+                width:64, height:64, borderRadius:16,
+                background: isActive ? 'rgba(155,89,182,0.15)' : 'rgba(255,255,255,0.9)',
+                border: isActive ? '2px solid #9B59B6' : '1.5px solid rgba(155,89,182,0.16)',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                cursor: count > 0 ? 'pointer' : 'default', position:'relative',
+                opacity: count > 0 ? 1 : 0.3,
+                transform: isActive ? 'scale(1.1) translateY(-3px)' : 'scale(1)',
+                transition:'all 0.14s',
+                boxShadow: isActive ? '0 4px 14px rgba(155,89,182,0.22)' : 'none',
+              }}
+            >
+              <span style={{ fontSize:22, lineHeight:1 }}>{emoji}</span>
+              <span style={{ fontSize:8, color:'#7A5FB5', fontFamily:'Mitr,sans-serif', marginTop:2 }}>{label}</span>
+              {count > 0 && (
+                <div style={{
+                  position:'absolute', top:-5, right:-5,
+                  background:'#9B59B6', color:'#fff',
+                  borderRadius:10, minWidth:17, height:17,
+                  fontSize:9, fontWeight:700, fontFamily:'Mitr,sans-serif',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  padding:'0 3px', boxShadow:'0 1px 4px rgba(0,0,0,0.18)',
+                }}>
+                  {count}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Action row */}
+      <div style={{
+        width:'100%', maxWidth:480, padding:'6px 20px 10px',
+        display:'flex', gap:10, flexShrink:0,
+      }}>
+        <button
+          onClick={handlePetEgg}
+          style={{
+            flex:1, height:52, borderRadius:14,
+            background:'rgba(255,255,255,0.85)',
+            border:'1.5px solid rgba(155,89,182,0.18)',
+            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
+            color:'#7A4FB8', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+            boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
+          }}
+        >
+          🤚 ลูบไข่
+        </button>
+        <button
+          onClick={() => { playTone('tap'); navigate('collection') }}
+          style={{
+            flex:1, height:52, borderRadius:14,
+            background:'rgba(255,255,255,0.85)',
+            border:'1.5px solid rgba(155,89,182,0.18)',
+            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
+            color:'#7A4FB8', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+            boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
+          }}
+        >
+          🥚 คอลเลกชัน
+        </button>
+        <button
+          onClick={() => {
+            playTone('start')
+            dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: 'adventure-thai' })
+            dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
+            navigate('game')
+          }}
+          style={{
+            flex:2, height:52, borderRadius:14,
+            background:'linear-gradient(135deg,#8E44AD,#6C3483)',
+            border:'none',
+            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:16,
+            color:'#fff', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+            boxShadow:'0 4px 18px rgba(140,68,173,0.38)',
+          }}
+        >
+          🗺️ ออกสำรวจ!
+        </button>
       </div>
     </div>
   )

@@ -55,6 +55,7 @@ export const ACTIONS = {
   SET_PROFILE:         'SET_PROFILE',
   UPDATE_SHOP_V1:      'UPDATE_SHOP_V1',
   LOG_SESSION:         'LOG_SESSION',
+  UPDATE_LAST_HOME_VISIT: 'UPDATE_LAST_HOME_VISIT',
 }
 
 function reducer(state, action) {
@@ -306,6 +307,9 @@ function reducer(state, action) {
       const nextLog = [...prevLog, { ...entry, replayedImmediately }].slice(-50)
       return { ...state, sessionLog: nextLog }
     }
+
+    case ACTIONS.UPDATE_LAST_HOME_VISIT:
+      return { ...state, lastHomeVisit: action.payload }
 
     default:
       return state

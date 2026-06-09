@@ -57,6 +57,11 @@ export function playTone(type) {
     else if(type==='miss'){t(320,0,.18,.22,'sawtooth');t(250,.1,.14,.20,'sawtooth');t(180,.2,.1,.18,'sawtooth')}
     else if(type==='combo'){t(659,0,.18,.18,'triangle');t(784,.08,.18,.18,'triangle');t(1047,.16,.2,.22,'triangle')}
     else if(type==='ultimate'){[523,659,784,1047,1319,1568,2093].forEach((f,i)=>t(f,i*.07,.28,.45,'triangle'));t(2093,.6,.3,.5,'sine')}
+    // Egg Home sounds
+    else if(type==='chirp'){t(880,0,.14,.07,'sine');t(1100,.06,.12,.06,'sine');t(1320,.12,.1,.05,'sine')}
+    else if(type==='sparkle'){[1047,1319,1568,2093].forEach((f,i)=>t(f,i*.05,.12,.1,'triangle'))}
+    else if(type==='jingle'){t(880,0,.1,.1,'triangle');t(1175,.08,.1,.1,'triangle');t(1397,.16,.1,.1,'triangle');t(880,.24,.08,.08,'triangle')}
+    else if(type==='feed'){t(440,0,.1,.1,'sine');t(587,.08,.14,.12,'sine');t(659,.16,.1,.1,'sine')}
   } catch(e) {}
 }
 

@@ -40,6 +40,7 @@ export function defaultState() {
       phaseStats: { 1: { correct: 0, total: 0 }, 2: { correct: 0, total: 0 }, 3: { correct: 0, total: 0 }, 4: { correct: 0, total: 0 } },
     },
     sessionLog: [],
+    lastHomeVisit: null,
   }
 }
 

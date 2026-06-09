@@ -11,63 +11,88 @@ const ITEM_DEFS = [
   { key:'star',   emoji:'⭐', label:'ดาว' },
 ]
 
+// Duration (ms) for each idle animation before clearing state
+const IDLE_DUR = {
+  'idle-wiggle': 600,
+  'idle-jump':   600,
+  'idle-blink':  380,
+  'idle-look':   1100,
+  'idle-yawn':   1350,
+}
+
 export default function Home({ navigate, soundOn, toggleSound }) {
   const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
 
-  const [petStreak, setPetStreak]       = useState(0)
-  const [eggAnim, setEggAnim]           = useState('float')
-  const [idleAnim, setIdleAnim]         = useState(null)
-  const [activeItem, setActiveItem]     = useState(null)
-  const [particles, setParticles]       = useState([])
-  const [flyingItem, setFlyingItem]     = useState(null)
-  const [eggGlow, setEggGlow]           = useState(null)
-  const [hasRibbon, setHasRibbon]       = useState(false)
-  const [creature, setCreature]         = useState({ x: 30, dir: 1 })
+  const [petStreak, setPetStreak]         = useState(0)
+  const [eggAnim, setEggAnim]             = useState('float')
+  const [idleAnim, setIdleAnim]           = useState(null)
+  const [activeItem, setActiveItem]       = useState(null)
+  const [particles, setParticles]         = useState([])
+  const [flyingItem, setFlyingItem]       = useState(null)
+  const [eggGlow, setEggGlow]             = useState(null)
+  const [hasRibbon, setHasRibbon]         = useState(false)
+  const [creature, setCreature]           = useState({ x: 30, dir: 1 })
   const [creatureTapped, setCreatureTapped] = useState(false)
+  const [creatureState, setCreatureState] = useState('walk') // walk|wave|sit|celebrate|gift|look|sleep
+  const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
 
-  const particleIdRef  = useRef(0)
-  const animTimerRef   = useRef(null)
-  const glowTimerRef   = useRef(null)
-  const idleTimerRef   = useRef(null)
-  const creatureRef    = useRef({ x: 30, dir: 1 })
-  const initVisitRef   = useRef(state.lastHomeVisit)
-  const stageRef       = useRef(0)
-  const eggAnimRef     = useRef('float')
+  const particleIdRef   = useRef(0)
+  const animTimerRef    = useRef(null)
+  const glowTimerRef    = useRef(null)
+  const idleTimerRef    = useRef(null)
+  const creatureRef     = useRef({ x: 30, dir: 1 })
+  const creatureModeRef = useRef('walk')
+  const initVisitRef    = useRef(state.lastHomeVisit)
+  const stageRef        = useRef(0)
+  const eggAnimRef      = useRef('float')
 
   const { stage } = eggProgressData
-  const eggsHatched      = (state.hatchedEggs || []).length
+  const eggsHatched       = (state.hatchedEggs || []).length
   const lastCreatureEmoji = state.hatchedEggs?.[0]?.creature?.e || null
-  const readyToHatch     = state.readyToHatch && stage >= 6
-  const boostActive      = (state.xpBoostEnd || 0) > Date.now()
+  const readyToHatch      = state.readyToHatch && stage >= 6
+  const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
   // Keep refs current
   useEffect(() => { stageRef.current = stage }, [stage])
   useEffect(() => { eggAnimRef.current = eggAnim }, [eggAnim])
 
-  // Record visit + reunion on mount
+  // Record visit + reunion burst on mount
   useEffect(() => {
     const last = initVisitRef.current
     const now  = Date.now()
     const isReunion = !last || (now - last) > 4 * 60 * 60 * 1000
     dispatch({ type: ACTIONS.UPDATE_LAST_HOME_VISIT, payload: now })
     if (isReunion) {
-      triggerAnim('reunion', 1100)
-      spawnParticles('sparkle', 10)
+      triggerAnim('reunion', 1200)
+      spawnParticles('hearts', 10)
+      spawnParticles('sparkle', 8)
       playTone('chirp')
+      setTimeout(() => playTone('chirp'), 360)
     }
   }, []) // eslint-disable-line
 
-  // Random idle micro-animations — egg feels alive
+  // Random idle micro-animations — egg feels alive on its own
   useEffect(() => {
-    const IDLE = ['idle-wiggle', 'idle-jump', 'idle-wiggle', 'idle-wiggle', 'idle-jump']
+    const IDLE = [
+      'idle-wiggle','idle-jump','idle-wiggle','idle-wiggle',
+      'idle-blink','idle-look','idle-yawn',
+      'idle-jump','idle-wiggle','idle-blink',
+    ]
     const schedule = () => {
       idleTimerRef.current = setTimeout(() => {
         if (eggAnimRef.current === 'float') {
           const a = IDLE[Math.floor(Math.random() * IDLE.length)]
           setIdleAnim(a)
-          setTimeout(() => setIdleAnim(null), 600)
-          if (Math.random() < 0.22) playTone('chirp')
-          else if (Math.random() < 0.08) playTone('begging')
+          setTimeout(() => setIdleAnim(null), IDLE_DUR[a] || 600)
+          if (a === 'idle-yawn') {
+            playTone('yawn')
+          } else if (a === 'idle-jump') {
+            if (Math.random() < 0.28) playTone('chirp')
+          } else if (a === 'idle-wiggle' || a === 'idle-blink') {
+            if (Math.random() < 0.16) playTone('chirp')
+          } else if (a === 'idle-look') {
+            if (Math.random() < 0.12) playTone('begging')
+          }
         }
         schedule()
       }, 5000 + Math.random() * 7000)
@@ -76,11 +101,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     return () => clearTimeout(idleTimerRef.current)
   }, []) // eslint-disable-line
 
-  // Creature patrol
+  // Creature patrol — pauses during personality moments
   useEffect(() => {
     if (eggsHatched === 0) return
     const MAX_X = 230
     const id = setInterval(() => {
+      if (creatureModeRef.current !== 'walk') return
       const s = creatureRef.current
       let x = s.x + s.dir * 0.5, dir = s.dir
       if (x >= MAX_X) { x = MAX_X; dir = -1 }
@@ -90,6 +116,55 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     }, 40)
     return () => clearInterval(id)
   }, [eggsHatched]) // eslint-disable-line
+
+  // Creature personality behaviors — occasional moments of life
+  useEffect(() => {
+    if (eggsHatched === 0) return
+    const BEHAVIORS = ['walk','walk','walk','walk','wave','sit','celebrate','gift','look','sleep']
+    let timer
+    const doSchedule = () => {
+      timer = setTimeout(() => {
+        const b = BEHAVIORS[Math.floor(Math.random() * BEHAVIORS.length)]
+        if (b !== 'walk') {
+          setCreatureState(b)
+          creatureModeRef.current = b
+          if (b === 'celebrate') {
+            playTone('celebrate')
+            spawnParticles('sparkle', 4)
+          } else if (b === 'wave') {
+            playTone('chirp')
+          } else if (b === 'gift') {
+            playTone('jingle')
+          }
+          setTimeout(() => {
+            setCreatureState('walk')
+            creatureModeRef.current = 'walk'
+          }, 3500 + Math.random() * 2000)
+        }
+        doSchedule()
+      }, 20000 + Math.random() * 25000)
+    }
+    doSchedule()
+    return () => clearTimeout(timer)
+  }, [eggsHatched]) // eslint-disable-line
+
+  // Ambient events — rare visual delights: butterfly, falling leaf, shooting star
+  useEffect(() => {
+    const EVENTS = ['butterfly','leaf','star','butterfly','leaf','butterfly']
+    const CLEAR_AFTER = { butterfly: 4800, leaf: 4400, star: 1200 }
+    let timer
+    const doSchedule = () => {
+      timer = setTimeout(() => {
+        const type = EVENTS[Math.floor(Math.random() * EVENTS.length)]
+        const id = Date.now()
+        setAmbientEvent({ type, id })
+        setTimeout(() => setAmbientEvent(prev => prev?.id === id ? null : prev), CLEAR_AFTER[type])
+        doSchedule()
+      }, 38000 + Math.random() * 50000) // 38–88s between events
+    }
+    doSchedule()
+    return () => clearTimeout(timer)
+  }, []) // eslint-disable-line
 
   // Pet streak reset after 6s inactivity
   useEffect(() => {
@@ -139,7 +214,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     setPetStreak(ns)
     if (ns >= 6) {
       triggerAnim('sleepy', 2000)
-      // quiet — no sound
     } else if (ns >= 3) {
       playTone('giggle')
       triggerAnim('happy-spin', 700)
@@ -157,14 +231,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       playTone('tap')
       return
     }
-    // Second tap = use on egg
     const count = state.items?.[key] || 0
     if (count <= 0) return
     dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
     setActiveItem(null)
 
     if (key === 'food') {
-      // Food flies from tray to egg, then egg eats it
       setFlyingItem({ emoji:'🍗', id: Date.now() })
       setTimeout(() => {
         triggerAnim('eat', 900)
@@ -180,9 +252,9 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     } else if (key === 'ribbon') {
       setHasRibbon(true)
       playTone('jingle')
-      spawnParticles('sparkle', 5)
-      setGlow('pink', 1000)
-      triggerAnim('pet', 600)
+      spawnParticles('sparkle', 6)
+      setGlow('pink', 1200)
+      triggerAnim('happy-spin', 800) // proud spin
 
     } else if (key === 'potion') {
       playTone('slurp')
@@ -192,15 +264,15 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
     } else if (key === 'star') {
       playTone('celebrate')
-      spawnParticles('sparkle', 11)
+      spawnParticles('sparkle', 12)
+      spawnParticles('hearts', 4)
       setGlow('gold', 3000)
-      triggerAnim('happy-spin', 800)
+      triggerAnim('happy-spin', 900)
     }
   }
 
   const handleEggTap = () => activeItem ? handleTapItem(activeItem) : handlePetEgg()
 
-  // Egg animation class — idle override slots in when no active animation
   const idleBaseClass = stage >= 5 ? 'egg-anim-excited' : 'egg-anim-float'
   const eggClass = eggAnim !== 'float'
     ? `egg-anim-${eggAnim}`
@@ -216,7 +288,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
     }}>
 
-      {/* Flying food overlay — fixed position, flies from tray area to egg */}
+      {/* Flying food overlay */}
       {flyingItem && (
         <div key={`fly-${flyingItem.id}`} style={{
           position:'fixed', left:'50%', bottom:155,
@@ -225,6 +297,29 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         }}>
           {flyingItem.emoji}
         </div>
+      )}
+
+      {/* Ambient events — rare visual moments */}
+      {ambientEvent?.type === 'butterfly' && (
+        <div key={`amb-${ambientEvent.id}`} style={{
+          position:'fixed', top:'38%', left:0,
+          fontSize:22, pointerEvents:'none', zIndex:600,
+          animation:'ambient-butterfly 4.4s ease-in-out forwards',
+        }}>🦋</div>
+      )}
+      {ambientEvent?.type === 'leaf' && (
+        <div key={`amb-${ambientEvent.id}`} style={{
+          position:'fixed', top:0, left:'42%',
+          fontSize:18, pointerEvents:'none', zIndex:600,
+          animation:'ambient-leaf 4s ease-in forwards',
+        }}>🍂</div>
+      )}
+      {ambientEvent?.type === 'star' && (
+        <div key={`amb-${ambientEvent.id}`} style={{
+          position:'fixed', top:'10%', right:'18%',
+          fontSize:16, pointerEvents:'none', zIndex:600,
+          animation:'ambient-shooting-star .85s ease-out forwards',
+        }}>✨</div>
       )}
 
       {/* Header */}
@@ -275,7 +370,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         position:'relative', paddingBottom:50,
       }}>
 
-        {/* Egg wrapper — animation class goes here */}
+        {/* Egg wrapper — animation class drives all movement */}
         <div
           className={eggClass}
           onClick={handleEggTap}
@@ -306,7 +401,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             </>
           )}
 
-          {/* Ribbon overlay */}
+          {/* Ribbon decoration */}
           {hasRibbon && (
             <div style={{
               position:'absolute', top:-8, right:-8,
@@ -317,7 +412,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             </div>
           )}
 
-          {/* Canvas — glow class applied directly so drop-shadow tracks egg shape */}
+          {/* Canvas — glow class drives drop-shadow effect */}
           <EggCanvas
             stats={eggStatsData}
             width={190} height={225}
@@ -343,19 +438,56 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         )}
 
         {/* Creature companion */}
-        <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:48, overflow:'hidden' }}>
+        <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:52, overflow:'visible' }}>
           {eggsHatched > 0 ? (
             <div
-              style={{
-                position:'absolute', bottom:4, left: creature.x,
-                fontSize:26, lineHeight:1,
-                transform:`scaleX(${creature.dir < 0 ? -1 : 1})`,
-                cursor:'pointer', userSelect:'none',
-                animation: creatureTapped ? 'egg-anim-pet 0.4s ease' : undefined,
+              style={{ position:'absolute', bottom:4, left:creature.x, cursor:'pointer', userSelect:'none' }}
+              onClick={() => {
+                setCreatureTapped(true)
+                playTone('chirp')
+                setTimeout(() => setCreatureTapped(false), 500)
               }}
-              onClick={() => { setCreatureTapped(true); playTone('chirp'); setTimeout(() => setCreatureTapped(false), 500) }}
             >
-              {lastCreatureEmoji}
+              {/* Directional flip — separate from animation so they don't fight */}
+              <div style={{ transform:`scaleX(${creature.dir < 0 ? -1 : 1})`, display:'inline-flex', alignItems:'flex-end', gap:2 }}>
+                {/* Main creature emoji + behavior animation */}
+                <div
+                  className={
+                    creatureState === 'wave'      ? 'creature-wave' :
+                    creatureState === 'celebrate' ? 'creature-celebrate' :
+                    creatureTapped                ? 'egg-anim-pet' : ''
+                  }
+                  style={{
+                    fontSize:26, lineHeight:1, display:'inline-block',
+                    transform: creatureState === 'sit' ? 'rotate(14deg) translateY(4px)' : undefined,
+                    opacity: creatureState === 'sleep' ? 0.48 : 1,
+                    transition:'transform 0.35s, opacity 0.5s',
+                  }}
+                >
+                  {lastCreatureEmoji}
+                </div>
+
+                {/* Behavior overlays — shown inline next to creature */}
+                {creatureState === 'wave' && (
+                  <span style={{
+                    fontSize:13, lineHeight:1,
+                    animation:'creature-overlay-bob .45s ease-in-out infinite alternate',
+                    display:'inline-block',
+                  }}>👋</span>
+                )}
+                {creatureState === 'gift' && (
+                  <span style={{ fontSize:13, lineHeight:1, display:'inline-block' }}>🎁</span>
+                )}
+                {creatureState === 'celebrate' && (
+                  <span style={{ fontSize:14, lineHeight:1, display:'inline-block' }}>🎊</span>
+                )}
+                {creatureState === 'sleep' && (
+                  <span style={{ fontSize:11, lineHeight:1, opacity:0.7, display:'inline-block' }}>💤</span>
+                )}
+                {creatureState === 'look' && (
+                  <span style={{ fontSize:10, lineHeight:1, display:'inline-block' }}>👀</span>
+                )}
+              </div>
             </div>
           ) : (
             <div style={{ position:'absolute', bottom:8, left:20, fontSize:11, color:'rgba(90,58,139,0.36)', fontFamily:'Mitr,sans-serif' }}>
@@ -410,7 +542,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         })}
       </div>
 
-      {/* Action row — paddingBottom handled by #egg-home CSS (safe-area-aware) */}
+      {/* Action row — padding-bottom handled by #egg-home CSS (safe-area-aware) */}
       <div style={{
         width:'100%', maxWidth:480, padding:'6px 20px 10px',
         display:'flex', gap:10, flexShrink:0,

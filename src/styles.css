@@ -99,6 +99,23 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .egg-glow-gold{animation:egg-glow-gold 3s ease forwards}
 .egg-glow-pink{animation:egg-glow-pink 1s ease forwards}
 .egg-star-orbit{position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px;font-size:13px;text-align:center;line-height:20px;animation:star-orbit 2s linear infinite;pointer-events:none;z-index:8}
+/* Expanded idle animations */
+@keyframes idle-blink{0%,44%,56%,100%{transform:scaleY(1) scale(1)}50%{transform:scaleY(.07) scaleX(1.06)}}
+@keyframes idle-look{0%,100%{transform:rotate(0deg) translateX(0)}28%{transform:rotate(-5deg) translateX(-5px)}72%{transform:rotate(4deg) translateX(4px)}}
+@keyframes idle-yawn{0%,100%{transform:scale(1) translateY(0)}32%{transform:scale(1.04,1.09) translateY(-7px)}60%{transform:scale(1.07,1.13) translateY(-12px)}80%{transform:scale(1.02,1.04) translateY(-4px)}}
+.egg-anim-idle-blink{animation:idle-blink .26s ease forwards}
+.egg-anim-idle-look{animation:idle-look 1s ease forwards}
+.egg-anim-idle-yawn{animation:idle-yawn 1.2s ease forwards}
+/* Creature behavior animations */
+@keyframes creature-wave{0%,100%{transform:translateY(0) rotate(0deg) scale(1)}25%{transform:translateY(-7px) rotate(-14deg) scale(1.08)}60%{transform:translateY(-10px) rotate(9deg) scale(1.05)}80%{transform:translateY(-4px) rotate(-3deg) scale(1.01)}}
+@keyframes creature-celebrate{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(-11px) scale(1.1)}65%{transform:translateY(-5px) scale(.95)}}
+@keyframes creature-overlay-bob{0%{transform:translateY(0)}100%{transform:translateY(-3px)}}
+.creature-wave{animation:creature-wave .65s ease-in-out infinite}
+.creature-celebrate{animation:creature-celebrate .5s ease-in-out infinite}
+/* Ambient events — rare visual moments */
+@keyframes ambient-butterfly{0%{transform:translate(-40px,0);opacity:0}5%{opacity:1}28%{transform:translate(90px,-30px)}55%{transform:translate(230px,-8px)}85%{transform:translate(380px,-24px);opacity:1}100%{transform:translate(450px,-20px);opacity:0}}
+@keyframes ambient-leaf{0%{transform:translateY(-10px) rotate(0deg) translateX(0);opacity:1}40%{transform:translateY(190px) rotate(140deg) translateX(26px);opacity:.9}100%{transform:translateY(460px) rotate(340deg) translateX(55px);opacity:0}}
+@keyframes ambient-shooting-star{0%{transform:translate(0,0) scale(1.4);opacity:1}60%{opacity:.7}100%{transform:translate(-165px,115px) scale(.5);opacity:0}}
 /* Layout — safe-area-aware bottom padding so buttons never overlap BottomNav */
 #egg-home{background:linear-gradient(175deg,#FFF9EE 0%,#EEE6FB 100%);padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 

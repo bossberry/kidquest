@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Procedural Character System Design v2 — Beauty Layer + Families + Migration)_
+_Last updated: 2026-06-09 (Procedural Character System Design v3 — Egg-to-Creature Identity)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,34 +22,39 @@ _Last updated: 2026-06-09 (Procedural Character System Design v2 — Beauty Laye
 
 ## Latest Session Summary
 
-**What changed this session (Procedural Character System Design v2 — docs only):**
+**What changed this session (Procedural Character System Design v3 — docs only):**
 
-Revised `docs/research/creatures/procedural-character-system.md` with five major additions. No code. No build.
+Added **Egg-to-Creature Identity** section to `docs/research/creatures/procedural-character-system.md`. No code. No build.
 
-**Architecture now reads:**
-```
-Egg Stats → Base Seed → [egg LOCKED] → DNA Extractor (family first) → Art Direction → Beauty Layer → Animation → Voice → Creature
-```
+**The problem the v3 section solves:** The v2 family selection was stat-driven (Thai-dominant → Bear/Leaf, Math-dominant → Crystal/Star). This is wrong. The child has been watching the egg for days — its colors, its glow, its stars. The creature should feel like what was visibly inside that specific egg. Stats tell you how the creature developed. The egg's appearance tells you who was inside.
 
-**Beauty Layer (new — between Art Direction and Animation):**
-The Art Direction Layer prevents ugly. The Beauty Layer makes premium. Every creature passes the "Sticker Test" before rendering. 8 rules: (1) tinted outline — darkened body hue, never pure black; (2) eye gloss — white highlight dot, highest-impact single detail for "alive" feeling; (3) body radial gradient — 3D roundness illusion; (4) cheek radial gradient — blush not painted circle; (5) signature feature amplification; (6) harmony check (saturation gap ≤ 25%, glow hue ≥ 20° from body); (7) breathing room — no overlapping features; (8) collection background aura — soft radial in `ha` hue per creature card.
+**New rule:** Family is derived from the egg's visual motif first. Stats modify body proportions within that family.
 
-**16 Family Archetypes (new):**
-Puff / Fluff / Bear / Cat / Fox / Bunny / Bird / Dragon / Leaf / Star / Moon / Cloud / Crystal / Ocean / Flower / Dream. Not species. Visual themes. Each locks 2–3 features and guides palette. Siblings feel related, not identical. Family is stat-driven: Thai → Bear/Leaf/Bunny/Dragon; Eng → Bird/Ocean/Fox/Cloud; Math → Crystal/Star/Dragon/Moon; balanced → Dream/Fluff/Puff/Flower; night-hatched → 80% Moon.
+**Egg Motif Detection (first-match priority):**
+1. `isNight` → Moon
+2. `ha` in 30–60° + `streak ≥ 14` + `stage ≥ 5` → Star
+3. `h1` in 80–160° → Leaf
+4. `h1` in 160–220° → Ocean
+5. `h1` in 220–270° → Cloud
+6. `h1` in 270–320° → Crystal
+7. `h1` ≥ 340° or < 30° → Ember (no Ember family; warm Fox/Dragon/Bear selected by stats)
+8. No match → stat-based fallback
 
-**Signature Feature System (new):**
-Every creature has exactly one visually prominent memorable trait (17 options: mega-cheeks / two-color-eyes / heart-cheek / star-freckle / mega-ears / curly-tail / twin-tails / large-bow / body-glow-spot / etc.). Selected after family with conflict resolution. Color from `ha`. Each has its own idle micro-animation.
+**Family mapping from motif × stats:**
+- Moon × Thai → Moon Bear feeling / Moon × Eng → Moon Bunny or Moon Cat / Moon × Math → Moon Dragon / Moon × balanced → Moon Puff
+- Star × speed → Star Bird or Star Cat / Star × compact → Star Puff
+- Leaf × Thai → Leaf Bear / Leaf × Eng → Leaf Bunny
+- Ember × Eng → Ember Fox / Ember × Math → Ember Dragon / Ember × Thai → Ember Bear
 
-**Existing Collection Migration (new):**
-Old creatures (emoji `e` field, no `dna`) → legacy render, unchanged, no data loss. New creatures → `dna` field saved at hatch → canvas. Same seed = same character forever.
+**Future note:** Egg Visual Identity Pass — current `drawEgg()` is LOCKED, but a future CSS/overlay approach (or planned `drawEgg()` modification) could make egg motifs more visually obvious to the child. Q9 asks GPT to decide if this matters before the creature system ships.
 
-**Emoji composite removed:** New 5-phase path: P1 DNA → P2 canvas → P3 Animation → P4 Voice → P5 Birth sequence.
-
-**~340M valid combinations** (was ~42M).
-
-**8 open questions for GPT** in `docs/GPT_NOTES.md`. Most critical: (1) creature evolution, (2) name selection UX, (3) collection page layout for canvas creatures.
+**Open questions expanded to 10:** Q9 = egg legibility; Q10 = Ember as formal 17th family.
 
 - No code changes. No build.
+
+**What changed last session (Procedural Character System Design v2 — docs only):**
+
+Architecture: Beauty Layer added (between Art Direction and Animation). 16 Family Archetypes. Signature Feature System (17 traits, one per creature). Existing Collection Migration (legacy emoji path for old creatures; DNA + canvas for new). Emoji composite removed; 5-phase path. ~340M combinations.
 
 **What changed last session (Dramatic Egg Stage Progression — code change):**
 

@@ -43,6 +43,30 @@ The creature DNA extractor re-uses `hash()` + `prng()` imported from `eggAlgorit
 4. **Phase 4**: Voice layer — `buildVoiceProfile(dna)`, `playCreatureSound(dna, moment)`
 5. **Phase 5**: Birth sequence — HatchOverlay full reveal, egg glow → creature aura transition, first blink/look/chirp
 
+### Egg-to-Creature Identity (new — v3)
+
+**Core rule:** Family is derived from the egg's visual identity (motif) first. Stats modify creature shape within that family. Do not select family from stats alone.
+
+**Egg motif detection** (first match wins):
+- `isNight` → Moon
+- `ha` 30–60° + `streak ≥ 14` + `stage ≥ 5` → Star
+- `h1` 80–160° → Leaf
+- `h1` 160–220° → Ocean
+- `h1` 220–270° → Cloud
+- `h1` 270–320° → Crystal
+- `h1` ≥ 340° or < 30° → Ember (no Ember family — Fox/Dragon/Bear with warm palette, stat-picked)
+- No match → stat-based selection
+
+**Within-family body shaping by stats:**
+- Thai dominant → solid/round silhouette (Moon Bear, Leaf Bear)
+- Eng dominant → light/elegant silhouette (Moon Bunny, Star Bird, Ocean Cat)
+- Math dominant → structured silhouette (Moon Dragon, Crystal Dragon)
+- Balanced → pillowy/soft (Moon Puff, Dream Puff)
+
+**Named creature examples:** Moon Fox / Moon Bunny / Moon Puff / Moon Dragon / Star Puff / Star Bird / Star Cat / Leaf Bear / Leaf Bunny / Ocean Puff / Ember Fox / Ember Dragon / Ember Bear / Cloud Bunny / Cloud Bird
+
+**Future note:** Egg algorithm may need a Visual Identity Pass (CSS overlay or planned `drawEgg()` modification) so eggs themselves look more clearly moon-like / star-like / etc. before the creature system ships. See Q9.
+
 ### Migration (existing hatched creatures)
 
 - Old creatures (emoji `e` field, no `dna` field) → legacy emoji render path, no change, no data loss
@@ -60,6 +84,8 @@ The creature DNA extractor re-uses `hash()` + `prng()` imported from `eggAlgorit
 6. Accessories born-with vs equippable from shop? (Recommendation: born-with Year 1)
 7. Creature companion zone in Home.jsx — should it be enlarged for canvas? (Min 60–80px zone to show signature feature)
 8. Collection "feel" — friendship focus (days together, favorite subject) vs gallery focus (beautiful grid)?
+9. **(NEW)** Should the egg's visual motif be made more legible before the creature system ships? Options: (a) accept ambiguity, (b) CSS overlay on locked canvas to amplify motif, (c) planned `drawEgg()` modification. Key question: does the current egg look "moon-like" to a child? "leaf-like"?
+10. **(NEW)** Should "Ember" be formalized as a 17th family (flame-tip tail locked, ember glow mandatory), or remain a warm-palette variant of Fox/Dragon/Bear?
 
 ### What Claude Code Must NOT Do Until GPT Answers
 

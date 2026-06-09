@@ -119,6 +119,210 @@ const ha = (stats.streak > 30 ? 45 : stats.streak > 14 ? 38 : hourTone + stats.s
 
 ---
 
+## Egg-to-Creature Identity
+
+**The rule:** The creature is the evolution of the egg. Not a random reward that happens after the egg breaks. The same thing that made the egg look the way it did — the colors, the glow, the patterns, the mood — is what made the creature inside.
+
+**The design test:** The child watches their egg grow for days or weeks. They see it glowing blue at night. They see stars appearing at stage 5. They see green lines at stage 2. When the creature emerges, they should feel: *yes, that's right. That's what was inside.* Not: *where did that come from?*
+
+**The implementation principle:** Family is derived from the egg's visual identity first. Stats modify the creature's proportions and personality within that family. Do not select family from stats alone.
+
+---
+
+### What the Creature Inherits from the Egg
+
+| Egg Property | Creature Inheritance | Strength |
+|---|---|---|
+| `h1` dominant hue | Body primary color | Hard — always |
+| `h2` secondary hue | Pattern / accent color | Hard — always |
+| `ha` streak accent | Glow / aura color | Hard — always |
+| `h3` tertiary hue | Eye color | Hard — always |
+| Egg motif (see below) | Family archetype | Hard — always |
+| `stage` at hatch | Feature richness | Hard — always |
+| `isNight` | Cool palette, star/moon features heavy | Hard — always |
+| Dots on egg (stage ≥ 1) | Spots or freckles pattern | 70% |
+| Lines on egg (high eng XP) | Stripe pattern | 60% |
+| Outer glow visible (stage ≥ 2) | Creature has visible aura | 75% |
+| Stars on egg (stage ≥ 5) | Sparkle eye type | 65% |
+| Shadow creature on egg (stage ≥ 4) | Compact or chubby body silhouette | 60% |
+| Crack lines (stage 7–8) | Birth mark on face — thin curved line in crack color | 100% |
+| Body shape feeling (round vs. tall) | Body roundness (chubby vs. lean) | Via stats |
+
+---
+
+### Egg Motif Detection
+
+The egg has a **visual motif** — a dominant element that defines what it looks like to the child. This motif is read from the same stats that drive the egg's color and feature generation. It is the primary driver of family selection.
+
+The motif is detected in order. First match wins.
+
+```
+function detectEggMotif(h1, ha, isNight, streak, stage) {
+
+  // Night — the most powerful single signal
+  if (isNight)
+    → 'moon'
+
+  // Star — golden glow + visible stars + sustained streak
+  if (ha >= 30 && ha <= 60 && streak >= 14 && stage >= 5)
+    → 'star'
+
+  // Leaf / Nature — green dominant
+  if (h1 >= 80 && h1 < 160)
+    → 'leaf'
+
+  // Ocean — teal/aqua dominant
+  if (h1 >= 160 && h1 < 220)
+    → 'ocean'
+
+  // Cloud — cool sky blue
+  if (h1 >= 220 && h1 < 270)
+    → 'cloud'
+
+  // Crystal / Moon adjacent — indigo/violet
+  if (h1 >= 270 && h1 < 320)
+    → 'crystal'
+
+  // Ember / Fire — warm red and deep amber
+  if (h1 >= 340 || h1 < 30)
+    → 'ember'
+
+  // No strong motif — use stat-based family selection
+  → null
+}
+```
+
+**What "ember" means:** There is no Ember family among the 16 archetypes. A warm red/orange h1 produces a Fox, Dragon, or Bear with a fire-colored palette — the child would naturally call this creature an "Ember Fox" or "Ember Dragon." The ember motif is a color treatment, not a new shape family. Stats determine which shape family applies.
+
+---
+
+### Egg Motif Catalog
+
+| Motif | Egg Appearance | Signal | → Family |
+|---|---|---|---|
+| **Moon** | Cool blue-purple glow, night-born, crescent aura | `isNight` | Moon |
+| **Star** | Golden shimmer, visible star particles at stage 5+, high streak | `ha` gold + `streak ≥ 14` + `stage ≥ 5` | Star |
+| **Leaf** | Green dominant color, organic lines, earthy tones | `h1` in 80–160° | Leaf |
+| **Ocean** | Teal/aqua color, horizontal stripe feel, shimmer | `h1` in 160–220° | Ocean |
+| **Cloud** | Soft sky blue, light and diffuse, gentle glow | `h1` in 220–270° | Cloud |
+| **Crystal** | Indigo/violet, sharp glow, geometric feel | `h1` in 270–320° | Crystal |
+| **Ember** | Warm red/orange/amber, fire-like intensity | `h1` ≥ 340° or < 30° | Fox / Dragon / Bear (stat-picked) |
+| *(none)* | Balanced/mixed, no single dominant visual | fallback | Stat-based selection |
+
+---
+
+### Family Mapping from Egg Motif
+
+Each motif maps to a family. Within that family, the creature's specific body shape and proportions are determined by stats. This is where named variants like "Moon Bunny" or "Star Cat" come from — they are the same Moon or Star family but shaped differently by the child's learning profile.
+
+**Moon Egg** → Moon family
+- Thai dominant → compact round body → _Moon Bear feeling_
+- Eng dominant → light elegant body → _Moon Bunny or Moon Cat feeling_
+- Math dominant → structured → _Moon Dragon feeling_
+- Balanced → pillowy → _Moon Puff feeling_
+
+**Star Egg** → Star family
+- High speed / Eng dominant → light, fast → _Star Bird or Star Cat feeling_
+- Compact / Thai dominant → round, grounded → _Star Puff feeling_
+- Math dominant → structured, precise → _Star Dragon feeling_
+
+**Leaf Egg** → Leaf family
+- Thai dominant → solid, patient → _Leaf Bear feeling_
+- Eng dominant → light → _Leaf Bunny or Leaf Bird feeling_
+- Balanced → soft → _Leaf Puff feeling_
+
+**Ocean Egg** → Ocean family
+- Compact / round → _Ocean Puff or Shell-feeling_
+- Fast / Eng dominant → lean → _Fish Cat or Ocean Fox feeling_
+- Math dominant → structured → _Shell Dragon feeling_
+
+**Cloud Egg** → Cloud family
+- Gentle / Bunny-stat profile → _Cloud Bunny feeling_
+- Small / Bird-stat profile → _Cloud Bird feeling_
+- Round / balanced → _Dream Puff feeling_
+
+**Crystal Egg** → Crystal family
+- Math dominant → geometric, precise → _Crystal standard_
+- Eng dominant → light crystal → _Crystal Bird or Ice Cat feeling_
+
+**Ember Egg** → Fox, Dragon, or Bear (warm palette variant)
+- Eng dominant / high speed → _Ember Fox_ (pointed ears, orange/amber palette)
+- Math dominant / high streak → _Ember Dragon_ (bumpy horns, deep red-amber)
+- Thai dominant → _Ember Bear_ (round warm bear in rust/amber)
+
+**No motif** → stat-based family selection (see updated logic below)
+
+---
+
+### Concrete Inheritance Examples
+
+| This egg... | ...produces this creature |
+|---|---|
+| Spotted egg (many dots, stage 3+) | Creature has spots or freckles pattern |
+| Starry egg (stage 5+, golden glow) | Creature has sparkle eyes, star-tipped tail |
+| Glowing egg (strong outer glow, high streak) | Creature has visible aura, glow tier ≥ uncommon |
+| Cracked egg (stage 7–8) | Creature has small birth mark — thin curved line near eye, in crack color |
+| Round, soft egg (low speed, chubby feel) | Creature has chubby or fluffy body type |
+| Tall, narrow egg (high speed, lean silhouette) | Creature has lean or compact body |
+| Moon egg (cool glow, night-born) | Moon family — crescent horn, cool palette, dewy eyes |
+| Leaf egg (green dominant) | Leaf family — leaf ears, organic pattern, nature palette |
+| Ocean egg (teal dominant) | Ocean family — fin ears, wave stripes, blue-green palette |
+| Fire egg (deep amber/red) | Ember Fox / Ember Dragon / Ember Bear — warm palette, intense glow |
+
+---
+
+### Updated Family Determination Logic
+
+Family is now **egg-motif-first**, with stats as a secondary modifier.
+
+```
+// Step 1: Detect egg motif
+const motif = detectEggMotif(h1, ha, isNight, streak, stage)
+
+// Step 2: Motif → family (hard assignment)
+if (motif === 'moon')    → Moon family
+if (motif === 'star')    → Star family
+if (motif === 'leaf')    → Leaf family
+if (motif === 'ocean')   → Ocean family
+if (motif === 'cloud')   → Cloud family
+if (motif === 'crystal') → Crystal family
+
+if (motif === 'ember') {
+  // Ember: warm palette applied to stat-driven shape family
+  if (engDominant || highSpeed)  → Fox (warm)
+  if (mathDominant || streak>10) → Dragon (warm)
+  else                           → Bear (warm)
+}
+
+// Step 3: No strong motif → stat-based selection
+if (motif === null) {
+  if (streak >= 20)        → Dragon 50%, Star 30%, Crystal 20%
+  if (thaiDominant)        → Bear 30%, Bunny 25%, Fluff 20%, Flower 15%, other 10%
+  if (engDominant)         → Bird 30%, Fox 25%, Cat 20%, Fluff 15%, other 10%
+  if (mathDominant)        → Crystal 30%, Dragon 25%, Cat 20%, other 25%
+  if (balanced)            → Dream 30%, Puff 20%, Fluff 20%, Flower 20%, other 10%
+  fallback                 → prng selects from non-motif families equally
+}
+```
+
+The prng stream advances a fixed amount in step 1–2 regardless of which branch is taken, so family selection does not disrupt downstream gene generation.
+
+---
+
+### Future Note: Egg Visual Identity Pass
+
+The egg algorithm is LOCKED — `drawEgg()`, `hash()`, `prng()` do not change.
+
+However, a future design consideration: currently the egg's visual motif is derived mathematically from hue values and may not always look obviously "moon-like" or "leaf-like" to a child. A future **Egg Visual Identity Pass** would add motif-specific visual layers to the egg canvas — making Star eggs clearly sparkly, Moon eggs clearly lunar, Leaf eggs clearly green and organic.
+
+This would require explicitly planning a controlled modification to `drawEgg()` — an intentional, documented unlock of the currently locked system. It is not a Year 1 task.
+
+**Questions this raises (for GPT):**
+- Should the egg's visual identity be made more legible to the child before the creature system ships?
+- If so, can it be done as a CSS/overlay layer on top of the existing canvas (no drawEgg change), or does it require a drawEgg modification?
+
+---
+
 ## Family Archetypes
 
 Families are **visual themes, not species lists.** They are selected first, before any other gene. A family locks 2–3 features as mandatory or heavily biased, and guides the color palette — then the prng stream fills in the remaining details. Two creatures from the same family should feel like siblings: visually related, not identical.
@@ -277,17 +481,9 @@ Families are **visual themes, not species lists.** They are selected first, befo
 
 ### Family Determination Logic
 
-```
-1. isNight → 80% Moon, 20% Star
-2. streak ≥ 20 → 50% Dragon, 30% Star, 20% Crystal
-3. thaiDominant (> 50%) → weighted: Bear 30%, Leaf 25%, Bunny 20%, Dragon 15%, other 10%
-4. engDominant (> 50%) → weighted: Bird 25%, Ocean 25%, Fox 20%, Cloud 15%, other 15%
-5. mathDominant (> 50%) → weighted: Crystal 30%, Star 25%, Dragon 20%, Moon 15%, other 10%
-6. balanced (hybrid) → weighted: Dream 30%, Fluff 20%, Puff 15%, Flower 15%, other 20%
-7. finalFallback → prng selects from all 16 equally
-```
+**See "Egg-to-Creature Identity → Updated Family Determination Logic" above for the authoritative implementation.**
 
-Family selection uses the first matching rule. The prng stream advances a fixed amount regardless — so the family selection doesn't change the downstream gene generation.
+In summary: egg motif is detected first (isNight → Moon, golden+streak+stage → Star, h1 hue range → Leaf/Ocean/Cloud/Crystal/Ember). Motif hard-assigns the family. Only when no strong motif is detected does stat-based selection apply. This ensures the creature feels like it came from that specific egg — not from a stat table.
 
 ---
 
@@ -694,27 +890,33 @@ All voices generated from `playTone()` — no audio files.
 
 ## Egg-to-Creature Visual Continuity
 
-### Hard Continuity (always applied)
+_For the design philosophy and family mapping rules, see "Egg-to-Creature Identity" above. This section covers the implementation-level continuity rules for `creatureGenerator.js`._
 
-| Egg Feature | Creature Feature |
-|-------------|-----------------|
+### Hard Continuity (always applied — zero exceptions)
+
+| Egg Value | Creature Output |
+|-----------|----------------|
 | `h1` hue | Body primary color |
 | `h2` hue | Pattern / accent color |
 | `ha` hue | Glow / aura color |
 | `h3` hue | Eye color |
-| `isNight` | Cool palette, more stars |
+| `isNight` | Cool palette shift, star/moon features weighted up |
+| Egg motif | Family archetype (see Egg-to-Creature Identity) |
+| `stage` at hatch | Feature density tier |
 
-### Soft Continuity (probability-based)
+### Soft Continuity (probability-based — applied in `buildCreatureDNA`)
 
-| Egg Feature | Creature Feature | Probability |
-|-------------|-----------------|-------------|
-| Dense dots (progress ≥ 0.4) | `spots` or `freckles` pattern | 70% |
-| Many lines (eng XP high) | `stripes` pattern | 60% |
-| Outer glow visible (progress ≥ 0.2) | Creature has visible aura | 75% |
-| Stars on egg (progress ≥ 0.78) | `sparkle` eye type | 65% |
-| Stage 7–8 hatched | Battle mark on face | 100% |
-| `firstSubject = eng` | Wing type not `none` | 55% |
-| Creature shadow on egg (progress ≥ 0.55) | `compact` or `chubby` body | 60% |
+| Egg Visual Signal | Creature Bias | Probability |
+|---|---|---|
+| Dense dots (progress ≥ 0.4) | `patternType = spots or freckles` | 70% |
+| Many lines (high eng XP) | `patternType = stripes` | 60% |
+| Outer glow (progress ≥ 0.2) | Glow tier ≥ uncommon | 75% |
+| Stars on egg (progress ≥ 0.78) | `eyeType = sparkle` | 65% |
+| Stage 7–8 hatched | Battle mark on face (100% hard) | 100% |
+| `firstSubject = eng` | `wingType ≠ none` | 55% |
+| Shadow creature on egg (progress ≥ 0.55) | `bodyType = compact or chubby` | 60% |
+
+**Implementation note:** `progress = stage / (EGG_STAGES - 1)`. These thresholds map to specific stages: 0.4 ≈ stage 3–4, 0.78 ≈ stage 7, 0.55 ≈ stage 5.
 
 ### The Birth Moment
 
@@ -723,7 +925,7 @@ All voices generated from `playTone()` — no audio files.
 3. Creature pauses — big eyes blinking, taking in the world
 4. First reaction: looks directly at the player
 5. First sound: voice profile chirp
-6. The egg's glow color becomes the creature's aura briefly — the two are the same light for one moment
+6. The egg's glow color (`ha`) becomes the creature's aura briefly — the two are the same light for one moment
 
 ---
 
@@ -893,7 +1095,7 @@ A child with 10 hatched creatures will have 10 visually distinct friends. A chil
 
 ## Open Questions
 
-Phase 3 (Canvas renderer) should not begin until Q1–Q3 are answered. Q4–Q8 can be decided during or after Phase 2.
+Phase 3 (Canvas renderer) should not begin until Q1–Q3 are answered. Q4–Q10 can be decided during or after Phase 2.
 
 **Q1 — Does creature evolution exist?**
 Does the creature look different after 100 battles? After a year of play? Options: (a) born complete, never changes (Tamagotchi model — strong identity), (b) colors deepen slightly with use (subtle maturation), (c) new features unlock at milestone counts (battle companion growing up). Year 1 recommendation: born complete. Evolution is Year 2.
@@ -918,6 +1120,12 @@ Currently the creature walks in a 52px-high zone at 26px emoji scale. At 26px, t
 
 **Q8 — What does the Collection "feel like" when a child has many creatures?**
 The current design is a list. With procedural creatures, the collection becomes something more like Animal Crossing's resident board — a gallery of friends. Should the Collection page have a "friendship focus" (each creature's story: days together, adventures, favorite subject) or a "gallery focus" (beautiful grid of canvases)? Both are possible. This decision shapes the Phase 2 Collection.jsx implementation significantly.
+
+**Q9 — Should the egg's visual motif be made more legible before the creature system ships?**
+Currently eggs look unique but their motif (Moon / Star / Leaf / etc.) may not be visually obvious to a child. If the creature emerges as a Moon creature from an egg that didn't look particularly moon-like, the "inevitable" feeling breaks. Options: (a) accept some ambiguity — the creature reveals what the egg was; (b) add a CSS/overlay layer on top of the locked canvas that amplifies the motif visually (no `drawEgg()` change); (c) document a planned `drawEgg()` modification to make egg motifs clearer (unlocks the locked system for a specific purpose). This is the highest-impact question for the "creature feels inevitable" goal.
+
+**Q10 — Should the "Ember" color treatment be formalized as a 17th family, or left as a warm-palette variant of Fox/Dragon/Bear?**
+Currently "Fire Egg → Ember Fox / Ember Dragon / Ember Bear" is handled by warm h1 values naturally producing warm-colored versions of existing families. A formal Ember family would have its own locked features (flame-tip tail, ember glow mandatory). Low priority for Year 1, but worth deciding before Phase 2 so Collection cards display consistently.
 
 ---
 

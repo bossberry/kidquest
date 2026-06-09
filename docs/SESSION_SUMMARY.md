@@ -1,3 +1,51 @@
+# Session Summary — 2026-06-09 (Procedural Character System Design v3 — Egg-to-Creature Identity)
+
+**Session type:** Documentation and architecture only. No code. No build.
+
+**Files changed:**
+- `docs/research/creatures/procedural-character-system.md` — REVISED (v2 → v3)
+- `docs/GPT_NOTES.md` — Egg-to-Creature Identity section + 2 new open questions
+- `docs/TASKS.md` — v3 task done; GPT questions count updated to 10
+- `docs/CHANGELOG.md` — Entry prepended
+- `docs/SESSION_SUMMARY.md` — This file
+- `docs/GPT_HANDOFF.md` — Latest session updated
+
+**Core change:** Added the **Egg-to-Creature Identity** section as the authoritative rule for family selection.
+
+**The problem solved:** The v2 design selected family primarily from learning stats (Thai-dominant → Bear/Leaf; Eng-dominant → Bird/Ocean; Math-dominant → Crystal/Star). This is backwards: the child has been watching the egg — its colors, its glow, its stars, its shape — for days or weeks. The creature's visual identity should feel like it was already inside that specific egg. Stats determined how it developed. The egg's appearance tells you who was inside.
+
+**The rule:** Family is derived from egg visual motif first. Stats modify the creature's proportions within that family.
+
+**Egg motif detection (7 motifs):**
+1. `isNight` (hour < 6 or ≥ 20) → **Moon** (strongest single signal)
+2. `ha` in 30–60° + `streak ≥ 14` + `stage ≥ 5` → **Star** (golden egg, stars visible)
+3. `h1` in 80–160° → **Leaf** (green/nature)
+4. `h1` in 160–220° → **Ocean** (teal/aqua)
+5. `h1` in 220–270° → **Cloud** (soft sky blue)
+6. `h1` in 270–320° → **Crystal** (indigo/violet)
+7. `h1` ≥ 340° or < 30° → **Ember** (warm red/orange → Fox/Dragon/Bear, stat-picked)
+8. No match → stat-based family selection (fallback)
+
+**Named creature examples from egg motif × stats:**
+- Moon egg × Thai-dominant → _Moon Bear feeling_ (solid, warm)
+- Moon egg × Eng-dominant → _Moon Bunny or Moon Cat feeling_ (light, elegant)
+- Moon egg × Math-dominant → _Moon Dragon feeling_ (structured)
+- Moon egg × balanced → _Moon Puff feeling_ (pillowy)
+- Star egg × high speed → _Star Bird or Star Cat_
+- Star egg × compact → _Star Puff_
+- Leaf egg × Thai → _Leaf Bear_, Leaf egg × Eng → _Leaf Bunny_
+- Ember egg × Eng/speed → _Ember Fox_, Ember egg × Math → _Ember Dragon_
+
+**Key design consequence:** "Ember" is not a new 17th family — it's a warm-palette treatment of Fox/Dragon/Bear. The creature the child calls "Ember Fox" is still a Fox family creature, just h1-colored in red/amber.
+
+**Concrete inheritance examples added:** spotted egg → freckled creature; starry egg → sparkle eyes; cracked egg → birth mark; glowing egg → aura creature; round soft egg → chubby body; lean egg → lean creature.
+
+**Future note added:** The egg algorithm is LOCKED. But a future Egg Visual Identity Pass could add a CSS/overlay layer (or a planned `drawEgg()` modification) to make egg motifs more visually legible before the creature system ships. Q9 asks GPT to decide whether this matters enough to schedule.
+
+**Open questions updated to 10:** Q9 = egg legibility before creature system ships; Q10 = Ember as formal 17th family.
+
+---
+
 # Session Summary — 2026-06-09 (Procedural Character System Design v2)
 
 **Session type:** Documentation and architecture only. No code. No build.

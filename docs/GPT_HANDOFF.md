@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Egg Home Design)_
+_Last updated: 2026-06-09 (Egg Home MVP)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,16 +22,36 @@ _Last updated: 2026-06-09 (Egg Home Design)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Home Design — docs only):**
+**What changed this session (Egg Home MVP — code change):**
+
+- `src/components/Home.jsx` — REPLACED. Old Home (Adventure Director, subject grid, Egg Run, Today's Surprise, stats strip, XP boost badge, login header) removed. New Egg Home: large procedural egg (190×225px) at center with idle float/excited animation. Pet interaction (chirp + sparkle particles; happy-spin at streak 3; sleepy at streak 6). Reunion burst on first visit or >4h gap. Item tray (food/ribbon/potion/star with count badges; select + use-on-egg). Creature companion walks left-right after first hatch. Action row: ลูบไข่ / คอลเลกชัน / ออกสำรวจ (Go Explore → adventure-thai).
+- `src/lib/state.js` — `lastHomeVisit: null` added to `defaultState()`.
+- `src/context/StateContext.jsx` — `UPDATE_LAST_HOME_VISIT` action and reducer case added.
+- `src/lib/audio.js` — 4 new SFX: `chirp` (cute high chirp), `sparkle` (ascending twinkle), `jingle` (ribbon jingle), `feed` (eating sound).
+- `src/styles.css` — 7 new keyframes + 6 CSS classes for all egg home animations.
+- Build ✅. Commit: `feat: egg home mvp`. Pushed to main → Vercel auto-deploy triggered.
+
+**Current Home behavior:**
+1. Child opens app → sees their egg large at center, floating gently
+2. Reunion burst fires if >4h since last visit (sparkle explosion + chirp)
+3. Tap egg or "ลูบไข่" → chirp + sparkle; streak 3 → hearts + happy spin; streak 6 → sleepy
+4. Item tray: tap food 🍗 (select), tap egg (use, dispatches USE_ITEM) → same for ribbon/potion/star
+5. "ออกสำรวจ" → routes to adventure-thai (battle mode)
+6. Stage 5+ → excited pulse animation automatically
+7. Creature companion (most recently hatched) walks left-right in lower zone
+
+**Known limitations / MVP defaults:**
+- Go Explore hardcoded to `adventure-thai`. Future: rotate by most-needed subject.
+- Creature only shows most recent (index 0). Future: cycling selector.
+- No ambient sound / home music. Future: low-priority.
+- GPT's 10 open questions for Egg Home (egg-home.md) are still unanswered — implemented with reasonable MVP defaults.
+
+**What changed last session (Egg Home Design — docs only):**
 
 - `docs/research/world/egg-home.md` — NEW. Full Egg Home design document. Emotional goal: "I want to visit my egg." Screen layout (390px portrait): egg large at center, item tray below, action row (pet/collection/explore). Five interaction rituals: pet (sparkle+chirp+bounce), feed (float+absorb+warm glow), ribbon (wrap+decoration persists), potion (XP arc moves, no number), star (golden orbit for boost duration). Five mood states (happy/content/quiet/excited/reunion) expressed through egg animation only — no stat bars. Stage progression: stage 1 = small/dim, stage 6 = glowing/cracking/excited, stage 7 = egg tries to hatch. Creature companion: walks left-right, tap for happy reaction. Return loop motivators: reunion burst after >4 hours, near-hatch excitement (stages 5–7), items waiting in tray — all intrinsic, no streak pressure. Year 1 MVP defined. 10 open questions raised.
-- `docs/GPT_NOTES.md` — Egg Home section added at top.
-- `docs/TASKS.md` — Egg Home task marked done; GPT questions task added.
 - No code changes. No build.
 
-**⚠️ BLOCKED on 10 open questions for Egg Home** — see `GPT_NOTES.md` → Egg Home Design. Must answer before `EggHome.jsx` work begins: (1) egg naming, (2) mood indicator style, (3) return/notifications, (4) creature dialogue, (5) desire indicator, (6) hatch moment, (7) egg-in-battle framing, (8) ambient sound, (9) creature permanence, (10) multiple creatures.
-
-**What changed last session (KidQuest World Design — docs only):**
+**What changed (KidQuest World Design — docs only):**
 
 Philosophy shift triggered by real playtesting with Chopin. Chopin said "The game is boring" and "Not like a game." He engages with egg collecting, caring, feeding, hatching, taking eggs into battle — but not with subjects, levels, or the Adventure Director.
 
@@ -50,9 +70,7 @@ Philosophy shift triggered by real playtesting with Chopin. Chopin said "The gam
 - Battle = where learning questions appear. Battle feel philosophy unchanged.
 - sessionLog + parent Report unchanged. Subjects become invisible support systems.
 
-**⚠️ BLOCKED:** Nothing should be coded until GPT answers 10 open questions. See `GPT_NOTES.md` → KidQuest World.
-
-**What changed last session (Educational Math Visuals — code change):**
+**What changed (Educational Math Visuals — code change):**
 
 - `src/config/gameConfig.js` — Added `COUNTABLE_GROUPS` (3 semantic categories: fruits 🍎🍌🍓🍊🍒 / animals 🐟🐱🐶🐰🐸 / everyday 🧸⭐🎈🌸🚗) and flat `COUNTABLES`. Single source of truth for all 3 math files — previously each had its own local array with `🥚` (game mascot), `💎` (abstract), `🏀` (random). Updated `PATTERN_SETS.AB`: removed `['🥚','🔵']` (egg = game mascot, confusing), replaced all pairs with educationally coherent pairs: shapes `['🔺','🔵']`, fruits `['🍎','🍌']`, animals `['🐱','🐶']`, hearts `['❤️','💙']`, `['⭐','🌸']`. Updated `TEACH_CONTENT.math[0]` examples: `🥚×3 → 🍎×3`, `⭐×5 → 🐟×5`. Updated `TEACH_CONTENT.math[8]` pattern examples to match new pattern sets.
 - `src/games/GameMath.jsx` — Removed local `COUNTABLES`. Imports `COUNTABLES, COUNTABLE_GROUPS`. For `objects` visual model, emojiA+emojiB now come from the same semantic group (shuffle one category, take first two). Example: apple+banana instead of egg+diamond. Same-group pairing makes addition visuals semantically coherent.

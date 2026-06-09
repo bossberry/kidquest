@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Egg Home MVP
+
+- `src/components/Home.jsx` — REPLACED. Old Home (Adventure Director, subject grid, Egg Run, stats strip) removed. New Egg Home: large egg center (190×225px), idle float animation, stage 5+ excited pulse, pet interaction (chirp+sparkle+hearts), streak happy-spin + sleepy, reunion burst on first visit or >4h gap, item tray (food/ribbon/potion/star, count badges, tap-twice-to-use), creature companion walks left-right after first hatch (tap for chirp+bounce), action row (ลูบไข่ / คอลเลกชัน / ออกสำรวจ), warm gradient background.
+- `src/lib/state.js` — Added `lastHomeVisit: null` to `defaultState()`.
+- `src/context/StateContext.jsx` — Added `UPDATE_LAST_HOME_VISIT` action + reducer case.
+- `src/lib/audio.js` — Added 4 new SFX to `playTone()`: `chirp` (high cute chirp), `sparkle` (ascending twinkle), `jingle` (ribbon jingle), `feed` (eating sound).
+- `src/styles.css` — Added Egg Home keyframes: `egg-home-float`, `egg-home-excited`, `egg-anim-pet`, `egg-anim-happy-spin`, `egg-anim-reunion`, `egg-anim-sleepy`, `particle-rise`. Added CSS classes: `.egg-anim-float/excited/pet/happy-spin/reunion/sleepy`.
+- Build ✅. Commit: `feat: egg home mvp`. Pushed.
+
 ## 2026-06-09 — Egg Home Design (docs only)
 
 - `docs/research/world/egg-home.md` — NEW. Full Egg Home design. Goal: child feels "I want to visit my egg." Covers: screen layout (390px portrait), egg zone (160–200px center, stage-aware appearance), item tray interactions (pet/feed/ribbon/potion/star with distinct visual rituals), mood system (happy/content/quiet/excited/reunion — visual only, no stat bars), stage progression in Home (stages 1–7 with distinct egg behaviour), creature companion (walks left-right, tap for reaction), return loop motivators (intrinsic only: reunion burst, near-hatch excitement, items waiting), Year 1 MVP scope, 10 open questions for GPT.

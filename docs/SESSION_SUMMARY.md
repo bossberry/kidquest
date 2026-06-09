@@ -1,4 +1,34 @@
-# Session Summary — 2026-06-09 (Egg Home Design)
+# Session Summary — 2026-06-09 (Egg Home MVP)
+
+**Session type:** Code change. Build: ✅.
+
+**Files changed:**
+- `src/components/Home.jsx` — REPLACED with Egg Home
+- `src/lib/state.js` — `lastHomeVisit: null` added
+- `src/context/StateContext.jsx` — `UPDATE_LAST_HOME_VISIT` action added
+- `src/lib/audio.js` — 4 new SFX: chirp, sparkle, jingle, feed
+- `src/styles.css` — 7 new keyframes + 6 utility classes
+
+**What was built:**
+Egg Home replaces the old Adventure Director Home. Goal: "I want to visit my egg." The child sees their procedural egg large at center with a gentle float animation. They can pet the egg (chirp + sparkle + hearts; escalates to happy-spin at streak 3, sleepy at streak 6). On first visit or after >4 hours, a reunion burst triggers. Item tray shows food/ribbon/potion/star with count badges — tap once to select, tap egg (or tap again) to use. Creature companion walks left-right in the lower zone after first hatch. Three action buttons: ลูบไข่ (pet), คอลเลกชัน (collection), ออกสำรวจ (Go Explore → adventure-thai). All subject selectors, XP bars, stats, Egg Run, and Adventure Director removed.
+
+**Architecture:**
+- Home.jsx is now fully self-contained. No longer uses supabase, MG_UNLOCK/MG_COLORS, showToast, getRecommendation, getSurpriseEvent.
+- `lastHomeVisit` stored in state for reunion detection across sessions.
+- Creature patrol uses a ref-backed interval (25fps, avoids stale closure) to animate creature left-right.
+- Particle system: random direction + distance, stored in array, cleared after 1200ms.
+- triggerAnim: clears timer, sets 'float' for 1 frame, then sets target name via rAF to force CSS animation restart.
+- Go Explore hardcoded to adventure-thai — subject rotation by day will be a future refinement.
+
+**Known risks:**
+- GPT's 10 open questions for Egg Home (from egg-home.md) are still unanswered. The implementation proceeds with reasonable MVP defaults — most questions are deferred to the next design iteration.
+- Go Explore always routes to adventure-thai. This is a placeholder. Future: rotate by most-needed subject or add a subject picker.
+- Creature companion only shows the most recently hatched creature (index 0). Future: cycling selector.
+- No ambient sound / home music. Future: low-priority after core feel is validated.
+
+---
+
+# Previous Session Summary — 2026-06-09 (Egg Home Design)
 
 **Session type:** Documentation and architecture only. No code. No build.
 

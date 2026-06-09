@@ -119,6 +119,28 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 /* Layout — safe-area-aware bottom padding so buttons never overlap BottomNav */
 #egg-home{background:linear-gradient(175deg,#FFF9EE 0%,#EEE6FB 100%);padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 
+/* ===== EGG STAGE AURAS (0-8) — persistent per-stage glow on canvas ===== */
+@keyframes egg-aura-s2{0%,100%{filter:drop-shadow(0 0 6px rgba(200,230,255,.32))}50%{filter:drop-shadow(0 0 15px rgba(180,220,255,.65))}}
+@keyframes egg-aura-s3{0%,100%{filter:drop-shadow(0 0 9px rgba(180,140,255,.38))}50%{filter:drop-shadow(0 0 22px rgba(190,150,255,.78))}}
+@keyframes egg-aura-s4{0%,100%{filter:drop-shadow(0 0 12px rgba(255,215,0,.45))}50%{filter:drop-shadow(0 0 28px rgba(255,215,0,.88))}}
+@keyframes egg-aura-s5{0%,100%{filter:drop-shadow(0 0 16px rgba(255,140,40,.5))}50%{filter:drop-shadow(0 0 34px rgba(255,180,40,.95))}}
+@keyframes egg-aura-s6{0%,100%{filter:drop-shadow(0 0 20px rgba(60,160,255,.55))}50%{filter:drop-shadow(0 0 40px rgba(120,210,255,1))}}
+@keyframes egg-aura-s7{0%,100%{filter:drop-shadow(0 0 22px rgba(200,255,255,.6)) drop-shadow(0 0 8px rgba(255,255,255,.3))}50%{filter:drop-shadow(0 0 46px rgba(220,255,255,1)) drop-shadow(0 0 18px rgba(255,255,255,.85))}}
+@keyframes egg-aura-s8{0%,100%{filter:drop-shadow(0 0 28px rgba(255,215,0,.72)) drop-shadow(0 0 12px rgba(255,255,255,.4))}50%{filter:drop-shadow(0 0 58px rgba(255,220,60,1)) drop-shadow(0 0 28px rgba(255,255,255,.95))}}
+.egg-s0{}
+.egg-s1{filter:drop-shadow(0 0 4px rgba(210,200,255,.2))}
+.egg-s2{animation:egg-aura-s2 3.5s ease-in-out infinite}
+.egg-s3{animation:egg-aura-s3 3.2s ease-in-out infinite}
+.egg-s4{animation:egg-aura-s4 2.8s ease-in-out infinite}
+.egg-s5{animation:egg-aura-s5 2.4s ease-in-out infinite}
+.egg-s6{animation:egg-aura-s6 2.0s ease-in-out infinite}
+.egg-s7{animation:egg-aura-s7 1.6s ease-in-out infinite}
+.egg-s8{animation:egg-aura-s8 1.1s ease-in-out infinite}
+
+/* Stage-up celebration banner */
+@keyframes stage-up-pop{0%{opacity:0;transform:scale(.52) translateY(22px)}22%{opacity:1;transform:scale(1.16) translateY(-9px)}42%{transform:scale(.97) translateY(0)}65%{opacity:1;transform:scale(1.02) translateY(0)}100%{opacity:0;transform:scale(1) translateY(-46px)}}
+.stage-up-banner{position:fixed;top:28%;left:0;right:0;width:max-content;margin:0 auto;pointer-events:none;z-index:700;text-align:center}
+
 /* ===== GAME SCREEN ===== */
 #game-screen{background:var(--bg)}
 .back-bar{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0}

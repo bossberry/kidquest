@@ -1,3 +1,51 @@
+# Session Summary — 2026-06-09 (Dramatic Egg Stage Progression)
+
+**Session type:** Code change. Build: ✅.
+
+**Files changed:**
+- `src/lib/eggAlgorithm.js` — `EGG_STAGES` 7→9, `EGG_STAGE_NAMES` updated to 9 Thai names
+- `src/lib/audio.js` — 2 new SFX: `stageUp`, `heartbeat`
+- `src/styles.css` — Per-stage aura keyframes + classes (`egg-s0`–`egg-s8`), `stage-up-pop` animation, `.stage-up-banner`
+- `src/components/Home.jsx` — Stage-up detection, aura class on canvas, stage-up banner, heartbeat effect, 9-dot header
+
+**Core changes:**
+
+`EGG_STAGES` changed from 7 to 9. `drawEgg()` is untouched — changing the constant naturally spreads visual layers across 9 stages via `progress = stage / (total-1)`. Key threshold shifts:
+- Dots: always visible from stage 1
+- Lines: stage 2 (was stage 1)
+- Shapes: stage 4 (was stage 3)
+- Shadow creature: stage 5 (was stage 4)
+- Glyphs: stage 6 (was stage 5)
+- Stars + eye: stage 7 (was stage 5-6)
+- Cracks: stage 7 (was stage 6)
+- Full cracks at maximum: stage 8
+
+**Per-stage persistent aura** (pulsing CSS `drop-shadow` on EggCanvas):
+- Stage 0-1: none / whisper glow
+- Stage 2: soft cool blue pulse (3.5s)
+- Stage 3: soft purple shimmer (3.2s)
+- Stage 4: golden pulse (2.8s)
+- Stage 5: orange-gold pulse (2.4s)
+- Stage 6: crystal blue pulse (2.0s)
+- Stage 7: white-blue intense dual drop-shadow (1.6s)
+- Stage 8: gold-white max intensity (1.1s, fastest)
+
+Aura class merged with temporary `egg-glow-*` — glow wins during item interactions, aura resumes after.
+
+**Stage-up banner:** `stageUp` state tracks `{stage, id}`. A `useEffect` on stage detects increases (skips first render via `prevStageRef = null` init). On stage up: plays `stageUp` fanfare, spawns 18 sparkles + 6 hearts, shows `.stage-up-banner` overlay "ขึ้นระดับแล้ว!" + stage name for 2.8s.
+
+**Heartbeat:** `useEffect` on `readyToHatch` plays `heartbeat` (lub-dub) once + repeats every 8s.
+
+**Architecture note:**
+- `eggStatsData.stage` is overridden with `sp.stage` in StateContext (line 433), so drawEgg always receives the correct 9-stage scaled stage number
+- `egg-s*` must appear before `egg-glow-*` in CSS so glow animation cascade wins during interactions (confirmed: aura defined in EGG HOME section before glow classes)
+
+**Known risks:**
+- Stage-up detection skips first render correctly — but on page reload, if the player is at stage 5, the banner won't show (correct: it only shows on actual stage increase)
+- Heartbeat sound is subtle (0.32 gain) — may not be audible on phone speakers with device volume low
+
+---
+
 # Session Summary — 2026-06-09 (Egg Home Emotional Life)
 
 **Session type:** Code change. Build: ✅.

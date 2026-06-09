@@ -70,6 +70,9 @@ export function playTone(type) {
     else if(type==='celebrate'){[523,659,784,880,1047,1319].forEach((f,i)=>t(f,i*.06,.2,.14,'triangle'));t(1047,.44,.16,.3,'sine')}
     else if(type==='begging'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';const st=ctx.currentTime;o.frequency.setValueAtTime(360,st);o.frequency.linearRampToValueAtTime(520,st+.18);o.frequency.linearRampToValueAtTime(390,st+.34);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.11,st+.05);g.gain.exponentialRampToValueAtTime(.001,st+.38);o.start(st);o.stop(st+.4)}
     else if(type==='yawn'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';const st=ctx.currentTime;o.frequency.setValueAtTime(290,st);o.frequency.linearRampToValueAtTime(220,st+.3);o.frequency.exponentialRampToValueAtTime(165,st+.88);g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.07,st+.18);g.gain.exponentialRampToValueAtTime(.001,st+.92);o.start(st);o.stop(st+.94)}
+    else if(type==='stageUp'){[523,659,784,1047,1319].forEach((f,i)=>t(f,i*.08,.22,.28,'triangle'));t(1568,.46,.28,.5,'sine');t(2093,.6,.18,.38,'triangle')}
+    else if(type==='heartbeat'){const st=ctx.currentTime;[0,.22].forEach(d=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(90,st+d);o.frequency.exponentialRampToValueAtTime(38,st+d+.18);g.gain.setValueAtTime(0,st+d);g.gain.linearRampToValueAtTime(.32,st+d+.025);g.gain.exponentialRampToValueAtTime(.001,st+d+.2);o.start(st+d);o.stop(st+d+.22)})}
+
   } catch(e) {}
 }
 

@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-09 — Dramatic Egg Stage Progression
+
+- `src/lib/eggAlgorithm.js` — `EGG_STAGES` changed 7→9. `EGG_STAGE_NAMES` updated to 9 Thai names: ไข่น้อย / ไข่อบอุ่น / ไข่มีความสุข / ไข่แวววาว / ไข่วิเศษ / ไข่เปล่งแสง / ไข่โบราณ / ไข่แตกร้าว / ใกล้ฟักแล้ว!!!. `drawEgg()`, `hash()`, `prng()` untouched — visual spread naturally adjusts via `progress = stage/8` (was `stage/6`).
+- `src/lib/audio.js` — 2 new SFX: `stageUp` (5-note ascending triangle fanfare + 2 sine accents); `heartbeat` (two-beat lub-dub low sine, 90→38Hz).
+- `src/styles.css` — 9 `@keyframes egg-aura-s*` (s2–s8) with pulsing `drop-shadow` growing in intensity/frequency per stage. 9 `.egg-s*` classes apply persistent aura on EggCanvas. `@keyframes stage-up-pop` + `.stage-up-banner` for pop/float/fade celebration overlay.
+- `src/components/Home.jsx` — `EGG_STAGES` imported. `stageUp` state + `prevStageRef` for stage-up detection. Stage-up `useEffect`: detects stage increase → `stageUp` sound + 18 sparkle + 6 heart particles + `.stage-up-banner` overlay (2.8s, auto-clear). Heartbeat `useEffect`: plays `heartbeat` once + every 8s when `readyToHatch`. `readyToHatch` updated to `stage >= EGG_STAGES - 1`. Excited mode threshold updated 5→7. `stageDots` uses `EGG_STAGES` constant (was hardcoded 7). `EggCanvas` gets `egg-s${stage}` class (merged with temp `egg-glow-*` — glow overrides aura during interactions). Stage header: 9-color dot+name tints per stage, smaller dots (7px, was 9px), color transitions on stage change.
+- Build ✅. Commit: `feat: dramatic egg stage progression`. Pushed.
+
 ## 2026-06-09 — Egg Home Emotional Life
 
 - `src/components/Home.jsx` — New idle behaviors: `idle-blink` (fast Y-squish, ~blink), `idle-look` (gentle tilt, curious), `idle-yawn` (slow stretch + settle) added to the 5–12s random idle pool. Creature companion gains personality state machine (walk/wave/sit/celebrate/gift/look/sleep, 20–45s cycle): `wave` → creature bounces + 👋 inline + chirp sound; `sit` → tilted 14° + static; `celebrate` → jump loop + 🎊 + sparkle particles + celebrate sound; `gift` → 🎁 shown; `look` → 👀 shown; `sleep` → dim opacity + 💤. Creature patrol pauses during non-walk states. Directional flip wrapped separately from animation class so they don't conflict. Ambient events: butterfly 🦋, falling leaf 🍂, shooting star ✨ — `position:fixed` CSS animations, triggered every 38–88 seconds, visual only, no mechanics. Reunion enhanced: hearts+sparkle combined burst + double chirp. Ribbon: changed from `pet` to `happy-spin` (proud spin). Star: combined sparkle+hearts burst.

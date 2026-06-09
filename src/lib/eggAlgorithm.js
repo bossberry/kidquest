@@ -1,6 +1,6 @@
-export const EGG_STAGES = 7
+export const EGG_STAGES = 9
 export const STAGE_XP_NEEDED = 50
-export const EGG_STAGE_NAMES = ['ไข่ลึกลับ','ไข่แวววาว','ไข่มีลาย','ไข่เปล่งแสง','เห็นเงาข้างใน...','เห็นดวงตาแล้ว! 👁️','ใกล้ฟักแล้ว!!!']
+export const EGG_STAGE_NAMES = ['ไข่น้อย','ไข่อบอุ่น','ไข่มีความสุข','ไข่แวววาว','ไข่วิเศษ','ไข่เปล่งแสง','ไข่โบราณ','ไข่แตกร้าว','ใกล้ฟักแล้ว!!!']
 
 export function hash(s) { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return Math.abs(h)>>>0 }
 export function prng(seed) { let s=seed>>>0; return()=>{ s^=s<<13; s^=s>>17; s^=s<<5; return(s>>>0)/4294967296 } }

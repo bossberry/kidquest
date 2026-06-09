@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-09 (Egg Home Emotional Life)_
+_Last updated: 2026-06-09 (Dramatic Egg Stage Progression)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,22 +22,24 @@ _Last updated: 2026-06-09 (Egg Home Emotional Life)_
 
 ## Latest Session Summary
 
-**What changed this session (Egg Home Emotional Life — code change):**
+**What changed this session (Dramatic Egg Stage Progression — code change):**
 
-- **Idle behaviors (egg):** `idle-blink` (fast Y-squish/blink), `idle-look` (curious tilt), `idle-yawn` (slow stretch + yawn sound) added to the random idle pool. Pool is now 10 options cycling every 5–12s.
-- **Creature state machine:** 7 states (walk/wave/sit/celebrate/gift/look/sleep). Switches every 20–45s. `wave` → bounce + 👋 + chirp. `sit` → tilted 14° static. `celebrate` → jump loop + 🎊 + sparkle burst + celebrate sound. `gift` → 🎁 + jingle. `sleep` → dimmed + 💤. Patrol pauses during all non-walk states.
-- **Ambient events:** 🦋 butterfly (crosses screen, 4.4s), 🍂 falling leaf (4s), ✨ shooting star (0.85s) — triggered every 38–88s, `position:fixed`, visual only.
-- **Reunion enhanced:** hearts + sparkle + double chirp (was sparkle + single chirp).
-- **Ribbon:** proud spin (`happy-spin`) instead of `pet` animation.
-- **New sound:** `yawn` (low descending sine, 0.94s).
-- **CSS:** 12 new keyframes/classes.
+- **`EGG_STAGES` changed 7→9** in `eggAlgorithm.js`. `drawEgg()` untouched — uses `progress = stage/(total-1)`, so adding 2 stages naturally spreads all visual layers across more milestones.
+- **9 stage names**: ไข่น้อย / ไข่อบอุ่น / ไข่มีความสุข / ไข่แวววาว / ไข่วิเศษ / ไข่เปล่งแสง / ไข่โบราณ / ไข่แตกร้าว / ใกล้ฟักแล้ว!!!
+- **Per-stage persistent aura**: `.egg-s0`–`.egg-s8` CSS classes on EggCanvas. Pulsing `filter:drop-shadow` growing in color intensity + pulse speed per stage. Soft cool blue at stage 2 → blazing gold-white at stage 8.
+- **Stage header colors**: dots + stage name tinted per stage (purple → tan → green → purple → gold → orange → blue → crystal → gold). 7px dots (was 9px), `transition:'color 0.8s'` on stage name.
+- **Stage-up celebration**: `stageUp` state + `prevStageRef`. On stage increase → `stageUp` 5-note ascending fanfare + 18 sparkle particles + 6 hearts + `.stage-up-banner` overlay "ขึ้นระดับแล้ว!" + stage name, pops/floats/fades in 2.8s.
+- **Heartbeat sound**: `heartbeat` (lub-dub, 90→38Hz) plays once + every 8s when `readyToHatch=true`.
+- **`readyToHatch` check**: updated `stage >= 6` → `stage >= EGG_STAGES - 1` (stage 8).
+- **Excited mode threshold**: 5→7 (egg bounces faster in last 2 stages).
+- Build ✅. Commit: `feat: dramatic egg stage progression`. Pushed.
+
+**What changed last session (Egg Home Emotional Life — code change):**
+
+- **Idle behaviors (egg):** `idle-blink`, `idle-look`, `idle-yawn` added to random pool (now 10 options, 5–12s).
+- **Creature state machine:** 7 states (walk/wave/sit/celebrate/gift/look/sleep), 20–45s cycle.
+- **Ambient events:** 🦋 butterfly, 🍂 leaf, ✨ shooting star — every 38–88s, `position:fixed`.
 - Build ✅. Commit: `feat: egg home emotional life`. Pushed.
-
-**What changed last session (Home Bottom Layout Overlap Fix — bug fix):**
-
-Three compounding bugs caused action row to overlap BottomNav on iPhone Safari:
-1. `#root` had no explicit height → `height:100%` on `#egg-home` didn't resolve → `flex:1` egg zone collapsed → CSS padding-bottom had no effect
-2. `padding-bottom: calc(60px + safe)` = 94px vs actual nav height 95px (1px short)
 3. `height:100%` doesn't adjust for iOS Safari toolbar (`100dvh` does)
 
 Fix: `#root { height:100%; display:flex; flex-direction:column }` + `height:'100dvh'` on `#egg-home` + padding increased to `calc(76px + env(safe-area-inset-bottom))`. Build ✅. Committed. Pushed.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
-import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
+import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone } from '../lib/audio.js'
 
 const ITEM_DEFS = [
@@ -35,6 +35,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [creatureTapped, setCreatureTapped] = useState(false)
   const [creatureState, setCreatureState] = useState('walk') // walk|wave|sit|celebrate|gift|look|sleep
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
+  const [stageUp, setStageUp]             = useState(null)  // null | {stage, id}
 
   const particleIdRef   = useRef(0)
   const animTimerRef    = useRef(null)
@@ -45,16 +46,39 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const initVisitRef    = useRef(state.lastHomeVisit)
   const stageRef        = useRef(0)
   const eggAnimRef      = useRef('float')
+  const prevStageRef    = useRef(null)
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
   const lastCreatureEmoji = state.hatchedEggs?.[0]?.creature?.e || null
-  const readyToHatch      = state.readyToHatch && stage >= 6
+  const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
   // Keep refs current
   useEffect(() => { stageRef.current = stage }, [stage])
   useEffect(() => { eggAnimRef.current = eggAnim }, [eggAnim])
+
+  // Stage-up detection — skip first render by initializing prevStageRef to null
+  useEffect(() => {
+    if (prevStageRef.current === null) { prevStageRef.current = stage; return }
+    if (stage > prevStageRef.current) {
+      playTone('stageUp')
+      spawnParticles('sparkle', 18)
+      spawnParticles('hearts', 6)
+      const id = Date.now()
+      setStageUp({ stage, id })
+      setTimeout(() => setStageUp(prev => prev?.id === id ? null : prev), 2800)
+    }
+    prevStageRef.current = stage
+  }, [stage]) // eslint-disable-line
+
+  // Heartbeat sound pulses when egg is ready to hatch
+  useEffect(() => {
+    if (!readyToHatch) return
+    playTone('heartbeat')
+    const id = setInterval(() => playTone('heartbeat'), 8000)
+    return () => clearInterval(id)
+  }, [readyToHatch]) // eslint-disable-line
 
   // Record visit + reunion burst on mount
   useEffect(() => {
@@ -195,7 +219,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       setEggAnim(name)
       if (duration) {
         animTimerRef.current = setTimeout(
-          () => setEggAnim(stageRef.current >= 5 ? 'excited' : 'float'),
+          () => setEggAnim(stageRef.current >= 7 ? 'excited' : 'float'),
           duration
         )
       }
@@ -273,14 +297,19 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const handleEggTap = () => activeItem ? handleTapItem(activeItem) : handlePetEgg()
 
-  const idleBaseClass = stage >= 5 ? 'egg-anim-excited' : 'egg-anim-float'
+  const idleBaseClass = stage >= 7 ? 'egg-anim-excited' : 'egg-anim-float'
   const eggClass = eggAnim !== 'float'
     ? `egg-anim-${eggAnim}`
     : idleAnim
       ? `egg-anim-${idleAnim}`
       : idleBaseClass
 
-  const stageDots = Array.from({ length: 7 }, (_, i) => i <= stage)
+  const stageDots = Array.from({ length: EGG_STAGES }, (_, i) => i <= stage)
+  const STAGE_DOT_COLORS = [
+    '#9B87B8','#C4956A','#7BAF6E','#9B59B6',
+    '#D4AC0D','#E87E2C','#5E9BD8','#5DADE2','#FFD700',
+  ]
+  const stageColor = STAGE_DOT_COLORS[stage] || '#9B87B8'
 
   return (
     <div id="egg-home" style={{
@@ -322,6 +351,21 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         }}>✨</div>
       )}
 
+      {/* Stage-up celebration banner */}
+      {stageUp && (
+        <div key={`su-${stageUp.id}`} className="stage-up-banner" style={{ animation:'stage-up-pop 2.8s ease forwards' }}>
+          <div style={{ fontSize:38 }}>✨</div>
+          <div style={{
+            fontFamily:"'Fredoka One',cursive", fontSize:22,
+            color:'#FFD700', textShadow:'0 2px 12px rgba(80,30,0,.8)',
+          }}>ขึ้นระดับแล้ว!</div>
+          <div style={{
+            fontFamily:'Mitr,sans-serif', fontSize:15, color:'#fff',
+            marginTop:4, textShadow:'0 1px 6px rgba(0,0,0,.55)',
+          }}>{EGG_STAGE_NAMES[stageUp.stage]}</div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         width:'100%', maxWidth:480, padding:'14px 20px 0',
@@ -332,16 +376,21 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#5A3A8B', lineHeight:1.1 }}>
             ไข่ของ{state.name}
           </div>
-          <div style={{ display:'flex', gap:5, marginTop:5, alignItems:'center' }}>
+          <div style={{ display:'flex', gap:4, marginTop:5, alignItems:'center' }}>
             {stageDots.map((filled, i) => (
               <div key={i} style={{
-                width:9, height:9, borderRadius:'50%',
-                background: filled ? '#9B59B6' : 'rgba(155,89,182,0.18)',
-                transition:'background 0.4s',
+                width:7, height:7, borderRadius:'50%',
+                background: filled ? stageColor : 'rgba(155,89,182,0.18)',
+                transition:'background 0.6s',
               }} />
             ))}
-            <span style={{ fontSize:10, color:'rgba(90,58,139,0.5)', marginLeft:4, fontFamily:'Mitr,sans-serif' }}>
-              {EGG_STAGE_NAMES[stage] || 'ไข่ลึกลับ'}
+            <span style={{
+              fontSize:10, color: stageColor, marginLeft:4,
+              fontFamily:'Mitr,sans-serif',
+              fontWeight: stage >= 6 ? 700 : 400,
+              transition:'color 0.8s',
+            }}>
+              {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
             </span>
           </div>
         </div>
@@ -416,7 +465,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           <EggCanvas
             stats={eggStatsData}
             width={190} height={225}
-            className={eggGlow ? `egg-glow-${eggGlow}` : ''}
+            className={[`egg-s${stage}`, eggGlow ? `egg-glow-${eggGlow}` : ''].filter(Boolean).join(' ')}
             style={{ display:'block' }}
           />
         </div>

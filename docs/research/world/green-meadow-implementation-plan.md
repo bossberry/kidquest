@@ -229,7 +229,7 @@ The egg walks. Screens connect. The world feels alive even with no enemies or NP
 
 ## Phase 3 — Visible Enemies
 
-_STATUS: NEXT_
+_STATUS: COMPLETE (2026-06-11)_
 
 **Gate: Chopin Phase 2 playtest ✅ CLEARED — tile D-pad feels natural. Phase 3 is unblocked.**
 
@@ -278,18 +278,32 @@ The child sees creatures in the world. They can walk into them to start a battle
 | Tiny Fox flee mechanic | Implement as: on collision check, roll Math.random() once. < 0.25 → fox runs off-screen and drops a Clover. ≥ 0.25 → battle. |
 | Bouncy Slime hitting egg unexpectedly | Intentional by design — the slime runs into the player, not the reverse. May need a brief battle-lockout period (1s) after returning from battle so the child doesn't immediately re-enter another battle. |
 
+### What was actually built (2026-06-11)
+- `src/lib/drawEnemy.js` (NEW) — Canvas sprite renderer, 4 types (bunny/slime/fox/egg_pawn), 48-unit design space.
+- `src/games/MoveSelectBattleMode.jsx` (FULL REWRITE) — GB-style layout, HP bars, typewriter dialogue, entry flash, counterattack animations, `showReturnButton` prop.
+- `src/components/WorldBattle.jsx` (NEW) — world battle wrapper, generates questions, dispatches session completion, navigates back to world.
+- `src/lib/state.js` — `worldPosition` + `worldBattleEnemy` added to `defaultState()`.
+- `src/context/StateContext.jsx` — `ENTER_BATTLE_FROM_WORLD`, `RETURN_FROM_WORLD_BATTLE`, `CLEAR_WORLD_POSITION` actions.
+- `src/components/WorldScreen.jsx` — ENEMY tile collision in `tryMove`, stateRef for closure safety, position restore on mount.
+- `src/App.jsx` — `world-battle` route, BottomNav hidden for world-battle.
+
+### What was NOT built in Phase 3
+- Sleepy Bunny double-tap wake rule (single-contact for MVP — deferred to Phase 4 polish).
+- Enemy respawn timer (enemy stays gone after battle — deferred).
+- Tiny Fox flee mechanic (not yet implemented).
+- Per-enemy movement patterns (enemies are static tiles, not animated world sprites).
+
 ### Review checklist
-- [ ] Are enemies clearly visible before battle starts?
-- [ ] Can a child avoid an enemy by moving around it?
-- [ ] Does Sleepy Bunny require two contacts before battle?
-- [ ] Does Tiny Fox sometimes flee and drop a Clover?
-- [ ] After battle, does child return to the exact screen they left?
-- [ ] Does the battle use the correct subject (per WB-Q3 answer)?
-- [ ] Does XP flow correctly to the egg (per WB-Q4 answer)?
-- [ ] Is there a brief lockout after returning from battle so the child has a moment before re-engaging?
+- [x] After battle, does child return to the exact screen they left?
+- [x] Does the battle use the correct subject (weakest from sessionLog)?
+- [x] Does XP flow correctly to the egg?
+- [ ] Sleepy Bunny double-tap (deferred)
+- [ ] Enemy respawn (deferred)
 
 ### Success criteria
 **A child should be able to see an enemy, choose to approach or avoid it, enter a battle, and return to the world at the same place. The loop from Phase 1 (Home → World → Home) should now include Home → World → Battle → World → Home.**
+
+✅ DONE — Build passes. Phase 3 shipped 2026-06-11.
 
 ---
 

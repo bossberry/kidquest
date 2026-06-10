@@ -61,7 +61,10 @@ export const ACTIONS = {
   EXIT_WORLD:           'EXIT_WORLD',
   MOVE_SCREEN:          'MOVE_SCREEN',
   DISCOVER_SCREEN:      'DISCOVER_SCREEN',
-  ENCOUNTER_TRIGGERED:  'ENCOUNTER_TRIGGERED',
+  ENCOUNTER_TRIGGERED:       'ENCOUNTER_TRIGGERED',
+  ENTER_BATTLE_FROM_WORLD:   'ENTER_BATTLE_FROM_WORLD',
+  RETURN_FROM_WORLD_BATTLE:  'RETURN_FROM_WORLD_BATTLE',
+  CLEAR_WORLD_POSITION:      'CLEAR_WORLD_POSITION',
 }
 
 function reducer(state, action) {
@@ -343,6 +346,17 @@ function reducer(state, action) {
 
     case ACTIONS.ENCOUNTER_TRIGGERED:
       return state
+
+    case ACTIONS.ENTER_BATTLE_FROM_WORLD: {
+      const { position, enemy } = action.payload
+      return { ...state, worldPosition: position, worldBattleEnemy: enemy }
+    }
+
+    case ACTIONS.RETURN_FROM_WORLD_BATTLE:
+      return { ...state, worldBattleEnemy: null }
+
+    case ACTIONS.CLEAR_WORLD_POSITION:
+      return { ...state, worldPosition: null }
 
     default:
       return state

@@ -11,6 +11,19 @@ import { SCREEN_MAPS } from '../lib/tileMaps.js'
 
 const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
+function getWeakestSubject(sessionLog) {
+  if (!sessionLog?.length) return 'thai'
+  const scores = { thai: [], math: [], eng: [] }
+  ;(sessionLog || []).slice(-20).forEach(e => {
+    if (scores[e.world]) scores[e.world].push(e.score || 0)
+  })
+  const avgs = Object.entries(scores)
+    .filter(([, arr]) => arr.length > 0)
+    .map(([s, arr]) => ({ s, avg: arr.reduce((a, b) => a + b, 0) / arr.length }))
+  if (!avgs.length) return 'thai'
+  return avgs.sort((a, b) => a.avg - b.avg)[0].s
+}
+
 const OWL_LINES = [
   'สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก',
   'หญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!',
@@ -46,6 +59,8 @@ const DPAD_BTN = (pos) => ({
 
 export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
   const canvasRef = useRef(null)
 
   const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -85,12 +100,12 @@ export default function WorldScreen({ navigate }) {
 
   // ── Screen setup ────────────────────────────────────────────────────────────
 
-  const initScreen = useCallback((id, fromExitType) => {
+  const initScreen = useCallback((id, fromExitType, forcedStart) => {
     const mapData = SCREEN_MAPS[id] || SCREEN_MAPS.BM
     const tileMap = mapData.map
-    const startPos = fromExitType !== undefined
+    const startPos = forcedStart || (fromExitType !== undefined
       ? getEntryPosition(tileMap, fromExitType)
-      : mapData.start
+      : mapData.start)
 
     tileMapRef.current  = tileMap
     specialsRef.current = findSpecials(tileMap)
@@ -106,7 +121,15 @@ export default function WorldScreen({ navigate }) {
     setDialogue(null)
   }, [])
 
-  useEffect(() => { initScreen(screenId, undefined) }, []) // mount only
+  useEffect(() => {
+    const savedPos = stateRef.current.worldPosition
+    if (savedPos && (savedPos.screen === screenId || !savedPos.screen)) {
+      initScreen(screenId, undefined, { col: savedPos.tileX, row: savedPos.tileY })
+      dispatch({ type: ACTIONS.CLEAR_WORLD_POSITION })
+    } else {
+      initScreen(screenId, undefined)
+    }
+  }, []) // eslint-disable-line
 
   // ── Proximity detection ─────────────────────────────────────────────────────
 
@@ -152,6 +175,21 @@ export default function WorldScreen({ navigate }) {
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 
+    // Detect ENEMY tile collision → trigger world battle
+    const targetRaw  = tileMap[newRow]?.[newCol]
+    const targetType = typeof targetRaw === 'object' ? targetRaw.type : targetRaw
+    if (targetType === T.ENEMY) {
+      const subject   = getWeakestSubject(stateRef.current.sessionLog)
+      const level     = stateRef.current.subjectLevels?.[subject] || 1
+      const enemyType = typeof targetRaw === 'object' ? (targetRaw.enemy_type || 'bunny') : 'bunny'
+      dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: {
+        position: { screen: screenIdRef.current, tileX: g.col, tileY: g.row },
+        enemy:    { type: enemyType, subject, level },
+      }})
+      navigate('world-battle')
+      return
+    }
+
     if (!canMove(tileMap, newCol, newRow)) return
 
     g.fromX = g.displayX
@@ -180,7 +218,7 @@ export default function WorldScreen({ navigate }) {
     }
 
     checkProximity(newCol, newRow)
-  }, [dispatch, handleExit, checkProximity])
+  }, [dispatch, handleExit, checkProximity, navigate])
 
   const moveUp    = useCallback(() => tryMove( 0, -1, 'up'),    [tryMove])
   const moveDown  = useCallback(() => tryMove( 0,  1, 'down'),  [tryMove])

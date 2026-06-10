@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: Pokémon GB battle screen + world→battle→world
+
+- `src/lib/drawEnemy.js` (NEW) — Canvas sprite renderer for 4 enemy types (`bunny`, `slime`, `fox`, `egg_pawn`). `drawEnemy(ctx, enemyType, size)` draws at 48-unit design space scaled via `p(v) = Math.round(v * size / 48)`.
+- `src/games/MoveSelectBattleMode.jsx` (FULL REWRITE) — GB-style battle layout: enemy canvas 48px top-right with HP bar, egg bottom-left with HP bar. 3-flash white-out on mount. Typewriter dialogue (`▶` prefix, 28ms/char). Enemy lunge + egg white-flash on wrong answer counterattack. Player HP visual-only (starts 60, `Math.max(8, h-8)` per wrong, never game over). New optional props: `enemyData`, `showReturnButton`. `GBHPBar` and `EnemyCanvas` sub-components.
+- `src/components/WorldBattle.jsx` (NEW) — World battle wrapper. Reads `state.worldBattleEnemy`, generates 8 questions via inline `genMoveQuestion`. Dispatches `ROUND_COMPLETE`, `LOG_SESSION`, `RETURN_FROM_WORLD_BATTLE` on final question, then `navigate('world')`.
+- `src/lib/state.js` — `worldPosition: null` and `worldBattleEnemy: null` added to `defaultState()`.
+- `src/context/StateContext.jsx` — 3 new actions: `ENTER_BATTLE_FROM_WORLD` (saves position + enemy), `RETURN_FROM_WORLD_BATTLE` (clears enemy), `CLEAR_WORLD_POSITION` (clears position).
+- `src/components/WorldScreen.jsx` — ENEMY tile detection in `tryMove` before `canMove` check: dispatches `ENTER_BATTLE_FROM_WORLD` + `navigate('world-battle')`. `stateRef` added for stale-closure safety. Mount effect restores `worldPosition` via `initScreen` `forcedStart` param.
+- `src/App.jsx` — `world-battle` screen route added. BottomNav hidden for `world-battle`.
+- Build: ✅ zero errors.
+- Docs updated: `CURRENT_STATE.md`, `TASKS.md`, `CHANGELOG.md`, `CHATBOT_NOTES.md`, `green-meadow-implementation-plan.md`.
+
 ## 2026-06-10 — Feat: Camera-follow system + fullscreen map
 
 - `src/lib/tileEngine.js` — `getCamera(playerX, playerY, viewW, viewH)`: now accepts viewport dimensions instead of fixed `CANVAS_W/CANVAS_H`. `renderMap()`: culling uses `ctx.canvas.width/height` for dynamic viewport size.

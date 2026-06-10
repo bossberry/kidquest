@@ -39,6 +39,17 @@
 - **State**: No new fields. `ENCOUNTER_TRIGGERED` action added (no-op).
 - Phase 1 CSS art WorldScreen fully replaced.
 
+### Green Meadow Phase 3 — World Battle (2026-06-11)
+
+- **ENEMY tile collision**: Walking into an `ENEMY` tile dispatches `ENTER_BATTLE_FROM_WORLD` (saves `worldPosition` + `worldBattleEnemy`), then `navigate('world-battle')`.
+- **`WorldBattle.jsx`** (NEW): World battle wrapper. Reads `state.worldBattleEnemy`, generates 8 questions for the weakest subject. Wraps `MoveSelectBattleMode` with `showReturnButton={true}` + `enemyData`. On final question: dispatches `ROUND_COMPLETE`, `LOG_SESSION`, `RETURN_FROM_WORLD_BATTLE`, then navigates back to world.
+- **`src/lib/drawEnemy.js`** (NEW): Canvas sprite renderer. `drawEnemy(ctx, enemyType, size)` — 4 types: `bunny`, `slime`, `fox`, `egg_pawn`. 48-unit design space scaled to any pixel size.
+- **GB-style battle screen**: `MoveSelectBattleMode` fully rewritten. Enemy canvas top-right (48px sprite with HP bar), egg bottom-left (with HP bar). 3-flash white-out on entry. Typewriter dialogue `▶` prefix at 28ms/char. Enemy lunge + egg white-flash counterattack on wrong answer. Player HP visual-only (starts 60, floors at 8 — never game over).
+- **Position restore**: `WorldScreen.jsx` mount effect reads `state.worldPosition` → restores player to saved `{tileX, tileY}` via `initScreen` `forcedStart` param, then dispatches `CLEAR_WORLD_POSITION`.
+- **State**: `worldPosition: null` + `worldBattleEnemy: null` added to `defaultState()`. New actions: `ENTER_BATTLE_FROM_WORLD`, `RETURN_FROM_WORLD_BATTLE`, `CLEAR_WORLD_POSITION`.
+- **App routing**: `world-battle` screen added. BottomNav hidden for `world-battle`.
+- **Not yet**: Sleepy Bunny double-tap wake rule (single-contact MVP). Enemy respawn timer.
+
 ### RPG / Egg System
 - **Procedural egg**: 9 display stages, adaptive XP (120–800 XP per egg, scales with eggs hatched); `drawEgg()` Canvas — **LOCKED** (`hash`/`prng`/`drawEgg` untouched). `EGG_STAGES=9` in eggAlgorithm.js; `scaledEggProgress()` in StateContext computes display stage 0–8 from adaptive XP threshold.
 - **Hatching**: `HatchOverlay.jsx`, tap-to-hatch → `getCreatureForHatch()` → creature revealed

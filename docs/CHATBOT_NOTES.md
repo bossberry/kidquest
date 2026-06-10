@@ -251,3 +251,12 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 3 — Visible Enemies (battle entry/return, 80px trigger).
 - Needs Chatbot decision first: Phase 3 enemy behavior + battle entry flow design.
 
+---
+
+**2026-06-11 — Pokémon GB battle screen + world→battle→world:**
+- Built: `src/lib/drawEnemy.js` (NEW — canvas sprite renderer for bunny/slime/fox/egg_pawn at 48px design space, scaled to any size). `MoveSelectBattleMode.jsx` (FULL REWRITE — GB-style layout: enemy canvas top-right, egg bottom-left, both HP bars, typewriter dialogue box `▶`, 3-flash entry white-out, enemy lunge + egg-hit-flash on counterattack). `src/components/WorldBattle.jsx` (NEW — world battle wrapper: reads `state.worldBattleEnemy`, generates TOTAL_QS=8 questions, dispatches ROUND_COMPLETE/LOG_SESSION/RETURN_FROM_WORLD_BATTLE, then navigate('world')). `src/lib/state.js` (+`worldPosition`, +`worldBattleEnemy` to defaultState). `StateContext.jsx` (+ENTER_BATTLE_FROM_WORLD, +RETURN_FROM_WORLD_BATTLE, +CLEAR_WORLD_POSITION actions+reducers). `WorldScreen.jsx` (5 edits: stateRef, ENEMY tile collision in tryMove, position restore on mount, initScreen forcedStart param). `App.jsx` (+WorldBattle route, BottomNav hidden for world-battle).
+- Not finished: Sleepy Bunny double-tap wake rule (spec called for first contact = wake animation, second = battle — simplified to single-contact for MVP). Enemy respawn timer not yet implemented.
+- Blockers/risks found: none. Build ✅ zero errors.
+- Ready to start next: Playtest with Chopin; then Phase 4 NPC System.
+- Needs Chatbot decision first: Double-tap wake rule + enemy respawn behavior (30s timer vs leave-and-return) — Phase 4 polish question.
+

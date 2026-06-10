@@ -44,6 +44,8 @@ export function defaultState() {
     currentRegion: null,
     currentScreen: null,
     discoveredScreens: [],
+    worldPosition: null,
+    worldBattleEnemy: null,
   }
 }
 

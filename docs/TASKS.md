@@ -13,6 +13,7 @@
 - [x] **Phase 2: Canvas renderer** — `drawCreature.js` Beauty Layer renderer + `CreatureCanvas.jsx` + `Collection.jsx` dual-path (dna vs legacy). Commit `8b14d00`. 2026-06-09.
 - [x] **Legacy Creature Preview** — `buildLegacyPreviewDNA(egg, index)` in `creatureGenerator.js`. All Collection creatures rendered via `CreatureCanvas` at 120px. 2-column gallery grid. Emoji badge for old creatures. Commit `8c393f7`. 2026-06-10.
 - [x] **Phase 3: Animation layer** — Blink state machine (open/closing/closed/opening), sleep Z-particles, CSS personality body animations (`ci-*` keyframes). `CreatureCanvas` props: `personality`, `animationEnabled`, `idleMode`. Commit `658d25c`. 2026-06-10.
+- [x] **Robust Egg Interaction State Machine** — Formal FSM in `Home.jsx`: states `idle/pet/happy/excited/eating/sleep/relax/reunion`. `enterState` cancels in-flight RAF (generation counter), `extendState` resets exit timer without CSS flicker. Tap combo: 1-3=pet, 4-7=happy, 8+=excited. 5s watchdog force-returns to idle after 6s stuck. Unmount cleans up all RAF+timers. Item use resets combo. `petStreak` state removed. Build ✅ 2026-06-10.
 - [ ] **Phase 4: Voice layer** — `playCreatureSound(dna, moment)` wired to all interaction points.
 - [ ] **Phase 5: Birth sequence** — HatchOverlay full reveal (egg glow → creature aura, first blink/look/chirp, name selection).
 

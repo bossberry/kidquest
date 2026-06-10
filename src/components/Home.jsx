@@ -20,10 +20,14 @@ const IDLE_DUR = {
   'idle-yawn':   1350,
 }
 
+// Interaction state machine — CSS class and auto-return duration for each state
+const STATE_CSS = { idle:'float', pet:'pet', happy:'happy-spin', excited:'excited', eating:'eat', sleep:'sleepy', relax:'relax', reunion:'reunion' }
+const STATE_DUR = { pet:500, happy:700, excited:1200, eating:900, sleep:2000, relax:1500, reunion:1200 }
+const comboToState = n => n >= 8 ? 'excited' : n >= 4 ? 'happy' : 'pet'
+
 export default function Home({ navigate, soundOn, toggleSound }) {
   const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
 
-  const [petStreak, setPetStreak]         = useState(0)
   const [eggAnim, setEggAnim]             = useState('float')
   const [idleAnim, setIdleAnim]           = useState(null)
   const [activeItem, setActiveItem]       = useState(null)
@@ -47,13 +51,11 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const stageRef        = useRef(0)
   const eggAnimRef      = useRef('float')
   const prevStageRef    = useRef(null)
-  // Rapid-tap safety: RAF handle (cancel before queuing a new one), generation
-  // counter (orphaned timers are no-ops), streak ref (avoids stale closure),
-  // last-pet timestamp (150ms cooldown prevents animation stacking).
-  const rafRef          = useRef(null)
-  const animGenRef      = useRef(0)
-  const petStreakRef    = useRef(0)
-  const lastPetRef      = useRef(0)
+  // Interaction state machine
+  const smRef           = useRef({ state: 'idle', comboCount: 0, enteredAt: 0 })
+  const enterRafRef     = useRef(null)
+  const enterGenRef     = useRef(0)
+  const comboResetRef   = useRef(null)
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
@@ -94,7 +96,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     const isReunion = !last || (now - last) > 4 * 60 * 60 * 1000
     dispatch({ type: ACTIONS.UPDATE_LAST_HOME_VISIT, payload: now })
     if (isReunion) {
-      triggerAnim('reunion', 1200)
+      enterState('reunion')
       spawnParticles('hearts', 10)
       spawnParticles('sparkle', 8)
       playTone('chirp')
@@ -197,15 +199,28 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     return () => clearTimeout(timer)
   }, []) // eslint-disable-line
 
-  // Cancel pending RAF on unmount to avoid state updates on a dead component
-  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }, [])
+  // Cancel pending RAF + timers on unmount
+  useEffect(() => () => {
+    if (enterRafRef.current) cancelAnimationFrame(enterRafRef.current)
+    clearTimeout(animTimerRef.current)
+    clearTimeout(comboResetRef.current)
+  }, [])
 
-  // Pet streak reset after 6s inactivity
+  // Watchdog: every 5s force back to idle if stuck non-idle > 6s
   useEffect(() => {
-    if (petStreak === 0) return
-    const t = setTimeout(() => { petStreakRef.current = 0; setPetStreak(0) }, 6000)
-    return () => clearTimeout(t)
-  }, [petStreak])
+    const id = setInterval(() => {
+      const sm = smRef.current
+      if (sm.state === 'idle') return
+      if (Date.now() - sm.enteredAt > 6000) {
+        clearTimeout(animTimerRef.current)
+        clearTimeout(comboResetRef.current)
+        sm.state = 'idle'
+        sm.comboCount = 0
+        setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
+      }
+    }, 5000)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line
 
   const spawnParticles = (type, count = 5) => {
     const ps = Array.from({ length: count }, () => {
@@ -221,25 +236,46 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     setTimeout(() => setParticles(prev => prev.filter(p => !ps.find(np => np.id === p.id))), 1200)
   }
 
-  const triggerAnim = (name, duration) => {
-    // Cancel any in-flight RAF so previous taps can't deliver stale state updates.
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+  // Enter a new interaction state — cancels any in-flight transition, restarts animation
+  const enterState = (newState, dur) => {
+    if (enterRafRef.current) { cancelAnimationFrame(enterRafRef.current); enterRafRef.current = null }
     clearTimeout(animTimerRef.current)
-    // Generation stamp: RAF callback and its timer both no-op if superseded.
-    const gen = ++animGenRef.current
+    const sm = smRef.current
+    sm.state = newState
+    sm.enteredAt = Date.now()
     setIdleAnim(null)
+    if (newState === 'idle') {
+      setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
+      return
+    }
+    const cssName = STATE_CSS[newState] || 'float'
+    const d = dur != null ? dur : (STATE_DUR[newState] ?? 600)
+    const gen = ++enterGenRef.current
     setEggAnim('float')
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null
-      if (animGenRef.current !== gen) return
-      setEggAnim(name)
-      if (duration) {
-        animTimerRef.current = setTimeout(() => {
-          if (animGenRef.current !== gen) return
+    enterRafRef.current = requestAnimationFrame(() => {
+      enterRafRef.current = null
+      if (enterGenRef.current !== gen) return
+      setEggAnim(cssName)
+      animTimerRef.current = setTimeout(() => {
+        if (smRef.current.state === newState) {
+          smRef.current.state = 'idle'
           setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
-        }, duration)
-      }
+        }
+      }, d)
     })
+  }
+
+  // Extend the current state without re-triggering the CSS animation (same visual tier)
+  const extendState = (targetState, dur) => {
+    clearTimeout(animTimerRef.current)
+    smRef.current.enteredAt = Date.now()
+    const d = dur != null ? dur : (STATE_DUR[targetState] ?? 600)
+    animTimerRef.current = setTimeout(() => {
+      if (smRef.current.state === targetState) {
+        smRef.current.state = 'idle'
+        setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
+      }
+    }, d)
   }
 
   const setGlow = (color, duration) => {
@@ -250,24 +286,39 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const handlePetEgg = () => {
     if (readyToHatch) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }
-    // 150ms cooldown: absorb hyper-rapid taps without silencing normal fast tapping.
-    const now = Date.now()
-    if (now - lastPetRef.current < 150) return
-    lastPetRef.current = now
-    // Use ref so rapid taps before React re-renders still increment correctly.
-    petStreakRef.current += 1
-    const ns = petStreakRef.current
-    setPetStreak(ns)
-    if (ns >= 6) {
-      triggerAnim('sleepy', 2000)
-    } else if (ns >= 3) {
-      playTone('giggle')
-      triggerAnim('happy-spin', 700)
-      spawnParticles('hearts', 8)
+    const sm = smRef.current
+    sm.comboCount += 1
+    const n = sm.comboCount
+    // Reset combo after 3s inactivity so next session starts fresh
+    clearTimeout(comboResetRef.current)
+    comboResetRef.current = setTimeout(() => { smRef.current.comboCount = 0 }, 3000)
+    const targetState = comboToState(n)
+    if (targetState !== sm.state) {
+      // Tier upgrade — full transition with new animation
+      if (targetState === 'excited') {
+        playTone('giggle')
+        spawnParticles('sparkle', 10)
+        spawnParticles('hearts', 6)
+      } else if (targetState === 'happy') {
+        playTone('giggle')
+        spawnParticles('hearts', 6)
+      } else {
+        playTone('chirp')
+        spawnParticles('sparkle', 3)
+      }
+      enterState(targetState)
     } else {
-      playTone('chirp')
-      triggerAnim('pet', 500)
-      spawnParticles('sparkle', 4)
+      // Same tier — extend exit timer without re-triggering animation (keeps it smooth)
+      if (targetState === 'pet') {
+        playTone('chirp')
+        spawnParticles('sparkle', 2)
+      } else if (targetState === 'happy') {
+        spawnParticles('hearts', 2)
+      } else {
+        if (Math.random() < 0.4) playTone('chirp')
+        spawnParticles('sparkle', 2)
+      }
+      extendState(targetState)
     }
   }
 
@@ -282,10 +333,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
     setActiveItem(null)
 
+    smRef.current.comboCount = 0  // items reset combo so next pet sequence starts clean
+
     if (key === 'food') {
       setFlyingItem({ emoji:'🍗', id: Date.now() })
       setTimeout(() => {
-        triggerAnim('eat', 900)
+        enterState('eating')
         spawnParticles('hearts', 5)
         playTone('chew')
         setGlow('warm', 1600)
@@ -300,20 +353,20 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       playTone('jingle')
       spawnParticles('sparkle', 6)
       setGlow('pink', 1200)
-      triggerAnim('happy-spin', 800) // proud spin
+      enterState('happy', 800)
 
     } else if (key === 'potion') {
       playTone('slurp')
       spawnParticles('sparkle', 6)
       setGlow('blue', 2000)
-      triggerAnim('relax', 1500)
+      enterState('relax', 1500)
 
     } else if (key === 'star') {
       playTone('celebrate')
       spawnParticles('sparkle', 12)
       spawnParticles('hearts', 4)
       setGlow('gold', 3000)
-      triggerAnim('happy-spin', 900)
+      enterState('happy', 900)
     }
   }
 

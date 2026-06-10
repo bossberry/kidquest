@@ -1,5 +1,9 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Fix: Robust Egg Interaction State Machine
+
+- `src/components/Home.jsx` — Complete interaction system rewrite. `triggerAnim` removed. New formal FSM: `smRef` tracks `{ state, comboCount, enteredAt }`. States: `idle/pet/happy/excited/eating/sleep/relax/reunion`. `enterState(name, dur?)` cancels in-flight RAF (generation counter via `enterGenRef`) and exit timer before starting new transition; RAF callback is a no-op if superseded. `extendState(name)` resets exit timer only — no CSS class flicker for same-tier repeat taps. Tap combo: taps 1–3=pet bounce, 4–7=happy-spin (upgrade transition), 8+=excited+sparkles+hearts. Combo resets via `comboResetRef` after 3s inactivity. Item use (food/ribbon/potion/star) resets combo and calls `enterState`. Watchdog `setInterval(5000)` force-returns to idle if stuck non-idle >6s. Unmount cleanup cancels RAF + all timers. `petStreak` useState removed. Commit: pending.
+
 ## 2026-06-10 — Fix: Egg Home Rapid Tap Freeze
 
 - `src/components/Home.jsx` — Three bugs fixed. (1) `triggerAnim` now cancels pending RAF via `rafRef` and uses `animGenRef` generation counter so orphaned timer/RAF callbacks are no-ops. (2) `petStreakRef` replaces stale `petStreak` closure reads in `handlePetEgg`. (3) 150ms cooldown via `lastPetRef` absorbs hyper-rapid taps. Also resets `petStreakRef.current` in the 6s inactivity timer; unmount cleanup cancels pending RAF. Commit `3e9ebed`.

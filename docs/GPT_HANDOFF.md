@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-10 (Fix: Egg Home Rapid Tap Freeze)_
+_Last updated: 2026-06-10 (Fix: Robust Egg Interaction State Machine)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,19 +22,37 @@ _Last updated: 2026-06-10 (Fix: Egg Home Rapid Tap Freeze)_
 
 ## Latest Session Summary
 
-**What changed this session (Fix: Egg Home Rapid Tap Freeze — code change):**
+**What changed this session (Fix: Robust Egg Interaction State Machine — code change):**
 
-`src/components/Home.jsx` — Three root causes fixed. No behaviour change for normal use.
+`src/components/Home.jsx` — Complete interaction system redesign. Previous partial fix (3 targeted patches) replaced by formal FSM.
 
-1. **Orphaned RAF callbacks** (primary freeze cause): `triggerAnim` previously called `requestAnimationFrame` without cancelling any pending RAF first. With rapid taps, multiple RAFs would pile up; each fired and scheduled its own reset `setTimeout`. Only the last timer was tracked in `animTimerRef`, so earlier timers became orphans that fired unexpectedly and snapped `eggAnim` back to `'float'` mid-animation. Fix: `rafRef` holds the RAF handle; each new `triggerAnim` call cancels it first. A `animGenRef` generation counter ensures the RAF callback and its timer are both no-ops if superseded — `if (animGenRef.current !== gen) return`.
+**Architecture:** `smRef = useRef({ state, comboCount, enteredAt })` is the single authoritative source of truth. States: `idle / pet / happy / excited / eating / sleep / relax / reunion`. No interaction state can be active simultaneously; every transition goes through `enterState` or `extendState`.
 
-2. **Stale `petStreak` closure**: `handlePetEgg` read `petStreak` from the render closure. Rapid taps before React re-renders all saw the same stale value, so `petStreak + 1` always produced the same `ns` — streak never properly incremented. Fix: `petStreakRef` is the authoritative counter (`petStreakRef.current += 1`); `setPetStreak` is kept only for triggering the display/effects side.
+**`enterState(newState, dur?)`** — canonical transition function:
+1. Cancels in-flight RAF via `enterRafRef` + `clearTimeout(animTimerRef)`.
+2. Updates `smRef.state`, `smRef.enteredAt`.
+3. Generation counter (`enterGenRef`) ensures the RAF callback is a no-op if superseded (protects against rapid tier upgrades within the same frame).
+4. Sets `eggAnim('float')` briefly, then RAF fires `setEggAnim(cssName)` to restart CSS animation cleanly.
+5. Exit timer returns to `idle` after `STATE_DUR[newState]` ms.
 
-3. **Animation stacking**: taps faster than one paint frame (~16ms) overwhelmed the RAF queue. Fix: 150ms tap cooldown in `handlePetEgg` via `lastPetRef`. Normal tapping (100ms+) is unaffected.
+**`extendState(targetState)`** — same visual tier repeated:
+- Only resets exit timer (no RAF, no CSS class change). Result: rapid same-tier tapping stays smooth — no flicker between pet/pet/pet bounces.
 
-Also: `petStreakRef.current` is now reset to 0 alongside `setPetStreak(0)` in the 6s inactivity timer. Unmount cleanup cancels any pending RAF.
+**Tap combo system:** `smRef.comboCount` increments on every pet tap. `comboToState(n)` maps to tier: 1–3=`pet`, 4–7=`happy`, 8+=`excited`. When tier changes → `enterState` (full transition with sound + particles). Same tier → `extendState` (extend timer, lighter particles). Combo resets after 3s inactivity via `comboResetRef`.
 
-Build: ✅. Commit: `3e9ebed`. Pushed.
+**Item interactions:** All four items (food/ribbon/potion/star) reset `comboCount` and call `enterState` directly. Food → `eating`. Ribbon/star → `happy`. Potion → `relax`.
+
+**Watchdog:** `setInterval(5000)` checks if non-idle state has been held >6s → force `idle` + clear timers. Covers any edge case where exit timer fails.
+
+**Unmount cleanup:** cancels `enterRafRef` RAF + both timers.
+
+**Removed:** `triggerAnim`, `petStreak` useState, `rafRef`, `animGenRef`, `petStreakRef`, `lastPetRef`, petStreak reset useEffect.
+
+Build: ✅. Commit: pending push.
+
+**What changed last session (Fix: Egg Home Rapid Tap Freeze — code change — superseded by above):**
+
+Partial fix via `rafRef`/`animGenRef`/`petStreakRef`/150ms cooldown. Replaced entirely by state machine this session.
 
 **What changed last session (Fix: Procedural Creature Detail Popup — code change):**
 

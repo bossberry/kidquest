@@ -119,6 +119,25 @@ All doc updates must be in the same commit as the code changes. Never skip.
 
 ---
 
+## 🔔 Notification Rule
+
+After completing ANY task or set of tasks, always send a notification using curl:
+
+```bash
+# Success:
+curl -s -H "Title: KidQuest ✅" -H "Tags: white_check_mark" -d "Done: [brief summary of what was completed]" ntfy.sh/kidquest-boss
+
+# Error:
+curl -s -H "Title: KidQuest ❌" -H "Tags: x" -H "Priority: high" -d "Error: [what went wrong and where]" ntfy.sh/kidquest-boss
+```
+
+The notification must:
+- Always fire at the end of every task, no exceptions
+- Include a clear 1-line summary of what was done or what failed
+- Be the very last action before ending the session
+
+---
+
 ## Key Facts
 
 - Primary user: Chopin (~5 years old), likes Sonic / Pokémon / Minecraft

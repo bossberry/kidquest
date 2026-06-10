@@ -1,5 +1,9 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Workflow: ntfy push notification rule
+
+- Added ntfy push notification rule to `CLAUDE.md` for all future tasks. Claude Code must send a curl notification to `ntfy.sh/kidquest-boss` at the end of every task (success or error).
+
 ## 2026-06-11 — Feat: Fullscreen map + Pokémon GB battle animations
 
 - `src/lib/particles.js` (NEW) — Canvas particle system: `mkBeam` (extending line + leading orb), `mkOrb` (arc-path orb + trailing ghost), `mkLightning` (seeded zigzag bolt), `mkSparks` (6-dir burst). `tickEffects(ctx, effects, dt)` advances + renders + returns surviving list. `mkOrb` supports `delay` for staggered XP victory.

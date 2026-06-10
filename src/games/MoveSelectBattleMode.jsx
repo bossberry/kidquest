@@ -174,6 +174,7 @@ export default function MoveSelectBattleMode({
   eggStats, eggProgress, readyToHatch, isFirstLevel,
   enemyData,
   showReturnButton,
+  onComplete,
 }) {
   const bg = BG[subject] || '#1a1040'
   const nearHatch = readyToHatch || (eggProgress?.stage ?? 0) >= 5
@@ -193,12 +194,13 @@ export default function MoveSelectBattleMode({
   const dmgBase   = Math.ceil(maxHP / total)
 
   // Core refs
-  const lockedRef    = useRef(false)
-  const comboRef     = useRef(0)
-  const ultimateRef  = useRef(false)
-  const enemyHPRef   = useRef(maxHP)
-  const mountedRef   = useRef(true)
-  const typeTimerRef = useRef(null)
+  const lockedRef     = useRef(false)
+  const battleOverRef = useRef(false)
+  const comboRef      = useRef(0)
+  const ultimateRef   = useRef(false)
+  const enemyHPRef    = useRef(maxHP)
+  const mountedRef    = useRef(true)
+  const typeTimerRef  = useRef(null)
 
   // Effect system refs
   const battleFieldRef  = useRef(null)
@@ -353,7 +355,7 @@ export default function MoveSelectBattleMode({
 
   // ── Tap handler ────────────────────────────────────────────────────────────
   function handleTap(choiceVal, idx) {
-    if (lockedRef.current || victoryMode || showTeach) return
+    if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
     lockedRef.current = true
     setSelectedCard(idx)
     playTone('tap')
@@ -425,10 +427,11 @@ export default function MoveSelectBattleMode({
         setTimeout(() => mountedRef.current && setBattleLog('🌟 ท่าพิเศษพร้อม!'), 1100)
       }
     }
-    const isLast = cur + 1 >= total
+    // Victory when enemy KO'd (HP reaches 0) OR all questions answered
+    const isOver = newHP <= 0 || cur + 1 >= total
     setTimeout(() => {
       if (!mountedRef.current) return
-      if (isLast) {
+      if (isOver) {
         enemyHPRef.current = 0; setEnemyHP(0)
         setTimeout(() => mountedRef.current && showVictory(), 350)
       } else {
@@ -461,10 +464,9 @@ export default function MoveSelectBattleMode({
       }, 300)
     }
     playTone('miss')
-    const isLast = cur + 1 >= total
     setTimeout(() => {
       if (!mountedRef.current) return
-      if (isLast) {
+      if (cur + 1 >= total) {
         enemyHPRef.current = 0; setEnemyHP(0)
         setTimeout(() => mountedRef.current && showVictory(), 350)
       } else {
@@ -474,6 +476,7 @@ export default function MoveSelectBattleMode({
   }
 
   function showVictory() {
+    battleOverRef.current = true
     setEnemyDefeating(true)
     setVictoryMode(true)
     setBattleLog(`${enemy.name} หมดแรง!`)
@@ -486,8 +489,10 @@ export default function MoveSelectBattleMode({
       setBattleLog('✨ ไข่ได้รับ XP!')
       playTone('item')
     }, 750)
+    // Auto-advance only when no return button shown
+    // Use onComplete if provided (handles early-KO finalization); else fall back to onNext
     if (!showReturnButton) {
-      setTimeout(() => { if (mountedRef.current) onNext() }, 2100)
+      setTimeout(() => { if (mountedRef.current) (onComplete || onNext)() }, 2100)
     }
   }
 
@@ -707,7 +712,7 @@ export default function MoveSelectBattleMode({
           <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>ชนะแล้ว!</div>
           {showReturnButton && (
             <button
-              onClick={onNext}
+              onClick={onComplete || onNext}
               style={{
                 marginTop:8, background:'rgba(58,106,58,0.85)', color:'#c8f8c8',
                 border:'2px solid rgba(88,160,88,0.6)', borderRadius:14, padding:'13px 36px',

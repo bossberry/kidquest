@@ -126,27 +126,28 @@ export default function WorldBattle({ navigate }) {
     streakRef.current = 0
   }
 
+  // Advance to next question (called between questions, not on victory)
   function onNext() {
     const nextCur = cur + 1
-    if (nextCur >= TOTAL_QS) {
-      if (!doneRef.current) {
-        doneRef.current = true
-        const score = scoreRef.current / TOTAL_QS
-        const dur   = Math.floor((Date.now() - startTime.current) / 1000)
-        dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score } })
-        dispatch({ type: ACTIONS.LOG_SESSION, payload: {
-          ts: Date.now(), world: subject,
-          missionId: `world-${enemyType}`,
-          level: levelConfig.id, score,
-          wrong: TOTAL_QS - scoreRef.current,
-          dur, completed: true,
-        }})
-        dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
-        navigate('world')
-      }
-    } else {
-      setCur(nextCur)
-    }
+    if (nextCur < TOTAL_QS) setCur(nextCur)
+  }
+
+  // Finalize battle — called once on victory (KO or last question)
+  function onComplete() {
+    if (doneRef.current) return
+    doneRef.current = true
+    const score = scoreRef.current / TOTAL_QS
+    const dur   = Math.floor((Date.now() - startTime.current) / 1000)
+    dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score } })
+    dispatch({ type: ACTIONS.LOG_SESSION, payload: {
+      ts: Date.now(), world: subject,
+      missionId: `world-${enemyType}`,
+      level: levelConfig.id, score,
+      wrong: TOTAL_QS - scoreRef.current,
+      dur, completed: true,
+    }})
+    dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
+    navigate('world')
   }
 
   function onSpeak() {
@@ -167,6 +168,7 @@ export default function WorldBattle({ navigate }) {
         onCorrect={onCorrect}
         onWrong={onWrong}
         onNext={onNext}
+        onComplete={onComplete}
         onSpeak={onSpeak}
         eggStats={eggStatsData}
         eggProgress={eggProgressData}

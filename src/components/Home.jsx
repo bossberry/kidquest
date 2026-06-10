@@ -47,6 +47,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const stageRef        = useRef(0)
   const eggAnimRef      = useRef('float')
   const prevStageRef    = useRef(null)
+  // Rapid-tap safety: RAF handle (cancel before queuing a new one), generation
+  // counter (orphaned timers are no-ops), streak ref (avoids stale closure),
+  // last-pet timestamp (150ms cooldown prevents animation stacking).
+  const rafRef          = useRef(null)
+  const animGenRef      = useRef(0)
+  const petStreakRef    = useRef(0)
+  const lastPetRef      = useRef(0)
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
@@ -190,10 +197,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     return () => clearTimeout(timer)
   }, []) // eslint-disable-line
 
+  // Cancel pending RAF on unmount to avoid state updates on a dead component
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }, [])
+
   // Pet streak reset after 6s inactivity
   useEffect(() => {
     if (petStreak === 0) return
-    const t = setTimeout(() => setPetStreak(0), 6000)
+    const t = setTimeout(() => { petStreakRef.current = 0; setPetStreak(0) }, 6000)
     return () => clearTimeout(t)
   }, [petStreak])
 
@@ -212,16 +222,22 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   }
 
   const triggerAnim = (name, duration) => {
+    // Cancel any in-flight RAF so previous taps can't deliver stale state updates.
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     clearTimeout(animTimerRef.current)
+    // Generation stamp: RAF callback and its timer both no-op if superseded.
+    const gen = ++animGenRef.current
     setIdleAnim(null)
     setEggAnim('float')
-    requestAnimationFrame(() => {
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      if (animGenRef.current !== gen) return
       setEggAnim(name)
       if (duration) {
-        animTimerRef.current = setTimeout(
-          () => setEggAnim(stageRef.current >= 7 ? 'excited' : 'float'),
-          duration
-        )
+        animTimerRef.current = setTimeout(() => {
+          if (animGenRef.current !== gen) return
+          setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
+        }, duration)
       }
     })
   }
@@ -234,7 +250,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const handlePetEgg = () => {
     if (readyToHatch) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }
-    const ns = petStreak + 1
+    // 150ms cooldown: absorb hyper-rapid taps without silencing normal fast tapping.
+    const now = Date.now()
+    if (now - lastPetRef.current < 150) return
+    lastPetRef.current = now
+    // Use ref so rapid taps before React re-renders still increment correctly.
+    petStreakRef.current += 1
+    const ns = petStreakRef.current
     setPetStreak(ns)
     if (ns >= 6) {
       triggerAnim('sleepy', 2000)

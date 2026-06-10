@@ -1,6 +1,26 @@
 # Research Index — KidQuest
 
-_Last updated: 2026-06-09_
+_Last updated: 2026-06-10_
+
+---
+
+## Implementation Status (updated 2026-06-10)
+
+| Research area | Key file | Status |
+|---------------|----------|--------|
+| World — Green Meadow | `world/green-meadow.md` | Phase 1 ✅ Phase 2 ✅ Phase 3 🔜 |
+| World — Egg Home | `world/egg-home.md` | ✅ Implemented |
+| World — World Bible | `world/kidquest-world.md` | Reference only |
+| Creatures | `creatures/procedural-character-system.md` | Phase 1–3 ✅ Phase 4–5 pending |
+| Battle | `battle/battle-progression.md` | ✅ Implemented |
+| Creature stats | `battle/creature-stats.md` | ✅ Implemented |
+| Gameplay loop | `progression/gameplay-loop.md` | ✅ Implemented |
+| Subject progression | `progression/subject-progression.md` | ✅ Implemented |
+| Observation | `observation/observation-philosophy.md` | ✅ Implemented |
+| Play observation | `observation/play-observation-system.md` | ✅ Implemented |
+| Egg economy | `rewards/egg-economy.md` | ✅ Implemented |
+| Missions | `missions/` | Shop ✅ Cooking/Garden pending |
+| Egg companion | `gameplay/egg-companion-adventure.md` | MVP ✅ ECA-3+ pending |
 
 ---
 

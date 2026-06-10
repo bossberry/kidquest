@@ -1,80 +1,22 @@
 # AI Systems — KidQuest
 
-Three AI systems collaborate on this project. Chat history is NOT the source of truth. Documentation files are the shared memory.
+## Current workflow (2-AI, as of 2026-06-10)
 
-**SPEC.md is historical reference only.** It describes the old HTML prototype. GPT and Claude systems must prefer `docs/GPT_HANDOFF.md` and `docs/CURRENT_STATE.md` over SPEC.md.
+### Claude Chatbot
+- Role: design decisions, open questions, curriculum design, code review
+- Reads: `docs/CURRENT_STATE.md` + `docs/CHATBOT_NOTES.md` + relevant research file
+- Writes: `docs/CHATBOT_NOTES.md` (decisions + answers)
+- Session start: upload `CLAUDE.md` + `docs/CURRENT_STATE.md` + `docs/CHATBOT_NOTES.md` + research file if needed
 
-See `docs/DOCUMENTATION_HIERARCHY.md` for the full precedence order and conflict rules.
+### Claude Code
+- Role: implementation only
+- Reads: `docs/CHATBOT_NOTES.md` + `docs/CURRENT_STATE.md` + `docs/TASKS.md` + research file if task requires
+- Writes: Handoff section in `docs/CHATBOT_NOTES.md` + all standard doc updates
+- Session start: upload `CLAUDE.md` + `docs/CURRENT_STATE.md` + `docs/CHATBOT_NOTES.md`
 
----
+## What to upload each session
 
-## GPT
+See `SESSION_STARTER.md` (root) for the full per-task upload guide.
 
-**Role:** Research · Curriculum Design · Product Architecture
-
-**Writes to:**
-- `docs/GPT_NOTES.md` — concise decisions, findings, open questions (points to research/ for detail)
-- `docs/research/**` — long-form research documents by subject
-
-**Reads:**
-- `docs/GPT_HANDOFF.md` — primary; full context from Claude Code
-- `docs/RESEARCH_INDEX.md` — to navigate research documents
-- Deeper files only when needed: `CURRENT_STATE.md`, `CODEBASE_SUMMARY.md`, `TASKS.md`
-
----
-
-## Claude Chatbot
-
-**Role:** Architecture Review · Post-Implementation Review · Design Discussion
-
-**Reads:**
-- `docs/GPT_NOTES.md`
-- `docs/GPT_HANDOFF.md`
-- `docs/CURRENT_STATE.md`
-- `docs/TASKS.md`
-- `docs/DECISIONS.md`
-
-**Writes to:**
-- `docs/POST_REVIEW.md` — post-implementation review after significant coding sessions
-
----
-
-## Claude Code
-
-**Role:** Implementation
-
-**Reads before every session:**
-- `docs/GPT_NOTES.md` — to pick up GPT decisions
-- `docs/CURRENT_STATE.md`, `docs/TASKS.md`, `docs/DECISIONS.md`
-
-**Writes after every session:**
-- `docs/GPT_HANDOFF.md` — always, every session
-- `docs/SESSION_SUMMARY.md`
-- `docs/CURRENT_STATE.md`
-- `docs/TASKS.md`
-- `docs/CHANGELOG.md`
-- `docs/POST_REVIEW.md` — if risks or technical debt are discovered
-- `docs/CODEBASE_SUMMARY.md` — if architecture changed
-- `docs/PROJECT_MAP.md` — if files changed
-
----
-
-## Information Flow
-
-```
-GPT research/decisions
-    ↓ writes
-docs/GPT_NOTES.md + docs/research/**
-    ↓ Claude Code reads before coding
-[implementation]
-    ↓ Claude Code writes after coding
-docs/GPT_HANDOFF.md
-    ↓
-Claude Chatbot post-review
-    ↓ writes
-docs/POST_REVIEW.md
-    ↓
-GPT reads GPT_HANDOFF.md + POST_REVIEW.md
-    ↓
-[next GPT work]
-```
+## Removed
+GPT removed from workflow 2026-06-10. `GPT_NOTES.md` and `GPT_HANDOFF.md` deleted.

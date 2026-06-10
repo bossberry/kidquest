@@ -1,61 +1,59 @@
 # Session Summary — 2026-06-10
 
-**Session type:** Code (2 features) + Documentation (1 major doc).
+**Session type:** Documentation only. No code. No build.
 
 ---
 
-## Part 1 — Robust Egg Interaction State Machine (code)
+## Green Meadow Detailed Design
 
-`Home.jsx` — Complete FSM replacing the partial rapid-tap patch. States `idle/pet/happy/excited/eating/sleep/relax/reunion`. `enterState(name, dur?)` cancels in-flight RAF (generation counter), `extendState(name)` resets exit timer without CSS flicker. Tap combo: 1–3=pet, 4–7=happy, 8+=excited. Combo resets after 3s inactivity. Item use resets combo. 5s watchdog force-returns to idle after 6s stuck. Unmount cleanup. `petStreak` state removed.
+`docs/research/world/green-meadow.md` (NEW) — Full hand-authored design for the Phase 1 World.
 
-**Build:** ✅. Commit: `eb17e77`.
+### Map structure (3×3 grid)
 
----
+```
+Flower Field   | Grandma Turtle's House | Forest Entrance
+River Crossing | Town Square            | Clover Hill
+Pond & Willow  | Starting Path ← ENTER | King Clover Bear Meadow
+```
 
-## Part 2 — Egg Home Background Scene (code)
+All screens fully specified. Visible enemies (no invisible encounters). Walk-into triggers battle.
 
-`src/components/HomeBackground.jsx` (NEW): Pure decorative background. Day/night based on current hour. Sky gradient (day/sunset/dawn/night), sun/moon with crescent, drifting CSS clouds, stars with twinkle, distant hills, grass/ground curve, trees, bushes, nest glow behind egg, tapered path, flowers, night magic particles.
+### What was designed
 
-`src/components/Home.jsx`: Import HomeBackground, add `hour` + `isDay`. Header gets backdrop blur + day/night text colors. Item tray + action row get backdropFilter + day/night backgrounds. Buttons adapt.
+**9 screens** — each with: theme, visual mood, NPCs, enemies, treasure spots, secrets, weather effects, day/night differences, music variation, special interactions, screen connections.
 
-`src/styles.css`: `#egg-home` gets `position:relative`. Cloud CSS + pseudo-elements. 4 keyframes: `hbg-drift-r/l`, `hbg-twinkle`, `hbg-float-magic`. `prefers-reduced-motion` disables cloud animations.
+**6 enemies** — Sleepy Bunny, Bouncy Slime, Tiny Fox, Leaf Sprite, Grumpy Mole, Mushroom Imp. All cute/funny/warm. Each has: appearance, movement, personality, idle/defeat/battle animations, trigger mechanic.
 
-HomeBackground uses `zIndex:-1` to sit behind all content. All elements `pointerEvents:none`. Buttons fully tappable.
+**5 NPCs** — Professor Clover Owl (tutorial), Grandma Turtle (warmth anchor), Post Bird (traveler), Young Bunny Farmer (trader), Traveling Bee Merchant (rare items). Each has: location, dialogue style, gifts, mini quests, special interactions.
 
-**Build:** ✅. Commit: `17bedf9`.
+**Treasure system** — 11 fixed spots (never same lore items), random sparkle system (1–2 per screen, 30% chance), hidden clover system (27 total across map, Lucky Day bonus if all found), 5 Old Letters (lore collectible chain).
 
----
+**5 minigame integrations** — EggFishing at River (ML) + Pond (BL). EggRun via Bunny race in Town Square. EggTower via ancient tree at Forest Entrance. EggCatch via butterfly cluster in Flower Field. EggMemory via Grandma's flower pot quest.
 
-## Part 3 — KidQuest World Bible (documentation only)
+**Session loop** — 10–15 min arc. Start at BM → explore → battle → treasure → NPC → boss → home. Natural end triggers (never forced). Home return flows rewards to Egg Home.
 
-`docs/research/world/kidquest-world.md` expanded to full World Bible:
-- 8 regions (Green Meadow through Dream Sky), each fully designed
-- Per-region: theme, visual, music, weather, NPCs, enemies, rare creatures, collectibles, treasure, learning focus, boss, unlock, special mechanics
-- Boss roster (all friendly: King Clover Bear → Dream Lion)
-- Enemy design guide (cute/funny/warm — never scary)
-- NPC guide (Grandma Turtle, Post Bird, Cloud Sheep, etc.)
-- Collectibles system (6 categories)
-- Future systems (cooking, gardening, seasonal events, home decoration, etc.)
-- 10 open questions for GPT before world map code
+**Boss: King Clover Bear** — Full flow: approach sequence (dialogue → player chooses fight/not yet), battle (grander music, mid-battle comments, 2.5× HP), win (claps, laughs, warm dialogue, sparkle + confetti, 3 treasure spots), failure (bear gives consolation gift, never uses "แพ้", bounces child to Starting Path, Professor Owl encourages).
 
-`docs/GPT_NOTES.md`: World Bible summary + open questions added.
-`docs/TASKS.md`: World Bible done; open questions task updated.
+**Failure philosophy** — Bear hugs + small gift after loss. Never: "you lost." Always: "ลองอีกครั้ง." Child keeps items and XP from the session. Boss is rebattlable.
 
-**No code. No build.**
+**Future hooks** — Sunny Beach entrance on Clover Hill east edge. Seasonal event spots (Flower Field, River, Pond). Gardening in Grandma's garden. Photo spots at hilltop/river/pond.
+
+**10 open questions** added to `docs/GPT_NOTES.md` — GPT must answer before world map code begins.
 
 ---
 
 ## Key decisions
 
-- Background: `zIndex:-1` + `position:relative` on `#egg-home`. Day/night: 6am-7pm=day.
-- World Bible: 8 regions. Green Meadow = Phase 1 only. All bosses are friendly.
-- 10 open questions must be answered by GPT before any world map code starts.
+- 3×3 grid confirmed (not 5×5). Starting screen = BM (Starting Path). Boss = BR.
+- All enemies visible before battle — no invisible random encounters. Ever.
+- Minigames are world-embedded, not separate menu entries.
+- Failure = bear hugs + gift. Never empty-handed outcome.
+- Day/night: follows real clock (same as Egg Home). Night = magical, not scary.
 
 ---
 
 ## What's next
 
-- GPT: Answer 10 open questions → `GPT_NOTES.md` → KidQuest World Bible.
-- WorldMap.jsx (Green Meadow) — after GPT answers.
-- Phase 4: Voice layer for creatures.
-- Phase 5: Birth sequence in HatchOverlay.
+- GPT: Answer 10 open questions for Green Meadow → `GPT_NOTES.md`.
+- Encounter + transition design doc (how exploration → battle → return works technically).
+- WorldMap.jsx implementation after GPT answers questions 1–5.

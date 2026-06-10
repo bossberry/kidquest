@@ -145,6 +145,80 @@ Source-of-truth: `docs/research/world/egg-home.md`
 
 ---
 
+## Green Meadow Detailed Design (2026-06-10)
+
+Source-of-truth: `docs/research/world/green-meadow.md`
+
+**Read this before implementing WorldMap.jsx or any exploration system.**
+
+### Map layout (3×3 grid)
+
+```
+[TL] Flower Field   | [TM] Grandma Turtle's House | [TR] Forest Entrance
+[ML] River Crossing | [MC] Town Square             | [MR] Clover Hill
+[BL] Pond & Willow  | [BM] Starting Path ← ENTER  | [BR] King Clover Bear Meadow
+```
+
+All screens fully authored. No procedural generation.
+
+### Key design decisions
+
+- **Visible enemies always** — all 6 enemy types are visible on screen before battle. Walk into them to trigger. No invisible random encounters. Ever.
+- **Natural session length** — 10–15 min. 3–5 battles. Child chooses when to return home.
+- **Minigames are world-embedded** — EggFishing at river/pond, EggRun via Bunny race, EggTower via tree climb, EggCatch via butterfly field, EggMemory via Grandma's quest. No separate menu entry.
+- **Boss failure = bear hugs + gift** — never "you lost" framing. Child bounced gently to Starting Path with consolation item. Professor Owl encourages.
+- **Home return is always voluntary** — home button always visible. Several natural "go home?" suggestions after natural end conditions, never forced.
+
+### Enemy roster (all cute/funny/warm)
+Sleepy Bunny, Bouncy Slime, Tiny Fox (25% flee chance), Leaf Sprite, Grumpy Mole, Mushroom Imp.
+
+### NPC placement
+- Starting Path (BM): Professor Clover Owl (tutorial), Post Bird (mailbox)
+- Town Square (MC): Young Bunny Farmer (trader + EggRun), Traveling Bee Merchant (60% sessions)
+- Grandma Turtle's House (TM): Grandma Turtle (always home)
+- Clover Hill (MR): Traveling Bee Merchant (40% sessions)
+- Traveling: Post Bird appears on 1–2 random screens per session
+
+### King Clover Bear (boss)
+
+Approach: Walk near throne → dialogue → player chooses fight or not yet. King never forces battle.
+
+Win: Bear claps, laughs warmly, gives Clover Crown + Rare Token + Food. Sparkle storm + confetti.
+
+Loss: Bear gives consolation gift (Clover or Pebble). Dialogue: "ไม่เป็นไรเลย ลองใหม่ได้เสมอ". Player bounced to BM, never empty-handed.
+
+Rebattle: Always available. Different dialogue on repeat visits.
+
+### Treasure system
+- 11 fixed treasure spots (mix of one-time permanent, daily, weekly)
+- Random sparkle system (1–2 per screen, 30% session chance)
+- 27 hidden clovers across all 9 screens (Lucky Day bonus if all found)
+- 5 Old Letters (lore chain — location: BM chest, TR log, TM garden path, ML river bank, Post Bird delivery)
+
+### Future hooks reserved in design
+- Sunny Beach entrance: eastern edge of Clover Hill (MR)
+- Seasonal events: Flower Field (TL), River (ML), Pond (BL)
+- Gardening: Grandma's garden (TM) — empty plot placeholder
+- Photo spots: hilltop (MR), river (ML), pond (BL)
+
+### Open questions for GPT (must answer before WorldMap.jsx)
+
+1. **Screen navigation UX** — How does child move between screens? Options: (A) directional arrows at screen edge, (B) tap screen edge, (C) minimap, (D) egg sprite moves autonomously, child taps encounter triggers. For ages 4–5, D may be most accessible.
+2. **Encounter trigger distance** — How large is the enemy "trigger zone" for a 4-year-old's finger? Estimate: 80–100px on 390px screen. Need GPT call.
+3. **Screen transition style** — Scroll (Animal Crossing) or cut (Pokémon)? Scroll = more spatial, heavier. Cut = simpler. Year 1 scope call.
+4. **Item bag capacity** — Unlimited (no return incentive) or capped at ~5–10 items (creates natural loop to go home)? Which matches our philosophy?
+5. **Minigame launch style** — When EggFishing/EggCatch triggers from the world, does it launch fullscreen (current behavior) or run inside the world screen?
+6. **Boss rebattle curriculum** — Does the question set in rematches change? Harder over time? Based on Subject Readiness?
+7. **Egg sprite in world** — Does the walking egg look like the current egg stage? (Yes seems right — child's actual egg.)
+8. **Collectible display location** — Green Meadow collectibles → Collection tab in Egg Home, or a separate "backpack" in the world?
+9. **Day/night clock sync** — Confirm Green Meadow day/night uses same real-clock logic as Egg Home (6am–7pm = day).
+10. **Post Bird quest chain** — Letter delivery between NPCs: MVP scope, or deferred post-launch?
+
+### Implementation gate
+Do NOT implement WorldMap.jsx until GPT answers questions 1–5.
+
+---
+
 ## KidQuest World Bible (2026-06-10)
 
 Source-of-truth: `docs/research/world/kidquest-world.md` (full World Bible, all 8 regions)

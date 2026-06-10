@@ -260,3 +260,12 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Playtest with Chopin; then Phase 4 NPC System.
 - Needs Chatbot decision first: Double-tap wake rule + enemy respawn behavior (30s timer vs leave-and-return) — Phase 4 polish question.
 
+---
+
+**2026-06-11 — Fullscreen map + Pokémon GB battle animations:**
+- Built: `src/lib/particles.js` (NEW — canvas particle system: `mkBeam/mkOrb/mkLightning/mkSparks/tickEffects`; orb supports `delay` for staggered XP orbs; tickEffects returns surviving list each frame). `src/lib/tileEngine.js` (EDITED — `getCamera` centers map when smaller than viewport: negative camX/camY allowed; `renderMap` fills `#3a6a3a` background before drawing tiles, `startCol/startRow` clamped to ≥0 to handle negative camX). `src/components/WorldScreen.jsx` (EDITED — added `orientationchange` listener alongside `resize`). `src/styles.css` (EDITED — `.move-card-btn` active press scale + `-webkit-tap-highlight-color`). `src/games/MoveSelectBattleMode.jsx` (FULL REWRITE — 120px enemy + 96px egg, entry slide-in from sides via CSS `transition:transform 300ms ease-out`, ResizeObserver-synced effect canvas overlay, `spawnEffect('attack'|'combo'|'ultimate'|'miss'|'xp')` using `getBoundingClientRect`, subject-specific attacks: Thai=golden orb, Math=green beam, English=lightning, compact 2×2 move cards at fixed 168px panel, HP bars 10px, victory: XP orbs fly enemy→egg staggered, 3 entry flash sequences, staggered dialogue typewriter).
+- Not finished: none — all planned changes complete.
+- Blockers/risks found: Map 320×240px is still smaller than any phone screen (390+ px wide). The camera-center fix works correctly — map draws centered with dark grass fill outside bounds. No tile scaling implemented (was in-scope to defer).
+- Ready to start next: Playtest with Chopin (Phase 3 map+battle). Then Phase 4 NPC System.
+- Needs Chatbot decision first: Double-tap wake rule + enemy respawn — still Phase 4 polish question.
+

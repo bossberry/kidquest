@@ -4,17 +4,11 @@ import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
+import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const BG = { math:'#1a1040', thai:'#0d2b1d', eng:'#0a1f3d' }
-
-function answerFontSize(content) {
-  const s = String(content)
-  if (s.length <= 2) return 64
-  if (s.length <= 4) return 54
-  return 44
-}
 
 const REGULAR_ENEMIES = {
   math:[
@@ -48,15 +42,15 @@ const MAX_PLAYER_HP = 60
 
 // ─── GB-style HP Bar ──────────────────────────────────────────────────────────
 
-function GBHPBar({ pct, isPlayer, isBoss }) {
+function GBHPBar({ pct, isPlayer }) {
   const color = isPlayer
     ? (pct > 50 ? '#44bb44' : pct > 25 ? '#ffcc00' : '#ee5522')
     : (pct > 50 ? '#E24B4A' : pct > 25 ? '#EF9F27' : '#f66')
   return (
     <div style={{ display:'flex', alignItems:'center', gap:4 }}>
       <span style={{ fontSize:9, color:'rgba(255,255,255,0.4)', flexShrink:0, fontFamily:'monospace' }}>HP</span>
-      <div style={{ flex:1, height: isBoss ? 8 : 6, background:'rgba(0,0,0,0.4)', borderRadius:3, overflow:'hidden', border:'1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ height:'100%', width:`${Math.max(0, pct)}%`, background:color, transition:'width .65s ease, background-color .3s', borderRadius:2 }} />
+      <div style={{ flex:1, height:10, background:'rgba(0,0,0,0.5)', borderRadius:5, overflow:'hidden', border:'1px solid rgba(255,255,255,0.12)' }}>
+        <div style={{ height:'100%', width:`${Math.max(0, pct)}%`, background:color, transition:'width .65s ease, background-color .3s', borderRadius:4 }} />
       </div>
     </div>
   )
@@ -78,8 +72,8 @@ function EnemyCanvas({ enemyType, size, hitFlash, enemyDefeating }) {
       style={{
         imageRendering: 'pixelated',
         display: 'block',
-        filter: hitFlash ? 'brightness(10) saturate(0)' : enemyDefeating ? 'brightness(0.4)' : 'none',
-        transform: enemyDefeating ? 'translateY(14px) rotate(-18deg)' : 'none',
+        filter: hitFlash ? 'brightness(10) saturate(0)' : enemyDefeating ? 'brightness(0.35)' : 'none',
+        transform: enemyDefeating ? 'translateY(18px) rotate(-22deg)' : 'none',
         opacity: enemyDefeating ? 0 : 1,
         transition: enemyDefeating ? 'opacity 500ms ease, transform 500ms ease' : 'filter 80ms',
       }}
@@ -87,27 +81,34 @@ function EnemyCanvas({ enemyType, size, hitFlash, enemyDefeating }) {
   )
 }
 
-// ─── Move Card ────────────────────────────────────────────────────────────────
+// ─── Move Card (compact) ──────────────────────────────────────────────────────
 
 function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
+  const str = String(content)
+  const isEmoji = str.length <= 2
+  const fs = isEmoji ? 30 : str.length <= 4 ? 26 : str.length <= 8 ? 18 : 14
   return (
     <button
       onClick={onTap}
       disabled={disabled}
+      className="move-card-btn"
       style={{
-        background: isMiss ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.11)',
+        background: isMiss ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.10)',
         border: isSelected ? '2px solid rgba(255,255,255,.75)' : '1.5px solid rgba(255,255,255,.2)',
-        borderRadius:16,
+        borderRadius: 10,
         cursor: disabled ? 'default' : 'pointer',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        touchAction:'manipulation',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        touchAction: 'manipulation',
         animation: isSelected ? 'move-pulse .22s ease' : isMiss ? 'miss-fizzle .5s ease forwards' : 'none',
         opacity: isMiss ? 0.4 : 1,
-        transition:'opacity .15s, border-color .1s',
-        userSelect:'none', WebkitUserSelect:'none',
+        transition: 'opacity .15s, border-color .1s',
+        userSelect: 'none', WebkitUserSelect: 'none',
       }}
     >
-      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize: answerFontSize(content), color:'#fff', lineHeight:1 }}>
+      <div style={{
+        fontFamily: isEmoji ? 'system-ui,sans-serif' : "'Fredoka One',cursive",
+        fontSize: fs, color: '#fff', lineHeight: 1,
+      }}>
         {content}
       </div>
     </button>
@@ -171,8 +172,8 @@ export default function MoveSelectBattleMode({
   q, cur, total, streak, subject,
   onCorrect, onWrong, onNext, onSpeak,
   eggStats, eggProgress, readyToHatch, isFirstLevel,
-  enemyData,        // optional: { name, type, isBoss }
-  showReturnButton, // optional: boolean — shows return button instead of auto-advance
+  enemyData,
+  showReturnButton,
 }) {
   const bg = BG[subject] || '#1a1040'
   const nearHatch = readyToHatch || (eggProgress?.stage ?? 0) >= 5
@@ -191,16 +192,27 @@ export default function MoveSelectBattleMode({
   const maxHP     = isBoss ? total * 14 : total * 9
   const dmgBase   = Math.ceil(maxHP / total)
 
-  // Refs
+  // Core refs
   const lockedRef    = useRef(false)
   const comboRef     = useRef(0)
   const ultimateRef  = useRef(false)
   const enemyHPRef   = useRef(maxHP)
   const mountedRef   = useRef(true)
   const typeTimerRef = useRef(null)
+
+  // Effect system refs
+  const battleFieldRef  = useRef(null)
+  const eggDivRef       = useRef(null)
+  const enemyDivRef     = useRef(null)
+  const effectCanvasRef = useRef(null)
+  const effectsRef      = useRef([])
+  const effectRafRef    = useRef(null)
+  const rafTimeRef      = useRef(0)
+
   useEffect(() => () => {
     mountedRef.current = false
     if (typeTimerRef.current) clearInterval(typeTimerRef.current)
+    if (effectRafRef.current) cancelAnimationFrame(effectRafRef.current)
   }, [])
 
   // State
@@ -222,16 +234,60 @@ export default function MoveSelectBattleMode({
   const [victoryMode, setVictoryMode]     = useState(false)
   const [showTeach, setShowTeach]         = useState(() => !!isFirstLevel && cur === 0)
   const [flashVisible, setFlashVisible]   = useState(true)
+  const [entered, setEntered]             = useState(false)
 
-  // Entry flash: 3 white flashes on mount
+  // ── Entry: 3 white flashes + slide-in ──────────────────────────────────────
   useEffect(() => {
-    const times = [80,  200, 280, 400, 480]
-    const vals  = [false, true, false, true, false]
-    const timers = times.map((t, i) => setTimeout(() => mountedRef.current && setFlashVisible(vals[i]), t))
+    const times = [80,  200, 280, 400, 480, 530]
+    const fns   = [
+      () => mountedRef.current && setFlashVisible(false),
+      () => mountedRef.current && setFlashVisible(true),
+      () => mountedRef.current && setFlashVisible(false),
+      () => mountedRef.current && setFlashVisible(true),
+      () => mountedRef.current && setFlashVisible(false),
+      () => mountedRef.current && setEntered(true),
+    ]
+    const timers = times.map((t, i) => setTimeout(fns[i], t))
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  // Typewriter dialogue
+  // ── Sync effect canvas size to battle field ─────────────────────────────────
+  useEffect(() => {
+    const field  = battleFieldRef.current
+    const canvas = effectCanvasRef.current
+    if (!field || !canvas) return
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        canvas.width  = Math.round(entry.contentRect.width)
+        canvas.height = Math.round(entry.contentRect.height)
+      }
+    })
+    ro.observe(field)
+    return () => ro.disconnect()
+  }, [])
+
+  // ── Effects RAF loop ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const canvas = effectCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let alive = true
+    function loop(now) {
+      if (!alive) return
+      const dt = rafTimeRef.current ? Math.min(50, now - rafTimeRef.current) : 16
+      rafTimeRef.current = now
+      if (effectsRef.current.length > 0) {
+        effectsRef.current = tickEffects(ctx, effectsRef.current, dt)
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+      }
+      effectRafRef.current = requestAnimationFrame(loop)
+    }
+    effectRafRef.current = requestAnimationFrame(loop)
+    return () => { alive = false; cancelAnimationFrame(effectRafRef.current) }
+  }, [])
+
+  // ── Typewriter dialogue ─────────────────────────────────────────────────────
   useEffect(() => {
     if (typeTimerRef.current) clearInterval(typeTimerRef.current)
     let i = 0
@@ -240,10 +296,10 @@ export default function MoveSelectBattleMode({
       i++
       if (i >= battleLog.length) { clearInterval(typeTimerRef.current); return }
       if (mountedRef.current) setShownText(battleLog.slice(0, i + 1))
-    }, 28)
+    }, 25)
   }, [battleLog]) // eslint-disable-line
 
-  // TTS on question change
+  // ── TTS on question ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!q?.ttsWord) return
     const t = setTimeout(() => {
@@ -254,7 +310,7 @@ export default function MoveSelectBattleMode({
     return () => clearTimeout(t)
   }, [cur, subject]) // eslint-disable-line
 
-  // Reset per question
+  // ── Reset per question ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!mountedRef.current) return
     setSelectedCard(-1); setMissCard(-1)
@@ -262,6 +318,38 @@ export default function MoveSelectBattleMode({
     lockedRef.current = false
     if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
   }, [cur])
+
+  // ── Spawn canvas effect ─────────────────────────────────────────────────────
+  function spawnEffect(type) {
+    const field   = battleFieldRef.current
+    const eggEl   = eggDivRef.current
+    const enemyEl = enemyDivRef.current
+    if (!field || !eggEl || !enemyEl) return
+    const fr = field.getBoundingClientRect()
+    const er = eggEl.getBoundingClientRect()
+    const nr = enemyEl.getBoundingClientRect()
+    const ex = er.left + er.width  / 2 - fr.left
+    const ey = er.top  + er.height / 2 - fr.top
+    const nx = nr.left + nr.width  / 2 - fr.left
+    const ny = nr.top  + nr.height / 2 - fr.top
+
+    if (type === 'attack') {
+      if (subject === 'thai')      effectsRef.current.push(mkOrb(ex,ey,nx,ny,'#FFD700'))
+      else if (subject === 'math') effectsRef.current.push(mkBeam(ex,ey,nx,ny,'#44ff88'))
+      else                         effectsRef.current.push(mkLightning(ex,ey,nx,ny,380,13))
+    } else if (type === 'combo') {
+      effectsRef.current.push(mkLightning(ex,ey,nx,ny,380,7))
+      effectsRef.current.push(mkOrb(ex,ey,nx,ny,'#FFD700',400,60))
+    } else if (type === 'ultimate') {
+      effectsRef.current.push(mkBeam(ex,ey,nx,ny,'#FFD700',300))
+      effectsRef.current.push(mkLightning(ex,ey,nx,ny,420,29))
+      effectsRef.current.push(mkOrb(ex,ey,nx,ny,'#ff8800',440,80))
+    } else if (type === 'miss') {
+      effectsRef.current.push(mkSparks(ex,ey))
+    } else if (type === 'xp') {
+      for (let i = 0; i < 3; i++) effectsRef.current.push(mkOrb(nx,ny,ex,ey,'#FFD700',580,i*140))
+    }
+  }
 
   // ── Tap handler ────────────────────────────────────────────────────────────
   function handleTap(choiceVal, idx) {
@@ -294,6 +382,12 @@ export default function MoveSelectBattleMode({
     } else if (combo >= 4 || isCrit) {
       mult = 1.5
     }
+
+    // Spawn canvas effect
+    if (isUlt)             spawnEffect('ultimate')
+    else if (combo >= 3)   spawnEffect('combo')
+    else                   spawnEffect('attack')
+
     const dmg   = Math.ceil(dmgBase * mult)
     const newHP = Math.max(0, enemyHPRef.current - dmg)
     enemyHPRef.current = newHP
@@ -347,6 +441,7 @@ export default function MoveSelectBattleMode({
     onWrong()
     comboRef.current = 0
     if (ultimateRef.current) { ultimateRef.current = false; if (mountedRef.current) setUltimateReady(false) }
+    spawnEffect('miss')
     if (mountedRef.current) {
       setSelectedCard(-1)
       setMissCard(idx)
@@ -354,17 +449,16 @@ export default function MoveSelectBattleMode({
       setBattleLog('💨 โจมตีพลาด!')
       setComboDisplay(0)
       setPlayerHP(h => Math.max(8, h - 8))
-      // Enemy counterattack animation
       setTimeout(() => {
         if (!mountedRef.current) return
         setEnemyLunge(true)
         setTimeout(() => mountedRef.current && setEnemyLunge(false), 300)
-      }, 200)
+      }, 220)
       setTimeout(() => {
         if (!mountedRef.current) return
         setEggHitFlash(true)
         setTimeout(() => mountedRef.current && setEggHitFlash(false), 200)
-      }, 280)
+      }, 300)
     }
     playTone('miss')
     const isLast = cur + 1 >= total
@@ -376,18 +470,24 @@ export default function MoveSelectBattleMode({
       } else {
         lockedRef.current = false; onNext()
       }
-    }, 550)
+    }, 600)
   }
 
   function showVictory() {
     setEnemyDefeating(true)
     setVictoryMode(true)
-    setBattleLog('🎉 มอนสเตอร์พ่ายแพ้!')
+    setBattleLog(`${enemy.name} หมดแรง!`)
     playTone('fanfare')
-    setTimeout(() => mountedRef.current && playTone('item'), 400)
     spawnConfetti(35)
+    // XP orbs fly from enemy to egg
+    setTimeout(() => {
+      if (!mountedRef.current) return
+      spawnEffect('xp')
+      setBattleLog('✨ ไข่ได้รับ XP!')
+      playTone('item')
+    }, 750)
     if (!showReturnButton) {
-      setTimeout(() => { if (mountedRef.current) onNext() }, 1900)
+      setTimeout(() => { if (mountedRef.current) onNext() }, 2100)
     }
   }
 
@@ -402,7 +502,7 @@ export default function MoveSelectBattleMode({
     }
   }
 
-  // Derived styles
+  // Derived
   const hpPct       = (enemyHP / maxHP) * 100
   const playerHpPct = (playerHP / MAX_PLAYER_HP) * 100
   const eggAnim = eggAnimClass === 'charge' ? 'egg-charge .3s ease'
@@ -423,101 +523,126 @@ export default function MoveSelectBattleMode({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ flex:1, minHeight:0, background:bg, display:'flex', flexDirection:'column', fontFamily:'Mitr,sans-serif', position:'relative', overflow:'hidden' }}>
+    <div style={{
+      flex:1, minHeight:0, background:bg,
+      display:'flex', flexDirection:'column',
+      fontFamily:'Mitr,sans-serif', position:'relative', overflow:'hidden',
+    }}>
 
       {/* Entry flash */}
       {flashVisible && (
         <div style={{ position:'absolute', inset:0, background:'#fff', zIndex:100, pointerEvents:'none' }} />
       )}
 
-      {/* Screen flash on crit/ultimate */}
+      {/* Crit/ultimate screen flash */}
       {critFlash && (
         <div style={{ position:'absolute', inset:0, background:'rgba(255,215,0,.13)', pointerEvents:'none', zIndex:50, animation:'crit-flash .35s ease forwards' }} />
       )}
 
       {/* ── BATTLE FIELD ─────────────────────────────────────────────────── */}
-      <div style={{
-        position:'relative', height:190, flexShrink:0,
-        background:'linear-gradient(180deg, #1a2a1a 0%, #243a24 55%, #2e4a20 100%)',
+      <div ref={battleFieldRef} style={{
+        flex:1, minHeight:200, position:'relative',
+        background:'linear-gradient(180deg, #1a2a1a 0%, #1e3020 40%, #2a4020 100%)',
         overflow:'hidden', borderBottom:'2px solid #3a6a3a',
       }}>
 
+        {/* Canvas effect overlay */}
+        <canvas
+          ref={effectCanvasRef}
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:15 }}
+        />
+
         {/* Enemy status — top left */}
         <div style={{
-          position:'absolute', top:8, left:10,
-          background:'rgba(0,0,0,0.58)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:178,
+          position:'absolute', top:8, left:10, zIndex:10,
+          background:'rgba(0,0,0,0.60)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:178,
         }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
             <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:12, color:'#fff', lineHeight:1 }}>
               {isBoss ? '👑 ' : ''}{enemy.name}
             </span>
             <span style={{ fontSize:9, color:'rgba(255,255,255,.3)', marginLeft:6 }}>{cur+1}/{total}</span>
           </div>
-          <GBHPBar pct={hpPct} isBoss={isBoss} />
+          <GBHPBar pct={hpPct} />
         </div>
 
-        {/* Enemy canvas sprite — top right */}
+        {/* Enemy canvas sprite — top right, slides in from right */}
         <div style={{
-          position:'absolute', right:8, top:4,
-          transform: `translateX(${enemyLunge ? -30 : 0}px)`,
-          transition:'transform 130ms ease',
+          position:'absolute', right:8, top:8, zIndex:10,
+          transform: `translateX(${entered ? 0 : 120}px)`,
+          transition: 'transform 300ms ease-out',
         }}>
-          <EnemyCanvas enemyType={enemyType} size={88} hitFlash={hitFlash} enemyDefeating={enemyDefeating} />
-          {dmgFloat && (
-            <div style={{
-              position:'absolute', top:'-20px', left:'50%', transform:'translateX(-50%)',
-              fontFamily:"'Fredoka One',cursive",
-              fontSize: dmgFloat.isUlt ? 26 : dmgFloat.isCrit ? 22 : 18,
-              color: dmgFloat.isUlt ? '#FFD700' : dmgFloat.isCrit ? '#FFD700' : '#ff8080',
-              animation:'dmg-float 1s ease-out forwards',
-              pointerEvents:'none', fontWeight:900, whiteSpace:'nowrap',
-              textShadow: dmgFloat.isUlt ? '0 0 10px gold' : 'none',
-            }}>
-              -{dmgFloat.val}{dmgFloat.isUlt ? ' 🌟' : dmgFloat.isCrit ? ' ⚡' : ''}
+          <div style={{
+            transform: `translateX(${enemyLunge ? -34 : 0}px)`,
+            transition: 'transform 130ms ease',
+          }}>
+            <div ref={enemyDivRef}>
+              <EnemyCanvas enemyType={enemyType} size={120} hitFlash={hitFlash} enemyDefeating={enemyDefeating} />
+              {dmgFloat && (
+                <div style={{
+                  position:'absolute', top:'-24px', left:'50%', transform:'translateX(-50%)',
+                  fontFamily:"'Fredoka One',cursive",
+                  fontSize: dmgFloat.isUlt ? 28 : dmgFloat.isCrit ? 24 : 18,
+                  color: dmgFloat.isUlt ? '#FFD700' : dmgFloat.isCrit ? '#FFD700' : '#ff9090',
+                  animation:'dmg-float 1s ease-out forwards',
+                  pointerEvents:'none', fontWeight:900, whiteSpace:'nowrap',
+                  textShadow: dmgFloat.isUlt ? '0 0 10px gold' : 'none',
+                }}>
+                  -{dmgFloat.val}{dmgFloat.isUlt ? ' 🌟' : dmgFloat.isCrit ? ' ⚡' : ''}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Player status — bottom right */}
         <div style={{
-          position:'absolute', bottom:8, right:10,
-          background:'rgba(0,0,0,0.58)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:172,
+          position:'absolute', bottom:8, right:10, zIndex:10,
+          background:'rgba(0,0,0,0.60)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:172,
         }}>
-          <div style={{ marginBottom:4, fontFamily:"'Fredoka One',cursive", fontSize:11, color:'rgba(255,255,255,.7)' }}>
+          <div style={{ marginBottom:5, fontFamily:"'Fredoka One',cursive", fontSize:11, color:'rgba(255,255,255,.7)' }}>
             {EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ'}
           </div>
           <GBHPBar pct={playerHpPct} isPlayer />
         </div>
 
-        {/* Egg/player sprite — bottom left */}
-        <div style={{ position:'absolute', left:8, bottom:0, animation: eggAnim }}>
-          <div style={{ transform: `translateX(${eggAnimClass === 'lunge' ? 20 : 0}px)`, transition:'transform 150ms ease' }}>
-            {eggStats ? (
-              <EggCanvas stats={eggStats} width={62} height={72} style={{
-                display:'block',
-                filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
-                transition:'filter .2s',
+        {/* Egg/player — bottom left, slides in from left */}
+        <div style={{
+          position:'absolute', left:8, bottom:0, zIndex:10,
+          transform: `translateX(${entered ? 0 : -120}px)`,
+          transition: 'transform 300ms ease-out 100ms',
+        }}>
+          <div style={{ animation: eggAnim, position:'relative' }}>
+            <div style={{ transform: `translateX(${eggAnimClass === 'lunge' ? 22 : 0}px)`, transition:'transform 150ms ease' }}>
+              <div ref={eggDivRef}>
+                {eggStats ? (
+                  <EggCanvas stats={eggStats} width={96} height={112} style={{
+                    display:'block',
+                    filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
+                    transition:'filter .2s',
+                  }} />
+                ) : (
+                  <div style={{ fontSize:52, lineHeight:1, filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter }}>🥚</div>
+                )}
+              </div>
+            </div>
+            {comboDisplay >= 1 && (
+              <div style={{
+                position:'absolute', inset:-5, borderRadius:'50%',
+                boxShadow: comboGlow, pointerEvents:'none',
+                animation: comboDisplay >= 3 ? 'streak-bounce .6s ease' : 'none',
               }} />
-            ) : (
-              <div style={{ fontSize:40, lineHeight:1, filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter }}>🥚</div>
+            )}
+            {victoryMode && (
+              <div style={{ position:'absolute', top:'-16px', left:'50%', transform:'translateX(-50%)', fontSize:20, animation:'dmg-float .6s ease-out forwards', pointerEvents:'none' }}>✨</div>
             )}
           </div>
-          {comboDisplay >= 1 && (
-            <div style={{
-              position:'absolute', inset:-5, borderRadius:'50%',
-              boxShadow: comboGlow, pointerEvents:'none',
-              animation: comboDisplay >= 3 ? 'streak-bounce .6s ease' : 'none',
-            }} />
-          )}
-          {victoryMode && (
-            <div style={{ position:'absolute', top:'-14px', left:'50%', transform:'translateX(-50%)', fontSize:18, animation:'dmg-float .6s ease-out forwards', pointerEvents:'none' }}>✨</div>
-          )}
         </div>
 
         {/* Combo / ultimate indicators */}
         {comboDisplay >= 1 && !victoryMode && (
           <div style={{
-            position:'absolute', left:76, bottom:26,
+            position:'absolute', left:114, bottom:30, zIndex:10,
             fontFamily:"'Fredoka One',cursive", fontSize:11,
             background: comboDisplay >= 3 ? 'rgba(255,215,0,.22)' : 'rgba(255,255,255,.1)',
             color: comboDisplay >= 3 ? '#FFD700' : 'rgba(255,255,255,.75)',
@@ -529,7 +654,7 @@ export default function MoveSelectBattleMode({
         )}
         {ultimateReady && !victoryMode && (
           <div style={{
-            position:'absolute', left:76, bottom:48,
+            position:'absolute', left:114, bottom:52, zIndex:10,
             fontFamily:"'Fredoka One',cursive", fontSize:10, color:'#FFD700',
             animation:'streak-bounce .55s ease', textShadow:'0 0 8px gold',
           }}>
@@ -550,14 +675,18 @@ export default function MoveSelectBattleMode({
 
       {/* ── QUESTION HINT ────────────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={{ padding:'5px 14px 3px', display:'flex', alignItems:'center', justifyContent:'center', minHeight:42, flexShrink:0 }}>
+        <div style={{ padding:'5px 14px 3px', display:'flex', alignItems:'center', justifyContent:'center', minHeight:48, flexShrink:0 }}>
           <QuestionHint q={q} subject={subject} onSpeak={onSpeak} />
         </div>
       )}
 
       {/* ── MOVE PANEL ───────────────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={{ flex:1, padding:'0 10px 12px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, minHeight:0 }}>
+        <div style={{
+          padding:'4px 10px 10px',
+          display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr',
+          gap:8, height:168, flexShrink:0,
+        }}>
           {q.choices.map((choice, idx) => (
             <MoveCard
               key={idx}
@@ -600,7 +729,7 @@ export default function MoveSelectBattleMode({
           padding:24, textAlign:'center',
         }}>
           <div style={{ marginBottom:12 }}>
-            <EnemyCanvas enemyType={enemyType} size={72} hitFlash={false} enemyDefeating={false} />
+            <EnemyCanvas enemyType={enemyType} size={80} hitFlash={false} enemyDefeating={false} />
           </div>
           <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'#FFD700', marginBottom:8 }}>
             {isBoss ? `👑 BOSS: ${enemy.name}` : enemy.name}

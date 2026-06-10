@@ -278,14 +278,21 @@ The child sees creatures in the world. They can walk into them to start a battle
 | Tiny Fox flee mechanic | Implement as: on collision check, roll Math.random() once. < 0.25 → fox runs off-screen and drops a Clover. ≥ 0.25 → battle. |
 | Bouncy Slime hitting egg unexpectedly | Intentional by design — the slime runs into the player, not the reverse. May need a brief battle-lockout period (1s) after returning from battle so the child doesn't immediately re-enter another battle. |
 
-### What was actually built (2026-06-11)
+### What was actually built (2026-06-11, session 1)
 - `src/lib/drawEnemy.js` (NEW) — Canvas sprite renderer, 4 types (bunny/slime/fox/egg_pawn), 48-unit design space.
-- `src/games/MoveSelectBattleMode.jsx` (FULL REWRITE) — GB-style layout, HP bars, typewriter dialogue, entry flash, counterattack animations, `showReturnButton` prop.
+- `src/games/MoveSelectBattleMode.jsx` (FULL REWRITE, session 1) — GB-style layout, HP bars, typewriter dialogue, entry flash, counterattack animations, `showReturnButton` prop.
 - `src/components/WorldBattle.jsx` (NEW) — world battle wrapper, generates questions, dispatches session completion, navigates back to world.
 - `src/lib/state.js` — `worldPosition` + `worldBattleEnemy` added to `defaultState()`.
 - `src/context/StateContext.jsx` — `ENTER_BATTLE_FROM_WORLD`, `RETURN_FROM_WORLD_BATTLE`, `CLEAR_WORLD_POSITION` actions.
 - `src/components/WorldScreen.jsx` — ENEMY tile collision in `tryMove`, stateRef for closure safety, position restore on mount.
 - `src/App.jsx` — `world-battle` route, BottomNav hidden for world-battle.
+
+### What was actually built (2026-06-11, session 2 — animations)
+- `src/lib/particles.js` (NEW) — Canvas particle system: mkBeam/mkOrb/mkLightning/mkSparks + tickEffects. Orb supports delay for staggered XP victory.
+- `src/games/MoveSelectBattleMode.jsx` (FULL REBUILD, session 2) — 120px enemy + 96px egg, slide-in CSS transitions from opposite sides, ResizeObserver effect canvas, spawnEffect using getBoundingClientRect, subject-specific attack particles (Thai=orb, Math=beam, English=lightning), XP orbs on victory, compact 168px move panel, 10px HP bars.
+- `src/lib/tileEngine.js` (EDITED) — `getCamera` centers 320px map on wider viewport (negative camX). `renderMap` fills background + guards startCol/startRow ≥ 0.
+- `src/components/WorldScreen.jsx` (EDITED) — Added `orientationchange` resize listener.
+- `src/styles.css` (EDITED) — `.move-card-btn` tap highlight + active scale.
 
 ### What was NOT built in Phase 3
 - Sleepy Bunny double-tap wake rule (single-contact for MVP — deferred to Phase 4 polish).

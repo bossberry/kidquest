@@ -164,10 +164,14 @@ function drawItemSpot(ctx, px, py, frame) {
 // -- Map renderer --
 
 export function renderMap(ctx, tileMap, npcData, enemyData, camX, camY, frame) {
+  // Fill background (covers viewport area outside map bounds)
+  ctx.fillStyle = '#3a6a3a'
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
   const viewW = ctx.canvas.width
   const viewH = ctx.canvas.height
-  const startCol = Math.floor(camX / TILE)
-  const startRow = Math.floor(camY / TILE)
+  const startCol = Math.max(0, Math.floor(camX / TILE))
+  const startRow = Math.max(0, Math.floor(camY / TILE))
   const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / TILE))
   const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / TILE))
 
@@ -265,13 +269,18 @@ export function canMove(tileMap, col, row) {
   return ![T.TREE, T.WATER, T.WALL, T.NPC, T.SIGN, T.ENEMY].includes(t)
 }
 
-// -- Camera clamp --
+// -- Camera clamp (centers map when smaller than viewport) --
 
 export function getCamera(playerX, playerY, viewW, viewH) {
   const mapPixW = MAP_COLS * TILE
   const mapPixH = MAP_ROWS * TILE
-  const camX = Math.max(0, Math.min(playerX * TILE - viewW / 2, mapPixW - viewW))
-  const camY = Math.max(0, Math.min(playerY * TILE - viewH / 2, mapPixH - viewH))
+  // When map is narrower/shorter than viewport, center it (negative cam offsets map inward)
+  const camX = mapPixW <= viewW
+    ? -(viewW - mapPixW) / 2
+    : Math.max(0, Math.min(playerX * TILE - viewW / 2, mapPixW - viewW))
+  const camY = mapPixH <= viewH
+    ? -(viewH - mapPixH) / 2
+    : Math.max(0, Math.min(playerY * TILE - viewH / 2, mapPixH - viewH))
   return { camX, camY }
 }
 

@@ -531,6 +531,10 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .ci-shy      {animation:ci-shy       3.5s ease-in-out infinite}
 .ci-celebrate{animation:ci-celebrate 1.2s ease-in-out infinite}
 
+/* Battle move card — compact press feedback */
+.move-card-btn { -webkit-tap-highlight-color: transparent }
+.move-card-btn:active:not(:disabled) { transform: scale(0.94) }
+
 /* ===== WORLD SCREEN ===== */
 .world-arrow-btn:active{filter:brightness(0.82);transition:filter 80ms ease}
 

@@ -95,7 +95,11 @@ export default function WorldScreen({ navigate }) {
   useEffect(() => {
     const onResize = () => setViewSize({ w: window.innerWidth, h: window.innerHeight })
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
   }, [])
 
   // ── Screen setup ────────────────────────────────────────────────────────────

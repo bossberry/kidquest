@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: Fullscreen map + Pokémon GB battle animations
+
+- `src/lib/particles.js` (NEW) — Canvas particle system: `mkBeam` (extending line + leading orb), `mkOrb` (arc-path orb + trailing ghost), `mkLightning` (seeded zigzag bolt), `mkSparks` (6-dir burst). `tickEffects(ctx, effects, dt)` advances + renders + returns surviving list. `mkOrb` supports `delay` for staggered XP victory.
+- `src/games/MoveSelectBattleMode.jsx` (FULL REBUILD) — Enemy 120px top-right + Egg 96px bottom-left. Slide-in entry: CSS `transition:transform 300ms ease-out` — enemy from +120px, egg from -120px, both enter on `setEntered(true)` at 530ms. ResizeObserver-synced `<canvas>` effect overlay in battle field. `spawnEffect('attack'|'combo'|'ultimate'|'miss'|'xp')` uses `getBoundingClientRect()` for canvas-local coordinates. Thai attack=golden orb, Math=green beam, English=lightning, combo=lightning+orb, ultimate=beam+lightning+orb, xp=3 staggered orbs enemy→egg. Compact 2×2 move cards (168px fixed panel). HP bars 10px with threshold color. `GBHPBar` + `EnemyCanvas` sub-components. Victory: enemy defeat + XP orbs + "กลับสำรวจ" button when `showReturnButton`.
+- `src/lib/tileEngine.js` (EDITED) — `getCamera`: when `mapPixW <= viewW` returns `-(viewW - mapPixW)/2` (negative = center map). `renderMap`: fills `#3a6a3a` background before tile loop; `startCol/startRow` clamped to `Math.max(0, ...)` to guard negative cam offsets.
+- `src/components/WorldScreen.jsx` (EDITED) — Added `orientationchange` event listener alongside `resize`.
+- `src/styles.css` (EDITED) — `.move-card-btn { -webkit-tap-highlight-color: transparent }` + `.move-card-btn:active:not(:disabled) { transform: scale(0.94) }`.
+- Build: ✅ zero errors.
+
 ## 2026-06-11 — Feat: Pokémon GB battle screen + world→battle→world
 
 - `src/lib/drawEnemy.js` (NEW) — Canvas sprite renderer for 4 enemy types (`bunny`, `slime`, `fox`, `egg_pawn`). `drawEnemy(ctx, enemyType, size)` draws at 48-unit design space scaled via `p(v) = Math.round(v * size / 48)`.

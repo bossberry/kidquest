@@ -84,6 +84,17 @@
 
 ---
 
+### Green Meadow — Phase 1: World Foundation (2026-06-10)
+- **`WorldScreen.jsx`** (NEW): full-screen world overlay (`position:fixed;inset:0;zIndex:50`). AC-style fade transition: 160ms dark green overlay on move, snap to new screen, 160ms fade out. Direction arrows (N/S/E/W) only rendered where `connects[dir]` is non-null. Home button (🏠 กลับบ้าน) top-left, screen name top-right. Egg avatar (`EggCanvas 80×95px`) floats center (`egg-home-float` animation). Day/night computed from `new Date().getHours()`.
+- **Starting Path (BM)** — full CSS art scene: sky gradient, sun with glow rings, moon+stars (night), animated clouds (`hbg-cloud-1/2/3`), distant hills (rounded divs), ground gradient, perspective trapezoid path (clip-path polygon), left+right bushes, 5 left flowers + 5 right flowers with float animation, pollen particles (day only).
+- **Other 8 screens** — themed placeholder: unique sky/ground gradient palette + screen icon centered in sky. Visually distinct per screen, no "coming soon" text.
+- **`worldConfig.js`** (NEW): `SCREENS` object (9 screens: BM/MC/TM/TL/TR/ML/MR/BL/BR), each with `label`, `region`, `connects {N/S/E/W}`. `WORLD_REGIONS` (green-meadow entry). `SCREEN_THEMES` (sky/ground colors + icon per screen).
+- **State additions**: `currentRegion: null`, `currentScreen: null`, `discoveredScreens: []` added to `defaultState()`.
+- **New ACTIONS**: `ENTER_WORLD` (sets region+screen+discovers), `EXIT_WORLD` (clears region+screen), `MOVE_SCREEN` (updates currentScreen), `DISCOVER_SCREEN` (appends to discoveredScreens, deduped).
+- **`Home.jsx`** explore button: was `navigate('game')` + `SET_CURRENT_WORLD` + `SET_SESSION_XP`. Now: `ENTER_WORLD {region:'green-meadow', screen:'BM'}` + `navigate('world')`.
+- **`App.jsx`**: `WorldScreen` imported + rendered for `screen === 'world'`. BottomNav hidden for both `game` and `world`.
+- **`styles.css`**: `.world-arrow-btn:active { filter: brightness(0.82) }` added.
+
 ### Missions
 - **Shop Mission MVP** (`GameShop.jsx`): 4 phases / 6 questions — Phase 1 Thai matching ×3 (emoji → Thai name, 4 choices), Phase 2 English vocab ×1, Phase 3 counting 1–5 ×1, Phase 4 social phrase ×1 (accepts both ขอบคุณครับ/ค่ะ). XP dispatched per subject. 80% pass threshold. State: `shopV1: { bestScore, runs, mastered, stretchUnlocked, totalHints, totalDuration, phaseStats }`. Mastery signal tracked (≥90% + ≤1 wrong + ≥2 runs). Always unlocked via Continue Adventure recommendation (first-run condition). Permanent Shop card on Home removed.
 

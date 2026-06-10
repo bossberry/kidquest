@@ -57,6 +57,10 @@ export const ACTIONS = {
   UPDATE_SHOP_V1:      'UPDATE_SHOP_V1',
   LOG_SESSION:         'LOG_SESSION',
   UPDATE_LAST_HOME_VISIT: 'UPDATE_LAST_HOME_VISIT',
+  ENTER_WORLD:     'ENTER_WORLD',
+  EXIT_WORLD:      'EXIT_WORLD',
+  MOVE_SCREEN:     'MOVE_SCREEN',
+  DISCOVER_SCREEN: 'DISCOVER_SCREEN',
 }
 
 function reducer(state, action) {
@@ -316,6 +320,25 @@ function reducer(state, action) {
 
     case ACTIONS.UPDATE_LAST_HOME_VISIT:
       return { ...state, lastHomeVisit: action.payload }
+
+    case ACTIONS.ENTER_WORLD: {
+      const { region, screen } = action.payload
+      const discovered = [...new Set([...(state.discoveredScreens || []), screen])]
+      return { ...state, currentRegion: region, currentScreen: screen, discoveredScreens: discovered }
+    }
+
+    case ACTIONS.EXIT_WORLD:
+      return { ...state, currentRegion: null, currentScreen: null }
+
+    case ACTIONS.MOVE_SCREEN:
+      return { ...state, currentScreen: action.payload }
+
+    case ACTIONS.DISCOVER_SCREEN: {
+      const scr = action.payload
+      const already = state.discoveredScreens || []
+      if (already.includes(scr)) return state
+      return { ...state, discoveredScreens: [...already, scr] }
+    }
 
     default:
       return state

@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Feat: Green Meadow Phase 1 — World Foundation
+
+- `src/config/worldConfig.js` (NEW) — `SCREENS` 9-entry map (BM/MC/TM/TL/TR/ML/MR/BL/BR), each with `label`, `region`, `connects {N/S/E/W}` (null = no exit). `WORLD_REGIONS` (green-meadow, entryScreen BM). `SCREEN_THEMES` (sky+ground colors + icon per screen for placeholder backgrounds).
+- `src/components/WorldScreen.jsx` (NEW) — Full-screen world overlay (`position:fixed;inset:0;zIndex:50`). `StartingPathBG`: CSS art scene with sky, sun/moon, animated clouds, distant hills, ground gradient, perspective trapezoid path, flowers, bushes, pollen particles, day/night support. `PlaceholderBG`: unique gradient + icon per screen. AC-style transition: 160ms dark overlay → screen snap → 160ms fade-in. Direction arrows (N/S/E/W) only shown where connection exists. `egg-home-float` on egg avatar (80×95 EggCanvas). Home button top-left. Screen name top-right.
+- `src/lib/state.js` — Added `currentRegion: null`, `currentScreen: null`, `discoveredScreens: []` to `defaultState()`.
+- `src/context/StateContext.jsx` — Added ACTIONS: `ENTER_WORLD`, `EXIT_WORLD`, `MOVE_SCREEN`, `DISCOVER_SCREEN`. Reducer cases for all 4.
+- `src/components/Home.jsx` — Explore button changed: removes `SET_CURRENT_WORLD`+`SET_SESSION_XP` dispatches; now dispatches `ENTER_WORLD {region:'green-meadow', screen:'BM'}` + `navigate('world')`.
+- `src/App.jsx` — `WorldScreen` imported, rendered for `screen === 'world'`. BottomNav now hidden for `game` and `world`.
+- `src/styles.css` — `.world-arrow-btn:active { filter: brightness(0.82) }` added.
+- Build: ✅ zero errors.
+- `docs/CURRENT_STATE.md`, `docs/TASKS.md`, `docs/CHANGELOG.md`, `docs/GPT_HANDOFF.md`, `docs/SESSION_SUMMARY.md` updated.
+
 ## 2026-06-10 — Docs: Green Meadow Gate Questions Answered
 
 - `docs/GPT_NOTES.md` — Green Meadow implementation gate questions answered and frozen. GM-Q1: large edge arrows (no joystick/D-pad). GM-Q2: 80px enemy trigger radius, 120px NPC radius. GM-Q3: Animal Crossing style fade+scroll ~300ms. GM-Q4: unlimited bag (no inventory management). GM-Q5: fullscreen minigame launch, return to world position. WB-Q1: direct entry Home→"ออกสำรวจ"→Green Meadow, no map screen. WB-Q3: region+readiness subject assignment, Green Meadow = Kindergarten content only. WB-Q4: XP from battles + treasure + NPC interactions + collectibles + minigames + exploration. World Bible open questions 1–6 also marked answered. Future questions section added: GM-Q6 (boss rebattle curriculum), GM-Q7 (egg sprite), GM-Q8 (collectible display), GM-Q10 (Post Bird chain), trade system, Sunny Beach unlock, seasonal events.

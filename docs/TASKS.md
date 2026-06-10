@@ -40,7 +40,7 @@ _Do NOT begin any of these until GPT answers the open questions and design docs 
 - [x] **EggHome.jsx** — `Home.jsx` fully replaced with Egg Home MVP. Large egg (190×225px) at center, idle float animation. Pet interaction: tap→chirp+sparkle+hearts; streak 3→happy spin; streak 6→sleepy. Item tray: food/ribbon/potion/star with counts, tap-twice-to-use. Reunion burst on first visit or after >4h gap. Creature companion walks after first hatch. Action row: ลูบไข่/คอลเลกชัน/ออกสำรวจ. All subject/score/Adventure Director UI removed. New state: `lastHomeVisit`. New actions: `UPDATE_LAST_HOME_VISIT`. New SFX: `chirp`, `sparkle`, `jingle`, `feed`. Build ✅ 2026-06-09.
 - [x] **Egg Home Emotional Polish** — Flying food (fixed-position fly animation → eat chain → sigh). Per-item glow (warm/blue/gold/pink CSS drop-shadow). Ribbon overlay persists on egg. Star orbit when boost active. Random idle micro-animations every 5–12s. `stageRef`/`eggAnimRef` fix stale closures. 6 new SFX (chew/slurp/giggle/sigh/celebrate/begging). iPhone safe-area layout fix. Build ✅ 2026-06-09.
 - [x] **Dramatic Egg Stage Progression** — `EGG_STAGES` changed from 7 to 9. 9 Thai stage names (ไข่น้อย→ใกล้ฟักแล้ว). Per-stage persistent canvas aura (`egg-s0`–`egg-s8`, pulsing drop-shadow growing each stage). Stage colors in header dots+name. Stage-up banner ("ขึ้นระดับแล้ว!" + stage name, pop/fade, sparkle confetti, `stageUp` ascending fanfare). Heartbeat sound on ready-to-hatch. Build ✅ 2026-06-09.
-- [ ] **Phase 1: World Foundation** — `WorldScreen.jsx`, `worldConfig.js` (BM only), state fields (`currentRegion`/`currentScreen`), routing. ✅ All gate questions answered. **Ready to build.**
+- [x] **Phase 1: World Foundation** — `WorldScreen.jsx` (NEW), `worldConfig.js` (NEW), `state.js` (+3 fields), `StateContext.jsx` (+4 actions/reducers), `App.jsx` (+world route, BottomNav hidden for world), `Home.jsx` (explore→navigate world), `styles.css` (+world CSS). BM Starting Path: full CSS art scene (sky/sun/moon/clouds/hills/ground/path/flowers/bushes/particles, day/night). All other screens: themed placeholder (unique sky+ground palette+icon). AC-style fade transition (160ms dark overlay). Egg avatar floats at screen center. Direction arrows: only shown where connection exists. Home button always visible. Build ✅ 2026-06-10.
 - [ ] **Phase 2: Movement** — Egg walks (edge arrows), all 9 screens connected, ambient layer. **Gate: Chopin must play and confirm navigation UX before Phase 3.**
 - [ ] **Phase 3: Visible Enemies** — First 3 enemies, 80px trigger zone, battle entry/return, region+readiness subject assignment, multi-source XP.
 - [ ] **Phase 4: NPC System** — 5 NPCs, dialogue, gifts. Gate: GM-Q10 (Post Bird scope) before Phase 4 ships.
@@ -51,8 +51,8 @@ _Do NOT begin any of these until GPT answers the open questions and design docs 
 - [ ] **Phase 9: Polish** — Ambient life, weather events, secrets, music transitions.
 - [ ] **WorldMap.jsx** — Replaced by Phase 1–2 above. Remove this task when Phase 2 ships.
 - [ ] **ExplorationEngine** — Encounter probability, event dispatch, item drops, state for picked-up treasures.
-- [ ] **Update routing** — `App.jsx` routing updated for new screens (eggHome, world, explore).
-- [ ] **State: exploration fields** — `currentRegion`, `currentScreen`, `pickedUpTreasures[]` added to `defaultState()`.
+- [x] **Update routing** — `App.jsx` routing updated: `world` screen added, BottomNav hidden during world. Done in Phase 1.
+- [x] **State: exploration fields** — `currentRegion`, `currentScreen`, `discoveredScreens[]` added to `defaultState()`. Done in Phase 1.
 
 ---
 

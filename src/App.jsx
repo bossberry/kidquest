@@ -6,6 +6,7 @@ import Home from './components/Home.jsx'
 import Collection from './components/Collection.jsx'
 import Report from './components/Report.jsx'
 import GameScreen from './games/GameScreen.jsx'
+import WorldScreen from './components/WorldScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
@@ -79,9 +80,10 @@ export default function App() {
           })}
         />
       )}
+      {screen === 'world' && <WorldScreen navigate={navigate} />}
 
-      {/* Bottom nav (hidden during game) */}
-      {screen !== 'game' && <BottomNav current={screen} navigate={navigate} />}
+      {/* Bottom nav (hidden during game and world exploration) */}
+      {screen !== 'game' && screen !== 'world' && <BottomNav current={screen} navigate={navigate} />}
     </>
   )
 }

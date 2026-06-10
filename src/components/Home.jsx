@@ -718,9 +718,8 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         <button
           onClick={() => {
             playTone('start')
-            dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: 'adventure-thai' })
-            dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
-            navigate('game')
+            dispatch({ type: ACTIONS.ENTER_WORLD, payload: { region: 'green-meadow', screen: 'BM' } })
+            navigate('world')
           }}
           style={{
             flex:2, height:52, borderRadius:14,

@@ -41,6 +41,9 @@ export function defaultState() {
     },
     sessionLog: [],
     lastHomeVisit: null,
+    currentRegion: null,
+    currentScreen: null,
+    discoveredScreens: [],
   }
 }
 

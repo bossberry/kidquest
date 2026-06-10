@@ -531,6 +531,9 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 .ci-shy      {animation:ci-shy       3.5s ease-in-out infinite}
 .ci-celebrate{animation:ci-celebrate 1.2s ease-in-out infinite}
 
+/* ===== WORLD SCREEN ===== */
+.world-arrow-btn:active{filter:brightness(0.82);transition:filter 80ms ease}
+
 /* Reduced motion — disable all decorative animations */
 @media(prefers-reduced-motion:reduce){
   .rec-card-float,.rec-card-battle,.rec-card-surprise,.streak-bounce,

@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Fix: Procedural Creature Detail Popup
+
+- `src/components/CreatureDetailPopup.jsx` — Replaced legacy `drawCreature` (creatureAlgorithm.js) + manual canvas with `<CreatureCanvas dna={dna} size={196} animationEnabled>`. Accepts `dna` prop from Collection. Layout: creature 196px centered at top, name/info below, egg mini+XP bars, stats, abilities. Legacy emoji badge in corner. Commit `5de06e9`.
+- `src/components/Collection.jsx` — `selectedEgg` state changed to `{ egg, dna }`. `CreatureCard` calls `onSelect(egg, dna)`. `handleSelect` passes both to popup. Ensures grid and popup use identical DNA. Commit `5de06e9`.
+
 ## 2026-06-10 — Collection: Procedural Creature Preview for Legacy Eggs
 
 - `src/lib/creatureGenerator.js` — NEW: `buildLegacyPreviewDNA(egg, index)`. Primary: `buildCreatureDNA(egg.eggStats)`. Fallback: hash(name+emoji+rarity+index) → synthetic stats → `buildCreatureDNA`. Emoji nudges: 🐉→streak:82 (dragon), 🦊→eng+speed (fox), 🦄/🤖/💎→math (crystal), ⚡→streak:82 (star), 🦅→eng+speed (bird). Never persisted. Commit `8c393f7`.

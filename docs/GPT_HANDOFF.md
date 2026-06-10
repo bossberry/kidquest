@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-10 (Collection: Procedural Creature Preview for All Hatched Eggs)_
+_Last updated: 2026-06-10 (Fix: Procedural Creature Detail Popup)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,19 @@ _Last updated: 2026-06-10 (Collection: Procedural Creature Preview for All Hatch
 
 ## Latest Session Summary
 
-**What changed this session (Collection: Procedural Creature Preview — code change):**
+**What changed this session (Fix: Procedural Creature Detail Popup — code change):**
+
+Popup now shows the same procedural canvas character as the grid card.
+
+**Root cause:** `CreatureDetailPopup` was still importing `drawCreature` from `creatureAlgorithm.js` (legacy renderer) and re-drawing with a manual canvas + useEffect, completely independent of the grid card's DNA computation.
+
+**Fix — `Collection.jsx`:** `selectedEgg` state changed from `egg` → `{ egg, dna }`. `CreatureCard.onSelect(egg)` → `onSelect(egg, dna)` (passes the `useMemo`-computed DNA up). `handleSelect(egg, dna)` setter in Collection root. Popup receives `egg={selectedEgg.egg}` and `dna={selectedEgg.dna}` as separate props.
+
+**Fix — `CreatureDetailPopup.jsx`:** Accepts `dna` prop. Replaced legacy canvas + `drawCreature(creatureAlgorithm)` with `<CreatureCanvas dna={dna} size={196} animationEnabled>`. Layout redesigned: creature 196px centered at top → name/category/date below → egg mini canvas + XP bars → stats row → abilities. Legacy emoji badge (`egg.creature.e`) shown in corner only for old creatures. `creatureAlgorithm.js` import removed entirely.
+
+Build: ✅. Commit: `5de06e9`. Pushed.
+
+**What changed last session (Collection: Procedural Creature Preview — code change):**
 
 All hatched eggs in Collection now show procedural canvas creatures at 120px with idle animations, regardless of whether they were hatched before Phase 2.
 

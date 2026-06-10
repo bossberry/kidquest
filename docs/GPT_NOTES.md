@@ -145,6 +145,58 @@ Source-of-truth: `docs/research/world/egg-home.md`
 
 ---
 
+## KidQuest World Bible (2026-06-10)
+
+Source-of-truth: `docs/research/world/kidquest-world.md` (full World Bible, all 8 regions)
+
+**This section records the complete world design. Read before any world map, exploration, or region implementation.**
+
+### World summary
+8 regions + Egg Home. Screen-based navigation (Pokémon FireRed model). Year 1 = Green Meadow only.
+
+| # | Region | Age / Grade | Learning focus |
+|---|---|---|---|
+| 1 | Green Meadow 🌿 | Kindergarten | Counting 1-10, shapes, Thai กขค, English ABC |
+| 2 | Sunny Beach 🏖️ | Year 1 S2 | Addition 5-10, subtraction 5, Thai vowels |
+| 3 | Crystal Cave 💎 | Grade 1 S1 | Numbers 10-20, subtraction 10, Thai syllables |
+| 4 | Cloud Kingdom ☁️ | Grade 1 S2 | Add/subtract 20, skip counting, Thai nouns |
+| 5 | Moon Forest 🌙 | Grade 2 S1 | Multiplication intro, Thai sentences |
+| 6 | Volcano Mountain 🌋 | Grade 2 S2 | Multiplication 3-6×, division intro |
+| 7 | Ancient Ruins 🏛️ | Grade 3 | All four operations, Thai composition |
+| 8 | Dream Sky ✨ | Year-end | Mastery consolidation, all subjects |
+
+### Boss roster (friendly, not evil)
+King Clover Bear → Sleepy Whale → Crystal Deer → Cloud King → Moon Rabbit → Volcano Dragon → Ancient Turtle → Dream Lion
+
+### Enemy design principle
+All enemies: cute / funny / warm. No scary designs. A 4-year-old should see an enemy and think "That's silly!" — never "That's scary."
+
+### NPC core cast
+Grandma Turtle, Post Bird, Cloud Sheep, Professor Owl, Fox Merchant, Traveling Bear (+ region-specific NPCs)
+
+### Collectibles system
+6 categories: Nature (leaves/seeds), Water (shells/pearls), Minerals (crystals/stones), Magic (moon crystals/dream feathers), Ancient (coins/tablets), Rare (dragon scales/galaxy dust)
+
+### Future systems designed (not yet built)
+Walking exploration, random encounters, treasure chests, fishing, cooking, gardening, NPC friendships, seasonal events, weather, mini festivals, day/night, photo mode, home decoration.
+
+### Open questions still unanswered (for GPT)
+1. World entry UX — navigable map or simpler choose-region screen?
+2. Encounter trigger on mobile — step-based, or "explore" button?
+3. Subject assignment in encounters — random, region-based, or readiness-based?
+4. XP source — battles only or also exploration?
+5. Session length — natural endpoint or open-ended?
+6. Minigame integration — become encounter events or stay separate?
+7. Creature companion — which creature shows in Egg Home? Latest or player choice?
+8. Boss loss consequences — retry only, or pushed back to previous screen?
+9. Egg naming — should Chopin name each egg at creation?
+10. Background adaptation — should Egg Home background change based on last region visited?
+
+### Implementation gate
+Do NOT implement any world map or exploration code until GPT answers questions 1–5.
+
+---
+
 ## KidQuest World — Philosophy Shift (2026-06-09)
 
 Source-of-truth: `docs/research/world/kidquest-world.md`

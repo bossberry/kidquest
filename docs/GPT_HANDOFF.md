@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-10 (Fix: Robust Egg Interaction State Machine)_
+_Last updated: 2026-06-10 (Feat: Egg Home Background Scene + KidQuest World Bible)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,52 @@ _Last updated: 2026-06-10 (Fix: Robust Egg Interaction State Machine)_
 
 ## Latest Session Summary
 
-**What changed this session (Fix: Robust Egg Interaction State Machine — code change):**
+**What changed this session (Feat: Egg Home Background Scene + Docs: KidQuest World Bible):**
+
+### Code — Egg Home Background Scene (commit `17bedf9`)
+
+`src/components/HomeBackground.jsx` (NEW): Pure decorative background behind the egg.
+
+**Day scene (6am–7pm):** Sky gradient (dawn/day/sunset variants). Sun with radial gradient + glow box-shadow. 3 CSS clouds (base bar + 2 circle bumps via `::before`/`::after`, each with slow drift animation). 3 overlapping hills (rounded divs). Grass/ground curve (44% border-radius, covers bottom 36% of screen). Left + right trees (trunk rectangle + leaf oval with radial gradient). 2 small bushes. Nest glow ellipse behind egg center (radial gradient to transparent). Tapered path (clip-path polygon, leads toward explore). 6 flowers (box-shadow petals + yellow center dot).
+
+**Night scene:** Dark blue-purple sky. Moon circle + crescent shadow overlay (sky-colored div offset). 12 twinkling stars (inline animation, staggered delays). 5 floating magic particles (purple, `hbg-float-magic` animation).
+
+**CSS additions:** 4 keyframes — `hbg-drift-r`, `hbg-drift-l` (very slow cloud drift, 55–80s), `hbg-twinkle`, `hbg-float-magic`. Cloud classes `.hbg-cloud-1/2/3`. `prefers-reduced-motion` disables clouds.
+
+**Layering:** HomeBackground at `zIndex:-1`. `#egg-home` gets `position:relative` (was missing). Background sits below all flex content. All decorative elements: `pointerEvents:none`. All UI elements (buttons, egg, creature) remain fully tappable above it.
+
+**Night-aware UI:** Header + item tray + action row + buttons all adapt colors to `isDay`. Header text: day=dark purple, night=light lavender. Panels: day=white-tinted, night=dark-tinted with `backdropFilter:blur(6px)`.
+
+### Docs — KidQuest World Bible (no code, no build)
+
+`docs/research/world/kidquest-world.md` expanded to full World Bible (8 regions).
+
+| # | Region | Learning focus |
+|---|---|---|
+| 1 | Green Meadow 🌿 **[PHASE 1]** | Counting 1-10, shapes, Thai กขค, English ABC |
+| 2 | Sunny Beach 🏖️ | Addition 5-10, Thai vowels, English CVC |
+| 3 | Crystal Cave 💎 | Numbers 10-20, subtraction, Thai syllables |
+| 4 | Cloud Kingdom ☁️ | Add/sub 20, skip counting, Thai nouns |
+| 5 | Moon Forest 🌙 | Multiplication intro, Thai sentences |
+| 6 | Volcano Mountain 🌋 | ×3/4/6, division, Thai stories |
+| 7 | Ancient Ruins 🏛️ | All four operations, Thai composition |
+| 8 | Dream Sky ✨ | Year-end mastery, all subjects |
+
+Each region defines: theme, visual style, music mood, weather, NPC types, enemy families, rare creatures, collectibles, treasure, learning focus, boss (all friendly), unlock requirements, special mechanics.
+
+Boss roster (friendly, never evil): King Clover Bear → Sleepy Whale → Crystal Deer → Cloud King → Moon Rabbit → Volcano Dragon → Ancient Turtle → Dream Lion.
+
+Enemy design: always cute/funny/warm. Sleepy Bunny, Bouncy Slime, Grumpy Mole, Tiny Fox, Cloud Puff, Moon Fox, Lava Lizard, Dream Puff — never scary.
+
+NPC cast: Grandma Turtle, Post Bird, Cloud Sheep, Professor Owl, Fox Merchant, Traveling Bear + region-specific NPCs.
+
+Collectibles: 6 categories (Nature, Water, Minerals, Magic, Ancient, Rare).
+
+Future systems designed (not built): walking exploration, random encounters, treasure chests, fishing, cooking, gardening, NPC friendships, seasonal events, weather, mini festivals, day/night, photo mode, home decoration.
+
+**10 open questions in `GPT_NOTES.md` must be answered before world map code starts.**
+
+**What changed this session (Fix: Robust Egg Interaction State Machine — code change — see below):**
 
 `src/components/Home.jsx` — Complete interaction system redesign. Previous partial fix (3 targeted patches) replaced by formal FSM.
 

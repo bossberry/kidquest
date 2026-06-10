@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Docs: KidQuest World Bible
+
+- `docs/research/world/kidquest-world.md` — Expanded from philosophy draft to full World Bible. 8 regions fully designed: Green Meadow (Phase 1), Sunny Beach, Crystal Cave, Cloud Kingdom, Moon Forest, Volcano Mountain, Ancient Ruins, Dream Sky. Each region has theme / visual / music / weather / NPC types / enemy families / rare creatures / collectibles / treasure / learning focus / boss / unlock requirements / special mechanics. Boss roster: King Clover Bear → Sleepy Whale → Crystal Deer → Cloud King → Moon Rabbit → Volcano Dragon → Ancient Turtle → Dream Lion (all friendly, not evil). Enemy design guide (cute/funny/warm). NPC guide. Collectibles (6 categories). Future systems section (cooking, gardening, fishing, seasonal events, home decoration, etc.). 10 open questions for GPT. No code. No build.
+- `docs/GPT_NOTES.md` — World Bible summary section added with region table, boss roster, open questions.
+- `docs/TASKS.md` — World Bible task done; open questions task updated.
+
+## 2026-06-10 — Feat: Egg Home Background Scene
+
+- `src/components/HomeBackground.jsx` (NEW) — Pure decorative CSS/SVG background scene. Day (6am–7pm): warm sky gradient, sun with glow, 3 drifting CSS clouds (pseudo-element bump shapes), soft hills (3 rounded div shapes), grass/ground curve, left+right trees (trunk div + leaf oval), 2 bushes, nest glow ellipse, tapered path, 6 flowers (box-shadow petal technique). Night (7pm–6am): dark sky, moon + crescent shadow overlay, 12 twinkling stars, night magic particles (floating purple dots). 4 CSS keyframes: `hbg-drift-r/l` (cloud drift), `hbg-twinkle` (stars), `hbg-float-magic` (night particles). All elements `pointerEvents:none`, `zIndex:-1`.
+- `src/components/Home.jsx` — Import HomeBackground. Add `hour` + `isDay` computed values. `<HomeBackground hour={hour} />` as first child. Header: backdrop blur + day/night text colors. Item tray + action row: backdropFilter + day/night panel colors. Action buttons: day white / night dark.
+- `src/styles.css` — `#egg-home` gets `position:relative`, background gradient removed. `.hbg-cloud` base + `.hbg-cloud-1/2/3` position + animation. 4 keyframes. `prefers-reduced-motion` disables cloud animations.
+- Commit: `17bedf9`.
+
 ## 2026-06-10 — Fix: Robust Egg Interaction State Machine
 
 - `src/components/Home.jsx` — Complete interaction system rewrite. `triggerAnim` removed. New formal FSM: `smRef` tracks `{ state, comboCount, enteredAt }`. States: `idle/pet/happy/excited/eating/sleep/relax/reunion`. `enterState(name, dur?)` cancels in-flight RAF (generation counter via `enterGenRef`) and exit timer before starting new transition; RAF callback is a no-op if superseded. `extendState(name)` resets exit timer only — no CSS class flicker for same-tier repeat taps. Tap combo: taps 1–3=pet bounce, 4–7=happy-spin (upgrade transition), 8+=excited+sparkles+hearts. Combo resets via `comboResetRef` after 3s inactivity. Item use (food/ribbon/potion/star) resets combo and calls `enterState`. Watchdog `setInterval(5000)` force-returns to idle if stuck non-idle >6s. Unmount cleanup cancels RAF + all timers. `petStreak` useState removed. Commit: pending.

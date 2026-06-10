@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
+import CreatureCanvas from './CreatureCanvas.jsx'
 import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
-import { drawCreature as drawLegacyCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
-import { drawCreature } from '../lib/drawCreature.js'
+import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
+
 export default function Collection() {
   const { state, eggStatsData, eggProgressData } = useAppState()
   const [tab, setTab] = useState('hatched')
@@ -32,21 +33,34 @@ export default function Collection() {
 }
 
 function CreatureCard({ egg, index, onSelect }) {
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    if (!canvasRef.current) return
-    if (egg.dna) {
-      drawCreature(canvasRef.current, egg.dna)
-    } else {
-      drawLegacyCreature(canvasRef.current, getCreatureSeed(egg), egg.eggStats || {})
-    }
-  }, [egg])
-  const rarityColors = {common:'#085041',uncommon:'#0C447C',rare:'#3C3489',epic:'#633806',legendary:'#C8C0F8'}
-  const rarityBg = {common:'#E1F5EE',uncommon:'#E6F1FB',rare:'#EEEDFE',epic:'#FAEEDA',legendary:'#1E1B3A'}
+  // Deterministic preview DNA: real DNA if hatched post-Phase-2, generated preview for legacy.
+  // Never persisted — memo recomputes only when [egg, index] identity changes.
+  const dna = useMemo(() => {
+    if (egg.dna) return egg.dna
+    try { return buildLegacyPreviewDNA(egg, index) } catch (_) { return null }
+  }, [egg, index])
+
+  const isLegacy = !egg.dna
+  const rarityColors = { common:'#085041', uncommon:'#0C447C', rare:'#3C3489', epic:'#633806', legendary:'#C8C0F8' }
+  const rarityBg    = { common:'#E1F5EE', uncommon:'#E6F1FB', rare:'#EEEDFE', epic:'#FAEEDA', legendary:'#1E1B3A' }
   const rar = egg.creature?.rarity || 'common'
+
   return (
-    <div className="catalog-item" onClick={() => { playTone('cardOpen'); onSelect(egg) }}>
-      <canvas ref={canvasRef} width={88} height={88} style={{ borderRadius:8, display:'block', margin:'0 auto 6px', background:'var(--bg)' }} />
+    <div className="catalog-item catalog-item-lg" onClick={() => { playTone('cardOpen'); onSelect(egg) }}>
+      <div style={{ position:'relative', display:'inline-block' }}>
+        <CreatureCanvas
+          dna={dna}
+          size={120}
+          personality={dna?.personality}
+          animationEnabled
+          style={{ margin:'0 auto 8px' }}
+        />
+        {isLegacy && egg.creature?.e && (
+          <span style={{ position:'absolute', bottom:10, right:2, fontSize:13, lineHeight:1, pointerEvents:'none' }}>
+            {egg.creature.e}
+          </span>
+        )}
+      </div>
       <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
       <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>
       <div className="catalog-item-rarity" style={{ background:rarityBg[rar], color:rarityColors[rar] }}>{egg.creature?.rarityLabel||'Common'}</div>
@@ -61,7 +75,7 @@ function HatchedGrid({ hatched, onSelect }) {
   return (
     <>
       <div className="catalog-section-title">ไข่ที่ฟักแล้ว {hatched.length} ใบ</div>
-      <div className="catalog-grid">
+      <div className="catalog-grid catalog-grid-lg">
         {hatched.map((egg, i) => <CreatureCard key={i} egg={egg} index={i} onSelect={onSelect} />)}
       </div>
     </>

@@ -459,6 +459,69 @@ export function buildCreatureDNA(stats) {
 }
 
 // ---------------------------------------------------------------------------
+// Legacy preview DNA — deterministic canvas rendering for pre-Phase-2 creatures.
+// NEVER persisted. NEVER mutates egg data. Read-only UI preview only.
+// Same (egg, index) pair always returns the same DNA object.
+// ---------------------------------------------------------------------------
+export function buildLegacyPreviewDNA(egg, index) {
+  // Primary path: eggStats is stored on virtually every legacy egg at hatch time.
+  // This gives the exact DNA that would have been generated if Phase 2 had existed then.
+  if (egg.eggStats && typeof egg.eggStats === 'object') {
+    try { return buildCreatureDNA(egg.eggStats) } catch (_) {}
+  }
+
+  // Fallback: synthesise from legacy creature fields (covers very old eggs without eggStats)
+  const c      = egg.creature || {}
+  const emoji  = c.e  || ''
+  const rarity = c.rarity || 'common'
+  const cat    = c.cat    || 'thai'
+
+  const seedVal = hash((c.n || '') + emoji + rarity + String(index))
+  const _r      = prng(seedVal)
+  const r       = [_r(), _r(), _r(), _r()]
+
+  // Subject dominance → drives family selection inside buildCreatureDNA
+  const sub = { thai: 22, eng: 22, math: 22 }
+  if      (cat === 'thai')   sub.thai = 68
+  else if (cat === 'eng')    sub.eng  = 68
+  else if (cat === 'math')   sub.math = 68
+  else /* hybrid */        { sub.thai = 48; sub.eng = 48; sub.math = 48 }
+
+  // Emoji nudges — push toward thematically correct family
+  const NUDGE = {
+    '🐉':   { math: 70, streak: 82 },   // dragon → streak path → dragon family
+    '🦊':   { eng: 72, speed: 78 },      // fox → eng+speed → fox family
+    '🦄':   { math: 72 },                // unicorn → crystal/star
+    '🤖':   { math: 74 },                // robot → crystal
+    '💎':   { math: 74 },                // gem → crystal
+    '⚡':  { math: 70, streak: 82 },    // lightning → star (streak)
+    '🦅':   { eng: 72, speed: 72 },      // garuda/eagle → bird
+    '🌈🦄':{ streak: 90 },               // rainbow unicorn → legendary star
+    '☀️🦁':{ thai: 72, streak: 70 },     // sun lion → brave dragon/bear
+  }
+  const nudge = NUDGE[emoji] || {}
+
+  const RARITY_STREAK = { common: 5, uncommon: 18, rare: 35, epic: 55, legendary: 85 }
+
+  return buildCreatureDNA({
+    name:   c.n || 'Legacy',
+    grade:  egg.grade  || 'K',
+    dow:    1  + Math.floor(r[0] * 7),
+    month:  1  + Math.floor(r[1] * 12),
+    day:    1  + Math.floor(r[2] * 28),
+    hour:   8  + Math.floor(r[3] * 10),   // 8–18 (daytime)
+    thai:   nudge.thai   ?? sub.thai,
+    eng:    nudge.eng    ?? sub.eng,
+    math:   nudge.math   ?? sub.math,
+    streak: nudge.streak ?? (RARITY_STREAK[rarity] ?? 5),
+    acc:    70 + Math.floor(r[0] * 25),
+    mins:   20 + Math.floor(r[1] * 30),
+    speed:  nudge.speed  ?? (40 + Math.floor(r[2] * 40)),
+    stage:  4  + Math.floor(r[3] * 4),    // stage 4–7 (mature-looking)
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Dev verification — call from browser console: import then verifyCreatureGen()
 // or paste the body into DevTools after the module loads.
 // ---------------------------------------------------------------------------

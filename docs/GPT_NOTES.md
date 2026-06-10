@@ -201,21 +201,65 @@ Rebattle: Always available. Different dialogue on repeat visits.
 - Gardening: Grandma's garden (TM) — empty plot placeholder
 - Photo spots: hilltop (MR), river (ML), pond (BL)
 
-### Open questions for GPT (must answer before WorldMap.jsx)
+### Frozen decisions — Phase 1–6 gates cleared (2026-06-10)
 
-1. **Screen navigation UX** — How does child move between screens? Options: (A) directional arrows at screen edge, (B) tap screen edge, (C) minimap, (D) egg sprite moves autonomously, child taps encounter triggers. For ages 4–5, D may be most accessible.
-2. **Encounter trigger distance** — How large is the enemy "trigger zone" for a 4-year-old's finger? Estimate: 80–100px on 390px screen. Need GPT call.
-3. **Screen transition style** — Scroll (Animal Crossing) or cut (Pokémon)? Scroll = more spatial, heavier. Cut = simpler. Year 1 scope call.
-4. **Item bag capacity** — Unlimited (no return incentive) or capped at ~5–10 items (creates natural loop to go home)? Which matches our philosophy?
-5. **Minigame launch style** — When EggFishing/EggCatch triggers from the world, does it launch fullscreen (current behavior) or run inside the world screen?
-6. **Boss rebattle curriculum** — Does the question set in rematches change? Harder over time? Based on Subject Readiness?
-7. **Egg sprite in world** — Does the walking egg look like the current egg stage? (Yes seems right — child's actual egg.)
-8. **Collectible display location** — Green Meadow collectibles → Collection tab in Egg Home, or a separate "backpack" in the world?
-9. **Day/night clock sync** — Confirm Green Meadow day/night uses same real-clock logic as Egg Home (6am–7pm = day).
-10. **Post Bird quest chain** — Letter delivery between NPCs: MVP scope, or deferred post-launch?
+These answers are frozen. Do not reopen unless Chopin playtests prove otherwise.
+
+**GM-Q1 — Screen navigation UX**
+Large edge arrows. No joystick, no D-pad, no drag. Child taps a large arrow → egg walks automatically in that direction. Walking into a screen edge transitions to the connected screen. Simple enough for age 4–7.
+
+**GM-Q2 — Encounter trigger size**
+80px collision radius on a 390px iPhone screen. NPC trigger radius larger (~120px — NPCs should be easy to find). Enemy trigger should feel intentional, not accidental.
+
+**GM-Q3 — Screen transition style**
+Animal Crossing style: short fade + slight scroll, ~300ms. No hard cut. No Pokémon black screen. Spatial and smooth.
+
+**GM-Q4 — Bag capacity**
+Unlimited. Children should never worry about inventory management. No "bag full" messages. No item loss. Adventure should feel free.
+
+**GM-Q5 — Minigame launch style**
+Fullscreen. Reuse existing minigame architecture. Save world position before launch. After minigame ends, return to the same world screen and position.
+
+**WB-Q1 — World entry UX**
+No world map. No region selection. No overworld screen.
+Path: Home → tap "ออกสำรวจ" → Green Meadow (direct). Future regions unlock naturally later. Year 1 = one destination only.
+
+**WB-Q3 — Subject assignment in encounters**
+Region + readiness. Not fully random. Green Meadow focuses on: Counting, Addition, Shapes, Patterns, Simple Thai, Simple English. Difficulty follows child's Subject Readiness (from sessionLog). Never assign content far above age or readiness level.
+
+**WB-Q4 — XP sources**
+XP comes from: battles (correct answers), treasure discovery, NPC interactions, collectible finds, minigame completion, and exploration (first time visiting a new screen). Adventure drives progression — not only correct answers.
+
+### Future questions (not blocking Phase 1–6)
+
+These are deferred. Do not wait for them before building Phases 1–6.
+
+**GM-Q6 — Boss rebattle curriculum**
+Does the question set change on King Clover Bear rematches? Harder over time? Based on Subject Readiness? Answer before Phase 8 ships.
+
+**GM-Q7 — Egg sprite in world**
+Does the walking egg in Green Meadow show the child's current egg stage/colors? (Yes seems right — child's actual egg. Defer to Phase 2 if obvious.)
+
+**GM-Q8 — Collectible display location**
+Green Meadow collectibles → existing Collection tab in Egg Home, or a world-only "backpack" screen? Answer before Phase 5.
+
+**GM-Q9 — Day/night clock sync**
+Confirm: Green Meadow day/night uses the same real-clock logic as Egg Home (6am–7pm = day). If confirmed, no new code needed — same `isDay` computation. Treat as confirmed unless GPT says otherwise.
+
+**GM-Q10 — Post Bird quest chain**
+Letter delivery between NPCs: MVP (Phase 4) or deferred post-launch? Affects whether Post Bird has interactive dialogue or decorative-only in Phase 4.
+
+**Trade system**
+Young Bunny Farmer offers 3 Clovers → 1 Food in the design. When does the Clover currency exchange UI ship? Phase 4 NPC dialogue can set it up without the UI; trade system could ship later.
+
+**Sunny Beach unlock**
+What triggers Sunny Beach region unlock? Clear boss only? Boss + collect N items? Complete N battles? Answer before Phase 9 polish (which adds the Sunny Beach entrance placeholder).
+
+**Seasonal events**
+Thai New Year, Songkran, Loy Krathong, Christmas. When do seasonal variants ship? What changes per event? Not blocking any current phase.
 
 ### Implementation gate
-Do NOT implement WorldMap.jsx until GPT answers questions 1–5.
+**All Phase 1–6 gate questions are answered. Phase 1 may begin.**
 
 ---
 
@@ -254,20 +298,22 @@ Grandma Turtle, Post Bird, Cloud Sheep, Professor Owl, Fox Merchant, Traveling B
 ### Future systems designed (not yet built)
 Walking exploration, random encounters, treasure chests, fishing, cooking, gardening, NPC friendships, seasonal events, weather, mini festivals, day/night, photo mode, home decoration.
 
-### Open questions still unanswered (for GPT)
-1. World entry UX — navigable map or simpler choose-region screen?
-2. Encounter trigger on mobile — step-based, or "explore" button?
-3. Subject assignment in encounters — random, region-based, or readiness-based?
-4. XP source — battles only or also exploration?
-5. Session length — natural endpoint or open-ended?
-6. Minigame integration — become encounter events or stay separate?
-7. Creature companion — which creature shows in Egg Home? Latest or player choice?
-8. Boss loss consequences — retry only, or pushed back to previous screen?
+### Answered decisions (2026-06-10)
+1. ✅ World entry UX — Direct: Home → "ออกสำรวจ" → Green Meadow. No map screen. (WB-Q1)
+2. ✅ Encounter trigger — 80px collision radius for enemies, 120px for NPCs. Edge arrows for movement. (GM-Q1, GM-Q2)
+3. ✅ Subject assignment — Region + readiness. Green Meadow = Kindergarten content only. (WB-Q3)
+4. ✅ XP source — Battles + treasure + NPC interactions + collectibles + minigames + new screens. (WB-Q4)
+5. ✅ Session length — Open-ended. 10–15 min target. Natural end triggers (not forced). (Green Meadow design)
+6. ✅ Minigame integration — World-embedded triggers. Fullscreen launch, return to world position. (GM-Q5)
+
+### Remaining open questions (for GPT — not blocking Phase 1)
+7. Creature companion in Home — which creature shows? Latest or player choice?
+8. Boss loss consequences — already designed as bear-hug + consolation gift + bounce to Starting Path.
 9. Egg naming — should Chopin name each egg at creation?
 10. Background adaptation — should Egg Home background change based on last region visited?
 
 ### Implementation gate
-Do NOT implement any world map or exploration code until GPT answers questions 1–5.
+**Phase 1 may begin. All blocking questions answered.**
 
 ---
 

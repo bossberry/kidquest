@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Docs: Green Meadow Gate Questions Answered
+
+- `docs/GPT_NOTES.md` — Green Meadow implementation gate questions answered and frozen. GM-Q1: large edge arrows (no joystick/D-pad). GM-Q2: 80px enemy trigger radius, 120px NPC radius. GM-Q3: Animal Crossing style fade+scroll ~300ms. GM-Q4: unlimited bag (no inventory management). GM-Q5: fullscreen minigame launch, return to world position. WB-Q1: direct entry Home→"ออกสำรวจ"→Green Meadow, no map screen. WB-Q3: region+readiness subject assignment, Green Meadow = Kindergarten content only. WB-Q4: XP from battles + treasure + NPC interactions + collectibles + minigames + exploration. World Bible open questions 1–6 also marked answered. Future questions section added: GM-Q6 (boss rebattle curriculum), GM-Q7 (egg sprite), GM-Q8 (collectible display), GM-Q10 (Post Bird chain), trade system, Sunny Beach unlock, seasonal events.
+- `docs/TASKS.md` — Gate question task marked done. Phase 1 unblocked. Phase 2–6 tasks updated with confirmed decisions. World Bible blocking tasks resolved.
+
 ## 2026-06-10 — Docs: Green Meadow Implementation Plan
 
 - `docs/research/world/green-meadow-implementation-plan.md` (NEW) — Full 9-phase implementation plan for Green Meadow (Phase 1 World). Each phase specifies: goal, files affected, dependencies, risks, review checklist, success criteria. Phases: (1) World Foundation, (2) Movement, (3) Visible Enemies, (4) NPC System, (5) Treasure System, (6) Minigame Integration, (7) Remaining Enemies, (8) King Clover Bear boss, (9) Polish. New state fields documented (`currentRegion`, `currentScreen`, `pickedUpTreasures`, `collectibles`, `clovers`, `bag`). `worldConfig.js` structure defined. Pre-implementation gate: 8 GPT questions must be answered before Phase 1. Dependency tree shows strict phase order (no reordering). Ranked risk list: navigation UX for age 4 is the highest risk. Chopin playtest checkpoints after Phases 2, 3, 4, 5, 6, 8, 9. No code. No build.

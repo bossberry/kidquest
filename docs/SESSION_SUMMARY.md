@@ -4,59 +4,43 @@
 
 ---
 
-## Green Meadow Implementation Plan
+## Green Meadow Gate Questions — Answers Frozen
 
-`docs/research/world/green-meadow-implementation-plan.md` (NEW) — 9-phase plan for building Green Meadow.
+All 8 Phase 1–6 gate questions answered and frozen in `docs/GPT_NOTES.md`.
 
-### Philosophy
-Build one phase at a time. Each phase is playable and reviewable before the next begins. Chopin playtests are built into the plan as mandatory gates.
+### Frozen decisions
 
-### 9 Phases
+| Question | Decision |
+|---|---|
+| GM-Q1: Navigation UX | Large edge arrows. Tap arrow → egg walks. No joystick. |
+| GM-Q2: Encounter trigger | 80px enemy radius. 120px NPC radius. |
+| GM-Q3: Screen transition | Animal Crossing style. Fade + slight scroll ~300ms. |
+| GM-Q4: Bag capacity | Unlimited. No inventory management. |
+| GM-Q5: Minigame launch | Fullscreen. Return to same world position after. |
+| WB-Q1: World entry UX | Home → "ออกสำรวจ" → Green Meadow direct. No map. |
+| WB-Q3: Subject assignment | Region + readiness. Green Meadow = Kindergarten level only. |
+| WB-Q4: XP sources | Battles + treasure + NPC + collectibles + minigames + exploration. |
 
-| Phase | Name | Chopin test? |
-|---|---|---|
-| 1 | World Foundation | Internal only |
-| 2 | Movement | **Required — navigation UX validation** |
-| 3 | Visible Enemies | **Required — battle loop validation** |
-| 4 | NPC System | Yes |
-| 5 | Treasure System | Yes |
-| 6 | Minigame Integration | Light |
-| 7 | Remaining Enemies | Internal |
-| 8 | King Clover Bear | **Required — boss emotional validation** |
-| 9 | Polish | Yes |
+### What's now unblocked
 
-### Pre-implementation gate (8 GPT questions)
+**Phase 1: World Foundation is ready to build.**
 
-Must be answered before Phase 1:
-- GM-Q1: Navigation UX (arrows / tap-edge / auto-walk)
-- GM-Q2: Encounter trigger zone size for age 4
-- GM-Q3: Screen transition (scroll vs cut)
-- GM-Q4: Bag capacity
-- GM-Q5: Minigame fullscreen vs in-world
-- WB-Q1: World entry UX
-- WB-Q3: Subject assignment in encounters
-- WB-Q4: XP from exploration vs battles only
+All blocking gates are cleared. Phase 2 requires one additional Chopin playtest gate (navigation UX must pass before Phase 3 begins).
 
-### New state fields specified
+### Future questions (not blocking Phase 1–6)
 
-`currentRegion`, `currentScreen`, `discoveredScreens`, `pickedUpTreasures`, `collectibles`, `clovers`, `bag` — all added to `defaultState()` before Phase 1.
-
-### New actions specified
-
-`ENTER_WORLD`, `EXIT_WORLD`, `MOVE_SCREEN`, `PICKUP_TREASURE`, `COLLECT_CLOVER`, `COLLECT_ITEM`, `DISCOVER_SCREEN`, `TRANSFER_BAG_TO_HOME`, `SAVE_WORLD_POSITION`, `CLAIM_NPC_GIFT`, `DEFEAT_BOSS`, `FORCE_SCREEN`.
-
-### Biggest risks (ranked)
-
-1. Navigation UX for age 4 — must validate in Phase 2 before building Phase 3
-2. Subject assignment mapping — wrong level = wrong learning scaffold
-3. Boss fail experience causing distress — mandatory Chopin test in Phase 8
-4. Performance on iPhone Safari — baseline measurement in Phase 2
-5. Routing complexity (world ↔ battle ↔ world ↔ home) — Phase 1 routing must be clean
+- GM-Q6: Boss rebattle curriculum → answer before Phase 8
+- GM-Q7: Egg sprite in world (likely yes = child's actual egg stage)
+- GM-Q8: Collectible display location → answer before Phase 5
+- GM-Q10: Post Bird quest chain scope → answer before Phase 4
+- Trade system timing
+- Sunny Beach unlock trigger
+- Seasonal events spec
 
 ---
 
 ## What's next
 
-- GPT: Answer 8 gate questions → `GPT_NOTES.md` → Green Meadow + World Bible sections.
-- After GPT answers: begin Phase 1 (World Foundation).
-- After Phase 2: Chopin playtest mandatory before Phase 3.
+**Claude Code:** Phase 1: World Foundation — `WorldScreen.jsx`, `worldConfig.js` (BM only), state fields, routing. All gate questions are answered.
+
+**GPT (deferred):** Answer GM-Q6, GM-Q8, GM-Q10 before their respective phases ship.

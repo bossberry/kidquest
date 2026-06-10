@@ -51,7 +51,9 @@ src/
 │   ├── supabase.js         — createClient (URL + publishable key)
 │   ├── eggAlgorithm.js     — LOCKED: drawEgg(), hash(), prng(), eggProgress(), buildEggStats()
 │   ├── creatureAlgorithm.js — drawCreature(), getCreatureSeed()
-│   └── audio.js            — playTone(), speakTh(), speakEn(), playPhonicsSound()
+│   ├── audio.js            — playTone(), speakTh(), speakEn(), playPhonicsSound()
+│   ├── tileEngine.js       — NEW: T constants, renderMap/Player/canMove/getCamera/getExitAt/getEntryPosition
+│   └── tileMaps.js         — NEW: BM_MAP (20×15) + 8 minimal screen maps + SCREEN_MAPS registry
 │
 ├── games/
 │   ├── GameScreen.jsx      — Routes by currentWorld; all 8 games are lazy-loaded (44 lines)
@@ -69,7 +71,8 @@ src/
 │       └── EggFishing.jsx  — Timing fishing game (132 lines)
 │
 ├── components/
-│   ├── Home.jsx            — Egg + XP bar + world cards + minigame buttons (176 lines)
+│   ├── Home.jsx            — Egg Home: large egg, pet/feed/items, explore button (176 lines)
+│   ├── WorldScreen.jsx     — Canvas tile engine: rAF loop, D-pad, GB palette tiles, NPC dialogue (~250 lines)
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Hatched creatures + current egg tabs (86 lines)

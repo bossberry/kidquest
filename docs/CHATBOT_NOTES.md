@@ -1,0 +1,233 @@
+# CHATBOT_NOTES.md — KidQuest
+_Written by Claude Chatbot. Read by Claude Code before every session._
+_Last updated: 2026-06-10_
+
+**This file replaces GPT_NOTES.md. GPT has been removed from the workflow.**
+
+---
+
+## How This File Works
+
+- **Claude Chatbot** writes decisions, answers open questions, and designs content here
+- **Claude Code** reads this file (+ CURRENT_STATE.md + TASKS.md) before every session
+- After each code session, Claude Code appends a **Handoff** section at the bottom
+- Claude Chatbot reads the Handoff before the next design session
+
+---
+
+## Active Decisions for Claude Code
+
+### 🔴 NEXT TASK: Green Meadow Phase 2 — Canvas Tile Engine
+
+**Decision (2026-06-10):** Phase 2 is NOT "egg walk animation on CSS art."
+Phase 2 is a **Canvas-based tile engine** — the foundation that makes the world feel like Pokémon.
+
+**Why this matters:** The current WorldScreen is CSS art with arrow buttons. It looks like a picture, not a world. Chopin can't feel like he's really walking anywhere. The Pokémon GB feeling comes from tile-by-tile movement with immediate visual feedback every step.
+
+**Architecture decided:**
+
+```
+WorldScreen.jsx → replaces CSS art with <canvas> tile renderer
+TileEngine (new) → drawTileMap(), handleMove(), collision detection
+PlayerSprite → 4-direction walk cycle (2 frames per direction = 8 frames total)
+Camera → follows player, clamps at map edges
+```
+
+**Tile size:** 16×16 px per tile. Map: 20×15 tiles (320×240 px). Canvas scales to fill screen width.
+
+**Tile types for Green Meadow:**
+```
+GRASS       — walkable, no effect
+TALL_GRASS  — walkable, 25% random encounter on entry (not 30% — less frustrating for 5yo)
+TREE/WALL   — collision, not walkable
+PATH        — walkable, no encounter, slightly different color
+WATER       — not walkable (Year 1)
+EXIT_N/S/E/W — edge tile, triggers screen transition
+NPC         — not walkable, press A/tap to talk
+SIGN        — not walkable, press A/tap to read
+ITEM_SPOT   — walkable, sparkle animation, tap to collect
+```
+
+**Controls (decided):**
+Virtual D-pad — 4 buttons fixed bottom-left of screen. Large enough for 5yo fingers (min 56px each button). No swipe — too imprecise for tile grid. Keep Home button top-left always visible.
+
+**Movement feel:**
+- Each step = 1 tile (16px) with 120ms tween (smooth but snappy)
+- Walking sound: short tap tone per step (use existing `playTone`)
+- Tall grass: rustling visual effect (darken tile for 200ms on enter)
+- Player sprite bobs slightly when idle (simple 2-frame idle)
+
+**Screen transition:** Keep existing AC-style 160ms fade. Trigger when player walks onto EXIT tile.
+
+**Starting Path (BM) — first map layout (20×15 tiles):**
+```
+TTTTTTTTTTTTTTTTTTTT  row 0  (trees — top wall)
+TggggggggggggggggggT  row 1
+TgFFggggggggggFFgggT  row 2  (F=flower)
+TggggggNPCgggggggggT  row 3  (NPC=Professor Owl)
+TgggggggggggggggggST  row 4  (S=sign)
+TggTTTgggggggTTTgggT  row 5  (tall grass patches)
+TggTTTgggggggTTTgggT  row 6
+TgggggggggggggggggggT row 7
+TggggPPPPPPPPPPgggggT row 8 (P=path center)
+TggggPPPPPPPPPPgggggT row 9
+TggggggggggggggggggT  row 10
+TggBNKggggggggggggggT row 11 (B=Sleepy Bunny enemy, fixed start pos)
+TgggggggggggggggFggT  row 12
+TggggggggggggggggggT  row 13
+TTTTTPPPPPPPPPTTTTT   row 14 (exit south=water, exit north=path to Town Square)
+```
+EXIT_N at col 8–11, row 0 → Town Square (MC)
+EXIT_S not available (water/blocked in Year 1)
+
+**NPC dialogue (Professor Owl, first meeting):**
+```
+Thai: "สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก\nหญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!"
+English subtitle (small): "I'm Professor Owl. Tall grass hides creatures!"
+```
+
+**Sign text:**
+```
+"→ ทาวน์สแควร์\n← ทุ่งดอกไม้\n↑ ยังไปไม่ได้..."
+```
+
+---
+
+### ✅ Answered: Creature System Open Questions (was GPT Q1–Q10)
+
+1. **Evolution** — Born complete for Year 1. Evolution is Year 2+. No evolution system in code.
+2. **Naming** — Child picks from 5 suggestions shown as large tap targets after hatch. No typing. Names stored in `egg.creatureName`.
+3. **Family labels** — Subtle badge in Collection detail popup only. NOT a category filter. Not shown on Collection grid.
+4. **"Moonborn" rarity** — Yes, formalize as a label. Add to Collection detail popup. One extra visual badge.
+5. **Collection layout** — 2 columns, 120px cards (already implemented). Keep.
+6. **Accessories** — Born-with for Year 1. No equippable shop items yet.
+7. **Creature companion zone** — Enlarge to 80px min height in Home.jsx to show signature feature properly.
+8. **Collection feel** — Friendship focus. Show days together + favorite subject badge on detail popup. Gallery is secondary.
+9. **Egg visual motif legibility** — Accept ambiguity for Year 1. Do NOT modify `drawEgg()`. The creature reveal is the payoff.
+10. **Ember family** — Formalize as 17th family. Flame-tip tail locked + ember glow mandatory. Add to `creatureGenerator.js` MOTIF_MAP.
+
+---
+
+### ✅ Answered: Egg Home Open Questions (was GPT Q1–10)
+
+1. **Egg naming** — No. Don't name the egg. Name the creature after hatch instead (see above).
+2. **Mood indicator** — Animation only. No emoji above egg. No stat bar. Pure visual.
+3. **Notifications** — No push notifications. Purely intrinsic return motivation. Parent controls app access.
+4. **Creature dialogue** — Yes, occasionally. Small speech bubble shows a Thai word (1–2× per session, random). Soft learning moment. Not scheduled.
+5. **Desire indicator** — No Tamagotchi hunger icon. Returns motivated by egg growth progress, not guilt.
+6. **Hatch moment** — Egg tries to hatch on its own (shakes, cracks) at stage 8. Tap egg to help it hatch. "ช่วยกันหน่อยนะ!" message.
+7. **Egg in battle** — No framing change needed. "Your egg went on an adventure" is implied. No text needed.
+8. **Ambient sound** — Defer to Year 2. No home theme music in Year 1 MVP.
+9. **Creatures leaving** — No. Permanent residents. No Animal Crossing departures.
+10. **Multiple creatures** — All walk around together (up to 3 visible). Makes Home feel alive. More than 3 = only show 3 most recent.
+
+---
+
+### ✅ Answered: Green Meadow Open Questions (GM-Q6, Q8, Q10)
+
+**GM-Q6 (boss rebattle curriculum):**
+King Clover Bear rebattle uses rotating question sets. 3 sets total. Set rotates per visit (not random). Each set focuses on the subject Chopin is weakest in (from Subject Readiness in sessionLog). Same warm win/loss framing every time.
+
+**GM-Q8 (collectible display location):**
+Discovered clovers and treasures → "Clover Bag" button in world screen (top-right, small 🍀 icon + count badge). Opens a simple fullscreen overlay showing grid of collected items. NOT on Home screen. NOT in main Collection page.
+
+**GM-Q10 (Post Bird quest scope):**
+Post Bird = traveling NPC, simple gift-giving only. Not a quest chain in Year 1. Appears at 1–2 random screens per session. Dialogue: "มีจดหมายถึงนายนะ!" → gives small item (food or pebble). 5 Old Letters are a passive lore collect, not a quest chain.
+
+---
+
+### ✅ Answered: Gameplay Loop Open Questions
+
+1. **Adventure Director recommend battle?** — No. Director recommends learning always. Battle is child-initiated.
+2. **Post-hatch suggestion?** — After hatch: show creature for 5 seconds, then return to Home. No auto-suggest battle.
+3. **Minigame XP vs subject XP** — Minigame XP stays at current level. No reduction needed yet. Revisit if farming observed.
+4. **Session end signal** — After 3 battles in world: "เหนื่อยมั้ย? กลับบ้านกันไหม?" prompt (voluntary, dismissable).
+
+---
+
+### ✅ Answered: Battle Open Questions
+
+1. **Battle → next egg XP?** — Yes. Win = 8 XP toward egg. Loss = 3 XP (participation). Already implemented.
+2. **Challenger adjust as creatures level?** — Yes but simple: Challenger tier = creature tier. Already in code via grade→tier map.
+3. **Loss → learning prompt?** — No prompt on loss. Just warm encouragement. Learning is upstream; battle is downstream.
+
+---
+
+### ✅ Answered: Subject Progression Open Questions
+
+1. **Stretch unlock per-level or per-subject?** — Per-level. Each level has its own mastery signal.
+2. **Adventure Director recommend Stretch?** — Yes, once. A one-time subtle suggestion: "มีโหมดพิเศษรอนายอยู่นะ" after mastery signal. Never repeated.
+3. **Readiness threshold for Grade 1 design?** — When Chopin hits Strong on 2/3 subjects for 2 consecutive weeks. Boss and parent observe, then signal Claude Chatbot to begin Grade 1 content design.
+
+---
+
+## Architecture Notes for Claude Code
+
+**`BattleScreen.jsx` known bug:** advice text still says "เรียนภาษาไทยเพิ่มเพื่อเพิ่ม ATK!" but ATK is Math-weighted. Fix when next touching that file.
+
+**`BattleMode.jsx`:** Dead code — replaced by `MoveSelectBattleMode`. Safe to delete. Confirm no imports first.
+
+**ECA-MVP-3 (still pending):** Add `adventuresWith`, `questionsAnswered`, `eggStartDate` to `defaultState()` and `ADD_XP` reducer. Non-breaking. Low priority.
+
+---
+
+## Content Waiting to Be Built
+
+### Missions (after world is playable)
+- Cooking Mission 🍳 — follows Shop Mission pattern. Wait for ~10 Shop sessions of data before designing content.
+- Garden Mission 🌱 — gentle daily-habit loop. Design after Cooking is proven.
+
+### World Screens (after Starting Path is playable)
+Build in this order after BM is tested with Chopin:
+1. MC (Town Square) — hub, 2 NPCs, no tall grass
+2. MR (Clover Hill) — more tall grass, Tiny Fox + Grumpy Mole
+3. TM (Grandma's House) — EggMemory quest hook
+4. Others — Phase 7+ (King Clover Bear last)
+
+---
+
+## Rejected (permanent)
+
+- GPT in workflow — removed 2026-06-10
+- Full open-world before tile engine proven — deferred
+- New mini-game mechanics — all Year 1 mechanics already exist
+- Speed-gated mastery — never
+- Push notifications / streak anxiety — never
+- Grade 2+ content in Year 1 — never
+
+---
+
+## Claude Code Handoff
+_(Claude Code appends here after each session)_
+
+**Last session (2026-06-10):** Green Meadow Phase 1 — World Foundation complete.
+9 screens navigable, AC-style transition, Starting Path CSS art scene.
+Phase 2 (Canvas Tile Engine) not yet started.
+See GPT_HANDOFF.md for full Phase 1 details.
+
+---
+
+**Session (2026-06-10):** Green Meadow Phase 2 — Canvas Tile Engine complete. Build ✅.
+
+**What was built:**
+- `src/lib/tileEngine.js` (NEW) — T constants, GB-palette Canvas renderers for all tile types, renderMap/renderPlayer, canMove collision, camera clamp, exit detection, entry position calculation.
+- `src/lib/tileMaps.js` (NEW) — BM 20×15 full tile map + 8 minimal screen maps. SCREEN_MAPS registry.
+- `src/components/WorldScreen.jsx` (REPLACED) — CSS art fully removed. Canvas tile engine with rAF loop, 120ms player tween, virtual D-pad (4-button cross 56×56px), 25% tall-grass encounter flash, EXIT tile transitions (160ms fade), NPC proximity → 💬 dialogue, sign proximity → 📋 text.
+- `src/context/StateContext.jsx` — ENCOUNTER_TRIGGERED action added (no-op placeholder).
+
+**BM map details:**
+- Owl NPC: col 6, row 3 (Thai dialogue: 2 lines)
+- Sign: col 18, row 4 (3-line directional text)
+- Tall grass bands: rows 5–6, cols 3–5 and 13–15
+- Stone path: rows 8–9, cols 5–14
+- Bunny enemy: col 3, row 11
+- Player start: col 10, row 12
+- EXIT_N: row 14, cols 7–12 → MC
+- EXIT_E: row 7, col 19 → BR
+- EXIT_W: row 7, col 0 → BL
+
+**Next for Chatbot:**
+- Chopin playtest gate still applies: does tile D-pad feel natural? 5-year-old feedback needed before Phase 3.
+- Phase 3 = Visible Enemies (80px trigger, battle entry/return) — blocked on playtest gate.
+- GM-Q6 (boss rebattle curriculum), GM-Q8 (collectible display), GM-Q10 (Post Bird scope) still unanswered.
+

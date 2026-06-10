@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Feat: Green Meadow Phase 2 — Canvas Tile Engine
+
+- `src/lib/tileEngine.js` (NEW) — Tile type constants (`T`), GB-palette Canvas 2D renderers (grass/tall/tree/path/water/exit/flower/sign/npc/enemy/itemspot), `renderMap()`, `renderPlayer()` (8-frame directional sprite, egg-stage color), `canMove()` collision, `getCamera()` clamp, `getExitAt()`, `getEntryPosition()` for cross-screen arrival.
+- `src/lib/tileMaps.js` (NEW) — BM (Starting Path) full 20×15 tile map (owl NPC row 3, sign row 4, tall-grass rows 5–6, path rows 8–9, enemy row 11, EXIT_N bottom rows 7 side exits). Minimal walkable maps for all other 8 screens (TREE border, GRASS fill, EXIT tiles matching worldConfig connections). `SCREEN_MAPS` registry.
+- `src/components/WorldScreen.jsx` (REPLACED) — Canvas tile engine replaces CSS art. rAF game loop (120ms player tween, tile animation frame counter). Virtual D-pad (4-button cross, 56×56px, bottom-left). 25% tall-grass encounter flash → `ENCOUNTER_TRIGGERED`. EXIT tile → 160ms fade transition → new screen entry from opposite edge. NPC proximity detection → 💬 คุย button → Prof Owl Thai dialogue. Sign proximity → 📋 อ่าน → sign lines. Home button + screen name overlaid on canvas. `position:fixed; inset:0` layout.
+- `src/context/StateContext.jsx` — Added `ENCOUNTER_TRIGGERED` to ACTIONS enum + no-op reducer case.
+- Build: ✅ zero errors.
+- `docs/CURRENT_STATE.md`, `docs/TASKS.md`, `docs/CHANGELOG.md`, `docs/PROJECT_MAP.md`, `docs/CODEBASE_SUMMARY.md`, `CHATBOT_NOTES.md` updated.
+
 ## 2026-06-10 — Feat: Green Meadow Phase 1 — World Foundation
 
 - `src/config/worldConfig.js` (NEW) — `SCREENS` 9-entry map (BM/MC/TM/TL/TR/ML/MR/BL/BR), each with `label`, `region`, `connects {N/S/E/W}` (null = no exit). `WORLD_REGIONS` (green-meadow, entryScreen BM). `SCREEN_THEMES` (sky+ground colors + icon per screen for placeholder backgrounds).

@@ -1,288 +1,336 @@
-import React, { useState, useRef } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import EggCanvas from './EggCanvas.jsx'
-import { SCREENS, SCREEN_THEMES } from '../config/worldConfig.js'
+import { SCREENS } from '../config/worldConfig.js'
+import { playTone } from '../lib/audio.js'
+import {
+  CANVAS_W, CANVAS_H, MAP_ROWS, MAP_COLS, T,
+  renderMap, renderPlayer, canMove, getCamera, getExitAt,
+  EXIT_OPPOSITE, EXIT_DIR_NAME, getEntryPosition,
+} from '../lib/tileEngine.js'
+import { SCREEN_MAPS } from '../lib/tileMaps.js'
 
-// Direction arrow config
-const DIRS = {
-  N: { label: '↑', pos: { top: 66, left: '50%', transform: 'translateX(-50%)' } },
-  S: { label: '↓', pos: { bottom: 28, left: '50%', transform: 'translateX(-50%)' } },
-  E: { label: '→', pos: { right: 14, top: '50%', transform: 'translateY(-50%)' } },
-  W: { label: '←', pos: { left: 14, top: '50%', transform: 'translateY(-50%)' } },
+const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
+
+const OWL_LINES = [
+  'สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก',
+  'หญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!',
+]
+const SIGN_LINES = [
+  '→ ทาวน์สแควร์',
+  '← ทุ่งดอกไม้',
+  '↑ ยังไปไม่ได้...',
+]
+
+function findSpecials(tileMap) {
+  const npcs = [], signs = []
+  for (let r = 0; r < MAP_ROWS; r++) {
+    for (let c = 0; c < MAP_COLS; c++) {
+      const raw = tileMap[r]?.[c]
+      const type = typeof raw === 'object' ? raw.type : raw
+      if (type === T.NPC)  npcs.push({ col: c, row: r, data: raw })
+      if (type === T.SIGN) signs.push({ col: c, row: r })
+    }
+  }
+  return { npcs, signs }
 }
 
-// ─── Starting Path background (BM) ─────────────────────────────────────────
-function StartingPathBG({ isDay }) {
-  const skyGrad = isDay
-    ? 'linear-gradient(180deg,#7EC8E3 0%,#B0DFF5 55%,#C8EEFF 100%)'
-    : 'linear-gradient(180deg,#0D1B3E 0%,#1B2E5A 55%,#2A3F6F 100%)'
-  const grdGrad = isDay
-    ? 'linear-gradient(180deg,#82C47A 0%,#5E9E56 100%)'
-    : 'linear-gradient(180deg,#2E5C28 0%,#1E3C18 100%)'
+const DPAD_BTN = (pos) => ({
+  position: 'absolute', width: 56, height: 56, borderRadius: 12,
+  background: 'rgba(255,255,255,0.13)', border: '2px solid rgba(255,255,255,0.28)',
+  color: 'rgba(255,255,255,0.88)', fontSize: 22, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+  userSelect: 'none', fontFamily: 'system-ui,sans-serif',
+  ...pos,
+})
 
-  return (
-    <>
-      {/* Sky */}
-      <div style={{ position:'absolute', left:0, right:0, top:0, height:'58%', background:skyGrad }} />
-
-      {/* Sun */}
-      {isDay && (
-        <div style={{ position:'absolute', right:'16%', top:'7%', width:50, height:50,
-          borderRadius:'50%', background:'#FFD93D',
-          boxShadow:'0 0 0 9px rgba(255,217,61,0.22), 0 0 0 18px rgba(255,217,61,0.09)',
-        }} />
-      )}
-
-      {/* Moon + stars */}
-      {!isDay && (
-        <>
-          <div style={{ position:'absolute', right:'15%', top:'9%', width:40, height:40,
-            borderRadius:'50%', background:'#EEF0F5',
-            boxShadow:'0 0 0 6px rgba(238,240,245,0.14)',
-          }} />
-          {[{l:'18%',t:'11%'},{l:'36%',t:'5%'},{l:'54%',t:'14%'},{l:'72%',t:'7%'},{l:'9%',t:'23%'},{l:'82%',t:'19%'}].map((s,i) => (
-            <div key={i} style={{ position:'absolute', left:s.l, top:s.t,
-              width:2+i%2, height:2+i%2, borderRadius:'50%',
-              background:'#fff', opacity:0.7+i*0.04,
-              animation:`hbg-twinkle ${2+i*0.7}s ease-in-out ${i*0.3}s infinite`,
-            }} />
-          ))}
-        </>
-      )}
-
-      {/* Clouds */}
-      {isDay && (
-        <>
-          <div className="hbg-cloud hbg-cloud-1" style={{ top:'13%', opacity:0.82 }} />
-          <div className="hbg-cloud hbg-cloud-2" style={{ top:'7%', opacity:0.68 }} />
-        </>
-      )}
-
-      {/* Distant hills (horizon) */}
-      <div style={{ position:'absolute', left:'-8%', right:'-8%', bottom:'39%',
-        height:'12%', background: isDay ? '#A8D898' : '#1F3825',
-        borderRadius:'60% 60% 0 0 / 100% 100% 0 0', opacity:0.55,
-      }} />
-      <div style={{ position:'absolute', left:'28%', right:'-8%', bottom:'40%',
-        height:'9%', background: isDay ? '#B8E0A0' : '#243C2A',
-        borderRadius:'60% 60% 0 0 / 100% 100% 0 0', opacity:0.65,
-      }} />
-
-      {/* Ground */}
-      <div style={{ position:'absolute', left:0, right:0, bottom:0, height:'42%', background:grdGrad }} />
-
-      {/* Path — perspective trapezoid */}
-      <div style={{ position:'absolute', left:0, right:0, bottom:0, height:'42%' }}>
-        <div style={{ position:'absolute', inset:0,
-          background: isDay ? '#D4B882' : '#8A7254',
-          clipPath:'polygon(36% 0%,64% 0%,81% 100%,19% 100%)',
-        }} />
-        {/* subtle center stripe */}
-        <div style={{ position:'absolute', inset:0,
-          background: isDay ? 'rgba(255,255,240,0.12)' : 'rgba(255,255,240,0.05)',
-          clipPath:'polygon(47% 0%,53% 0%,55% 100%,45% 100%)',
-        }} />
-      </div>
-
-      {/* Left bushes */}
-      <div style={{ position:'absolute', left:'-3%', bottom:'39%', width:'20%', height:'11%',
-        background: isDay ? '#4A8A42' : '#1E3818', borderRadius:'60% 60% 0 0',
-      }} />
-      <div style={{ position:'absolute', left:'4%', bottom:'40%', width:'13%', height:'8%',
-        background: isDay ? '#5C9E54' : '#243C20', borderRadius:'50% 50% 0 0', opacity:0.85,
-      }} />
-
-      {/* Right bushes */}
-      <div style={{ position:'absolute', right:'-3%', bottom:'39%', width:'18%', height:'10%',
-        background: isDay ? '#52924A' : '#213C1C', borderRadius:'60% 60% 0 0',
-      }} />
-      <div style={{ position:'absolute', right:'5%', bottom:'40%', width:'11%', height:'7%',
-        background: isDay ? '#4E8E46' : '#1E381A', borderRadius:'50% 50% 0 0', opacity:0.8,
-      }} />
-
-      {/* Left flowers */}
-      {['🌸','🌻','🌼','🌺','🌷'].map((f,i) => (
-        <div key={`fl${i}`} style={{
-          position:'absolute', fontSize:13+i%3,
-          bottom:`${41+i*4}%`, left:`${4+i*3}%`,
-          opacity: isDay ? 0.95 : 0.25,
-          animation:`egg-home-float ${2.4+i*0.35}s ease-in-out ${i*0.45}s infinite`,
-          zIndex:2,
-        }}>{f}</div>
-      ))}
-
-      {/* Right flowers */}
-      {['🌼','🌸','🌺','🌻','🌹'].map((f,i) => (
-        <div key={`fr${i}`} style={{
-          position:'absolute', fontSize:12+i%3,
-          bottom:`${41+i*3.5}%`, right:`${5+i*3}%`,
-          opacity: isDay ? 0.9 : 0.2,
-          animation:`egg-home-float ${2.7+i*0.25}s ease-in-out ${i*0.6+0.3}s infinite`,
-          zIndex:2,
-        }}>{f}</div>
-      ))}
-
-      {/* Pollen particles (day only) */}
-      {isDay && [0,1,2].map(i => (
-        <div key={`p${i}`} style={{
-          position:'absolute', width:5, height:5, borderRadius:'50%',
-          background:'rgba(255,255,180,0.65)',
-          left:`${22+i*22}%`, bottom:`${48+i*5}%`,
-          animation:`hbg-float-magic ${3.2+i*0.9}s ease-in-out ${i*0.7}s infinite`,
-        }} />
-      ))}
-    </>
-  )
-}
-
-// ─── Placeholder background for non-BM screens (Phase 1) ──────────────────
-function PlaceholderBG({ screenId, isDay }) {
-  const t = SCREEN_THEMES[screenId] || SCREEN_THEMES.MC
-  const dim = isDay ? '' : 'brightness(0.38)'
-  const skyGrad = `linear-gradient(180deg,${t.skyA} 0%,${t.skyB} 100%)`
-  const grdGrad = `linear-gradient(180deg,${t.grdA} 0%,${t.grdB} 100%)`
-
-  return (
-    <>
-      <div style={{ position:'absolute', left:0, right:0, top:0, height:'58%',
-        background:skyGrad, filter:dim || undefined,
-      }} />
-      <div style={{ position:'absolute', left:0, right:0, bottom:0, height:'42%',
-        background:grdGrad, filter:dim || undefined,
-      }} />
-      {/* Large screen-type icon, centered in sky */}
-      <div style={{ position:'absolute', left:'50%', top:'22%',
-        transform:'translate(-50%,-50%)', fontSize:62, opacity: isDay ? 0.55 : 0.2,
-      }}>{t.icon}</div>
-    </>
-  )
-}
-
-// ─── Screen background switcher ────────────────────────────────────────────
-function ScreenBackground({ screenId, isDay }) {
-  if (screenId === 'BM') return <StartingPathBG isDay={isDay} />
-  return <PlaceholderBG screenId={screenId} isDay={isDay} />
-}
-
-// ─── Main WorldScreen ──────────────────────────────────────────────────────
 export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
+  const canvasRef = useRef(null)
+
   const [screenId, setScreenId] = useState(state.currentScreen || 'BM')
-  const [transOverlay, setTransOverlay] = useState(0)
   const [transitioning, setTransitioning] = useState(false)
-  const timerRef = useRef(null)
+  const [transOverlay, setTransOverlay] = useState(0)
+  const [nearNPC, setNearNPC] = useState(null)
+  const [nearSign, setNearSign] = useState(null)
+  const [dialogue, setDialogue] = useState(null)
+  const [encounterFlash, setEncounterFlash] = useState(false)
 
-  const hour = new Date().getHours()
-  const isDay = hour >= 6 && hour < 19
-  const screen = SCREENS[screenId]
+  // Mutable refs for game loop (avoid stale closures)
+  const gameRef      = useRef(null)
+  const tileMapRef   = useRef(null)
+  const specialsRef  = useRef({ npcs: [], signs: [] })
+  const screenIdRef  = useRef(screenId)
+  const transRef     = useRef(transitioning)
+  const dialogueRef  = useRef(dialogue)
+  const rafRef       = useRef(null)
+  const transTimer   = useRef(null)
 
-  const moveToScreen = (dir) => {
-    if (transitioning) return
-    const target = screen?.connects[dir]
-    if (!target) return
+  screenIdRef.current   = screenId
+  transRef.current      = transitioning
+  dialogueRef.current   = dialogue
+
+  const eggColor = STAGE_COLORS[eggStatsData?.stage ?? 0] || STAGE_COLORS[0]
+  const eggColorRef = useRef(eggColor)
+  eggColorRef.current = eggColor
+
+  // ── Screen setup ────────────────────────────────────────────────────────────
+
+  const initScreen = useCallback((id, fromExitType) => {
+    const mapData = SCREEN_MAPS[id] || SCREEN_MAPS.BM
+    const tileMap = mapData.map
+    const startPos = fromExitType !== undefined
+      ? getEntryPosition(tileMap, fromExitType)
+      : mapData.start
+
+    tileMapRef.current  = tileMap
+    specialsRef.current = findSpecials(tileMap)
+    gameRef.current = {
+      col: startPos.col, row: startPos.row,
+      displayX: startPos.col, displayY: startPos.row,
+      fromX: startPos.col, fromY: startPos.row,
+      dir: 'down', walkFrame: 0,
+      moving: false, moveStartTime: 0, frame: 0,
+    }
+    setNearNPC(null)
+    setNearSign(null)
+    setDialogue(null)
+  }, [])
+
+  useEffect(() => { initScreen(screenId, undefined) }, []) // mount only
+
+  // ── Proximity detection ─────────────────────────────────────────────────────
+
+  const checkProximity = useCallback((col, row) => {
+    const { npcs, signs } = specialsRef.current
+    const near = (a) => Math.abs(a.col - col) + Math.abs(a.row - row) <= 2
+    setNearNPC(npcs.find(near) || null)
+    setNearSign(signs.find(near) || null)
+  }, [])
+
+  // ── Screen transition ────────────────────────────────────────────────────────
+
+  const handleExit = useCallback((exitType) => {
+    if (transRef.current) return
+    const sid = screenIdRef.current
+    const dirName = EXIT_DIR_NAME[exitType]
+    const targetId = SCREENS[sid]?.connects[dirName]
+    if (!targetId) return
 
     setTransitioning(true)
     setTransOverlay(1)
 
-    timerRef.current = setTimeout(() => {
-      setScreenId(target)
-      dispatch({ type: ACTIONS.MOVE_SCREEN, payload: target })
-      dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: target })
+    transTimer.current = setTimeout(() => {
+      setScreenId(targetId)
+      dispatch({ type: ACTIONS.MOVE_SCREEN, payload: targetId })
+      dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: targetId })
+      initScreen(targetId, exitType)
       setTransOverlay(0)
-      timerRef.current = setTimeout(() => setTransitioning(false), 170)
+      transTimer.current = setTimeout(() => setTransitioning(false), 170)
     }, 160)
+  }, [dispatch, initScreen])
+
+  // ── Player movement ──────────────────────────────────────────────────────────
+
+  const tryMove = useCallback((dCol, dRow, dir) => {
+    const g = gameRef.current
+    if (!g || g.moving || transRef.current || dialogueRef.current) return
+
+    const tileMap = tileMapRef.current
+    if (!tileMap) return
+
+    g.dir = dir
+    const newCol = g.col + dCol
+    const newRow = g.row + dRow
+
+    if (!canMove(tileMap, newCol, newRow)) return
+
+    g.fromX = g.displayX
+    g.fromY = g.displayY
+    g.col = newCol
+    g.row = newRow
+    g.moving = true
+    g.moveStartTime = performance.now()
+    g.walkFrame = (g.walkFrame + 1) % 2
+
+    playTone('tap')
+
+    const exitType = getExitAt(tileMap, newCol, newRow)
+    if (exitType !== null) {
+      setTimeout(() => handleExit(exitType), 80)
+      return
+    }
+
+    const raw = tileMap[newRow]?.[newCol]
+    const ttype = typeof raw === 'object' ? raw.type : raw
+    if (ttype === T.TALL && Math.random() < 0.25) {
+      playTone('open')
+      setEncounterFlash(true)
+      setTimeout(() => setEncounterFlash(false), 50)
+      dispatch({ type: ACTIONS.ENCOUNTER_TRIGGERED })
+    }
+
+    checkProximity(newCol, newRow)
+  }, [dispatch, handleExit, checkProximity])
+
+  const moveUp    = useCallback(() => tryMove( 0, -1, 'up'),    [tryMove])
+  const moveDown  = useCallback(() => tryMove( 0,  1, 'down'),  [tryMove])
+  const moveLeft  = useCallback(() => tryMove(-1,  0, 'left'),  [tryMove])
+  const moveRight = useCallback(() => tryMove( 1,  0, 'right'), [tryMove])
+
+  // ── Dialogue ─────────────────────────────────────────────────────────────────
+
+  const openNPC  = () => { setDialogue({ lines: OWL_LINES,  index: 0 }); playTone('cardOpen') }
+  const openSign = () => { setDialogue({ lines: SIGN_LINES, index: 0 }); playTone('cardOpen') }
+  const advance  = () => {
+    if (!dialogue) return
+    if (dialogue.index < dialogue.lines.length - 1) setDialogue({ ...dialogue, index: dialogue.index + 1 })
+    else setDialogue(null)
   }
 
-  const goHome = () => {
-    dispatch({ type: ACTIONS.EXIT_WORLD })
-    navigate('home')
-  }
+  // ── rAF render loop ──────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let alive = true
+
+    function loop(now) {
+      if (!alive) return
+      rafRef.current = requestAnimationFrame(loop)
+
+      const g = gameRef.current
+      const tileMap = tileMapRef.current
+      if (!g || !tileMap) return
+
+      if (g.moving) {
+        const t = Math.min(1, (now - g.moveStartTime) / 120)
+        g.displayX = g.fromX + (g.col - g.fromX) * t
+        g.displayY = g.fromY + (g.row - g.fromY) * t
+        if (t >= 1) { g.displayX = g.col; g.displayY = g.row; g.moving = false }
+      }
+
+      g.frame = (g.frame + 1) % 120
+
+      const { camX, camY } = getCamera(g.displayX, g.displayY)
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
+      renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
+      renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
+    }
+
+    rafRef.current = requestAnimationFrame(loop)
+    return () => { alive = false; cancelAnimationFrame(rafRef.current) }
+  }, []) // stable — reads from refs only
+
+  // ── Go home ──────────────────────────────────────────────────────────────────
+
+  const goHome = () => { dispatch({ type: ACTIONS.EXIT_WORLD }); navigate('home') }
+
+  const screenLabel = SCREENS[screenId]?.label || ''
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:50, overflow:'hidden',
-      background: isDay ? '#7EC8E3' : '#0D1B3E',
-    }}>
+    <div style={{ position:'fixed', inset:0, background:'#0a1a0a', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-      {/* Background scene */}
-      <ScreenBackground screenId={screenId} isDay={isDay} />
+      {/* Canvas */}
+      <div style={{ position:'relative', width:'100%', flexShrink:0 }}>
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_W}
+          height={CANVAS_H}
+          style={{ width:'100%', height:'auto', display:'block', imageRendering:'pixelated' }}
+        />
 
-      {/* AC-style transition overlay */}
-      <div style={{
-        position:'absolute', inset:0, zIndex:20, pointerEvents:'none',
-        background:'#14231a',
-        opacity:transOverlay,
-        transition:'opacity 160ms ease',
-      }} />
-
-      {/* Top bar */}
-      <div style={{
-        position:'absolute', top:0, left:0, right:0, zIndex:30,
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'10px 16px',
-        paddingTop:'max(10px, env(safe-area-inset-top, 10px))',
-      }}>
-        <button
-          onClick={goHome}
-          style={{
-            background:'rgba(255,255,255,0.88)', border:'none', borderRadius:22,
-            padding:'6px 18px', fontFamily:'Mitr,sans-serif', fontWeight:700,
-            fontSize:14, color:'#2d5a1b', cursor:'pointer',
-            display:'flex', alignItems:'center', gap:5,
-            boxShadow:'0 2px 10px rgba(0,0,0,0.18)',
-            WebkitTapHighlightColor:'transparent',
-          }}
-        >
-          🏠 กลับบ้าน
-        </button>
+        {/* Fade overlay */}
         <div style={{
-          background:'rgba(0,0,0,0.28)', borderRadius:14, padding:'4px 12px',
-          fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:12, color:'#fff',
-          maxWidth:'55%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+          position:'absolute', inset:0, background:'#14231a',
+          opacity:transOverlay, pointerEvents:'none',
+          transition:'opacity 160ms ease', zIndex:20,
+        }} />
+
+        {/* Encounter flash */}
+        <div style={{
+          position:'absolute', inset:0, background:'#ffffff',
+          opacity: encounterFlash ? 0.85 : 0,
+          transition: encounterFlash ? 'none' : 'opacity 300ms ease',
+          pointerEvents:'none', zIndex:22,
+        }} />
+
+        {/* Top bar */}
+        <div style={{
+          position:'absolute', top:0, left:0, right:0, zIndex:30,
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'8px 12px',
+          paddingTop:'max(8px, env(safe-area-inset-top, 8px))',
         }}>
-          {screen?.label || ''}
+          <button onClick={goHome} style={{
+            background:'rgba(255,255,255,0.88)', border:'none', borderRadius:20,
+            padding:'5px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
+            fontSize:13, color:'#2d5a1b', cursor:'pointer',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.18)',
+            WebkitTapHighlightColor:'transparent',
+          }}>🏠 กลับบ้าน</button>
+          <div style={{
+            background:'rgba(0,0,0,0.35)', borderRadius:12, padding:'3px 10px',
+            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:11, color:'#fff',
+          }}>{screenLabel}</div>
+        </div>
+
+        {/* NPC talk button */}
+        {nearNPC && !dialogue && (
+          <button onClick={openNPC} style={{
+            position:'absolute', bottom:8, right:8, zIndex:25,
+            background:'rgba(255,255,255,0.92)', border:'none', borderRadius:20,
+            padding:'6px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
+            fontSize:13, color:'#4a2a08', cursor:'pointer',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.22)',
+            WebkitTapHighlightColor:'transparent',
+          }}>💬 คุย</button>
+        )}
+
+        {/* Sign read button */}
+        {nearSign && !dialogue && !nearNPC && (
+          <button onClick={openSign} style={{
+            position:'absolute', bottom:8, right:8, zIndex:25,
+            background:'rgba(255,255,255,0.92)', border:'none', borderRadius:20,
+            padding:'6px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
+            fontSize:13, color:'#4a2a08', cursor:'pointer',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.22)',
+            WebkitTapHighlightColor:'transparent',
+          }}>📋 อ่าน</button>
+        )}
+      </div>
+
+      {/* D-pad area */}
+      <div style={{ flex:1, position:'relative', minHeight:160 }}>
+        <div style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', width:168, height:168 }}>
+          <button onPointerDown={moveUp}    style={DPAD_BTN({ left:56,  top:0   })}>▲</button>
+          <button onPointerDown={moveLeft}  style={DPAD_BTN({ left:0,   top:56  })}>◄</button>
+          <div style={{ position:'absolute', left:56, top:56, width:56, height:56 }} />
+          <button onPointerDown={moveRight} style={DPAD_BTN({ left:112, top:56  })}>►</button>
+          <button onPointerDown={moveDown}  style={DPAD_BTN({ left:56,  top:112 })}>▼</button>
         </div>
       </div>
 
-      {/* Egg avatar — floating above ground line */}
-      <div style={{
-        position:'absolute', left:'50%', top:'54%',
-        transform:'translate(-50%,-50%)',
-        zIndex:15,
-        animation:'egg-home-float 3s ease-in-out infinite',
-        filter:'drop-shadow(0 6px 12px rgba(0,0,0,0.22))',
-      }}>
-        <EggCanvas stats={eggStatsData} width={80} height={95} />
-      </div>
-
-      {/* Direction arrows */}
-      {Object.entries(DIRS).map(([dir, cfg]) => {
-        const target = screen?.connects[dir]
-        if (!target) return null
-        return (
-          <button
-            key={dir}
-            onClick={() => moveToScreen(dir)}
-            disabled={transitioning}
-            className="world-arrow-btn"
-            style={{
-              position:'absolute', zIndex:30,
-              width:58, height:58, borderRadius:29,
-              background:'rgba(255,255,255,0.78)',
-              border:'2.5px solid rgba(255,255,255,0.95)',
-              fontSize:24, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 3px 14px rgba(0,0,0,0.22)',
-              opacity: transitioning ? 0.45 : 1,
-              transition:'opacity 100ms ease',
-              fontFamily:'system-ui,sans-serif',
-              WebkitTapHighlightColor:'transparent',
-              ...cfg.pos,
-            }}
-          >
-            {cfg.label}
-          </button>
-        )
-      })}
+      {/* Dialogue overlay */}
+      {dialogue && (
+        <div onClick={advance} style={{
+          position:'fixed', inset:0, zIndex:40,
+          display:'flex', alignItems:'flex-end',
+          padding:'0 12px 20px',
+        }}>
+          <div style={{
+            width:'100%', background:'rgba(10,25,10,0.95)',
+            border:'2px solid #4a8a4a', borderRadius:12,
+            padding:'14px 16px', fontFamily:'Mitr,sans-serif',
+            color:'#e8f8e8', fontSize:16, lineHeight:1.7,
+            boxShadow:'0 4px 24px rgba(0,0,0,0.55)',
+          }}>
+            <div>{dialogue.lines[dialogue.index]}</div>
+            <div style={{ fontSize:11, color:'#80c080', textAlign:'right', marginTop:6 }}>แตะเพื่อดำเนินต่อ ▶</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

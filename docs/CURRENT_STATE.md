@@ -23,6 +23,22 @@
 - **Egg Home Emotional Polish (2026-06-09)**: Flying food animation (fixed-position emoji flies to egg, eat chain + chew sound + warm glow, sigh after). Per-item glow (drop-shadow on EggCanvas via `egg-glow-warm/blue/gold/pink` CSS classes). Ribbon 🎀 overlay persists on egg. Star orbit when XP boost active. Random idle micro-animations every 5–12s (`idle-wiggle`/`idle-jump`, occasional chirp/begging sounds). `stageRef` fixes stale closure. 6 new SFX: chew, slurp, giggle, sigh, celebrate, begging. iPhone safe-area layout (CSS `padding-bottom: calc(76px + env(safe-area-inset-bottom))`).
 - **Dramatic Egg Stage Progression (2026-06-09)**: 9 display stages (0=ไข่น้อย → 8=ใกล้ฟักแล้ว!!!). Per-stage persistent aura on canvas: `egg-s0`–`egg-s8` CSS classes with pulsing `filter:drop-shadow` (grow stronger + faster each stage). Stage colors in header (dots + name tinted per stage). Stage-up celebration: `stageUp` state → `.stage-up-banner` overlay with "ขึ้นระดับแล้ว!" + stage name, pop+fade animation, `stageUp` ascending fanfare sound, confetti burst (18 sparkles + 6 hearts). Heartbeat sound (`heartbeat`) when ready to hatch (plays once + every 8s). `readyToHatch` check updated to `stage >= 8`. Excited mode starts at stage 7 (was 5).
 
+### Green Meadow World (Phase 2 — Canvas Tile Engine) — NEW 2026-06-10
+
+- **Canvas tile engine**: `src/lib/tileEngine.js` (T constants, GB palette, all tiles drawn in Canvas 2D), `src/lib/tileMaps.js` (BM 20×15 + 8 minimal screens).
+- **BM — Starting Path**: Full tile map. Owl NPC (row 3), sign (row 4), tall-grass bands (rows 5–6), stone path (rows 8–9), bunny enemy (row 11), flowers, EXIT_N bottom, EXIT_E/W on sides.
+- **Player sprite**: 8-frame directional (4 dirs × 2 walk), egg-stage color body, 120ms tween animation.
+- **Camera**: follows player, clamped to map bounds.
+- **D-pad**: 4-button cross, 56×56px, bottom-left below canvas.
+- **Collision**: TREE / WATER / WALL / NPC / SIGN / ENEMY block movement.
+- **Screen transition**: EXIT tile → 160ms fade overlay → MOVE_SCREEN + DISCOVER_SCREEN dispatch → player enters new screen from opposite edge.
+- **NPC interaction**: Prof Owl at BM col 6, row 3. Proximity → 💬 คุย button → Thai dialogue overlay.
+- **Sign**: proximity → 📋 อ่าน → 3-line sign text.
+- **Encounter**: 25% on TALL tile → encounter flash + `ENCOUNTER_TRIGGERED` dispatch (no-op, placeholder for future battle entry).
+- **8 other screens**: minimal walkable (TREE border, GRASS fill, EXIT tiles), all reachable.
+- **State**: No new fields. `ENCOUNTER_TRIGGERED` action added (no-op).
+- Phase 1 CSS art WorldScreen fully replaced.
+
 ### RPG / Egg System
 - **Procedural egg**: 9 display stages, adaptive XP (120–800 XP per egg, scales with eggs hatched); `drawEgg()` Canvas — **LOCKED** (`hash`/`prng`/`drawEgg` untouched). `EGG_STAGES=9` in eggAlgorithm.js; `scaledEggProgress()` in StateContext computes display stage 0–8 from adaptive XP threshold.
 - **Hatching**: `HatchOverlay.jsx`, tap-to-hatch → `getCreatureForHatch()` → creature revealed

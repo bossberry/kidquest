@@ -4,7 +4,17 @@
 
 React 18 SPA (Vite, no Next.js, no router). Screen switching = single `useState` in `App.jsx`. Global state via `useReducer + Context`. LocalStorage = always-on primary; Supabase = optional cloud sync. All 8 game screens are lazy-loaded via `GameScreen.jsx`.
 
-4 screens: `home | game | collection | report`. Multiple always-mounted overlays: EggPopup, HatchOverlay, LoginModal, ChallengerOverlay, XPToast, ItemToast, ConfettiLayer.
+5 screens: `home | game | collection | report | world`. Multiple always-mounted overlays: EggPopup, HatchOverlay, LoginModal, ChallengerOverlay, XPToast, ItemToast, ConfettiLayer.
+
+### World / Tile Engine (`src/lib/tileEngine.js`, `src/lib/tileMaps.js`, `src/components/WorldScreen.jsx`)
+- `T` constants: GRASS/TALL/TREE/PATH/WATER/WALL, EXIT_N/S/E/W, NPC/SIGN/FLOWER/ITEM_SPOT/ENEMY
+- `renderMap(ctx, tileMap, ..., camX, camY, frame)` — draws all visible tiles each rAF frame
+- `renderPlayer(ctx, displayX, displayY, dir, walkFrame, eggColor, camX, camY)` — 8-frame sprite
+- `canMove(tileMap, col, row)` — returns false for TREE/WATER/WALL/NPC/SIGN/ENEMY
+- `getCamera(displayX, displayY)` → `{camX, camY}` clamped to map bounds
+- `getExitAt(tileMap, col, row)` → exit tile type or null
+- `getEntryPosition(tileMap, fromExitType)` → `{col, row}` entry spot on new screen
+- `WorldScreen.jsx`: rAF game loop (gameRef mutation, no React state per frame). 120ms player tween. Virtual D-pad 4-button cross. Screen transition: EXIT tile → 160ms fade → dispatch MOVE_SCREEN + DISCOVER_SCREEN → initScreen with entry position. 25% TALL encounter flash → ENCOUNTER_TRIGGERED. NPC proximity → dialogue overlay. `SCREEN_MAPS` registry maps screen IDs to tile arrays + start positions.
 
 ---
 

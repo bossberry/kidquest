@@ -10,7 +10,9 @@ import { playTone } from '../lib/audio.js'
 export default function Collection() {
   const { state, eggStatsData, eggProgressData } = useAppState()
   const [tab, setTab] = useState('hatched')
+  // selectedEgg holds { egg, dna } so the popup gets the exact same DNA the grid card used.
   const [selectedEgg, setSelectedEgg] = useState(null)
+  const handleSelect = (egg, dna) => setSelectedEgg({ egg, dna })
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
@@ -23,11 +25,17 @@ export default function Collection() {
       </div>
       <div className="egg-catalog">
         {tab === 'hatched'
-          ? <HatchedGrid hatched={state.hatchedEggs||[]} onSelect={setSelectedEgg} />
+          ? <HatchedGrid hatched={state.hatchedEggs||[]} onSelect={handleSelect} />
           : <CurrentEgg state={state} eggStats={eggStatsData} progress={eggProgressData} />
         }
       </div>
-      {selectedEgg && <CreatureDetailPopup egg={selectedEgg} onClose={() => { playTone('click'); setSelectedEgg(null) }} />}
+      {selectedEgg && (
+        <CreatureDetailPopup
+          egg={selectedEgg.egg}
+          dna={selectedEgg.dna}
+          onClose={() => { playTone('click'); setSelectedEgg(null) }}
+        />
+      )}
     </div>
   )
 }
@@ -46,7 +54,7 @@ function CreatureCard({ egg, index, onSelect }) {
   const rar = egg.creature?.rarity || 'common'
 
   return (
-    <div className="catalog-item catalog-item-lg" onClick={() => { playTone('cardOpen'); onSelect(egg) }}>
+    <div className="catalog-item catalog-item-lg" onClick={() => { playTone('cardOpen'); onSelect(egg, dna) }}>
       <div style={{ position:'relative', display:'inline-block' }}>
         <CreatureCanvas
           dna={dna}

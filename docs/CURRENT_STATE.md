@@ -28,8 +28,8 @@
 - **Canvas tile engine**: `src/lib/tileEngine.js` (T constants, GB palette, all tiles drawn in Canvas 2D), `src/lib/tileMaps.js` (BM 20×15 + 8 minimal screens).
 - **BM — Starting Path**: Full tile map. Owl NPC (row 3), sign (row 4), tall-grass bands (rows 5–6), stone path (rows 8–9), bunny enemy (row 11), flowers, EXIT_N bottom, EXIT_E/W on sides.
 - **Player sprite**: 8-frame directional (4 dirs × 2 walk), egg-stage color body, 120ms tween animation.
-- **Camera**: follows player, clamped to map bounds.
-- **D-pad**: 4-button cross, 56×56px, bottom-left below canvas.
+- **Camera**: follows player, clamped to map bounds. Canvas = full viewport (`window.innerWidth × window.innerHeight`), `getCamera` takes viewport dimensions, `renderMap` culls to actual canvas size. D-pad overlays on canvas — no separate DOM section.
+- **D-pad**: 4-button cross, 56×56px, `position:absolute` overlay on canvas, bottom-left, `opacity:0.75`.
 - **Collision**: TREE / WATER / WALL / NPC / SIGN / ENEMY block movement.
 - **Screen transition**: EXIT tile → 160ms fade overlay → MOVE_SCREEN + DISCOVER_SCREEN dispatch → player enters new screen from opposite edge.
 - **NPC interaction**: Prof Owl at BM col 6, row 3. Proximity → 💬 คุย button → Thai dialogue overlay.

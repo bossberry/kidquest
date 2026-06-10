@@ -164,10 +164,12 @@ function drawItemSpot(ctx, px, py, frame) {
 // -- Map renderer --
 
 export function renderMap(ctx, tileMap, npcData, enemyData, camX, camY, frame) {
+  const viewW = ctx.canvas.width
+  const viewH = ctx.canvas.height
   const startCol = Math.floor(camX / TILE)
   const startRow = Math.floor(camY / TILE)
-  const endCol = Math.min(MAP_COLS, startCol + CANVAS_W / TILE + 1)
-  const endRow = Math.min(MAP_ROWS, startRow + CANVAS_H / TILE + 1)
+  const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / TILE))
+  const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / TILE))
 
   for (let r = startRow; r < endRow; r++) {
     for (let c = startCol; c < endCol; c++) {
@@ -265,11 +267,11 @@ export function canMove(tileMap, col, row) {
 
 // -- Camera clamp --
 
-export function getCamera(playerX, playerY) {
+export function getCamera(playerX, playerY, viewW, viewH) {
   const mapPixW = MAP_COLS * TILE
   const mapPixH = MAP_ROWS * TILE
-  const camX = Math.max(0, Math.min(playerX * TILE - CANVAS_W / 2, mapPixW - CANVAS_W))
-  const camY = Math.max(0, Math.min(playerY * TILE - CANVAS_H / 2, mapPixH - CANVAS_H))
+  const camX = Math.max(0, Math.min(playerX * TILE - viewW / 2, mapPixW - viewW))
+  const camY = Math.max(0, Math.min(playerY * TILE - viewH / 2, mapPixH - viewH))
   return { camX, camY }
 }
 

@@ -3,7 +3,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { SCREENS } from '../config/worldConfig.js'
 import { playTone } from '../lib/audio.js'
 import {
-  CANVAS_W, CANVAS_H, MAP_ROWS, MAP_COLS, T,
+  MAP_ROWS, MAP_COLS, T,
   renderMap, renderPlayer, canMove, getCamera, getExitAt,
   EXIT_OPPOSITE, EXIT_DIR_NAME, getEntryPosition,
 } from '../lib/tileEngine.js'
@@ -48,6 +48,7 @@ export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const canvasRef = useRef(null)
 
+  const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [screenId, setScreenId] = useState(state.currentScreen || 'BM')
   const [transitioning, setTransitioning] = useState(false)
   const [transOverlay, setTransOverlay] = useState(0)
@@ -73,6 +74,14 @@ export default function WorldScreen({ navigate }) {
   const eggColor = STAGE_COLORS[eggStatsData?.stage ?? 0] || STAGE_COLORS[0]
   const eggColorRef = useRef(eggColor)
   eggColorRef.current = eggColor
+
+  // ── Viewport resize ──────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const onResize = () => setViewSize({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // ── Screen setup ────────────────────────────────────────────────────────────
 
@@ -213,8 +222,10 @@ export default function WorldScreen({ navigate }) {
 
       g.frame = (g.frame + 1) % 120
 
-      const { camX, camY } = getCamera(g.displayX, g.displayY)
-      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
+      const vw = canvas.width
+      const vh = canvas.height
+      const { camX, camY } = getCamera(g.displayX, g.displayY, vw, vh)
+      ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
     }
@@ -230,104 +241,108 @@ export default function WorldScreen({ navigate }) {
   const screenLabel = SCREENS[screenId]?.label || ''
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'#0a1a0a', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#0a1a0a' }}>
 
-      {/* Canvas */}
-      <div style={{ position:'relative', width:'100%', flexShrink:0 }}>
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          style={{ width:'100%', height:'auto', display:'block', imageRendering:'pixelated' }}
-        />
+      {/* Canvas — fills full viewport */}
+      <canvas
+        ref={canvasRef}
+        width={viewSize.w}
+        height={viewSize.h}
+        style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated' }}
+      />
 
-        {/* Fade overlay */}
+      {/* Fade overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#14231a',
+        opacity: transOverlay, pointerEvents: 'none',
+        transition: 'opacity 160ms ease', zIndex: 20,
+      }} />
+
+      {/* Encounter flash */}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#ffffff',
+        opacity: encounterFlash ? 0.85 : 0,
+        transition: encounterFlash ? 'none' : 'opacity 300ms ease',
+        pointerEvents: 'none', zIndex: 22,
+      }} />
+
+      {/* Top bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 12px',
+        paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
+      }}>
+        <button onClick={goHome} style={{
+          background: 'rgba(255,255,255,0.88)', border: 'none', borderRadius: 20,
+          padding: '5px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 13, color: '#2d5a1b', cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+          WebkitTapHighlightColor: 'transparent',
+        }}>🏠 กลับบ้าน</button>
         <div style={{
-          position:'absolute', inset:0, background:'#14231a',
-          opacity:transOverlay, pointerEvents:'none',
-          transition:'opacity 160ms ease', zIndex:20,
-        }} />
-
-        {/* Encounter flash */}
-        <div style={{
-          position:'absolute', inset:0, background:'#ffffff',
-          opacity: encounterFlash ? 0.85 : 0,
-          transition: encounterFlash ? 'none' : 'opacity 300ms ease',
-          pointerEvents:'none', zIndex:22,
-        }} />
-
-        {/* Top bar */}
-        <div style={{
-          position:'absolute', top:0, left:0, right:0, zIndex:30,
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'8px 12px',
-          paddingTop:'max(8px, env(safe-area-inset-top, 8px))',
-        }}>
-          <button onClick={goHome} style={{
-            background:'rgba(255,255,255,0.88)', border:'none', borderRadius:20,
-            padding:'5px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
-            fontSize:13, color:'#2d5a1b', cursor:'pointer',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.18)',
-            WebkitTapHighlightColor:'transparent',
-          }}>🏠 กลับบ้าน</button>
-          <div style={{
-            background:'rgba(0,0,0,0.35)', borderRadius:12, padding:'3px 10px',
-            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:11, color:'#fff',
-          }}>{screenLabel}</div>
-        </div>
-
-        {/* NPC talk button */}
-        {nearNPC && !dialogue && (
-          <button onClick={openNPC} style={{
-            position:'absolute', bottom:8, right:8, zIndex:25,
-            background:'rgba(255,255,255,0.92)', border:'none', borderRadius:20,
-            padding:'6px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
-            fontSize:13, color:'#4a2a08', cursor:'pointer',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.22)',
-            WebkitTapHighlightColor:'transparent',
-          }}>💬 คุย</button>
-        )}
-
-        {/* Sign read button */}
-        {nearSign && !dialogue && !nearNPC && (
-          <button onClick={openSign} style={{
-            position:'absolute', bottom:8, right:8, zIndex:25,
-            background:'rgba(255,255,255,0.92)', border:'none', borderRadius:20,
-            padding:'6px 14px', fontFamily:'Mitr,sans-serif', fontWeight:700,
-            fontSize:13, color:'#4a2a08', cursor:'pointer',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.22)',
-            WebkitTapHighlightColor:'transparent',
-          }}>📋 อ่าน</button>
-        )}
+          background: 'rgba(0,0,0,0.35)', borderRadius: 12, padding: '3px 10px',
+          fontFamily: 'Mitr,sans-serif', fontWeight: 700, fontSize: 11, color: '#fff',
+        }}>{screenLabel}</div>
       </div>
 
-      {/* D-pad area */}
-      <div style={{ flex:1, position:'relative', minHeight:160 }}>
-        <div style={{ position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', width:168, height:168 }}>
-          <button onPointerDown={moveUp}    style={DPAD_BTN({ left:56,  top:0   })}>▲</button>
-          <button onPointerDown={moveLeft}  style={DPAD_BTN({ left:0,   top:56  })}>◄</button>
-          <div style={{ position:'absolute', left:56, top:56, width:56, height:56 }} />
-          <button onPointerDown={moveRight} style={DPAD_BTN({ left:112, top:56  })}>►</button>
-          <button onPointerDown={moveDown}  style={DPAD_BTN({ left:56,  top:112 })}>▼</button>
-        </div>
+      {/* NPC talk button */}
+      {nearNPC && !dialogue && (
+        <button onClick={openNPC} style={{
+          position: 'absolute', bottom: 8, right: 8, zIndex: 25,
+          background: 'rgba(255,255,255,0.92)', border: 'none', borderRadius: 20,
+          padding: '6px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 13, color: '#4a2a08', cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
+          WebkitTapHighlightColor: 'transparent',
+        }}>💬 คุย</button>
+      )}
+
+      {/* Sign read button */}
+      {nearSign && !dialogue && !nearNPC && (
+        <button onClick={openSign} style={{
+          position: 'absolute', bottom: 8, right: 8, zIndex: 25,
+          background: 'rgba(255,255,255,0.92)', border: 'none', borderRadius: 20,
+          padding: '6px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 13, color: '#4a2a08', cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
+          WebkitTapHighlightColor: 'transparent',
+        }}>📋 อ่าน</button>
+      )}
+
+      {/* D-pad — bottom left, overlays on canvas */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'calc(24px + env(safe-area-inset-bottom))',
+        left: 24,
+        opacity: 0.75,
+        width: 168,
+        height: 168,
+        zIndex: 30,
+      }}>
+        <button onPointerDown={moveUp}    style={DPAD_BTN({ left: 56,  top: 0   })}>▲</button>
+        <button onPointerDown={moveLeft}  style={DPAD_BTN({ left: 0,   top: 56  })}>◄</button>
+        <div style={{ position: 'absolute', left: 56, top: 56, width: 56, height: 56 }} />
+        <button onPointerDown={moveRight} style={DPAD_BTN({ left: 112, top: 56  })}>►</button>
+        <button onPointerDown={moveDown}  style={DPAD_BTN({ left: 56,  top: 112 })}>▼</button>
       </div>
 
       {/* Dialogue overlay */}
       {dialogue && (
         <div onClick={advance} style={{
-          position:'fixed', inset:0, zIndex:40,
-          display:'flex', alignItems:'flex-end',
-          padding:'0 12px 20px',
+          position: 'fixed', inset: 0, zIndex: 40,
+          display: 'flex', alignItems: 'flex-end',
+          padding: '0 12px 20px',
         }}>
           <div style={{
-            width:'100%', background:'rgba(10,25,10,0.95)',
-            border:'2px solid #4a8a4a', borderRadius:12,
-            padding:'14px 16px', fontFamily:'Mitr,sans-serif',
-            color:'#e8f8e8', fontSize:16, lineHeight:1.7,
-            boxShadow:'0 4px 24px rgba(0,0,0,0.55)',
+            width: '100%', background: 'rgba(10,25,10,0.95)',
+            border: '2px solid #4a8a4a', borderRadius: 12,
+            padding: '14px 16px', fontFamily: 'Mitr,sans-serif',
+            color: '#e8f8e8', fontSize: 16, lineHeight: 1.7,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.55)',
           }}>
             <div>{dialogue.lines[dialogue.index]}</div>
-            <div style={{ fontSize:11, color:'#80c080', textAlign:'right', marginTop:6 }}>แตะเพื่อดำเนินต่อ ▶</div>
+            <div style={{ fontSize: 11, color: '#80c080', textAlign: 'right', marginTop: 6 }}>แตะเพื่อดำเนินต่อ ▶</div>
           </div>
         </div>
       )}

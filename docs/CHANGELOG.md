@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Feat: Camera-follow system + fullscreen map
+
+- `src/lib/tileEngine.js` — `getCamera(playerX, playerY, viewW, viewH)`: now accepts viewport dimensions instead of fixed `CANVAS_W/CANVAS_H`. `renderMap()`: culling uses `ctx.canvas.width/height` for dynamic viewport size.
+- `src/components/WorldScreen.jsx` — Canvas `width`/`height` attributes = `window.innerWidth/Height`, recalculated on `resize`. Canvas is `position:absolute; inset:0` inside `position:fixed; inset:0` container. D-pad moved from separate DOM section to overlay (`position:absolute`, `bottom: calc(24px + env(safe-area-inset-bottom))`, `left: 24`, `opacity: 0.75`). No flex column layout — single fixed container with absolute children. Render loop uses `canvas.width/height` dynamically for `clearRect` and `getCamera`.
+- Result: map fills full viewport, d-pad overlays on canvas, no black space below map.
+
 ## 2026-06-10 — Feat: Green Meadow Phase 2 — Canvas Tile Engine
 
 - `src/lib/tileEngine.js` (NEW) — Tile type constants (`T`), GB-palette Canvas 2D renderers (grass/tall/tree/path/water/exit/flower/sign/npc/enemy/itemspot), `renderMap()`, `renderPlayer()` (8-frame directional sprite, egg-stage color), `canMove()` collision, `getCamera()` clamp, `getExitAt()`, `getEntryPosition()` for cross-screen arrival.

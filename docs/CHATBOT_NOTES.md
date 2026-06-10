@@ -242,3 +242,12 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 **Phase 3 is unblocked.** `ENCOUNTER_TRIGGERED` is already a no-op placeholder in StateContext — just needs battle entry wired. When ready to design Phase 3 enemy visuals/behavior/battle entry, that decision belongs here.
 
+---
+
+**2026-06-10 — Camera-follow system + fullscreen map:**
+- Built: `tileEngine.js` — `getCamera` now takes `viewW, viewH`; `renderMap` culls to `ctx.canvas.width/height`. `WorldScreen.jsx` — canvas fills full viewport (`window.innerWidth × window.innerHeight`), resize listener, D-pad moved from below-canvas DOM to absolute overlay on canvas (`opacity: 0.75`). Single `position:fixed; inset:0` container, no flex column.
+- Not finished: tile scaling (tiles remain 16px; map 320×240 fills top-left of screen with background visible outside map bounds — acceptable for now, Phase 3 map expansion will naturally use more screen real estate).
+- Blockers/risks found: none.
+- Ready to start next: Phase 3 — Visible Enemies (battle entry/return, 80px trigger).
+- Needs Chatbot decision first: Phase 3 enemy behavior + battle entry flow design.
+

@@ -1,5 +1,9 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Fix: Egg Home Rapid Tap Freeze
+
+- `src/components/Home.jsx` — Three bugs fixed. (1) `triggerAnim` now cancels pending RAF via `rafRef` and uses `animGenRef` generation counter so orphaned timer/RAF callbacks are no-ops. (2) `petStreakRef` replaces stale `petStreak` closure reads in `handlePetEgg`. (3) 150ms cooldown via `lastPetRef` absorbs hyper-rapid taps. Also resets `petStreakRef.current` in the 6s inactivity timer; unmount cleanup cancels pending RAF. Commit `3e9ebed`.
+
 ## 2026-06-10 — Fix: Procedural Creature Detail Popup
 
 - `src/components/CreatureDetailPopup.jsx` — Replaced legacy `drawCreature` (creatureAlgorithm.js) + manual canvas with `<CreatureCanvas dna={dna} size={196} animationEnabled>`. Accepts `dna` prop from Collection. Layout: creature 196px centered at top, name/info below, egg mini+XP bars, stats, abilities. Legacy emoji badge in corner. Commit `5de06e9`.

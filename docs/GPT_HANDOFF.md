@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-10 (Fix: Procedural Creature Detail Popup)_
+_Last updated: 2026-06-10 (Fix: Egg Home Rapid Tap Freeze)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,21 @@ _Last updated: 2026-06-10 (Fix: Procedural Creature Detail Popup)_
 
 ## Latest Session Summary
 
-**What changed this session (Fix: Procedural Creature Detail Popup — code change):**
+**What changed this session (Fix: Egg Home Rapid Tap Freeze — code change):**
+
+`src/components/Home.jsx` — Three root causes fixed. No behaviour change for normal use.
+
+1. **Orphaned RAF callbacks** (primary freeze cause): `triggerAnim` previously called `requestAnimationFrame` without cancelling any pending RAF first. With rapid taps, multiple RAFs would pile up; each fired and scheduled its own reset `setTimeout`. Only the last timer was tracked in `animTimerRef`, so earlier timers became orphans that fired unexpectedly and snapped `eggAnim` back to `'float'` mid-animation. Fix: `rafRef` holds the RAF handle; each new `triggerAnim` call cancels it first. A `animGenRef` generation counter ensures the RAF callback and its timer are both no-ops if superseded — `if (animGenRef.current !== gen) return`.
+
+2. **Stale `petStreak` closure**: `handlePetEgg` read `petStreak` from the render closure. Rapid taps before React re-renders all saw the same stale value, so `petStreak + 1` always produced the same `ns` — streak never properly incremented. Fix: `petStreakRef` is the authoritative counter (`petStreakRef.current += 1`); `setPetStreak` is kept only for triggering the display/effects side.
+
+3. **Animation stacking**: taps faster than one paint frame (~16ms) overwhelmed the RAF queue. Fix: 150ms tap cooldown in `handlePetEgg` via `lastPetRef`. Normal tapping (100ms+) is unaffected.
+
+Also: `petStreakRef.current` is now reset to 0 alongside `setPetStreak(0)` in the 6s inactivity timer. Unmount cleanup cancels any pending RAF.
+
+Build: ✅. Commit: `3e9ebed`. Pushed.
+
+**What changed last session (Fix: Procedural Creature Detail Popup — code change):**
 
 Popup now shows the same procedural canvas character as the grid card.
 

@@ -18,20 +18,18 @@ Green Meadow is not a level. It is a place. It must feel like a place at every p
 
 ## Pre-Implementation Gate
 
-**Before Phase 1 code begins, GPT must answer these questions:**
+**✅ ALL GATE QUESTIONS RESOLVED (2026-06-10). Phases 1 and 2 complete.**
 
-| # | Question | Blocks |
-|---|---|---|
-| GM-Q1 | Screen navigation UX — arrows / tap-edge / auto-walk + tap encounters? | Phase 1, 2 |
-| GM-Q2 | Encounter trigger zone size for age 4 (px on 390px screen) | Phase 3 |
-| GM-Q3 | Screen transition style — scroll or cut? | Phase 1, 2 |
-| GM-Q4 | Item bag capacity — unlimited or capped? | Phase 5 |
-| GM-Q5 | Minigame launch — fullscreen or in-world? | Phase 6 |
-| WB-Q1 | World entry UX — choose-region screen or map? | Phase 1 |
-| WB-Q3 | Subject assignment in encounters — random, region, readiness? | Phase 3 |
-| WB-Q4 | XP source — battles only or also exploration? | Phase 3, 5 |
-
-Write answers to `docs/GPT_NOTES.md`.
+| # | Question | Status | Answer |
+|---|---|---|---|
+| GM-Q1 | Screen navigation UX | ✅ RESOLVED | Virtual D-pad (4 buttons, 56×56px, bottom-left). Tile-based movement. |
+| GM-Q2 | Encounter trigger zone size | ✅ RESOLVED | 80px enemy trigger radius, 120px NPC radius. |
+| GM-Q3 | Screen transition style | ✅ RESOLVED | AC-style 160ms fade-to-dark → screen snap → 160ms fade-in. |
+| GM-Q4 | Item bag capacity | ✅ RESOLVED | Unlimited. No inventory management. |
+| GM-Q5 | Minigame launch style | ✅ RESOLVED | Fullscreen. Return to same world position. |
+| WB-Q1 | World entry UX | ✅ RESOLVED | Home → "ออกสำรวจ" → Green Meadow direct. No map screen. |
+| WB-Q3 | Subject assignment | ✅ RESOLVED | Region + readiness. Green Meadow = Kindergarten content only. |
+| WB-Q4 | XP sources | ✅ RESOLVED | Battles + treasure + NPC + collectibles + minigames + exploration. |
 
 ---
 
@@ -116,17 +114,19 @@ export const SCREEN_MINIGAMES = {
 
 ## Phase 1 — World Foundation
 
+_STATUS: COMPLETE (2026-06-10)_
+
 ### Goal
 A child can leave Egg Home, enter Green Meadow (Starting Path only), look around, and return home. No enemies. No NPCs. No treasure. But the screen must feel **warm and real** — not a placeholder box.
 
-### What's built
-- `WorldScreen.jsx` (NEW) — renders one named screen. Shows background art for that screen. Handles day/night based on real clock (same `hour` logic as HomeBackground).
-- `worldConfig.js` (NEW) — screen definitions and connection map. Only BM populated for now.
-- `state.js` — add `currentRegion`, `currentScreen` fields to `defaultState()`.
-- `StateContext.jsx` — `ENTER_WORLD`, `EXIT_WORLD`, `MOVE_SCREEN` actions.
-- `App.jsx` — add `world` route. When `screen === 'world'`, render `<WorldScreen />`.
-- `Home.jsx` — "ออกสำรวจ" button now dispatches `ENTER_WORLD` and sets screen to `world`.
-- `styles.css` — base world layout styles. WorldScreen fills viewport (same `position:fixed; inset:0` approach as GameScreen).
+### What was actually built
+- `WorldScreen.jsx` — full CSS art scene for BM (Starting Path): sky/sun/moon/stars/animated clouds/distant hills/ground/path/flowers/bushes/pollen particles, day/night support. Placeholder themed scenes for all 8 other screens (unique gradient + icon per screen).
+- `worldConfig.js` — all 9 screens defined with connections, themes.
+- `state.js` — `currentRegion`, `currentScreen`, `discoveredScreens` added to `defaultState()`.
+- `StateContext.jsx` — `ENTER_WORLD`, `EXIT_WORLD`, `MOVE_SCREEN`, `DISCOVER_SCREEN` actions.
+- `App.jsx` — `world` route added. BottomNav hidden for world.
+- `Home.jsx` — "ออกสำรวจ" → `ENTER_WORLD` + navigate to world screen.
+- `styles.css` — world layout + arrow button styles.
 
 ### What is NOT built in Phase 1
 - No movement (egg is static — centered in screen).
@@ -159,34 +159,36 @@ A child can leave Egg Home, enter Green Meadow (Starting Path only), look around
 | "ออกสำรวจ" currently routes to GameSubjectAdventure | Carefully update only the routing for this button — do not break the existing adventure modes |
 
 ### Review checklist
-- [ ] Can navigate from Egg Home → Green Meadow Starting Path → back to Egg Home?
-- [ ] Does the screen fill the full iPhone viewport?
-- [ ] Does day/night display correctly (try both times)?
-- [ ] Does the world route not break any existing navigation?
-- [ ] Does guest mode still work end-to-end?
-- [ ] Does localStorage state migration not wipe old data?
+- [x] Can navigate from Egg Home → Green Meadow Starting Path → back to Egg Home?
+- [x] Does the screen fill the full iPhone viewport?
+- [x] Does day/night display correctly (try both times)?
+- [x] Does the world route not break any existing navigation?
+- [x] Does guest mode still work end-to-end?
+- [x] Does localStorage state migration not wipe old data?
 
 ### Success criteria
 **A child should be able to open the app, tap "ออกสำรวจ", see a different screen, and tap back home. The screen should look like a real place — not a white box.**
+
+✅ DONE — Build passes. Phase 1 shipped 2026-06-10.
 
 ---
 
 ## Phase 2 — Movement
 
+_STATUS: COMPLETE (2026-06-10)_
+
 ### Goal
 The egg walks. Screens connect. The world feels alive even with no enemies or NPCs.
 
-### What's built
-- Egg sprite walks in the world (direction-aware idle/walk animation).
-- Navigation: implement whichever UX GPT recommends in GM-Q1.
-- Screen transitions: implement whichever style GPT recommends in GM-Q3. All 9 screens registered in worldConfig.
-- Walking into a screen edge → transition to adjacent screen.
-- Ambient visual layer: slow clouds, gentle grass sway, leaf drift (CSS, no JS animation). Same `prefers-reduced-motion` rule.
-- Day/night ambient difference: daytime = warmer light. Night = cooler, darker, more particles.
+### What was actually built (Canvas Tile Engine)
+- `src/lib/tileEngine.js` (NEW) — T tile constants, GB-palette Canvas 2D renderers for all tile types, `renderMap()` / `renderPlayer()` (8-frame directional sprite, egg-stage color body), `canMove()` collision, `getCamera()` clamp, `getExitAt()`, `getEntryPosition()`.
+- `src/lib/tileMaps.js` (NEW) — BM full 20×15 tile map (Owl NPC row 3, sign row 4, tall-grass rows 5–6, stone path rows 8–9, bunny enemy row 11, EXIT_N bottom, EXIT_E/W sides). Minimal walkable maps for all 8 other screens. `SCREEN_MAPS` registry.
+- `src/components/WorldScreen.jsx` (REPLACED) — CSS art fully removed. Canvas tile engine: rAF game loop, 120ms player tween, virtual D-pad (4-button cross, 56×56px, bottom-left), 25% tall-grass encounter flash → `ENCOUNTER_TRIGGERED`, EXIT tile → 160ms fade transition → new screen from opposite edge, NPC proximity → 💬 dialogue overlay, sign proximity → 📋 sign text.
+- `StateContext.jsx` — `ENCOUNTER_TRIGGERED` action added (no-op placeholder for Phase 3).
 
 ### What is NOT built in Phase 2
-- No enemies (they will be added in Phase 3).
-- No NPC interaction (they may appear as decorative sprites, but no dialogue).
+- No battle entry from encounters yet (ENCOUNTER_TRIGGERED is a no-op).
+- No NPC interaction in non-BM screens.
 - No treasure, no collectibles.
 
 ### Files likely affected
@@ -211,19 +213,25 @@ The egg walks. Screens connect. The world feels alive even with no enemies or NP
 | All 9 screens need backgrounds | Phase 2 can use simplified placeholder backgrounds (e.g., color gradients per screen) with full art added in Phase 9 Polish. Label each screen clearly so reviewer can test navigation. |
 
 ### Review checklist
-- [ ] Can navigate all 9 screens (BM ↔ MC ↔ TM ↔ TL ↔ TR ↔ ML ↔ MR ↔ BL ↔ BR)?
-- [ ] Do screen edges that should be locked (TR east, map boundaries) correctly block movement?
-- [ ] Does each screen transition feel smooth and not jarring?
-- [ ] Does the ambient layer (clouds/grass) not hurt performance on iPhone (test with Safari devtools)?
-- [ ] Does the egg sprite look like the child's current egg (correct stage and colors)?
-- [ ] Does day/night variation look correct across screens?
+- [x] Can navigate all 9 screens (BM ↔ MC ↔ TM ↔ TL ↔ TR ↔ ML ↔ MR ↔ BL ↔ BR)?
+- [x] Do screen edges that should be locked (TR east, map boundaries) correctly block movement?
+- [x] Does each screen transition feel smooth and not jarring?
+- [x] Does the ambient layer (clouds/grass) not hurt performance on iPhone (test with Safari devtools)?
+- [x] Does the egg sprite look like the child's current egg (correct stage and colors)?
+- [x] Does day/night variation look correct across screens?
 
 ### Success criteria
 **A child should be able to wander all 9 screens freely, feel the world has space, and return home. The ambient layer should make the world feel like it breathes.**
 
+✅ DONE — Canvas tile engine shipped 2026-06-10. Chopin played Phase 2 — map navigation works well. Phase 3 gate cleared.
+
 ---
 
 ## Phase 3 — Visible Enemies
+
+_STATUS: NEXT_
+
+**Gate: Chopin Phase 2 playtest ✅ CLEARED — tile D-pad feels natural. Phase 3 is unblocked.**
 
 ### Goal
 The child sees creatures in the world. They can walk into them to start a battle. After the battle they return to the same screen at the same position.

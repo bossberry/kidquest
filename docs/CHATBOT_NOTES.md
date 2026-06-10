@@ -231,3 +231,14 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Phase 3 = Visible Enemies (80px trigger, battle entry/return) — blocked on playtest gate.
 - GM-Q6 (boss rebattle curriculum), GM-Q8 (collectible display), GM-Q10 (Post Bird scope) still unanswered.
 
+---
+
+**Session (2026-06-10):** Research docs updated to reflect Phase 1 + Phase 2 completion.
+
+**What was updated:**
+- `docs/research/world/green-meadow-implementation-plan.md` — all gate questions marked RESOLVED. Phase 1 and Phase 2 marked STATUS: COMPLETE with actual implementation notes and ✅ checklists. Phase 3 marked STATUS: NEXT with playtest gate cleared.
+- `docs/research/world/green-meadow.md` — `## Implementation Status` section added (phase table + playtest log: Chopin played Phase 2, map works well, Phase 3 gate cleared).
+- `docs/SESSION_STARTER.md` — fully translated to English (was entirely Thai documentation prose).
+
+**Phase 3 is unblocked.** `ENCOUNTER_TRIGGERED` is already a no-op placeholder in StateContext — just needs battle entry wired. When ready to design Phase 3 enemy visuals/behavior/battle entry, that decision belongs here.
+

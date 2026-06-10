@@ -15,6 +15,28 @@ After reading this document, a developer should be able to build Green Meadow wi
 
 ---
 
+## Implementation Status
+
+| Phase | Name | Status | Date |
+|---|---|---|---|
+| Phase 1 | World Foundation (CSS art, navigation) | ✅ COMPLETE | 2026-06-10 |
+| Phase 2 | Movement (Canvas Tile Engine) | ✅ COMPLETE | 2026-06-10 |
+| Phase 3 | Visible Enemies (battle entry/return) | 🔵 NEXT — unblocked | — |
+| Phase 4 | NPC System | ⬜ PLANNED | — |
+| Phase 5 | Treasure System | ⬜ PLANNED | — |
+| Phase 6 | Minigame Integration | ⬜ PLANNED | — |
+| Phase 7 | Remaining Enemies | ⬜ PLANNED | — |
+| Phase 8 | King Clover Bear (boss) | ⬜ PLANNED | — |
+| Phase 9 | Polish | ⬜ PLANNED | — |
+
+### Playtest Log
+
+| Date | Phase | Player | Notes |
+|---|---|---|---|
+| 2026-06-10 | Phase 2 | Chopin | Tile D-pad navigation feels natural. Map works well. Phase 3 gate cleared. |
+
+---
+
 ## Emotional Goal
 
 **The child should feel: "We went on an adventure."**

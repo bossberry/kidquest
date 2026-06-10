@@ -269,3 +269,7 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Playtest with Chopin (Phase 3 map+battle). Then Phase 4 NPC System.
 - Needs Chatbot decision first: Double-tap wake rule + enemy respawn — still Phase 4 polish question.
 
+---
+
+**2026-06-11 — fix: battle end bug resolved.** `MoveSelectBattleMode.fireHit` now checks `newHP <= 0 || isLast` (was `isLast` only); `battleOverRef` blocks input after victory; `WorldBattle` split into `onNext` (advance question) + `onComplete` (finalize + navigate) so early KO doesn't require multiple taps to exit.
+

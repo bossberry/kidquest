@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
+import HomeBackground from './HomeBackground.jsx'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone } from '../lib/audio.js'
 
@@ -385,12 +386,16 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     '#D4AC0D','#E87E2C','#5E9BD8','#5DADE2','#FFD700',
   ]
   const stageColor = STAGE_DOT_COLORS[stage] || '#9B87B8'
+  const hour = new Date().getHours()
+  const isDay = hour >= 6 && hour < 19
 
   return (
     <div id="egg-home" style={{
       display:'flex', flexDirection:'column', alignItems:'center',
       width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
     }}>
+
+      <HomeBackground hour={hour} />
 
       {/* Flying food overlay */}
       {flyingItem && (
@@ -443,12 +448,20 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
       {/* Header */}
       <div style={{
-        width:'100%', maxWidth:480, padding:'14px 20px 0',
+        width:'100%', maxWidth:480, padding:'14px 20px 8px',
         display:'flex', alignItems:'flex-start', justifyContent:'space-between',
         flexShrink:0,
+        background: isDay ? 'rgba(255,255,255,0.12)' : 'rgba(0,5,20,0.30)',
+        backdropFilter:'blur(2px)',
+        borderRadius:'0 0 12px 12px',
       }}>
         <div>
-          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#5A3A8B', lineHeight:1.1 }}>
+          <div style={{
+            fontFamily:"'Fredoka One',cursive", fontSize:22,
+            color: isDay ? '#5A3A8B' : '#C8B4FF',
+            lineHeight:1.1,
+            textShadow: isDay ? '0 1px 3px rgba(255,255,255,0.5)' : '0 1px 5px rgba(0,0,0,0.6)',
+          }}>
             ไข่ของ{state.name}
           </div>
           <div style={{ display:'flex', gap:4, marginTop:5, alignItems:'center' }}>
@@ -625,8 +638,9 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       <div style={{
         width:'100%', maxWidth:480, padding:'8px 20px',
         display:'flex', gap:10, justifyContent:'center', flexShrink:0,
-        borderTop:'1px solid rgba(155,89,182,0.1)',
-        background:'rgba(255,255,255,0.45)',
+        borderTop: isDay ? '1px solid rgba(155,89,182,0.10)' : '1px solid rgba(100,80,180,0.20)',
+        background: isDay ? 'rgba(255,255,255,0.52)' : 'rgba(6,12,32,0.65)',
+        backdropFilter:'blur(6px)',
       }}>
         {ITEM_DEFS.map(({ key, emoji, label }) => {
           const count    = state.items?.[key] || 0
@@ -670,15 +684,17 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       <div style={{
         width:'100%', maxWidth:480, padding:'6px 20px 10px',
         display:'flex', gap:10, flexShrink:0,
+        background: isDay ? 'rgba(255,255,255,0.45)' : 'rgba(6,12,32,0.60)',
+        backdropFilter:'blur(6px)',
       }}>
         <button
           onClick={handlePetEgg}
           style={{
             flex:1, height:52, borderRadius:14,
-            background:'rgba(255,255,255,0.85)',
-            border:'1.5px solid rgba(155,89,182,0.18)',
+            background: isDay ? 'rgba(255,255,255,0.85)' : 'rgba(30,20,60,0.78)',
+            border: isDay ? '1.5px solid rgba(155,89,182,0.18)' : '1.5px solid rgba(140,110,220,0.28)',
             fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
-            color:'#7A4FB8', cursor:'pointer',
+            color: isDay ? '#7A4FB8' : '#C8A8FF', cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:4,
             boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
           }}
@@ -689,10 +705,10 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           onClick={() => { playTone('tap'); navigate('collection') }}
           style={{
             flex:1, height:52, borderRadius:14,
-            background:'rgba(255,255,255,0.85)',
-            border:'1.5px solid rgba(155,89,182,0.18)',
+            background: isDay ? 'rgba(255,255,255,0.85)' : 'rgba(30,20,60,0.78)',
+            border: isDay ? '1.5px solid rgba(155,89,182,0.18)' : '1.5px solid rgba(140,110,220,0.28)',
             fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
-            color:'#7A4FB8', cursor:'pointer',
+            color: isDay ? '#7A4FB8' : '#C8A8FF', cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:4,
             boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
           }}

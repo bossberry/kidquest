@@ -117,7 +117,28 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 @keyframes ambient-leaf{0%{transform:translateY(-10px) rotate(0deg) translateX(0);opacity:1}40%{transform:translateY(190px) rotate(140deg) translateX(26px);opacity:.9}100%{transform:translateY(460px) rotate(340deg) translateX(55px);opacity:0}}
 @keyframes ambient-shooting-star{0%{transform:translate(0,0) scale(1.4);opacity:1}60%{opacity:.7}100%{transform:translate(-165px,115px) scale(.5);opacity:0}}
 /* Layout — safe-area-aware bottom padding so buttons never overlap BottomNav */
-#egg-home{background:linear-gradient(175deg,#FFF9EE 0%,#EEE6FB 100%);padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+#egg-home{position:relative;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+
+/* ===== HOME BACKGROUND SCENE ===== */
+/* Cloud shape: base bar + two circular bumps via ::before/::after */
+.hbg-cloud{position:absolute;background:rgba(255,255,255,0.88);border-radius:50px;pointer-events:none}
+.hbg-cloud::before,.hbg-cloud::after{content:'';position:absolute;background:rgba(255,255,255,0.88);border-radius:50%}
+.hbg-cloud-1{width:80px;height:20px;top:9%;left:6%;animation:hbg-drift-r 55s linear -5s infinite}
+.hbg-cloud-1::before{width:38px;height:38px;top:-22px;left:10px}
+.hbg-cloud-1::after{width:26px;height:26px;top:-12px;left:46px}
+.hbg-cloud-2{width:60px;height:16px;top:15%;right:10%;animation:hbg-drift-l 72s linear -18s infinite}
+.hbg-cloud-2::before{width:28px;height:28px;top:-17px;left:8px}
+.hbg-cloud-2::after{width:20px;height:20px;top:-10px;left:32px}
+.hbg-cloud-3{width:52px;height:14px;top:11%;left:52%;opacity:.72;animation:hbg-drift-r 80s linear -32s infinite}
+.hbg-cloud-3::before{width:24px;height:24px;top:-14px;left:8px}
+.hbg-cloud-3::after{width:18px;height:18px;top:-8px;left:28px}
+@keyframes hbg-drift-r{0%{transform:translateX(-160px)}100%{transform:translateX(calc(100vw + 160px))}}
+@keyframes hbg-drift-l{0%{transform:translateX(160px)}100%{transform:translateX(calc(-100vw - 160px))}}
+@keyframes hbg-twinkle{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:.95;transform:scale(1.3)}}
+@keyframes hbg-float-magic{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:.88;transform:translateY(-10px) scale(1.15)}}
+@media(prefers-reduced-motion:reduce){
+  .hbg-cloud,.hbg-cloud::before,.hbg-cloud::after{animation:none!important}
+}
 
 /* ===== EGG STAGE AURAS (0-8) — persistent per-stage glow on canvas ===== */
 @keyframes egg-aura-s2{0%,100%{filter:drop-shadow(0 0 6px rgba(200,230,255,.32))}50%{filter:drop-shadow(0 0 15px rgba(180,220,255,.65))}}

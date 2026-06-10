@@ -4,56 +4,59 @@
 
 ---
 
-## Green Meadow Detailed Design
+## Green Meadow Implementation Plan
 
-`docs/research/world/green-meadow.md` (NEW) — Full hand-authored design for the Phase 1 World.
+`docs/research/world/green-meadow-implementation-plan.md` (NEW) — 9-phase plan for building Green Meadow.
 
-### Map structure (3×3 grid)
+### Philosophy
+Build one phase at a time. Each phase is playable and reviewable before the next begins. Chopin playtests are built into the plan as mandatory gates.
 
-```
-Flower Field   | Grandma Turtle's House | Forest Entrance
-River Crossing | Town Square            | Clover Hill
-Pond & Willow  | Starting Path ← ENTER | King Clover Bear Meadow
-```
+### 9 Phases
 
-All screens fully specified. Visible enemies (no invisible encounters). Walk-into triggers battle.
+| Phase | Name | Chopin test? |
+|---|---|---|
+| 1 | World Foundation | Internal only |
+| 2 | Movement | **Required — navigation UX validation** |
+| 3 | Visible Enemies | **Required — battle loop validation** |
+| 4 | NPC System | Yes |
+| 5 | Treasure System | Yes |
+| 6 | Minigame Integration | Light |
+| 7 | Remaining Enemies | Internal |
+| 8 | King Clover Bear | **Required — boss emotional validation** |
+| 9 | Polish | Yes |
 
-### What was designed
+### Pre-implementation gate (8 GPT questions)
 
-**9 screens** — each with: theme, visual mood, NPCs, enemies, treasure spots, secrets, weather effects, day/night differences, music variation, special interactions, screen connections.
+Must be answered before Phase 1:
+- GM-Q1: Navigation UX (arrows / tap-edge / auto-walk)
+- GM-Q2: Encounter trigger zone size for age 4
+- GM-Q3: Screen transition (scroll vs cut)
+- GM-Q4: Bag capacity
+- GM-Q5: Minigame fullscreen vs in-world
+- WB-Q1: World entry UX
+- WB-Q3: Subject assignment in encounters
+- WB-Q4: XP from exploration vs battles only
 
-**6 enemies** — Sleepy Bunny, Bouncy Slime, Tiny Fox, Leaf Sprite, Grumpy Mole, Mushroom Imp. All cute/funny/warm. Each has: appearance, movement, personality, idle/defeat/battle animations, trigger mechanic.
+### New state fields specified
 
-**5 NPCs** — Professor Clover Owl (tutorial), Grandma Turtle (warmth anchor), Post Bird (traveler), Young Bunny Farmer (trader), Traveling Bee Merchant (rare items). Each has: location, dialogue style, gifts, mini quests, special interactions.
+`currentRegion`, `currentScreen`, `discoveredScreens`, `pickedUpTreasures`, `collectibles`, `clovers`, `bag` — all added to `defaultState()` before Phase 1.
 
-**Treasure system** — 11 fixed spots (never same lore items), random sparkle system (1–2 per screen, 30% chance), hidden clover system (27 total across map, Lucky Day bonus if all found), 5 Old Letters (lore collectible chain).
+### New actions specified
 
-**5 minigame integrations** — EggFishing at River (ML) + Pond (BL). EggRun via Bunny race in Town Square. EggTower via ancient tree at Forest Entrance. EggCatch via butterfly cluster in Flower Field. EggMemory via Grandma's flower pot quest.
+`ENTER_WORLD`, `EXIT_WORLD`, `MOVE_SCREEN`, `PICKUP_TREASURE`, `COLLECT_CLOVER`, `COLLECT_ITEM`, `DISCOVER_SCREEN`, `TRANSFER_BAG_TO_HOME`, `SAVE_WORLD_POSITION`, `CLAIM_NPC_GIFT`, `DEFEAT_BOSS`, `FORCE_SCREEN`.
 
-**Session loop** — 10–15 min arc. Start at BM → explore → battle → treasure → NPC → boss → home. Natural end triggers (never forced). Home return flows rewards to Egg Home.
+### Biggest risks (ranked)
 
-**Boss: King Clover Bear** — Full flow: approach sequence (dialogue → player chooses fight/not yet), battle (grander music, mid-battle comments, 2.5× HP), win (claps, laughs, warm dialogue, sparkle + confetti, 3 treasure spots), failure (bear gives consolation gift, never uses "แพ้", bounces child to Starting Path, Professor Owl encourages).
-
-**Failure philosophy** — Bear hugs + small gift after loss. Never: "you lost." Always: "ลองอีกครั้ง." Child keeps items and XP from the session. Boss is rebattlable.
-
-**Future hooks** — Sunny Beach entrance on Clover Hill east edge. Seasonal event spots (Flower Field, River, Pond). Gardening in Grandma's garden. Photo spots at hilltop/river/pond.
-
-**10 open questions** added to `docs/GPT_NOTES.md` — GPT must answer before world map code begins.
-
----
-
-## Key decisions
-
-- 3×3 grid confirmed (not 5×5). Starting screen = BM (Starting Path). Boss = BR.
-- All enemies visible before battle — no invisible random encounters. Ever.
-- Minigames are world-embedded, not separate menu entries.
-- Failure = bear hugs + gift. Never empty-handed outcome.
-- Day/night: follows real clock (same as Egg Home). Night = magical, not scary.
+1. Navigation UX for age 4 — must validate in Phase 2 before building Phase 3
+2. Subject assignment mapping — wrong level = wrong learning scaffold
+3. Boss fail experience causing distress — mandatory Chopin test in Phase 8
+4. Performance on iPhone Safari — baseline measurement in Phase 2
+5. Routing complexity (world ↔ battle ↔ world ↔ home) — Phase 1 routing must be clean
 
 ---
 
 ## What's next
 
-- GPT: Answer 10 open questions for Green Meadow → `GPT_NOTES.md`.
-- Encounter + transition design doc (how exploration → battle → return works technically).
-- WorldMap.jsx implementation after GPT answers questions 1–5.
+- GPT: Answer 8 gate questions → `GPT_NOTES.md` → Green Meadow + World Bible sections.
+- After GPT answers: begin Phase 1 (World Foundation).
+- After Phase 2: Chopin playtest mandatory before Phase 3.

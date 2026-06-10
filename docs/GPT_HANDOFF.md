@@ -1,6 +1,6 @@
 # GPT Handoff — KidQuest
 _Regenerated after every Claude Code session. Single file for GPT to read._
-_Last updated: 2026-06-10 (Procedural Character System Phase 3 — Creature Personality & Animation)_
+_Last updated: 2026-06-10 (Collection: Procedural Creature Preview for All Hatched Eggs)_
 
 **AI System:** GPT (research/curriculum/product) → `GPT_NOTES.md` → Claude Code (implementation) → `GPT_HANDOFF.md` → GPT. Claude Chatbot reads both sides for review. Chat history is NOT source of truth. See `docs/AI_SYSTEMS.md`.
 
@@ -22,7 +22,21 @@ _Last updated: 2026-06-10 (Procedural Character System Phase 3 — Creature Pers
 
 ## Latest Session Summary
 
-**What changed this session (Procedural Character System Phase 3 — code change):**
+**What changed this session (Collection: Procedural Creature Preview — code change):**
+
+All hatched eggs in Collection now show procedural canvas creatures at 120px with idle animations, regardless of whether they were hatched before Phase 2.
+
+**`src/lib/creatureGenerator.js`** — NEW: `buildLegacyPreviewDNA(egg, index)`. Two paths:
+- Primary: `egg.eggStats` present → calls `buildCreatureDNA(egg.eggStats)`. Gives the exact creature that would have been generated at hatch time. Covers 95%+ of legacy eggs.
+- Fallback: hash(`creature.n + emoji + rarity + index`) → deterministic seed → synthesised stats → `buildCreatureDNA`. Emoji nudges guide family: `🐉` streak:82 → dragon; `🦊` eng+speed → fox; `🦄`/`🤖`/`💎` math:72+ → crystal; `⚡` streak:82 → star; `🦅` eng+speed → bird. Stage 4–7 (mature-looking). Never persisted. No state writes.
+
+**`src/components/Collection.jsx`** — Replaced manual canvas+useEffect with `<CreatureCanvas size={120} animationEnabled>`. `useMemo([egg, index])` ensures stable DNA reference (prevents animation loop reset). Legacy emoji badge (`egg.creature.e`) shown bottom-right corner for old creatures. `creatureAlgorithm.js` import removed entirely. Gallery grid: 2-column instead of 3-column.
+
+**`src/styles.css`** — `.catalog-grid-lg` (2-column 14px gap) + `.catalog-item-lg` (larger padding/font for gallery feel).
+
+Build: ✅. Commit: `8c393f7`. Pushed.
+
+**What changed last session (Procedural Character System Phase 3 — code change):**
 
 Implemented creature personality & animation. Creatures in `CreatureCanvas` are now alive — they breathe, bob, and blink. Sleep mode shows floating z particles.
 

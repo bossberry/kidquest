@@ -1,5 +1,11 @@
 # Changelog — KidQuest
 
+## 2026-06-10 — Collection: Procedural Creature Preview for Legacy Eggs
+
+- `src/lib/creatureGenerator.js` — NEW: `buildLegacyPreviewDNA(egg, index)`. Primary: `buildCreatureDNA(egg.eggStats)`. Fallback: hash(name+emoji+rarity+index) → synthetic stats → `buildCreatureDNA`. Emoji nudges: 🐉→streak:82 (dragon), 🦊→eng+speed (fox), 🦄/🤖/💎→math (crystal), ⚡→streak:82 (star), 🦅→eng+speed (bird). Never persisted. Commit `8c393f7`.
+- `src/components/Collection.jsx` — Replaced legacy canvas+useEffect+`drawLegacyCreature` with `<CreatureCanvas size={120}>`. `useMemo` ensures stable DNA reference. Legacy emoji badge (bottom-right corner) for old creatures. Removed `creatureAlgorithm.js` import entirely. Commit `8c393f7`.
+- `src/styles.css` — `.catalog-grid-lg` (2-column), `.catalog-item-lg` (larger padding, bigger font). Commit `8c393f7`.
+
 ## 2026-06-10 — Procedural Character System Phase 3: Creature Personality & Animation
 
 - `src/lib/drawCreature.js` — `drawCreature(canvas, dna, anim={})` now accepts optional animation state. `drawEyes` applies `blinkAmt` (0=open, 1=closed): scales eye y-radius by `1 - blinkAmt * 1.25`; below `bScale < 0.12` draws gentle closed-eye curve; crescent/button eye types squash via `ctx.save/translate/scale`. New `drawSleepZ(ctx, G, C, particles, sc)` draws floating 'z' glyphs using accent hue. Commit `658d25c`.

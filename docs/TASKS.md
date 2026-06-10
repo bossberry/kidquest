@@ -11,6 +11,7 @@
 - [x] **Phase 1A: `creatureGenerator.js`** — `buildCreatureDNA(stats)`, `buildVoiceProfile(dna)`, `detectEggMotif()`, `verifyCreatureGen()`. 30+ gene object, deterministic 64-value PRNG pool. Commit `093080f`. 2026-06-09.
 - [x] **Phase 1B: Persist DNA at hatch** — `StateContext.jsx` `HATCH_COMPLETE` calls `buildCreatureDNA`, stores `newEgg.dna`. `beautyProfile` field. Streak threshold 100→20. Commit `c3ff44a`. 2026-06-09.
 - [x] **Phase 2: Canvas renderer** — `drawCreature.js` Beauty Layer renderer + `CreatureCanvas.jsx` + `Collection.jsx` dual-path (dna vs legacy). Commit `8b14d00`. 2026-06-09.
+- [x] **Legacy Creature Preview** — `buildLegacyPreviewDNA(egg, index)` in `creatureGenerator.js`. All Collection creatures rendered via `CreatureCanvas` at 120px. 2-column gallery grid. Emoji badge for old creatures. Commit `8c393f7`. 2026-06-10.
 - [x] **Phase 3: Animation layer** — Blink state machine (open/closing/closed/opening), sleep Z-particles, CSS personality body animations (`ci-*` keyframes). `CreatureCanvas` props: `personality`, `animationEnabled`, `idleMode`. Commit `658d25c`. 2026-06-10.
 - [ ] **Phase 4: Voice layer** — `playCreatureSound(dna, moment)` wired to all interaction points.
 - [ ] **Phase 5: Birth sequence** — HatchOverlay full reveal (egg glow → creature aura, first blink/look/chirp, name selection).

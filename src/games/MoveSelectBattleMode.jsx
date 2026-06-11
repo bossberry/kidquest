@@ -3,7 +3,7 @@ import { playTone, speakTh, speakEn, playSFX, playElementSFX } from '../lib/audi
 import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { drawEnemy } from '../lib/drawEnemy.js'
+import { drawEnemy, drawEnemyHurt } from '../lib/drawEnemy.js'
 import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
 import { ELEMENTS, getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
@@ -54,6 +54,14 @@ const ELEMENT_ICONS = {
   water:     '💧',
 }
 
+const ITEM_DESCRIPTIONS = {
+  skip:        'เปลี่ยนคำถามใหม่ทันที\nถ้าไม่รู้คำตอบ ใช้ได้เลย!',
+  free_attack: 'โจมตีมอนสเตอร์ฟรี 1 ครั้ง\nไม่ต้องตอบคำถาม!',
+  hint:        'ตัดตัวเลือกผิดออก 2 อัน\nเหลือแค่ 2 ตัวเลือก ง่ายขึ้น!',
+  block:       'ป้องกันการโจมตีครั้งต่อไป\nตอบผิดก็ไม่โดนตี 1 ครั้ง',
+  double_xp:   'คำถามถัดไปถ้าตอบถูก\nได้ XP เพิ่มเป็น 2 เท่า!',
+}
+
 // ─── GB-style HP Bar ──────────────────────────────────────────────────────────
 
 function GBHPBar({ pct, isPlayer }) {
@@ -72,13 +80,17 @@ function GBHPBar({ pct, isPlayer }) {
 
 // ─── Enemy canvas sprite ──────────────────────────────────────────────────────
 
-function EnemyCanvas({ enemyType, size, hitFlash, enemyDefeating }) {
+function EnemyCanvas({ enemyType, size, hitFlash, enemyDefeating, enemyHurt }) {
   const canvasRef = useRef(null)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    drawEnemy(canvas.getContext('2d'), enemyType, size)
-  }, [enemyType, size])
+    if (enemyHurt) {
+      drawEnemyHurt(canvas.getContext('2d'), enemyType, size)
+    } else {
+      drawEnemy(canvas.getContext('2d'), enemyType, size)
+    }
+  }, [enemyType, size, enemyHurt])
   return (
     <canvas
       ref={canvasRef}
@@ -259,6 +271,8 @@ export default function MoveSelectBattleMode({
   const [shieldActive, setShieldActive]     = useState(false)
   const [xpBoostActive, setXpBoost]         = useState(false)
   const [victoryBonus, setVictoryBonus]     = useState(null)
+  const [pendingItem, setPendingItem]       = useState(null)
+  const [enemyHurt, setEnemyHurt]           = useState(false)
   const shieldActiveRef  = useRef(false)
   const xpBoostActiveRef = useRef(false)
 
@@ -411,7 +425,10 @@ export default function MoveSelectBattleMode({
       lockedRef.current = true
       setTimeout(() => {
         if (!mountedRef.current) return
-        if (cur + 1 >= total) {
+        // World battles loop infinitely — victory only from enemy HP=0
+        if (isWorldBattle) {
+          lockedRef.current = false; onNext()
+        } else if (cur + 1 >= total) {
           enemyHPRef.current = 0; setEnemyHP(0)
           showVictory()
         } else {
@@ -526,6 +543,8 @@ export default function MoveSelectBattleMode({
       setSelectedCard(-1)
       setHitFlash(true)
       setTimeout(() => mountedRef.current && setHitFlash(false), 300)
+      setEnemyHurt(true)
+      setTimeout(() => mountedRef.current && setEnemyHurt(false), 400)
       setDmgFloat({ val: dmg, isCrit: mult > 1, isUlt })
       setTimeout(() => mountedRef.current && setDmgFloat(null), 950)
     }
@@ -801,7 +820,7 @@ export default function MoveSelectBattleMode({
             transition: 'transform 130ms ease',
           }}>
             <div ref={enemyDivRef}>
-              <EnemyCanvas enemyType={enemyType} size={120} hitFlash={hitFlash} enemyDefeating={enemyDefeating} />
+              <EnemyCanvas enemyType={enemyType} size={120} hitFlash={hitFlash} enemyDefeating={enemyDefeating} enemyHurt={enemyHurt} />
               {dmgFloat && (
                 <div style={{
                   position:'absolute', top:'-24px', left:'50%', transform:'translateX(-50%)',
@@ -951,7 +970,7 @@ export default function MoveSelectBattleMode({
             return (
               <button
                 key={key}
-                onClick={() => useBattleItem(key)}
+                onClick={() => !itemUsed && setPendingItem(key)}
                 disabled={itemUsed}
                 title={item.name_th}
                 style={{
@@ -984,6 +1003,74 @@ export default function MoveSelectBattleMode({
           )}
         </div>
       )}
+
+      {/* ── ITEM TOOLTIP POPUP ───────────────────────────────────────────── */}
+      {pendingItem && !victoryMode && (() => {
+        const key = pendingItem
+        const item = BATTLE_ITEMS[key]
+        const count = state.items?.[key] || 0
+        const descLines = (ITEM_DESCRIPTIONS[item.effect] || '').split('\n')
+        return (
+          <div
+            style={{
+              position: 'absolute', inset: 0, zIndex: 85,
+              background: 'rgba(0,0,0,0.82)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            onClick={() => setPendingItem(null)}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#1a1a2e',
+                border: `2px solid ${item.color}`,
+                borderRadius: 12, padding: '20px 24px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                minWidth: 200, maxWidth: 260,
+                boxShadow: `0 0 20px ${item.color}44`,
+              }}
+            >
+              <PixelItemIcon type={key} size={40} />
+              <div style={{ fontFamily: 'var(--font-thai)', fontSize: 17, color: 'var(--px-yellow)', fontWeight: 'bold' }}>
+                {item.name_th}
+              </div>
+              <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 1.6 }}>
+                {descLines.map((line, i) => <div key={i}>{line}</div>)}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>
+                มี {count} ชิ้น
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
+                <button
+                  onClick={() => { setPendingItem(null); useBattleItem(key) }}
+                  style={{
+                    background: item.color, color: '#fff',
+                    border: 'none', borderRadius: 6,
+                    padding: '8px 18px', fontSize: 14,
+                    fontFamily: 'var(--font-thai)', cursor: 'pointer',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  ใช้เลย!
+                </button>
+                <button
+                  onClick={() => setPendingItem(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.65)',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    borderRadius: 6, padding: '8px 18px', fontSize: 14,
+                    fontFamily: 'var(--font-thai)', cursor: 'pointer',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (

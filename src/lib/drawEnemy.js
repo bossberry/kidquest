@@ -312,6 +312,78 @@ function _snake(ctx, size) {
   p(23,  3,  2,  2, '#cc2020')  // fork right
 }
 
+// ── EYE POSITIONS (48-grid coords) — used by drawEnemyHurt ───────────────────
+
+const EYE_POSITIONS = {
+  bunny:        { lx: 20, rx: 28, ey: 19, r: 3 },
+  sleepy_bunny: { lx: 20, rx: 28, ey: 19, r: 3 },
+  slime:        { lx: 16, rx: 32, ey: 24, r: 4 },
+  bouncy_slime: { lx: 16, rx: 32, ey: 24, r: 4 },
+  fox:          { lx: 18, rx: 30, ey: 16, r: 2 },
+  fox_kit:      { lx: 18, rx: 30, ey: 16, r: 2 },
+  tiny_fox:     { lx: 18, rx: 30, ey: 16, r: 2 },
+  egg_pawn:     { lx: 20, rx: 28, ey: 13, r: 3 },
+  leaf_sprite:  { lx: 22, rx: 28, ey: 15, r: 2 },
+  grumpy_mole:  { lx: 16, rx: 32, ey: 17, r: 5 },
+  mushroom_imp: { lx: 18, rx: 30, ey: 32, r: 4 },
+  baby_zombie:  { lx: 16, rx: 28, ey: 13, r: 3 },
+  snake:        { lx: 19, rx: 27, ey: 10, r: 2 },
+}
+
+function drawHurtEyes(ctx, size, pos) {
+  const s = size / 48
+  const { lx, rx, ey, r } = pos
+
+  ctx.strokeStyle = '#ff2222'
+  ctx.lineWidth = Math.max(2, Math.round(size / 18))
+  ctx.lineCap = 'square'
+
+  for (const cx of [lx, rx]) {
+    ctx.beginPath()
+    ctx.moveTo((cx - r) * s, (ey - r) * s)
+    ctx.lineTo((cx + r) * s, (ey + r) * s)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo((cx + r) * s, (ey - r) * s)
+    ctx.lineTo((cx - r) * s, (ey + r) * s)
+    ctx.stroke()
+  }
+
+  // Zigzag mouth
+  const mx = (lx + rx) / 2
+  const my = ey + r + 4
+  const hw = (rx - lx) * 0.4
+  ctx.strokeStyle = '#441111'
+  ctx.lineWidth = Math.max(1, Math.round(size / 28))
+  ctx.beginPath()
+  ctx.moveTo((mx - hw) * s, my * s)
+  ctx.lineTo((mx - hw * 0.33) * s, (my - 3) * s)
+  ctx.lineTo((mx + hw * 0.33) * s, my * s)
+  ctx.lineTo((mx + hw) * s, (my - 3) * s)
+  ctx.stroke()
+}
+
+export function drawEnemyHurt(ctx, type, size, x = 0, y = 0) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.imageSmoothingEnabled = false
+  if (x === 0 && y === 0) ctx.clearRect(0, 0, size, size)
+
+  // Slight tilt for hit impact
+  const cx = size / 2, cy = size / 2
+  ctx.translate(cx, cy)
+  ctx.rotate(0.08)
+  ctx.translate(-cx, -cy)
+
+  const fn = DRAW_FNS[type] || _bunny
+  fn(ctx, size)
+
+  const pos = EYE_POSITIONS[type] || EYE_POSITIONS.bunny
+  drawHurtEyes(ctx, size, pos)
+
+  ctx.restore()
+}
+
 // ── MUSHROOM IMP ──────────────────────────────────────────────────────────────
 
 function _mushroomImp(ctx, size) {

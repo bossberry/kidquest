@@ -551,3 +551,14 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System (Phase 3 world/battle now complete).
 - Needs Chatbot decision first: (1) Should HP auto-restore after battle? (2) Should party slot 3 unlock at 25 XP (between 10 and 50)?
 
+---
+
+**2026-06-12 — fix: battle items working + item tooltip popup + monster hurt animation:**
+- Built:
+  - `src/lib/drawEnemy.js` — Added `EYE_POSITIONS` lookup (all 9 enemy types, 48-grid coords). `drawHurtEyes()` draws X-mark eyes (red lines) + zigzag mouth. `drawEnemyHurt()` (exported) applies `rotate(0.08)` tilt + base sprite + hurt eyes.
+  - `src/games/MoveSelectBattleMode.jsx` — Fix 1: `skip` item in world battles now always calls `onNext()` instead of triggering premature `showVictory()` at question 7. Fix 2: Item tooltip popup — tapping item opens overlay with icon/name/description/qty/ใช้เลย!/ยกเลิก; `ITEM_DESCRIPTIONS` object (5 Thai-language descriptions). Fix 3: Monster hurt animation — `enemyHurt` state, 400ms flash in `fireHit`; `EnemyCanvas` calls `drawEnemyHurt` when hurt; imported `drawEnemyHurt`.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

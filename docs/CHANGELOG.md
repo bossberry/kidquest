@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — fix: battle items working + item tooltip popup + monster hurt animation
+
+### src/lib/drawEnemy.js
+- Added `EYE_POSITIONS` lookup table (48-grid coords for all 9 enemy types).
+- Added `drawHurtEyes(ctx, size, pos)` — X-mark eyes (red crossed lines) + zigzag mouth using canvas `lineTo`.
+- Added exported `drawEnemyHurt(ctx, type, size, x, y)` — slight `rotate(0.08)` tilt + base sprite + hurt eyes overlay.
+
+### src/games/MoveSelectBattleMode.jsx
+- **Fix 1**: `useBattleItem` — `skip` (scroll) now calls `onNext()` unconditionally in world battles instead of triggering `showVictory()` at question 7.
+- **Fix 2**: Item tooltip popup — changed item bar `onClick` from immediate `useBattleItem()` to `setPendingItem(key)`. Added `ITEM_DESCRIPTIONS` object (5 Thai descriptions). Added `pendingItem` state. Added tooltip overlay (semi-transparent dark, item icon 40px, name, description, qty, ใช้เลย!/ยกเลิก buttons, tap-outside-to-dismiss).
+- **Fix 3**: Monster hurt animation — added `enemyHurt` state. `fireHit` sets `enemyHurt=true` for 400ms. `EnemyCanvas` now calls `drawEnemyHurt` when `enemyHurt=true`. Imported `drawEnemyHurt` from `drawEnemy.js`.
+
+---
+
 ## 2026-06-12 — feat: Pokémon battle system — real HP, party select, creature faint, battle leveling
 
 ### src/lib/state.js

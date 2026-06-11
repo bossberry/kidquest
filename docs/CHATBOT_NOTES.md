@@ -402,6 +402,21 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-11 — feat: element attack system — 6 elements × 4 tiers with canvas animations and SFX:**
+- Built:
+  - `src/config/elementConfig.js` (NEW) — `ELEMENTS` config (6 elements × 4 tiers, Thai names, colors) + `getElementTier(element, combo)` helper. ✅
+  - `src/lib/elementAnimations.js` (NEW) — 24 canvas animations (6×4). `animate()` RAF helper + `zigzag()` lightning helper. All 6 elements: lightning (zigzag bolts), fire (particles/fireball/wave/meteor), ice (diamonds/spears/snowflakes/star-crystal), wind (bezier arcs/leaves/sweep/spiral), laser (beam/glow/impact/8-radial), water (bubbles/sine-wave/flood/tidal-wave). ✅
+  - `src/lib/audio.js` — `SFX_ELEMENTS` dict (6×4 Web Audio tones) + `playElementSFX(element, tierIndex)` export. ✅
+  - `src/games/MoveSelectBattleMode.jsx` — `battleElement` random-on-mount, `attackLabel` flash, `overlayCanvasRef` second canvas (zIndex 16), element badge pill in enemy status panel, `fadeInOut` label animation, `playElementSFX` + `playElementAttack` wired in `fireHit()`. ✅
+  - `src/styles.css` — `@keyframes fadeInOut` added. ✅
+  - Build: ✅ 129 modules, zero errors.
+- Not finished: none.
+- Blockers/risks found: None.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+
+---
+
 **2026-06-11 — feat: treasure chest + slot machine; fix hint bar centering:**
 - Built:
   - `src/components/TreasureSlot.jsx` (NEW) — slot machine overlay. 3 emoji reels spin at 80ms/frame, stop at frames 15/22/30. 3-match = star×3 jackpot; 2-match = ribbon×1; else = food×1. `onReward` fires 800ms after spin. `DROP_ITEM` dispatched per qty.

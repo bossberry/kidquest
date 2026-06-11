@@ -404,6 +404,55 @@ export function playSFX(name) {
   try { const fn = SFX[name]; if (fn) fn(getACtx()) } catch(e) {}
 }
 
+// Element attack SFX — 6 elements × 4 tiers
+const SFX_ELEMENTS = {
+  lightning: [
+    ctx => { _noise(ctx, 0.08, 60); _t(ctx, 800, 0.08, 60, 'square') },
+    ctx => { _noise(ctx, 0.07, 80); _sweep(ctx, 600, 400, 0.07, 'sawtooth', 150) },
+    ctx => { _t(ctx, 80, 0.09, 300, 'sine'); _noise(ctx, 0.06, 200) },
+    ctx => { _t(ctx, 60, 0.10, 400, 'sine'); _noise(ctx, 0.09, 300); _t(ctx, 1200, 0.07, 100, 'sine', 300) },
+  ],
+  fire: [
+    ctx => _sweep(ctx, 200, 600, 0.07, 'sawtooth', 150),
+    ctx => _sweep(ctx, 150, 500, 0.09, 'sawtooth', 250),
+    ctx => { _t(ctx, 100, 0.08, 300, 'sawtooth'); _noise(ctx, 0.06, 250) },
+    ctx => { _t(ctx, 60, 0.10, 400, 'sawtooth'); _noise(ctx, 0.09, 300); _t(ctx, 900, 0.05, 80, 'sine', 350) },
+  ],
+  ice: [
+    ctx => _t(ctx, 1200, 0.09, 100, 'sine'),
+    ctx => { _noise(ctx, 0.06, 80); _t(ctx, 800, 0.07, 150, 'sine') },
+    ctx => _sweep(ctx, 1600, 2400, 0.06, 'sine', 400),
+    ctx => { _t(ctx, 200, 0.09, 300, 'sine'); _t(ctx, 1400, 0.07, 300, 'sine') },
+  ],
+  wind: [
+    ctx => _noise(ctx, 0.05, 200),
+    ctx => _noise(ctx, 0.07, 300),
+    ctx => _sweep(ctx, 400, 1200, 0.07, 'sine', 500),
+    ctx => { _sweep(ctx, 300, 1400, 0.08, 'sine', 600); _t(ctx, 100, 0.05, 400, 'sine') },
+  ],
+  laser: [
+    ctx => _sweep(ctx, 800, 400, 0.08, 'sawtooth', 150),
+    ctx => _t(ctx, 600, 0.09, 250, 'square'),
+    ctx => { _t(ctx, 400, 0.08, 200, 'sawtooth'); _noise(ctx, 0.06, 150) },
+    ctx => { _t(ctx, 200, 0.09, 400, 'sine'); _t(ctx, 1600, 0.07, 400, 'sine'); _noise(ctx, 0.06, 200) },
+  ],
+  water: [
+    ctx => _t(ctx, 400, 0.08, 100, 'sine'),
+    ctx => { _noise(ctx, 0.06, 200); _t(ctx, 300, 0.06, 120, 'sine') },
+    ctx => _sweep(ctx, 200, 800, 0.07, 'sine', 400),
+    ctx => { _t(ctx, 80, 0.09, 500, 'sine'); _sweep(ctx, 300, 900, 0.07, 'sine', 400) },
+  ],
+}
+
+export function playElementSFX(element, tierIndex) {
+  if (!_soundOn) return
+  try {
+    const fns = SFX_ELEMENTS[element]
+    if (!fns) return
+    fns[Math.min(tierIndex, fns.length - 1)](getACtx())
+  } catch(e) {}
+}
+
 // iOS: resume AudioContext on first touch ──────────────────────────────────────
 if (typeof document !== 'undefined') {
   document.addEventListener('touchstart', () => {

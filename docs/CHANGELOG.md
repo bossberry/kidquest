@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: element attack system — 6 elements × 4 tiers with canvas animations and SFX
+
+### New files
+- `src/config/elementConfig.js`: `ELEMENTS` (6 elements × 4 tier definitions) + `getElementTier(element, combo)` helper
+- `src/lib/elementAnimations.js`: `playElementAttack(canvas, element, tierIndex, fromPos, toPos, onComplete)` — canvas animation for all 24 combos (6 elements × 4 tiers). `animate()` RAF loop helper. `zigzag()` helper for lightning. Each animation uses `performance.now()` + RAF for fixed-duration render.
+
+### MoveSelectBattleMode.jsx
+- Added imports: `ELEMENTS`, `getElementTier` from elementConfig; `playElementAttack` from elementAnimations; `playElementSFX` from audio
+- `battleElement` state: random element assigned on mount, fixed for entire battle
+- `attackLabel` state: tier name flash (900ms)
+- `overlayCanvasRef`: second canvas inside battleFieldRef div, zIndex 16 (above particles at 15). Size synced via same ResizeObserver as effectCanvasRef
+- `fireHit()`: after spawnEffect — calls `getElementTier(battleElement, combo)`, plays `playElementSFX`, flashes tier name label, calls `playElementAttack` with egg→enemy coords from `getBoundingClientRect()`
+- Element badge: inline-block pill below enemy name — element color + icon + Thai name
+- Attack label overlay: absolute positioned, `fadeInOut 0.9s` CSS animation, element color + textShadow glow
+
+### audio.js
+- Added `SFX_ELEMENTS` dict: 6 elements × 4 tier SFX (Web Audio API, all using existing `_t`, `_sweep`, `_noise` helpers)
+- Added `playElementSFX(element, tierIndex)` export
+
+### styles.css
+- Added `@keyframes fadeInOut` for attack tier name flash
+
 ## 2026-06-11 — Feat: treasure chest + slot machine reward; fix hint bar centering
 
 ### WorldScreen.jsx

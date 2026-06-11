@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { playTone, speakTh, speakEn, playSFX } from '../lib/audio.js'
+import { playTone, speakTh, speakEn, playSFX, playElementSFX } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
+import { ELEMENTS, getElementTier } from '../config/elementConfig.js'
+import { playElementAttack } from '../lib/elementAnimations.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,15 @@ const TEACH_INTRO = {
 }
 
 const MAX_PLAYER_HP = 60
+
+const ELEMENT_ICONS = {
+  lightning: '⚡',
+  fire:      '🔥',
+  ice:       '❄️',
+  wind:      '🌪️',
+  laser:     '💜',
+  water:     '💧',
+}
 
 // ─── GB-style HP Bar ──────────────────────────────────────────────────────────
 
@@ -197,9 +208,17 @@ export default function MoveSelectBattleMode({
   const eggDivRef       = useRef(null)
   const enemyDivRef     = useRef(null)
   const effectCanvasRef = useRef(null)
+  const overlayCanvasRef = useRef(null)
   const effectsRef      = useRef([])
   const effectRafRef    = useRef(null)
   const rafTimeRef      = useRef(0)
+
+  // Element system
+  const [battleElement] = useState(() => {
+    const keys = Object.keys(ELEMENTS)
+    return keys[Math.floor(Math.random() * keys.length)]
+  })
+  const [attackLabel, setAttackLabel] = useState(null)
 
   useEffect(() => () => {
     mountedRef.current = false
@@ -243,15 +262,20 @@ export default function MoveSelectBattleMode({
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  // ── Sync effect canvas size to battle field ─────────────────────────────────
+  // ── Sync effect canvas + overlay canvas size to battle field ────────────────
   useEffect(() => {
-    const field  = battleFieldRef.current
-    const canvas = effectCanvasRef.current
+    const field   = battleFieldRef.current
+    const canvas  = effectCanvasRef.current
+    const overlay = overlayCanvasRef.current
     if (!field || !canvas) return
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
         canvas.width  = Math.round(entry.contentRect.width)
         canvas.height = Math.round(entry.contentRect.height)
+        if (overlay) {
+          overlay.width  = Math.round(entry.contentRect.width)
+          overlay.height = Math.round(entry.contentRect.height)
+        }
       }
     })
     ro.observe(field)
@@ -391,6 +415,28 @@ export default function MoveSelectBattleMode({
     if (isUlt)             spawnEffect('ultimate')
     else if (combo >= 3)   spawnEffect('combo')
     else                   spawnEffect('attack')
+
+    // Element attack animation
+    const { tier: elTier, tierIndex: elTierIndex } = getElementTier(battleElement, combo)
+    playElementSFX(battleElement, elTierIndex)
+    setAttackLabel(elTier.name)
+    setTimeout(() => { if (mountedRef.current) setAttackLabel(null) }, 900)
+    const field   = battleFieldRef.current
+    const eggEl   = eggDivRef.current
+    const enemyEl = enemyDivRef.current
+    if (field && eggEl && enemyEl && overlayCanvasRef.current) {
+      const fr = field.getBoundingClientRect()
+      const er = eggEl.getBoundingClientRect()
+      const nr = enemyEl.getBoundingClientRect()
+      playElementAttack(
+        overlayCanvasRef.current,
+        battleElement,
+        elTierIndex,
+        { x: er.left + er.width / 2 - fr.left, y: er.top + er.height / 2 - fr.top },
+        { x: nr.left + nr.width / 2 - fr.left, y: nr.top + nr.height / 2 - fr.top },
+        null,
+      )
+    }
 
     const dmg   = Math.ceil(dmgBase * mult)
     const newHP = Math.max(0, enemyHPRef.current - dmg)
@@ -557,17 +603,44 @@ export default function MoveSelectBattleMode({
           ref={effectCanvasRef}
           style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:15 }}
         />
+        {/* Element attack overlay */}
+        <canvas
+          ref={overlayCanvasRef}
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:16 }}
+        />
+        {/* Attack tier name flash */}
+        {attackLabel && (
+          <div style={{
+            position:'absolute', top:'35%', left:0, right:0, zIndex:20,
+            textAlign:'center', fontSize:28, fontWeight:'bold',
+            color: ELEMENTS[battleElement].color,
+            textShadow: `0 0 20px ${ELEMENTS[battleElement].color}`,
+            animation: 'fadeInOut 0.9s ease forwards',
+            pointerEvents:'none', fontFamily:'Mitr,sans-serif',
+          }}>
+            {attackLabel}
+          </div>
+        )}
 
         {/* Enemy status — top left */}
         <div style={{
           position:'absolute', top:8, left:10, zIndex:10,
           background:'rgba(0,0,0,0.60)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:178,
         }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
             <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:12, color:'#fff', lineHeight:1 }}>
               {isBoss ? '👑 ' : ''}{enemy.name}
             </span>
             <span style={{ fontSize:9, color:'rgba(255,255,255,.3)', marginLeft:6 }}>{cur+1}/{total}</span>
+          </div>
+          <div style={{
+            display:'inline-block', marginBottom:5,
+            background: ELEMENTS[battleElement].color + '28',
+            border: `1px solid ${ELEMENTS[battleElement].color}66`,
+            color: ELEMENTS[battleElement].color,
+            borderRadius:10, padding:'1px 8px', fontSize:10,
+          }}>
+            {ELEMENT_ICONS[battleElement]} {ELEMENTS[battleElement].name}
           </div>
           <GBHPBar pct={hpPct} />
         </div>

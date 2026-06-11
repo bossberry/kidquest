@@ -512,6 +512,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 
 /* Pokémon Battle animations */
 @keyframes move-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09);filter:brightness(1.35)}}
+@keyframes fadeInOut{0%{opacity:0;transform:translateY(6px) scale(.9)}20%{opacity:1;transform:translateY(0) scale(1.05)}70%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-10px) scale(.95)}}
 @keyframes egg-charge{0%,100%{transform:translate(0,0)}20%{transform:translate(2px,-1px)}40%{transform:translate(-2px,1px)}60%{transform:translate(2px,-2px)}80%{transform:translate(-1px,1px)}}
 @keyframes miss-fizzle{0%{transform:scale(1);opacity:1;filter:none}40%{transform:scale(.95);filter:blur(.8px)}100%{transform:scale(.88);opacity:.25;filter:blur(2px)}}
 @keyframes enemy-defeat{0%{transform:scale(1) translateY(0);opacity:1}25%{transform:scale(1.1) translateY(-6px);opacity:1}100%{transform:scale(.25) translateY(-28px);opacity:0}}

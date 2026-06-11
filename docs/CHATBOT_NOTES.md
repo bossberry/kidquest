@@ -324,3 +324,15 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Chopin playtest to confirm all 3 subjects appear across different enemies.
 - Needs Chatbot decision first: None.
 
+---
+
+**2026-06-11 — fix: battle subject+level driven by child readiness, not enemy type:**
+- Built:
+  - `src/lib/battleSubject.js` (REWRITTEN) — `getBattleSubject(sessionLog, state)`: sorts subjects by readiness priority (exploring→comfortable→notready→strong), rotates among tied subjects via `state.dailyBattleRounds % tied.length`. Empty sessionLog → even rotation. Enemy type removed from subject selection entirely.
+  - `getBattleLevel(subject, state)` added — maps thai→xpThai, math→xpMath, eng→xpEng; formula `min(floor(xp/120)+1, maxId)` where maxId = last entry's id in LEVELS[subject].
+  - `src/components/WorldScreen.jsx` — `triggerBattle` calls `getBattleSubject(sessionLog, state)` + `getBattleLevel(subject, state)`; removed `subjectLevels` dependency.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Chopin playtest — fight enemies of different types, confirm subjects rotate, confirm level increases with XP.
+- Needs Chatbot decision first: None.
+

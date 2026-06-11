@@ -9,7 +9,7 @@ import {
 } from '../lib/tileEngine.js'
 import { SCREEN_MAPS, SCREEN_ENEMIES } from '../lib/tileMaps.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
-import { getBattleSubject } from '../lib/battleSubject.js'
+import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
@@ -182,8 +182,8 @@ export default function WorldScreen({ navigate }) {
   // ── Player movement ──────────────────────────────────────────────────────────
 
   const triggerBattle = useCallback((enemy) => {
-    const subject = getBattleSubject(enemy.type, stateRef.current.sessionLog)
-    const level   = stateRef.current.subjectLevels?.[subject] || 1
+    const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
+    const level   = getBattleLevel(subject, stateRef.current)
     enemiesRef.current = enemiesRef.current.map(e =>
       e.id === enemy.id ? { ...e, defeated: true, respawnTimer: 1800 } : e
     )

@@ -1,25 +1,38 @@
-import { ENEMY_DATA } from '../config/enemyConfig.js'
 import { computeReadiness } from './subjectReadiness.js'
+import { LEVELS } from '../config/gameConfig.js'
 
 const SUBJECTS = ['thai', 'math', 'eng']
-// Lower rank = needs more practice → should be selected first
-const RANK = { exploring: 0, comfortable: 1, notready: 1, strong: 2 }
+// Priority order: weakest first
+const PRIORITY = ['exploring', 'comfortable', 'notready', 'strong']
 
-export function getBattleSubject(enemyType, sessionLog) {
-  const enemyPreferred = ENEMY_DATA[enemyType]?.subject ?? 'thai'
+export function getBattleSubject(sessionLog, state) {
+  const dailyCount = state?.dailyBattleRounds ?? 0
 
-  if (!sessionLog?.length) return enemyPreferred
+  if (!sessionLog?.length) {
+    // No session data yet — rotate evenly so all subjects get practice
+    return SUBJECTS[dailyCount % SUBJECTS.length]
+  }
 
   const readiness = {}
   for (const s of SUBJECTS) readiness[s] = computeReadiness(sessionLog, s)
 
-  // Layer 1: child is 'exploring' on any subject → use that (needs most practice)
-  const exploring = SUBJECTS.find(s => readiness[s] === 'exploring')
-  if (exploring) return exploring
+  // Sort by readiness priority (exploring first = most needs practice)
+  const sorted = [...SUBJECTS].sort(
+    (a, b) => PRIORITY.indexOf(readiness[a]) - PRIORITY.indexOf(readiness[b])
+  )
 
-  // Layer 2: child is 'comfortable' on enemy's preferred → reinforce that subject
-  if (readiness[enemyPreferred] === 'comfortable') return enemyPreferred
+  // Rotate among subjects tied at the same (weakest) readiness level
+  const weakestLevel = readiness[sorted[0]]
+  const tied = sorted.filter(s => readiness[s] === weakestLevel)
+  return tied[dailyCount % tied.length]
+}
 
-  // Layer 3: sort by rank ascending, return weakest subject
-  return [...SUBJECTS].sort((a, b) => RANK[readiness[a]] - RANK[readiness[b]])[0]
+export function getBattleLevel(subject, state) {
+  const XP_KEY = { thai: 'xpThai', math: 'xpMath', eng: 'xpEng' }
+  const xp = state[XP_KEY[subject]] ?? 0
+  const levels = LEVELS[subject]
+  if (!levels?.length) return 1
+  // Use last entry's id as the ceiling so getLevelConfig always finds a valid level
+  const maxId = levels[levels.length - 1].id
+  return Math.min(Math.floor(xp / 120) + 1, maxId)
 }

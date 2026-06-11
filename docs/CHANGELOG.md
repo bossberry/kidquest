@@ -1,5 +1,10 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: battle subject+level driven by child readiness, not enemy type
+
+- `src/lib/battleSubject.js` (REWRITTEN) — `getBattleSubject(sessionLog, state)`: priority sort (exploring→comfortable→notready→strong), rotation tiebreaker via `dailyBattleRounds`. `getBattleLevel(subject, state)`: XP→level via `floor(xpX/120)+1`, clamped to LEVELS max id.
+- `src/components/WorldScreen.jsx` — `triggerBattle` uses `getBattleSubject`+`getBattleLevel`; enemy type no longer influences subject or level
+
 ## 2026-06-11 — Fix: battle subject uses weakest subject from sessionLog, not hardcoded thai
 
 - `src/lib/subjectReadiness.js` (NEW) — `computeReadiness(sessionLog, world)` extracted from Report.jsx

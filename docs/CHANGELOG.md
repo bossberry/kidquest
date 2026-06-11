@@ -1,5 +1,25 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — fix: battle uses all question types — full level rotation across thai/math/english
+
+### src/components/WorldBattle.jsx
+- Added imports: `SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS` from gameConfig.
+- `genThaiMoveQ(lv)` now dispatches by `lv.id`: L1=alphabet match (unchanged), L2=SPELL_L1 emoji→word, L3=TH_L2 animal emoji→word, L4=TH_L3 3-syllable emoji→word, L5=TH_L5 emoji→sentence.
+- `genEngMoveQ(lv)` now dispatches by `lv.type`: phonics=unchanged, cvc=CVC_WORDS emoji→word, sight=SIGHT_DATA sentence-with-blank, sentence=ENG_SENTS emoji→full-sentence.
+- `genMoveQuestion` now passes `lv` to both Thai and English generators.
+- Added battle-start debug console.log (levelId, levelName, xp values, dailyBattleRounds).
+
+### src/lib/battleSubject.js
+- `getBattleLevel`: lowered XP threshold from 120 to 60 per level for faster variety unlock.
+- Uses `minId = levels[0].id` as base (0 for math, 1 for thai/eng) — math level 0 (counting) now reachable.
+- Rotation formula: `[minId, maxUnlocked, floor((minId + maxUnlocked) / 2)]`.
+
+### src/games/MoveSelectBattleMode.jsx
+- `MoveCard` fontFamily now includes `Sarabun,Mitr` fallback — Thai word choices now render correctly.
+- Zone 2 question display: shows `q.question` at smaller font (15px Thai, 13px English) when present (used by sight-word and sentence levels). Falls back to `q.word` at 36px for all other types.
+
+---
+
 ## 2026-06-12 — fix: battle items working + item tooltip popup + monster hurt animation
 
 ### src/lib/drawEnemy.js

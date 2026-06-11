@@ -562,3 +562,19 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — fix: battle uses all question types — full level rotation across thai/math/english:**
+- Built:
+  - `src/components/WorldBattle.jsx` — `genThaiMoveQ(lv)` now dispatches on `lv.id`: L1 alphabet match (TH_ALPHA), L2 SPELL_L1 (2-char words อา/อิ/อู vowels), L3 TH_L2 (animal words), L4 TH_L3 (3-syllable words), L5 TH_L5 (short sentences). `genEngMoveQ(lv)` dispatches on `lv.type`: phonics (EN_ALPHA), cvc (CVC_WORDS), sight (SIGHT_DATA sentences with blank), sentence (ENG_SENTS full sentence choice). `genMoveQuestion` now passes `lv` to both generators. Battle-start debug console.log added.
+  - `src/lib/battleSubject.js` — `getBattleLevel`: threshold lowered to 60 XP/level; uses `minId = levels[0].id` (0 for math → counting level now reachable); rotation formula: `[minId, maxUnlocked, floor((minId+maxUnlocked)/2)]`.
+  - `src/games/MoveSelectBattleMode.jsx` — `MoveCard` fontFamily: added `Sarabun,Mitr` fallback so Thai word choices render correctly. Zone 2: shows `q.question` at small font when present (sight-word sentences, level 5 Thai).
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- All math question types: counting/add/sub/mixed/word/comparison/pattern — all reach via getBattleLevel ✓
+- Thai levels rotating beyond L1: yes, at 60+ XP triggers L2 (spelling) ✓
+- English CVC/sight words: yes, at 60/120 XP respectively ✓
+- Debug console.log in place to confirm level variety across battles ✓
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

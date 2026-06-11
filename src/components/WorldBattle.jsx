@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS, scaleMonsterStats } from '../context/StateContext.jsx'
-import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle } from '../config/gameConfig.js'
+import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle,
+         SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS } from '../config/gameConfig.js'
 import { speakTh, speakEn, playBGM, stopBGM } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 
@@ -57,22 +58,85 @@ function genMathQ(lv) {
   return { a, b, op, answer:ans, choices:shuffle([ans,...w]) }
 }
 
-function genThaiMoveQ() {
-  const items = shuffle([...TH_ALPHA])
+function genThaiMoveQ(lv) {
+  const id = lv?.id ?? 1
+
+  if (id <= 1) {
+    // Level 1: alphabet match — hear word, tap correct emoji
+    const items = shuffle([...TH_ALPHA])
+    const correct = items[0]; const wrongs = items.slice(1, 4)
+    return { isThai:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
+  }
+  if (id === 2) {
+    // Level 2: SPELL_L1 — see emoji, choose correct 2-char word (อา/อิ/อู/เ/โ vowels)
+    const items = shuffle([...SPELL_L1])
+    const correct = items[0]; const wrongs = items.slice(1, 4)
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+  }
+  if (id === 3) {
+    // Level 3: TH_L2 — see emoji, choose correct animal word
+    const items = shuffle([...TH_L2])
+    const correct = items[0]; const wrongs = items.slice(1, 4)
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+  }
+  if (id === 4) {
+    // Level 4: TH_L3 — see emoji, choose correct 3-syllable word (fruits/objects)
+    const items = shuffle([...TH_L3])
+    const correct = items[0]; const wrongs = items.slice(1, 4)
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+  }
+  // Level 5: TH_L5 — see emoji, choose correct short sentence
+  const items = shuffle([...TH_L5])
   const correct = items[0]; const wrongs = items.slice(1, 4)
-  return { isThai:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
+  const correctSentence = correct.words.join('')
+  return {
+    isThai:true, ttsWord:correct.sound || correctSentence,
+    answer:correctSentence,
+    choices:shuffle([correctSentence,...wrongs.map(w=>w.words.join(''))]),
+    word:correct.emoji,
+  }
 }
 
-function genEngMoveQ() {
-  const items = shuffle([...EN_ALPHA])
+function genEngMoveQ(lv) {
+  const type = lv?.type || 'phonics'
+
+  if (type === 'phonics') {
+    // Level 1: A–Z phonics — hear word, tap correct emoji
+    const items = shuffle([...EN_ALPHA])
+    const correct = items[0]; const wrongs = items.slice(1, 4)
+    return { isEng:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
+  }
+  if (type === 'cvc') {
+    // Level 2: CVC words — see emoji, choose correct spelling
+    const items = shuffle([...CVC_WORDS])
+    const correct = items[0]
+    return { isEng:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...correct.alts.slice(0,3)]), word:correct.emoji }
+  }
+  if (type === 'sight') {
+    // Level 3: sight words — see picture, choose word that fills the blank
+    const item = SIGHT_DATA[Math.floor(Math.random() * SIGHT_DATA.length)]
+    return {
+      isEng:true, ttsWord:item.sentence.replace('___', item.blank),
+      answer:item.blank, choices:shuffle([...item.choices]),
+      word:item.emoji,
+      question:item.sentence,  // shown in Zone 2 when present (smaller font)
+    }
+  }
+  // Level 4: sentences — see emoji, choose correct full sentence
+  const items = shuffle([...ENG_SENTS])
   const correct = items[0]; const wrongs = items.slice(1, 4)
-  return { isEng:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
+  const correctSentence = correct.words.join(' ')
+  return {
+    isEng:true, ttsWord:correctSentence, answer:correctSentence,
+    choices:shuffle([correctSentence,...wrongs.map(w=>w.words.join(' '))]),
+    word:correct.emoji,
+  }
 }
 
 function genMoveQuestion(subject, lv) {
   if (subject === 'math') return genMathQ(lv)
-  if (subject === 'thai') return genThaiMoveQ()
-  return genEngMoveQ()
+  if (subject === 'thai') return genThaiMoveQ(lv)
+  return genEngMoveQ(lv)
 }
 
 function getLevelConfig(subject, levelId) {
@@ -139,6 +203,21 @@ export default function WorldBattle({ navigate }) {
   }, [])
 
   useEffect(() => { if (!enemy) navigate('world') }, []) // eslint-disable-line
+
+  // Debug log — verify level rotation is working across battles
+  useEffect(() => {
+    if (!enemy) return
+    console.log('🎮 Battle started:', {
+      subject,
+      levelId: levelConfig?.id,
+      levelName: levelConfig?.name,
+      levelType: levelConfig?.type ?? levelConfig?.op,
+      questionCount: qs.length,
+      firstQuestion: qs[0]?.question ?? qs[0]?.word ?? qs[0]?.story ?? '?',
+      xpThai: state.xpThai, xpMath: state.xpMath, xpEng: state.xpEng,
+      dailyBattleRounds: state.dailyBattleRounds,
+    })
+  }, []) // eslint-disable-line
 
   if (!enemy || !scaledEnemy) return null
 

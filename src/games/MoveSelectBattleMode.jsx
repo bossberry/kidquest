@@ -127,8 +127,8 @@ function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
       }}
     >
       <div style={{
-        fontFamily: isEmoji ? 'system-ui,sans-serif' : "'Fredoka One',cursive",
-        fontSize: fs, color: '#fff', lineHeight: 1,
+        fontFamily: isEmoji ? 'system-ui,sans-serif' : "'Fredoka One',Sarabun,Mitr,sans-serif",
+        fontSize: fs, color: '#fff', lineHeight: 1.2,
       }}>
         {content}
       </div>
@@ -927,12 +927,13 @@ export default function MoveSelectBattleMode({
               {q.question ?? (q.a !== undefined && q.op ? `${q.a} ${q.op} ${q.b} = ?` : '')}
             </span>
           ) : subject === 'thai' ? (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap' }}>
               <span style={{
-                fontSize:36, fontWeight:'bold', color:'var(--px-yellow)',
+                fontSize: q.question ? 15 : 36, fontWeight:'bold', color:'var(--px-yellow)',
                 fontFamily:'Sarabun, var(--font-thai), sans-serif',
+                textAlign:'center', lineHeight:1.4,
               }}>
-                {q.word}
+                {q.question || q.word}
               </span>
               <button
                 onClick={() => q.ttsWord && speakTh(q.ttsWord)}
@@ -942,12 +943,13 @@ export default function MoveSelectBattleMode({
               </button>
             </div>
           ) : (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap' }}>
               <span style={{
-                fontSize:36, fontWeight:'bold', color:'var(--px-yellow)',
-                fontFamily:'var(--font-pixel, "Press Start 2P", monospace)',
+                fontSize: q.question ? 13 : 36, fontWeight:'bold', color:'var(--px-yellow)',
+                fontFamily: q.question ? 'Sarabun,sans-serif' : 'var(--font-pixel, "Press Start 2P", monospace)',
+                textAlign:'center', lineHeight:1.4,
               }}>
-                {q.word || q.letter}
+                {q.question || q.word || q.letter}
               </span>
               <button
                 onClick={() => (q.ttsWord || q.word || q.letter) && speakEn(q.ttsWord || q.word || q.letter)}

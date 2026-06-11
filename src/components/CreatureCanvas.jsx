@@ -1,6 +1,20 @@
 import React, { useRef, useEffect } from 'react'
 import { drawCreature } from '../lib/drawCreature.js'
 
+function pixelateCanvas(canvas, blockSize) {
+  const ctx = canvas.getContext('2d')
+  const W = canvas.width, H = canvas.height
+  const tmp = document.createElement('canvas')
+  tmp.width  = Math.max(1, Math.ceil(W / blockSize))
+  tmp.height = Math.max(1, Math.ceil(H / blockSize))
+  const tc = tmp.getContext('2d')
+  tc.imageSmoothingEnabled = false
+  tc.drawImage(canvas, 0, 0, tmp.width, tmp.height)
+  ctx.imageSmoothingEnabled = false
+  ctx.clearRect(0, 0, W, H)
+  ctx.drawImage(tmp, 0, 0, W, H)
+}
+
 // Seconds between blinks per personality (mean; ±1s jitter applied)
 const BLINK_RATE = { happy: 4, curious: 5, brave: 8, playful: 3, gentle: 5, sleepy: 2, shy: 4 }
 // How long eyes stay closed per blink
@@ -28,7 +42,10 @@ export default function CreatureCanvas({
 
   // One-time static draw (handles no-animation case and first paint)
   useEffect(() => {
-    if (canvasRef.current && dna) drawCreature(canvasRef.current, dna)
+    if (canvasRef.current && dna) {
+      drawCreature(canvasRef.current, dna)
+      pixelateCanvas(canvasRef.current, 3)
+    }
   }, [dna])
 
   // Animation loop
@@ -112,6 +129,7 @@ export default function CreatureCanvas({
           blinkAmt:      S.blinkAmt,
           sleepParticles: isAsleep ? S.particles : null,
         })
+        pixelateCanvas(canvasRef.current, 3)
       }
     }
 

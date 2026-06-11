@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
+import CreatureCanvas from './CreatureCanvas.jsx'
+import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 
 const ITEM_DEFS = [
-  { key:'food',   emoji:'🍗', label:'อาหาร' },
-  { key:'ribbon', emoji:'🎀', label:'ริบบิ้น' },
-  { key:'potion', emoji:'💧', label:'น้ำมนต์' },
-  { key:'star',   emoji:'⭐', label:'ดาว' },
+  { key:'food',   label:'อาหาร' },
+  { key:'ribbon', label:'ริบบิ้น' },
+  { key:'potion', label:'น้ำมนต์' },
+  { key:'star',   label:'ดาว' },
 ]
+const ITEM_COLORS = { food:'#d46a2a', ribbon:'#ff88cc', potion:'#4488ff', star:'#ffcc00' }
 
 // Duration (ms) for each idle animation before clearing state
 const IDLE_DUR = {
@@ -60,7 +63,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
-  const lastCreatureEmoji = state.hatchedEggs?.[0]?.creature?.e || null
+  const lastCreatureDNA = useMemo(() => {
+    const egg = state.hatchedEggs?.[0]
+    if (!egg) return null
+    if (egg.dna) return egg.dna
+    try { return buildLegacyPreviewDNA(egg, 0) } catch (_) { return null }
+  }, [state.hatchedEggs])
   const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
@@ -342,7 +350,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     smRef.current.comboCount = 0  // items reset combo so next pet sequence starts clean
 
     if (key === 'food') {
-      setFlyingItem({ emoji:'🍗', id: Date.now() })
+      setFlyingItem({ label:'อาหาร', id: Date.now() })
       setTimeout(() => {
         enterState('eating')
         spawnParticles('hearts', 5)
@@ -415,7 +423,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           fontSize:30, pointerEvents:'none', zIndex:500,
           animation:'food-fly-up .58s cubic-bezier(.2,.8,.4,1) forwards',
         }}>
-          {flyingItem.emoji}
+          <span style={{ fontFamily:'var(--font-thai)', fontSize:12, color:'#fff', fontWeight:700 }}>{flyingItem.label}</span>
         </div>
       )}
 
@@ -425,27 +433,26 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           position:'fixed', top:'38%', left:0,
           fontSize:22, pointerEvents:'none', zIndex:600,
           animation:'ambient-butterfly 4.4s ease-in-out forwards',
-        }}>🦋</div>
+        }}><div style={{ width:10, height:7, background:'#ff88ff', boxShadow:'0 0 4px #ff88ff' }} /></div>
       )}
       {ambientEvent?.type === 'leaf' && (
         <div key={`amb-${ambientEvent.id}`} style={{
           position:'fixed', top:0, left:'42%',
           fontSize:18, pointerEvents:'none', zIndex:600,
           animation:'ambient-leaf 4s ease-in forwards',
-        }}>🍂</div>
+        }}><div style={{ width:8, height:8, background:'#44aa44', boxShadow:'0 0 3px #44aa44' }} /></div>
       )}
       {ambientEvent?.type === 'star' && (
         <div key={`amb-${ambientEvent.id}`} style={{
           position:'fixed', top:'10%', right:'18%',
           fontSize:16, pointerEvents:'none', zIndex:600,
           animation:'ambient-shooting-star .85s ease-out forwards',
-        }}>✨</div>
+        }}><div style={{ width:6, height:6, background:'#ffdd44', boxShadow:'0 0 6px #ffdd44' }} /></div>
       )}
 
       {/* Stage-up celebration banner */}
       {stageUp && (
         <div key={`su-${stageUp.id}`} className="stage-up-banner" style={{ animation:'stage-up-pop 2.8s ease forwards' }}>
-          <div style={{ fontSize:38 }}>✨</div>
           <div style={{
             fontFamily:"'Fredoka One',cursive", fontSize:22,
             color:'#FFD700', textShadow:'0 2px 12px rgba(80,30,0,.8)',
@@ -481,8 +488,8 @@ export default function Home({ navigate, soundOn, toggleSound }) {
               พร้อมฟัก!
             </div>
           )}
-          <button onClick={toggleSound} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', opacity:0.5, padding:4 }}>
-            {soundOn ? '🔊' : '🔇'}
+          <button onClick={toggleSound} style={{ background:'none', border:'none', fontSize:10, cursor:'pointer', opacity:0.5, padding:4, fontFamily:'var(--font-thai)', color:'var(--px-light)' }}>
+            {soundOn ? 'เสียง' : 'ปิด'}
           </button>
         </div>
       </div>
@@ -533,7 +540,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                   animation:`particle-rise ${p.dur}ms ease forwards`,
                   pointerEvents:'none',
                 }}>
-                  {p.type === 'hearts' ? '💗' : '✨'}
+                  <div style={{ width: p.type==='hearts'?8:6, height: p.type==='hearts'?8:6, background: p.type==='hearts'?'#ff6677':'#ffdd44', boxShadow: `0 0 4px ${p.type==='hearts'?'#ff6677':'#ffdd44'}` }} />
                 </div>
               ))}
             </div>
@@ -542,20 +549,18 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           {/* Star boost orbit */}
           {boostActive && (
             <>
-              <div className="egg-star-orbit" style={{ animationDuration:'2s' }}>✨</div>
-              <div className="egg-star-orbit" style={{ animationDuration:'2.7s', animationDelay:'-1.35s' }}>⭐</div>
+              <div className="egg-star-orbit" style={{ animationDuration:'2s', width:6, height:6, background:'#ffdd44', display:'inline-block', boxShadow:'0 0 4px #ffdd44' }} />
+              <div className="egg-star-orbit" style={{ animationDuration:'2.7s', animationDelay:'-1.35s', width:6, height:6, background:'#ffffff', display:'inline-block', boxShadow:'0 0 3px #fff' }} />
             </>
           )}
 
           {/* Ribbon decoration */}
           {hasRibbon && (
             <div style={{
-              position:'absolute', top:-8, right:-8,
-              fontSize:20, pointerEvents:'none', zIndex:12,
-              filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.2))',
-            }}>
-              🎀
-            </div>
+              position:'absolute', top:-6, right:-6,
+              width:10, height:10, background:'#ff88cc', border:'2px solid #fff',
+              pointerEvents:'none', zIndex:12,
+            }} />
           )}
 
           {/* Canvas with ground shadow */}
@@ -600,7 +605,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             >
               {/* Directional flip — separate from animation so they don't fight */}
               <div style={{ transform:`scaleX(${creature.dir < 0 ? -1 : 1})`, display:'inline-flex', alignItems:'flex-end', gap:2 }}>
-                {/* Main creature emoji + behavior animation */}
+                {/* Creature canvas + behavior animation */}
                 <div
                   className={
                     creatureState === 'wave'      ? 'creature-wave' :
@@ -608,40 +613,39 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                     creatureTapped                ? 'egg-anim-pet' : ''
                   }
                   style={{
-                    fontSize:26, lineHeight:1, display:'inline-block',
+                    display:'inline-block',
                     transform: creatureState === 'sit' ? 'rotate(14deg) translateY(4px)' : undefined,
                     opacity: creatureState === 'sleep' ? 0.48 : 1,
                     transition:'transform 0.35s, opacity 0.5s',
                   }}
                 >
-                  {lastCreatureEmoji}
+                  <CreatureCanvas dna={lastCreatureDNA} size={26} animationEnabled={false} style={{ borderRadius:4 }} />
                 </div>
 
                 {/* Behavior overlays — shown inline next to creature */}
                 {creatureState === 'wave' && (
-                  <span style={{
-                    fontSize:13, lineHeight:1,
+                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#aaffaa',
                     animation:'creature-overlay-bob .45s ease-in-out infinite alternate',
                     display:'inline-block',
-                  }}>👋</span>
+                  }}>ทัก!</span>
                 )}
                 {creatureState === 'gift' && (
-                  <span style={{ fontSize:13, lineHeight:1, display:'inline-block' }}>🎁</span>
+                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#ffaa88', display:'inline-block' }}>ของ</span>
                 )}
                 {creatureState === 'celebrate' && (
-                  <span style={{ fontSize:14, lineHeight:1, display:'inline-block' }}>🎊</span>
+                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#ffff88', display:'inline-block' }}>สนุก!</span>
                 )}
                 {creatureState === 'sleep' && (
-                  <span style={{ fontSize:11, lineHeight:1, opacity:0.7, display:'inline-block' }}>💤</span>
+                  <span style={{ fontSize:9, lineHeight:1, color:'#aaaaff', opacity:0.7, display:'inline-block' }}>zz</span>
                 )}
                 {creatureState === 'look' && (
-                  <span style={{ fontSize:10, lineHeight:1, display:'inline-block' }}>👀</span>
+                  <span style={{ fontSize:9, lineHeight:1, color:'#aaaaaa', display:'inline-block' }}>...</span>
                 )}
               </div>
             </div>
           ) : (
             <div style={{ position:'absolute', bottom:8, left:20, fontSize:11, color:'rgba(90,58,139,0.36)', fontFamily:'Mitr,sans-serif' }}>
-              ❓ ฟักไข่เพื่อพบเพื่อนใหม่!
+              ฟักไข่เพื่อพบเพื่อนใหม่!
             </div>
           )}
         </div>
@@ -655,7 +659,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         borderTop: '2px solid var(--px-border)',
       }}>
         <div style={{ display:'flex', gap:8 }}>
-        {ITEM_DEFS.map(({ key, emoji, label }) => {
+        {ITEM_DEFS.map(({ key, label }) => {
           const count    = state.items?.[key] || 0
           const isActive = activeItem === key
           return (
@@ -672,7 +676,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                 boxShadow: isActive ? '3px 3px 0 var(--px-purple)' : undefined,
               }}
             >
-              <span style={{ fontSize:22, lineHeight:1 }}>{emoji}</span>
+              <div style={{ width:22, height:22, background:ITEM_COLORS[key], margin:'0 auto 2px', border:'2px solid rgba(0,0,0,0.3)' }} />
               <span style={{ fontFamily:'var(--font-thai)', fontSize:8, color:'var(--px-light)', marginTop:2 }}>{label}</span>
               {count > 0 && (
                 <div className="px-badge" style={{ position:'absolute', top:-5, right:-5 }}>{count}</div>

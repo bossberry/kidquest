@@ -110,9 +110,9 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
     const max = Math.max(...Object.values(counts))
 
     let reward
-    if (max === 3)      reward = { type: 'star',   qty: 3, label: '🌟 แจ็คพอต!' }
-    else if (max === 2) reward = { type: 'ribbon',  qty: 1, label: '🎀 เยี่ยม!' }
-    else                reward = { type: 'food',    qty: 1, label: '🍖 ได้ของแล้ว!' }
+    if (max === 3)      reward = { type: 'star',   qty: 3, label: 'แจ็คพอต!' }
+    else if (max === 2) reward = { type: 'ribbon',  qty: 1, label: 'เยี่ยม!' }
+    else                reward = { type: 'food',    qty: 1, label: 'ได้ของแล้ว!' }
 
     setRewardLabel(reward.label)
     setTimeout(() => { onReward(reward) }, 800)
@@ -132,7 +132,7 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
     return (
       <div style={overlayStyle}>
         <div style={{ color: '#ffd700', fontSize: 18, fontWeight: 'bold', textAlign: 'center', fontFamily: 'var(--font-thai,Mitr,sans-serif)' }}>
-          💰 ตอบให้ถูกเพื่อเปิดหีบ!
+          ตอบให้ถูกเพื่อเปิดหีบ!
         </div>
 
         <div style={{ color: '#ffffff', fontSize: 28, fontWeight: 'bold', textAlign: 'center', fontFamily: 'var(--font-pixel,"Press Start 2P",monospace)', letterSpacing: 2 }}>
@@ -169,7 +169,7 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
   return (
     <div style={overlayStyle}>
       <div style={{ color: '#ffd700', fontSize: 28, fontWeight: 'bold', fontFamily: 'var(--font-thai,Mitr,sans-serif)' }}>
-        💰 หีบสมบัติ! 💰
+        หีบสมบัติ!
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
@@ -205,7 +205,7 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
           WebkitTapHighlightColor: 'transparent',
           touchAction: 'manipulation',
         }}>
-          🎰 หมุน!
+          หมุน!
         </button>
       )}
 
@@ -219,7 +219,7 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
           WebkitTapHighlightColor: 'transparent',
           touchAction: 'manipulation',
         }}>
-          ✅ รับของ!
+          รับของ!
         </button>
       )}
     </div>

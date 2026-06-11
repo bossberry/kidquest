@@ -70,7 +70,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
     setPhase('tapping') // reset phase first — makes !isOpen && phase==='tapping' true → overlay unmounts
     dispatch({ type: ACTIONS.CLOSE_HATCH })
     dispatch({ type: ACTIONS.SET_HATCHING, payload: false })
-    showToast('🥚 ไข่ใบใหม่เริ่มต้นแล้ว!')
+    showToast('ไข่ใบใหม่เริ่มต้นแล้ว!')
     onClose?.()
   }
 

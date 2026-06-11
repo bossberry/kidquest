@@ -612,7 +612,7 @@ export default function WorldScreen({ navigate }) {
           fontSize: 13, color: '#2d5a1b', cursor: 'pointer',
           boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
           WebkitTapHighlightColor: 'transparent',
-        }}>🏠 กลับบ้าน</button>
+        }}>กลับบ้าน</button>
         <div style={{
           background: 'rgba(0,0,0,0.35)', borderRadius: 12, padding: '3px 10px',
           fontFamily: 'Mitr,sans-serif', fontWeight: 700, fontSize: 11, color: '#fff',

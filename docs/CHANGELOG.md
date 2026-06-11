@@ -1,5 +1,71 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: Remove all UI emoji + apply pixel post-processing
+
+### Home.jsx
+- Removed `emoji` field from ITEM_DEFS; added `ITEM_COLORS` dict; item tray now shows 22×22 colored CSS squares
+- Flying food item uses Thai label (`{ label:'อาหาร' }`) instead of emoji
+- Ambient events (butterfly/leaf/star) render pixel squares instead of emoji
+- Stage-up banner sparkle div removed
+- Particles replaced with colored CSS squares (hearts=#ff6677, sparkle=#ffdd44)
+- Star boost orbit uses CSS inline-block squares instead of emoji
+- Ribbon decoration uses 10×10 pink CSS square instead of 🎀
+- Sound toggle uses Thai text "เสียง"/"ปิด" instead of 🔊/🔇
+- Creature companion: replaced `{lastCreatureEmoji}` with `CreatureCanvas` (26px, animationEnabled=false, legacy DNA fallback via `buildLegacyPreviewDNA`)
+- Behavior overlays: replaced 👋/🎁/🎊/💤/👀 with Thai text ทัก!/ของ/สนุก!/zz/...
+- Placeholder text: removed ❓ from "ฟักไข่เพื่อพบเพื่อนใหม่!"
+- Added `useMemo`, `CreatureCanvas`, `buildLegacyPreviewDNA` imports
+
+### Collection.jsx
+- Removed 🥚 from page title; removed 🐣/🥚 from tab labels
+- Removed legacy creature emoji overlay (`{egg.creature.e}`) from CreatureCard
+- Removed 🥚 from empty state, removed 🐣 from "พร้อมฟักแล้ว!" text
+- Removed unused `isLegacy` variable
+
+### BottomNav.jsx
+- Replaced 🏠/🥚/📊 emoji icons with 18×18 colored CSS squares (yellow/purple/blue)
+
+### WorldScreen.jsx
+- Removed 🏠 emoji from "กลับบ้าน" back button
+
+### TreasureSlot.jsx
+- Removed 💰/🎰 from UI headers and button text
+- Removed emoji from reward label strings (kept ITEMS array as slot symbols)
+- Removed ✅ from "รับของ!" button
+
+### Report.jsx
+- Removed 📊 from page title; removed all rc-icon emoji spans
+- WORLD_LABELS: removed emoji prefixes from all 4 subject strings
+- READINESS_SUBJECTS: removed icon field entirely, removed icon span from JSX
+- `domSub`/`weakSub`/`speedLabel`/`accLabel` computed strings: removed trailing emoji
+- BarRow labels: removed 📖/🔤/🔢 prefixes
+- Phase difficulty: replaced ⚠️/✅ with colored "!"/OK text labels
+- Session log: replaced ✅/❌ with "ผ่าน"/"ล้ม" Thai text
+
+### CreatureDetailPopup.jsx
+- Removed rarity ⭐ stars from rarity badge
+- Removed legacy emoji overlay (`{egg.creature.e}`)
+- Removed 🗓️ from date display; removed ⚡/✨ from section headers
+- XP bar labels: removed 📖/🔤/🔢 emoji prefixes
+- Streak: removed 🔥 suffix
+- Ability strings: removed all trailing emoji (❤️/🌍/🔢/⭐/🔥/🎯)
+- Removed unused `isLegacy` variable
+
+### HatchOverlay.jsx
+- Removed 🥚 from new-egg toast message
+
+### drawCreature.js
+- `imageSmoothingEnabled` changed from `true` → `false`; removed `imageSmoothingQuality = 'high'`
+
+### EggCanvas.jsx
+- Added `pixelateCanvas(canvas, blockSize)` helper (downsample + upsample with imageSmoothingEnabled=false)
+- `useEffect` now calls `pixelateCanvas(ref.current, 4)` after every `drawEgg()` call
+
+### CreatureCanvas.jsx
+- Added `pixelateCanvas(canvas, blockSize)` helper
+- Static draw (`useEffect` on dna): calls `pixelateCanvas(canvasRef.current, 3)` after `drawCreature()`
+- Animation loop `tick()`: calls `pixelateCanvas(canvasRef.current, 3)` after every `drawCreature()` frame
+
 ## 2026-06-11 — Feat: Baby Zombie (tiny fast chaser) + Snake (patrol+aggro) enemies
 
 ### drawEnemy.js

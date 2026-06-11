@@ -17,11 +17,11 @@ export default function Collection() {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
       <div className="page-header">
-        <div className="page-title">🥚 คอลเลกชัน</div>
+        <div className="page-title">คอลเลกชัน</div>
       </div>
       <div className="coll-tabs" style={{ width:'100%', maxWidth:480 }}>
-        <div className={`coll-tab${tab==='hatched'?' active':''}`} onClick={() => setTab('hatched')}>ฟักแล้ว 🐣</div>
-        <div className={`coll-tab${tab==='current'?' active':''}`} onClick={() => setTab('current')}>กำลังฟัก 🥚</div>
+        <div className={`coll-tab${tab==='hatched'?' active':''}`} onClick={() => setTab('hatched')}>ฟักแล้ว</div>
+        <div className={`coll-tab${tab==='current'?' active':''}`} onClick={() => setTab('current')}>กำลังฟัก</div>
       </div>
       <div className="egg-catalog">
         {tab === 'hatched'
@@ -48,7 +48,6 @@ function CreatureCard({ egg, index, onSelect }) {
     try { return buildLegacyPreviewDNA(egg, index) } catch (_) { return null }
   }, [egg, index])
 
-  const isLegacy = !egg.dna
   const rarityColors = { common:'#085041', uncommon:'#0C447C', rare:'#3C3489', epic:'#633806', legendary:'#C8C0F8' }
   const rarityBg    = { common:'#E1F5EE', uncommon:'#E6F1FB', rare:'#EEEDFE', epic:'#FAEEDA', legendary:'#1E1B3A' }
   const rar = egg.creature?.rarity || 'common'
@@ -63,11 +62,6 @@ function CreatureCard({ egg, index, onSelect }) {
           animationEnabled
           style={{ margin:'0 auto 8px' }}
         />
-        {isLegacy && egg.creature?.e && (
-          <span style={{ position:'absolute', bottom:10, right:2, fontSize:13, lineHeight:1, pointerEvents:'none' }}>
-            {egg.creature.e}
-          </span>
-        )}
       </div>
       <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
       <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>
@@ -78,7 +72,7 @@ function CreatureCard({ egg, index, onSelect }) {
 
 function HatchedGrid({ hatched, onSelect }) {
   if (!hatched.length) return (
-    <div className="catalog-empty">🥚<br/><br/>ยังไม่มีไข่ที่ฟักแล้ว<br/><span style={{ fontSize:12, color:'var(--muted)' }}>เล่นเกมเพื่อฟักไข่ใบแรก!</span></div>
+    <div className="catalog-empty">ยังไม่มีไข่ที่ฟักแล้ว<br/><span style={{ fontSize:12, color:'var(--muted)' }}>เล่นเกมเพื่อฟักไข่ใบแรก!</span></div>
   )
   return (
     <>
@@ -103,7 +97,7 @@ function CurrentEgg({ state, eggStats, progress }) {
         <div style={{ width:'100%', background:'var(--border)', borderRadius:20, height:8, overflow:'hidden', marginBottom:6 }}>
           <div style={{ height:8, background:'var(--purple)', borderRadius:20, width:`${pct}%`, transition:'width .6s' }} />
         </div>
-        <div style={{ fontSize:11, color:'var(--muted)' }}>{stage >= 6 ? '🐣 พร้อมฟักแล้ว!' : `${stageXP} / ${STAGE_XP_NEEDED} XP ถึง Stage ถัดไป`}</div>
+        <div style={{ fontSize:11, color:'var(--muted)' }}>{stage >= 6 ? 'พร้อมฟักแล้ว!' : `${stageXP} / ${STAGE_XP_NEEDED} XP ถึง Stage ถัดไป`}</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, width:'100%', marginTop:14 }}>
           <div className="eds" style={{ background:'var(--green-l)' }}><div className="eds-val" style={{ color:'var(--green-d)' }}>{state.xpThai||0}</div><div className="eds-lbl">XP ไทย</div></div>
           <div className="eds" style={{ background:'var(--blue-l)' }}><div className="eds-val" style={{ color:'var(--blue-d)' }}>{state.xpEng||0}</div><div className="eds-lbl">XP EN</div></div>

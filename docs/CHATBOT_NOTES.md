@@ -482,3 +482,24 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+**2026-06-11 — fix: remove all UI emoji + apply pixel rendering:**
+- Built:
+  - `Home.jsx` — removed all emoji from ITEM_DEFS (colored CSS squares), flying food shows Thai label, ambient event divs show pixel squares, stage-up banner sparkle removed, particles replaced with CSS colored squares, star orbit uses CSS blocks, ribbon → CSS pink square, sound toggle → Thai text (เสียง/ปิด), creature companion switched from emoji to CreatureCanvas (26px, static, with legacy DNA fallback)
+  - `Collection.jsx` — removed all emoji from page title, tab labels, legacy emoji overlay, empty state, ready-to-hatch text
+  - `BottomNav.jsx` — replaced 🏠/🥚/📊 nav emoji with colored CSS squares (yellow/purple/blue)
+  - `WorldScreen.jsx` — removed 🏠 from กลับบ้าน button
+  - `TreasureSlot.jsx` — removed 💰/🎰 from UI labels; ITEMS array kept (slot symbols exception)
+  - `Report.jsx` — removed all emoji: page title, rc-icon spans, WORLD_LABELS, READINESS_SUBJECTS, speedLabel/accLabel/domSub strings, BarRow labels, session log status text
+  - `CreatureDetailPopup.jsx` — removed rarity stars, legacy overlay, streak 🔥, date icon, section header emoji, XP bar label emoji, ability string emoji
+  - `HatchOverlay.jsx` — removed 🥚 from new-egg toast
+  - `drawCreature.js` — `imageSmoothingEnabled = false` (was true)
+  - `EggCanvas.jsx` — `pixelateCanvas(canvas, 4)` post-process after drawEgg()
+  - `CreatureCanvas.jsx` — `pixelateCanvas(canvas, 3)` post-process on both static draw and animation loop
+- Not finished:
+  - `HatchOverlay.jsx` line 91: `{creature?.e || '🐣'}` hatch reveal still uses emoji. Needs CreatureCanvas integration into hatch flow.
+  - `BattleScreen.jsx`: creature.e displays in battle HUD + ITEM_EMOJI dict still use emoji. Need CreatureCanvas integration.
+  - Games (`GameSubjectAdventure`, `BattleMode`, `MoveSelectBattleMode`, `DefenseMode`, `EggMemory`, `EggFishing`): 🥚 used as egg visual in mini-games — intentional game visual, not decoration.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: HatchOverlay creature reveal + BattleScreen creature visual — replace emoji with CreatureCanvas?
+

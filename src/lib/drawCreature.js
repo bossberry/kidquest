@@ -996,8 +996,7 @@ export function drawCreature(canvas, dna, anim = {}) {
   if (!canvas || !dna) return
   const ctx = canvas.getContext('2d')
   const S   = canvas.width
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
+  ctx.imageSmoothingEnabled = false
   ctx.clearRect(0, 0, S, S)
 
   const sc = S / 120

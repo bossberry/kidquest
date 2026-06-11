@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: Snake battle + enemy death animation + respawn + player glow
+
+### src/components/WorldScreen.jsx
+- **Snake/zombie bidirectional collision**: `tryMove()` checks fast enemies on player's current tile; `updateEnemies()` returns `pendingBattle` when enemy moves onto player; `loop()` fires battle and returns.
+- **Enemy death animation**: dead enemies render as squished (scale 1×0.3, rotated 90°) fading corpse + ✕ mark. `sessionStorage kq_last_battle` persists defeated enemy type across WorldScreen remount so death animation plays on return from battle.
+- **Enemy respawn timer**: `scheduleRespawn()` uses setTimeout (45–90s random) to re-spawn enemy at walkable tile ≥5 from player. Timer IDs cleared on RAF cleanup.
+- **Player glow**: `fillCirclePixel()` + `drawPlayerGlow()` draw 3 pulsing warm-yellow/white pixel rings behind player every frame.
+- `triggerBattleRef = useRef(null)` wires RAF closure to current `triggerBattle` useCallback.
+
 ## 2026-06-11 — Feat: Battle item system
 
 ### src/config/itemConfig.js (NEW)

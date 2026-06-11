@@ -66,6 +66,41 @@ function spawnChests(screenId) {
 
 const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
+// ── Player glow rendering ────────────────────────────────────────────────────
+
+function fillCirclePixel(ctx, cx, cy, r, blockSize) {
+  const B = blockSize
+  for (let y = -r; y <= r; y += B) {
+    for (let x = -r; x <= r; x += B) {
+      const d = x * x + y * y
+      if (d > (r - B) * (r - B) && d <= r * r) {
+        ctx.fillRect(Math.round(cx + x), Math.round(cy + y), B, B)
+      }
+    }
+  }
+}
+
+function drawPlayerGlow(ctx, px, py, frame) {
+  const cx = px + TILE / 2
+  const cy = py + TILE / 2
+  const r  = TILE * 0.9
+  const pulse = Math.sin(frame * 0.08) * 0.3 + 0.7
+
+  ctx.globalAlpha = 0.13 * pulse
+  ctx.fillStyle = '#ffffaa'
+  fillCirclePixel(ctx, cx, cy, r + 5, 4)
+
+  ctx.globalAlpha = 0.28 * pulse
+  ctx.fillStyle = '#ffffff'
+  fillCirclePixel(ctx, cx, cy, r + 2, 4)
+
+  ctx.globalAlpha = 0.50
+  ctx.fillStyle = '#ffffdd'
+  fillCirclePixel(ctx, cx, cy, r, 2)
+
+  ctx.globalAlpha = 1
+}
+
 const OWL_LINES = [
   'สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก',
   'หญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!',
@@ -128,8 +163,9 @@ export default function WorldScreen({ navigate }) {
   const dialogueRef  = useRef(dialogue)
   const rafRef       = useRef(null)
   const transTimer   = useRef(null)
-  const enemiesRef   = useRef([]) // dynamic enemy runtime state
-  const chestsRef    = useRef([]) // treasure chest runtime state
+  const enemiesRef        = useRef([]) // dynamic enemy runtime state
+  const chestsRef         = useRef([]) // treasure chest runtime state
+  const triggerBattleRef  = useRef(null)
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
 
   screenIdRef.current   = screenId
@@ -205,8 +241,26 @@ export default function WorldScreen({ navigate }) {
       aggroTimer:   0,
       defeated:     false,
       respawnTimer: 0,
+      dead:         false,
+      deathTimer:   0,
+      opacity:      1,
     }))
     chestsRef.current = spawnChests(screenId)
+    // Apply death animation for the enemy that was just defeated in battle
+    try {
+      const lb = JSON.parse(sessionStorage.getItem('kq_last_battle') || 'null')
+      if (lb && lb.screenId === screenId) {
+        sessionStorage.removeItem('kq_last_battle')
+        let applied = false
+        enemiesRef.current = enemiesRef.current.map(e => {
+          if (!applied && e.type === lb.enemyType) {
+            applied = true
+            return { ...e, dead: true, deathTimer: 180, opacity: 1.0 }
+          }
+          return e
+        })
+      }
+    } catch {}
   }, [screenId]) // eslint-disable-line
 
   // ── Proximity detection ─────────────────────────────────────────────────────
@@ -249,6 +303,14 @@ export default function WorldScreen({ navigate }) {
     enemiesRef.current = enemiesRef.current.map(e =>
       e.id === enemy.id ? { ...e, defeated: true, respawnTimer: 1800 } : e
     )
+    // Persist defeat info so death animation plays on return
+    if (enemy.id !== '_grass_') {
+      try {
+        sessionStorage.setItem('kq_last_battle', JSON.stringify({
+          screenId: screenIdRef.current, enemyType: enemy.type,
+        }))
+      } catch {}
+    }
     setEncounterFlash(true)
     setTimeout(() => setEncounterFlash(false), 80)
     dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: {
@@ -257,6 +319,7 @@ export default function WorldScreen({ navigate }) {
     }})
     navigate('world-battle')
   }, [dispatch, navigate]) // eslint-disable-line
+  triggerBattleRef.current = triggerBattle
 
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
@@ -269,10 +332,14 @@ export default function WorldScreen({ navigate }) {
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 
-    // Dynamic enemy collision
-    const hitEnemy = enemiesRef.current.find(e =>
-      !e.defeated && e.col === newCol && e.row === newRow
-    )
+    // Dynamic enemy collision — also catches fast enemies already on player's tile
+    const hitEnemy = enemiesRef.current.find(e => {
+      if (e.defeated || e.dead) return false
+      if (e.col === newCol && e.row === newRow) return true
+      if ((e.type === 'snake' || e.type === 'baby_zombie') &&
+          e.col === g.col && e.row === g.row) return true
+      return false
+    })
     if (hitEnemy) {
       if (hitEnemy.type === 'sleepy_bunny' && !hitEnemy.woken) {
         // Wake the bunny — player bumped it, bunny wakes up
@@ -350,9 +417,72 @@ export default function WorldScreen({ navigate }) {
     let alive = true
 
     const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
+    const respawnTimerIds = []
 
+    function findRespawnPos(tileMap, player, minDist) {
+      const candidates = []
+      for (let r = 1; r < tileMap.length - 1; r++) {
+        for (let c = 1; c < (tileMap[r]?.length ?? 0) - 1; c++) {
+          const raw = tileMap[r][c]
+          const t = typeof raw === 'object' ? raw.type : raw
+          if (t !== T.GRASS && t !== T.TALL) continue
+          const dist = Math.abs(c - player.col) + Math.abs(r - player.row)
+          if (dist >= minDist) candidates.push({ col: c, row: r })
+        }
+      }
+      if (!candidates.length) return null
+      return candidates[Math.floor(Math.random() * candidates.length)]
+    }
+
+    function scheduleRespawn(deadEnemy) {
+      const delay = (45 + Math.random() * 45) * 1000
+      const tid = setTimeout(() => {
+        if (!alive) return
+        const tmap  = tileMapRef.current
+        const player = gameRef.current
+        if (!tmap || !player) return
+        const spawnPos = findRespawnPos(tmap, player, 5)
+        if (spawnPos) {
+          enemiesRef.current = [
+            ...enemiesRef.current,
+            {
+              id:           `${deadEnemy.type}_${Date.now()}`,
+              type:         deadEnemy.type,
+              col:          spawnPos.col,
+              row:          spawnPos.row,
+              dir:          'none',
+              timer:        0,
+              rngSeed:      Math.floor(Math.random() * 97),
+              woken:        false,
+              isAggro:      false,
+              aggroTimer:   0,
+              defeated:     false,
+              respawnTimer: 0,
+              dead:         false,
+              deathTimer:   0,
+              opacity:      1,
+            },
+          ]
+        }
+        const idx = respawnTimerIds.indexOf(tid)
+        if (idx !== -1) respawnTimerIds.splice(idx, 1)
+      }, delay)
+      respawnTimerIds.push(tid)
+    }
+
+    // Returns the enemy that ran into the player this tick (or null)
     function updateEnemies(tileMap, frame) {
+      let pendingBattle = null
       enemiesRef.current = enemiesRef.current.map(e => {
+        // Death animation tick
+        if (e.dead) {
+          const newTimer = (e.deathTimer || 0) - 1
+          if (newTimer <= 0) {
+            scheduleRespawn(e)
+            return null
+          }
+          return { ...e, deathTimer: newTimer, opacity: newTimer / 180 }
+        }
         if (e.defeated) {
           const rt = e.respawnTimer - 1
           if (rt <= 0) return { ...e, defeated: false, respawnTimer: 0, timer: 0 }
@@ -423,7 +553,6 @@ export default function WorldScreen({ navigate }) {
             break
           }
           case 'baby_zombie': {
-            // Fast chaser — always moves toward player every ~6 ticks (≈300ms at 20fps)
             if (ne.timer >= 6) {
               ne.timer = 0
               const gc2 = gameRef.current
@@ -451,13 +580,11 @@ export default function WorldScreen({ navigate }) {
             if (ne.aggroTimer > 0) ne.aggroTimer--
 
             if (!wasAggro && ne.isAggro) {
-              // Just entered aggro — flash indicator and play SFX
-              ne.aggroTimer = 10 // ≈500ms at 20fps
+              ne.aggroTimer = 10
               playSFX('enemy_notice')
             }
 
             if (ne.isAggro) {
-              // Aggressive charge — fast (≈5 ticks, 250ms)
               if (ne.timer >= 5 && gc3) {
                 ne.timer = 0
                 const dxS = gc3.col - ne.col
@@ -471,7 +598,6 @@ export default function WorldScreen({ navigate }) {
                 if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
               }
             } else {
-              // Slow patrol — random drift every ≈36 ticks (1800ms)
               if (ne.timer >= 36) {
                 ne.timer = 0
                 ne.rngSeed = (ne.rngSeed * 31 + 7) % 97
@@ -484,21 +610,55 @@ export default function WorldScreen({ navigate }) {
           }
           default: break
         }
+
+        // Fast-moving enemies that ran into the player trigger battle
+        if (!pendingBattle && (ne.type === 'snake' || ne.type === 'baby_zombie')) {
+          const gc = gameRef.current
+          if (gc && ne.col === gc.col && ne.row === gc.row) {
+            pendingBattle = ne
+          }
+        }
+
         return ne
-      })
+      }).filter(Boolean)
+
+      return pendingBattle
     }
 
     function renderEnemies(ctx, camX, camY) {
-      const spriteSize = TILE * 2 // 32px on world canvas
+      const spriteSize = TILE * 2
       enemiesRef.current.forEach(e => {
         if (e.defeated) return
         const sz = e.type === 'baby_zombie' ? Math.round(spriteSize * 0.6) : spriteSize
-        const px = Math.round((e.col + 0.5) * TILE - camX) - sz / 2
-        const py = Math.round((e.row + 0.5) * TILE - camY) - sz / 2
+        const cx = Math.round((e.col + 0.5) * TILE - camX)
+        const cy = Math.round((e.row + 0.5) * TILE - camY)
+        const px = cx - sz / 2
+        const py = cy - sz / 2
+
+        if (e.dead) {
+          // Corpse: squished flat on its side, fading out
+          ctx.save()
+          ctx.globalAlpha = Math.max(0, e.opacity ?? 0)
+          ctx.translate(cx, cy + sz * 0.2)
+          ctx.rotate(Math.PI / 2)
+          ctx.scale(1, 0.3)
+          drawEnemy(ctx, e.type, sz, -sz / 2, -sz / 2)
+          ctx.restore()
+          // ✕ mark above corpse
+          ctx.save()
+          ctx.globalAlpha = Math.max(0, (e.opacity ?? 0) * 0.85)
+          ctx.fillStyle = '#ff2222'
+          ctx.font = `bold ${TILE}px monospace`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('✕', cx, cy)
+          ctx.restore()
+          return
+        }
+
         drawEnemy(ctx, e.type, sz, px, py)
         // Woken bunny alert
         if (e.type === 'sleepy_bunny' && e.woken) {
-          const cx = px + sz / 2
           ctx.fillStyle = '#ffffff'
           ctx.font = `bold ${TILE}px monospace`
           ctx.textAlign = 'center'
@@ -507,7 +667,6 @@ export default function WorldScreen({ navigate }) {
         }
         // Snake aggro alert
         if (e.type === 'snake' && e.aggroTimer > 0) {
-          const cx = px + sz / 2
           ctx.fillStyle = '#ff4444'
           ctx.font = `bold ${TILE}px monospace`
           ctx.textAlign = 'center'
@@ -542,7 +701,13 @@ export default function WorldScreen({ navigate }) {
       }
 
       g.frame = (g.frame + 1) % 120
-      if (g.frame % 3 === 0) updateEnemies(tileMap, g.frame) // update at ~20fps
+      if (g.frame % 3 === 0) {
+        const battleEnemy = updateEnemies(tileMap, g.frame)
+        if (battleEnemy) {
+          triggerBattleRef.current?.(battleEnemy)
+          return
+        }
+      }
 
       const vw = canvas.width
       const vh = canvas.height
@@ -551,11 +716,15 @@ export default function WorldScreen({ navigate }) {
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY)
       renderChests(ctx, camX, camY, g.frame)
+      // Player glow drawn behind the sprite
+      const playerGlowX = Math.round(g.displayX * TILE - camX)
+      const playerGlowY = Math.round(g.displayY * TILE - camY)
+      drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
       renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
     }
 
     rafRef.current = requestAnimationFrame(loop)
-    return () => { alive = false; cancelAnimationFrame(rafRef.current) }
+    return () => { alive = false; cancelAnimationFrame(rafRef.current); respawnTimerIds.forEach(clearTimeout) }
   }, []) // stable — reads from refs only
 
   // ── Go home ──────────────────────────────────────────────────────────────────

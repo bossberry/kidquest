@@ -518,3 +518,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking — item system is self-contained.
 
+**2026-06-11 — fix: snake battle + enemy death animation + respawn + player glow:**
+- Built:
+  - `src/components/WorldScreen.jsx` — 4 fixes:
+    1. **Snake/zombie collision**: `tryMove()` now also checks if fast enemies are already on player's current tile; `updateEnemies()` detects when snake/zombie moves onto player tile and returns `pendingBattle`; `loop()` calls `triggerBattleRef.current?.(battleEnemy)` and returns immediately.
+    2. **Enemy death animation**: `renderEnemies()` draws dead enemies as squished/rotated corpse (ctx.scale 1×0.3, rotated 90°) with fading `globalAlpha = e.opacity`; ✕ mark above corpse. Death triggered by sessionStorage `kq_last_battle` restore on enemy init (enemy sets `dead: true, deathTimer: 180`).
+    3. **Enemy respawn timer**: `scheduleRespawn()` uses `setTimeout` (45–90s random) to add fresh enemy at walkable tile ≥5 tiles from player; `respawnTimerIds[]` collected and cleared on RAF cleanup.
+    4. **Player glow**: module-level `fillCirclePixel()` + `drawPlayerGlow()` draw 3 pulsing pixel rings (warm yellow/white) behind player sprite every frame.
+  - `triggerBattleRef = useRef(null)` + `triggerBattleRef.current = triggerBattle` wires RAF loop access to the useCallback.
+  - sessionStorage `kq_last_battle` persists last-defeated enemy across WorldScreen remount (battle returns → new mount reads it → starts death animation).
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System, OR any Chatbot-decided next task.
+- Needs Chatbot decision first: nothing blocking.
+

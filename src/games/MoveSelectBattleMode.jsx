@@ -737,16 +737,61 @@ export default function MoveSelectBattleMode({
         )}
       </div>
 
-      {/* ── DIALOGUE BOX ─────────────────────────────────────────────────── */}
+      {/* ── DIALOGUE BOX (Zone 1) ────────────────────────────────────────── */}
+      {/* Math arithmetic: dot groups. All other cases: battle log text. */}
       <div className="px-dialogue" style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        {!victoryMode && q ? <HintBar q={q} subject={subject} /> : (
-          <div style={{ fontFamily:'var(--font-thai)', fontSize:13, color:'var(--px-white)', lineHeight:1.6 }}>
-            {shownText}
-          </div>
-        )}
+        {!victoryMode && q && subject === 'math' && !q.isCount && !q.isPattern && !q.isWord && q.a !== undefined
+          ? <HintBar q={q} subject={subject} />
+          : <div style={{ fontFamily:'var(--font-thai)', fontSize:13, color:'var(--px-white)', lineHeight:1.6 }}>{shownText}</div>
+        }
       </div>
 
-      {/* ── MOVE PANEL ───────────────────────────────────────────────────── */}
+      {/* ── QUESTION DISPLAY (Zone 2) ─────────────────────────────────────── */}
+      {/* Always shows the question clearly above the 4 answer cards. */}
+      {!victoryMode && q && (
+        <div style={{ padding:'10px 14px 4px', textAlign:'center', flexShrink:0 }}>
+          {subject === 'math' ? (
+            <span style={{
+              fontSize:28, fontWeight:'bold', color:'var(--px-yellow)',
+              fontFamily:'var(--font-pixel, "Press Start 2P", monospace)',
+            }}>
+              {q.question ?? (q.a !== undefined && q.op ? `${q.a} ${q.op} ${q.b} = ?` : '')}
+            </span>
+          ) : subject === 'thai' ? (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <span style={{
+                fontSize:36, fontWeight:'bold', color:'var(--px-yellow)',
+                fontFamily:'Sarabun, var(--font-thai), sans-serif',
+              }}>
+                {q.word}
+              </span>
+              <button
+                onClick={() => q.ttsWord && speakTh(q.ttsWord)}
+                style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', padding:4, opacity:0.85 }}
+              >
+                🔊
+              </button>
+            </div>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <span style={{
+                fontSize:36, fontWeight:'bold', color:'var(--px-yellow)',
+                fontFamily:'var(--font-pixel, "Press Start 2P", monospace)',
+              }}>
+                {q.word || q.letter}
+              </span>
+              <button
+                onClick={() => (q.ttsWord || q.word || q.letter) && speakEn(q.ttsWord || q.word || q.letter)}
+                style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', padding:4, opacity:0.85 }}
+              >
+                🔊
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
         <div style={{
           padding:'4px 10px 10px',

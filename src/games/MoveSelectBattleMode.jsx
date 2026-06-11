@@ -129,78 +129,6 @@ function mathToThai(q) {
   return opTh ? `${numTh(q.a)} ${opTh} ${numTh(q.b)} เท่ากับ เท่าไหร่` : ''
 }
 
-// ─── Question Hint (compact) ──────────────────────────────────────────────────
-
-function DotGroup({ count, color }) {
-  return (
-    <div style={{ display:'flex', flexWrap:'wrap', gap:3, justifyContent:'center', maxWidth:90 }}>
-      {Array.from({ length: count }, (_, i) => (
-        <div key={i} style={{ width:10, height:10, borderRadius:'50%', background:color, flexShrink:0 }} />
-      ))}
-    </div>
-  )
-}
-
-function QuestionHint({ q, subject, onSpeak }) {
-  const iconBtn = {
-    background:'rgba(255,255,255,.14)', border:'none', borderRadius:8,
-    padding:'5px 9px', fontSize:17, cursor:'pointer', color:'rgba(255,255,255,.9)',
-    touchAction:'manipulation', flexShrink:0, lineHeight:1,
-  }
-  if (subject === 'thai') return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center' }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'#FFD700', lineHeight:1 }}>{q.word}</span>
-      <button onClick={onSpeak} style={iconBtn}>🔊</button>
-    </div>
-  )
-  if (subject === 'eng') return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center' }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700', lineHeight:1, textTransform:'capitalize' }}>{q.word}</span>
-      <button onClick={onSpeak} style={iconBtn}>🔊</button>
-    </div>
-  )
-  if (q.isCount) return (
-    <div style={{ textAlign:'center' }}>
-      <div style={{ fontSize:10, color:'rgba(255,255,255,.5)', marginBottom:3 }}>มีกี่อัน?</div>
-      <div style={{ display:'flex', flexWrap:'wrap', gap:3, justifyContent:'center' }}>
-        {q.objects.map((e,i) => <span key={i} style={{ fontSize:24, lineHeight:1 }}>{e}</span>)}
-      </div>
-    </div>
-  )
-  if (q.isPattern) return (
-    <div style={{ textAlign:'center' }}>
-      <div style={{ fontSize:10, color:'rgba(255,255,255,.5)', marginBottom:3 }}>อะไรต่อไป?</div>
-      <div style={{ display:'flex', gap:3, justifyContent:'center', alignItems:'center', flexWrap:'wrap' }}>
-        {q.seq.map((e,i) => <span key={i} style={{ fontSize:18 }}>{e}</span>)}
-        <span style={{ fontSize:16, border:'2px dashed rgba(255,255,255,.35)', borderRadius:5, padding:'2px 6px', color:'rgba(255,255,255,.5)', fontWeight:700 }}>?</span>
-      </div>
-    </div>
-  )
-  if (q.isWord) return (
-    <div style={{ fontSize:11, color:'rgba(255,255,255,.75)', lineHeight:1.5, textAlign:'center', maxWidth:240 }}>{q.story}</div>
-  )
-  // Arithmetic — equation + dot groups for small numbers
-  const showDots = (q.op === '+' || q.op === '-') && q.a <= 10 && q.b <= 10
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#FFD700', lineHeight:1 }}>{q.a}</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'rgba(255,255,255,.5)' }}>{q.op}</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#FFD700', lineHeight:1 }}>{q.b}</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'rgba(255,255,255,.3)' }}>=</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#fff', lineHeight:1 }}>?</span>
-        <button onClick={() => { const t = mathToThai(q); if (t) speakTh(t) }} style={{ ...iconBtn, marginLeft:4 }}>🔊</button>
-      </div>
-      {showDots && (
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <DotGroup count={q.a} color='#5599ff' />
-          <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:16, color:'rgba(255,255,255,.4)' }}>{q.op}</span>
-          <DotGroup count={q.b} color='#ff9944' />
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ─── HintBar: dot groups for math arithmetic only ─────────────────────────────
 
@@ -745,7 +673,7 @@ export default function MoveSelectBattleMode({
       <div style={{
         background:'#0a1a0a', padding:'8px 14px', minHeight:52, flexShrink:0,
         borderBottom:'1px solid rgba(58,106,58,0.45)',
-        display:'flex', alignItems:'center',
+        display:'flex', alignItems:'center', justifyContent:'center',
       }}>
         {!victoryMode && q ? <HintBar q={q} subject={subject} /> : (
           <div style={{ fontFamily:'Mitr,sans-serif', fontSize:13, color:'#c8e8c8', lineHeight:1.6 }}>
@@ -753,13 +681,6 @@ export default function MoveSelectBattleMode({
           </div>
         )}
       </div>
-
-      {/* ── QUESTION HINT ────────────────────────────────────────────────── */}
-      {!victoryMode && (
-        <div style={{ padding:'5px 14px 3px', display:'flex', alignItems:'center', justifyContent:'center', minHeight:58, flexShrink:0 }}>
-          <QuestionHint q={q} subject={subject} onSpeak={onSpeak} />
-        </div>
-      )}
 
       {/* ── MOVE PANEL ───────────────────────────────────────────────────── */}
       {!victoryMode && (

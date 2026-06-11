@@ -400,3 +400,15 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: treasure chest + slot machine; fix hint bar centering:**
+- Built:
+  - `src/components/TreasureSlot.jsx` (NEW) — slot machine overlay. 3 emoji reels spin at 80ms/frame, stop at frames 15/22/30. 3-match = star×3 jackpot; 2-match = ribbon×1; else = food×1. `onReward` fires 800ms after spin. `DROP_ITEM` dispatched per qty.
+  - `src/components/WorldScreen.jsx` — `drawChest()` pixel art (16px, sparkle); `spawnChests(screenId)` picks 2–3 GRASS/FLOWER tiles; `chestsRef` init on screen change; chest collision in `tryMove`; `renderChests` in rAF loop; `handleTreasureReward`; TreasureSlot in JSX.
+  - `src/games/MoveSelectBattleMode.jsx` — dialogue box `justifyContent:'center'`; removed `QuestionHint` + `DotGroup` components and render block.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

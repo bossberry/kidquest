@@ -10,8 +10,59 @@ import {
 import { SCREEN_MAPS, SCREEN_ENEMIES } from '../lib/tileMaps.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
+import TreasureSlot from './TreasureSlot.jsx'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
+
+// ── Chest pixel art drawing ──────────────────────────────────────────────────
+
+function drawChest(ctx, x, y, frame) {
+  const s = TILE
+  // Body
+  ctx.fillStyle = '#8b5e3c'
+  ctx.fillRect(x + 2, y + 5, s - 4, s - 7)
+  // Lid
+  ctx.fillStyle = '#a0713a'
+  ctx.fillRect(x + 2, y + 2, s - 4, 5)
+  // Gold trim on lid
+  ctx.fillStyle = '#ffd700'
+  ctx.fillRect(x + 2, y + 6, s - 4, 1)
+  // Gold lock
+  ctx.fillStyle = '#ffd700'
+  ctx.fillRect(x + Math.floor(s / 2) - 1, y + 7, 3, 3)
+  // Sparkle — alternates every 30 frames
+  ctx.fillStyle = frame % 60 < 30 ? 'rgba(255,255,255,0.9)' : 'rgba(255,215,0,0.5)'
+  ctx.fillRect(x + Math.floor(s / 2) - 1, y - 2, 2, 2)
+}
+
+// ── Chest spawning ────────────────────────────────────────────────────────────
+
+function spawnChests(screenId) {
+  const mapData = SCREEN_MAPS[screenId]
+  if (!mapData) return []
+  const map = mapData.map
+  const enemyPositions = new Set((SCREEN_ENEMIES[screenId] || []).map(e => `${e.col},${e.row}`))
+  const candidates = []
+  for (let r = 2; r < map.length - 2; r++) {
+    for (let c = 2; c < map[r].length - 2; c++) {
+      const raw = map[r][c]
+      const tileType = typeof raw === 'object' ? raw.type : raw
+      if ((tileType === T.GRASS || tileType === T.FLOWER) && !enemyPositions.has(`${c},${r}`)) {
+        candidates.push({ col: c, row: r })
+      }
+    }
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+  }
+  const count = 2 + Math.floor(Math.random() * 2)
+  return candidates.slice(0, count).map((pos, i) => ({
+    col: pos.col, row: pos.row,
+    id: `chest_${screenId}_${i}`,
+    opened: false,
+  }))
+}
 
 const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
@@ -78,6 +129,8 @@ export default function WorldScreen({ navigate }) {
   const rafRef       = useRef(null)
   const transTimer   = useRef(null)
   const enemiesRef   = useRef([]) // dynamic enemy runtime state
+  const chestsRef    = useRef([]) // treasure chest runtime state
+  const [slotMachineOpen, setSlotMachineOpen] = useState(false)
 
   screenIdRef.current   = screenId
   transRef.current      = transitioning
@@ -145,12 +198,13 @@ export default function WorldScreen({ navigate }) {
                   : def.type === 'egg_pawn'     ? 'down'
                   : def.type === 'fox_kit'      ? 'right'
                   : 'none',
-      timer:        i * 17,          // stagger so they don't all move at once
+      timer:        i * 17,
       rngSeed:      (i * 37 + 11) % 97,
-      woken:        false,           // sleepy_bunny: starts asleep
+      woken:        false,
       defeated:     false,
-      respawnTimer: 0,               // frames until respawn (1800 = ~30s at 60fps)
+      respawnTimer: 0,
     }))
+    chestsRef.current = spawnChests(screenId)
   }, [screenId]) // eslint-disable-line
 
   // ── Proximity detection ─────────────────────────────────────────────────────
@@ -227,6 +281,15 @@ export default function WorldScreen({ navigate }) {
         return
       }
       triggerBattle(hitEnemy)
+      return
+    }
+
+    // Treasure chest collision
+    const hitChest = chestsRef.current.find(c => !c.opened && c.col === newCol && c.row === newRow)
+    if (hitChest) {
+      chestsRef.current = chestsRef.current.map(c => c.id === hitChest.id ? { ...c, opened: true } : c)
+      playTone('cardOpen')
+      setSlotMachineOpen(true)
       return
     }
 
@@ -370,7 +433,6 @@ export default function WorldScreen({ navigate }) {
         const px = Math.round((e.col + 0.5) * TILE - camX) - spriteSize / 2
         const py = Math.round((e.row + 0.5) * TILE - camY) - spriteSize / 2
         drawEnemy(ctx, e.type, spriteSize, px, py)
-        // ! bubble above woken sleepy_bunny
         if (e.type === 'sleepy_bunny' && e.woken) {
           const cx = px + spriteSize / 2
           ctx.fillStyle = '#ffffff'
@@ -379,6 +441,15 @@ export default function WorldScreen({ navigate }) {
           ctx.textBaseline = 'bottom'
           ctx.fillText('!', cx, py - 2)
         }
+      })
+    }
+
+    function renderChests(ctx, camX, camY, frame) {
+      chestsRef.current.forEach(chest => {
+        if (chest.opened) return
+        const px = Math.round(chest.col * TILE - camX)
+        const py = Math.round(chest.row * TILE - camY)
+        drawChest(ctx, px, py, frame)
       })
     }
 
@@ -406,6 +477,7 @@ export default function WorldScreen({ navigate }) {
       ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY)
+      renderChests(ctx, camX, camY, g.frame)
       renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
     }
 
@@ -416,6 +488,15 @@ export default function WorldScreen({ navigate }) {
   // ── Go home ──────────────────────────────────────────────────────────────────
 
   const goHome = () => { dispatch({ type: ACTIONS.EXIT_WORLD }); navigate('home') }
+
+  // ── Treasure reward ──────────────────────────────────────────────────────────
+
+  function handleTreasureReward(reward) {
+    for (let i = 0; i < reward.qty; i++) {
+      dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: reward.type } })
+    }
+    playSFX('stage_up')
+  }
 
   const screenLabel = SCREENS[screenId]?.label || ''
 
@@ -525,6 +606,14 @@ export default function WorldScreen({ navigate }) {
             <div style={{ fontSize: 11, color: '#80c080', textAlign: 'right', marginTop: 6 }}>แตะเพื่อดำเนินต่อ ▶</div>
           </div>
         </div>
+      )}
+
+      {/* Treasure slot machine overlay */}
+      {slotMachineOpen && (
+        <TreasureSlot
+          onReward={handleTreasureReward}
+          onClose={() => setSlotMachineOpen(false)}
+        />
       )}
     </div>
   )

@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: treasure chest + slot machine reward; fix hint bar centering
+
+### WorldScreen.jsx
+- `drawChest()` pixel art function: brown box + gold lid trim + lock + alternating sparkle dot (uses TILE=16px grid)
+- `spawnChests(screenId)` module helper: selects 2–3 random GRASS/FLOWER tiles per screen, avoids enemy positions, shuffled
+- `chestsRef` ref + screen-change useEffect: chests re-spawn fresh on every screen entry (same lifecycle as enemies)
+- `tryMove`: chest collision check before `canMove` — walking into closed chest marks it opened, plays `cardOpen` tone, opens slot machine overlay
+- `renderChests` in rAF loop: draws unopened chests on canvas after enemies, before player
+- `handleTreasureReward`: dispatches `DROP_ITEM` for each qty unit of the reward item; plays `stage_up` SFX
+- TreasureSlot overlay rendered in JSX when `slotMachineOpen` is true
+
+### TreasureSlot.jsx (NEW)
+- Full-screen overlay with 3 emoji reels
+- Spin animation: each reel cycles through ITEMS emojis at 80ms/frame, stops independently (reel 1 at frame 15, reel 2 at 22, reel 3 at 30)
+- Reward logic: 3 matching → 🌟 star ×3 jackpot; 2 matching → 🎀 ribbon ×1; else → 🍖 food ×1
+- `onReward` fires 800ms after spin completes (item added to inventory before player taps collect)
+- "รับของ!" collect button shows after spin resolves; `onClose` hides overlay
+
+### MoveSelectBattleMode.jsx
+- Dialogue box container: added `justifyContent:'center'` so HintBar dots are properly centered
+- Removed entire `QuestionHint` component and `DotGroup` component (dead code — no longer rendered)
+- Removed `QuestionHint` render block (the section between dialogue box and move panel)
+- The only visual hint is now HintBar dot groups for math arithmetic; everything else is TTS-only
+
 ## 2026-06-11 — Fix: hint bar dots-only for math + pixel art enemy sprites
 
 ### MoveSelectBattleMode.jsx

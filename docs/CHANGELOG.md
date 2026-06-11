@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: battle subject uses weakest subject from sessionLog, not hardcoded thai
+
+- `src/lib/subjectReadiness.js` (NEW) — `computeReadiness(sessionLog, world)` extracted from Report.jsx
+- `src/lib/battleSubject.js` (NEW) — `getBattleSubject(enemyType, sessionLog)` 3-layer: (1) exploring subject overrides all; (2) enemy preferred if comfortable; (3) sort by rank
+- `src/config/enemyConfig.js` — added `subject` to all 7 types: bunny/leaf=thai, slime/mole/egg_pawn=math, fox/mushroom=eng
+- `src/components/Report.jsx` — removed local `computeReadiness`, now imports from subjectReadiness.js
+- `src/components/WorldScreen.jsx` — replaced `getWeakestSubject` with `getBattleSubject` import
+
 ## 2026-06-11 — Feat: creature Beauty Layer — Pokémon-quality rendering
 
 - `src/lib/drawCreature.js` only:

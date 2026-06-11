@@ -9,23 +9,11 @@ import {
 } from '../lib/tileEngine.js'
 import { SCREEN_MAPS, SCREEN_ENEMIES } from '../lib/tileMaps.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
+import { getBattleSubject } from '../lib/battleSubject.js'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
 const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
-
-function getWeakestSubject(sessionLog) {
-  if (!sessionLog?.length) return 'thai'
-  const scores = { thai: [], math: [], eng: [] }
-  ;(sessionLog || []).slice(-20).forEach(e => {
-    if (scores[e.world]) scores[e.world].push(e.score || 0)
-  })
-  const avgs = Object.entries(scores)
-    .filter(([, arr]) => arr.length > 0)
-    .map(([s, arr]) => ({ s, avg: arr.reduce((a, b) => a + b, 0) / arr.length }))
-  if (!avgs.length) return 'thai'
-  return avgs.sort((a, b) => a.avg - b.avg)[0].s
-}
 
 const OWL_LINES = [
   'สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก',
@@ -194,7 +182,7 @@ export default function WorldScreen({ navigate }) {
   // ── Player movement ──────────────────────────────────────────────────────────
 
   const triggerBattle = useCallback((enemy) => {
-    const subject = getWeakestSubject(stateRef.current.sessionLog)
+    const subject = getBattleSubject(enemy.type, stateRef.current.sessionLog)
     const level   = stateRef.current.subjectLevels?.[subject] || 1
     enemiesRef.current = enemiesRef.current.map(e =>
       e.id === enemy.id ? { ...e, defeated: true, respawnTimer: 1800 } : e

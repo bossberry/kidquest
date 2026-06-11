@@ -310,3 +310,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System or Chopin playtest.
 - Needs Chatbot decision first: None for this task. GM-Q10 still open for Phase 4.
 
+---
+
+**2026-06-11 — fix: battle subject uses weakest subject from sessionLog, not hardcoded thai:**
+- Built:
+  - `src/lib/subjectReadiness.js` (NEW) — extracted `computeReadiness(sessionLog, world)` from Report.jsx as shared utility
+  - `src/lib/battleSubject.js` (NEW) — `getBattleSubject(enemyType, sessionLog)`: 3-layer selection: (1) exploring subject overrides; (2) enemy preferred if comfortable; (3) weakest by rank
+  - `src/config/enemyConfig.js` — added `subject` field to all 7 enemy types: bunny/leaf→thai, slime/mole/egg_pawn→math, fox/mushroom→eng
+  - `src/components/Report.jsx` — removed local `computeReadiness`, imports from subjectReadiness.js
+  - `src/components/WorldScreen.jsx` — removed `getWeakestSubject`, added `getBattleSubject` import, `triggerBattle` passes `enemy.type` to `getBattleSubject`
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Chopin playtest to confirm all 3 subjects appear across different enemies.
+- Needs Chatbot decision first: None.
+

@@ -448,3 +448,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Not finished: none.
 - Ready to start next: Phase 4 NPC System or Green Meadow canvas pixel font pass.
 
+---
+
+**2026-06-11 — feat: pixel home scene — canvas tilemap with animated sprites:**
+- Built:
+  - `src/components/HomeBackground.jsx` (FULL REBUILD) — Replaced all CSS-div/keyframe art with a `<canvas>` pixel renderer. Canvas dimensions: `window.innerWidth × Math.floor(window.innerHeight * 0.65)`. Scale factor `S = Math.max(1, Math.floor(W / 160))`. `ctx.imageSmoothingEnabled = false`; all drawing via `fillRect` only.
+  - Static tiles (redrawn each frame from offscreen): 3-band sky (day: `#4ec8f0/#87ddff/#d4f7c0`, night: `#0a1a3a/#1a2a5a/#2a3a7a`); 2 stacked-`fillRect` pixel mountains; 3-strip ground (bright/mid/dark green rows); 2 pixel-triangle canopy trees; trapezoidal path via horizontal `fillRect` slices; 8 pixel cross-flowers (day only).
+  - Animated sprites via `requestAnimationFrame`: sun (square body + 8 cardinal/diagonal rays, `sin(t)`-pulsing scale), moon (square with crescent cutout overlay), 12 twinkling stars (sine opacity), 3 scrolling pixel clouds (box-with-bump), 2 butterflies (sine-wave Y path, flapping wings via `Math.abs(cos(wingPhase))`), 1 bird (V-wing pixel, cross-screen patrol), 4 fireflies (night only, drift + glow `rgba`).
+  - Below-canvas div fills remaining 35vh with matching ground color (`#2a7a2a` day / `#0a1a0e` night).
+  - `hour` prop preserved (same signature as before); `isDay = h >= 6 && h < 19` computed internally.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

@@ -1,338 +1,286 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 
-const STAR_DEFS = [
-  [4,8,2,0],[6,20,1.5,0.8],[3,36,2.5,1.4],[9,55,1.5,0.4],
-  [5,72,2,2.0],[12,85,1.5,1.1],[15,15,1.5,1.8],[18,48,2,0.6],
-  [14,64,1.5,2.3],[20,30,1.5,1.6],[22,78,2,0.9],[25,5,1.5,2.1],
-]
-
-const FLOWER_DEFS = [
-  { l:'11%', b:'34%',   c:'#FF88CC', d:'0s'   },
-  { l:'25%', b:'34.5%', c:'#FFDD44', d:'0.4s' },
-  { l:'59%', b:'34.8%', c:'#88AAFF', d:'0.8s' },
-  { l:'74%', b:'34.3%', c:'#FFAACC', d:'0.2s' },
-  { l:'43%', b:'35.5%', c:'#FFEE88', d:'1.2s' },
-  { l:'86%', b:'34.6%', c:'#AAFFA8', d:'0.6s' },
-]
-
-const LEAF_DEFS = [
-  { l:'18%', c:'#88BB44', anim:'hbg-leaf1', dur:'7s',   delay:'0s'   },
-  { l:'54%', c:'#CC8833', anim:'hbg-leaf2', dur:'9.5s', delay:'2.8s' },
-  { l:'80%', c:'#88BB44', anim:'hbg-leaf3', dur:'6s',   delay:'5.5s' },
-]
-
-const FIREFLY_DEFS = [
-  { l:'22%', t:'42%', anim:'hbg-ff1', dur:'5s',   delay:'0s'   },
-  { l:'68%', t:'38%', anim:'hbg-ff2', dur:'7s',   delay:'1.8s' },
-  { l:'44%', t:'50%', anim:'hbg-ff3', dur:'4.5s', delay:'3.2s' },
-  { l:'78%', t:'46%', anim:'hbg-ff4', dur:'6.5s', delay:'0.9s' },
-]
-
-const MAGIC_DEFS = [
-  ['22%','42%','0s'],['74%','38%','1.2s'],['44%','35%','2.5s'],
-  ['60%','47%','0.6s'],['35%','51%','1.9s'],
-]
-
-function Butterfly({ color, flightAnim, flightDur, flightDelay, top }) {
-  return (
-    <div style={{
-      position:'absolute', top, left:0,
-      animation:`${flightAnim} ${flightDur} linear ${flightDelay} infinite`,
-      willChange:'transform', pointerEvents:'none',
-    }}>
-      <div style={{ position:'relative', width:20, height:16 }}>
-        <div style={{
-          position:'absolute', left:0, top:2,
-          width:9, height:10, borderRadius:'50% 0 50% 50%',
-          background:color, transformOrigin:'right center',
-          animation:'hbg-flap-l 0.4s linear infinite',
-          willChange:'transform', opacity:0.88,
-        }} />
-        <div style={{
-          position:'absolute', right:0, top:2,
-          width:9, height:10, borderRadius:'0 50% 50% 50%',
-          background:color, transformOrigin:'left center',
-          animation:'hbg-flap-r 0.4s linear infinite',
-          willChange:'transform', opacity:0.88,
-        }} />
-        <div style={{
-          position:'absolute', top:3, left:'50%',
-          width:3, height:10,
-          transform:'translateX(-50%)',
-          background:'#443322', borderRadius:2,
-        }} />
-      </div>
-    </div>
-  )
-}
-
-function Bird() {
-  return (
-    <div style={{
-      position:'absolute', top:'7%', left:0,
-      animation:'hbg-bird-fly 15s linear 2s infinite',
-      willChange:'transform', pointerEvents:'none',
-    }}>
-      <div style={{ position:'relative', width:22, height:10 }}>
-        <div style={{
-          position:'absolute', left:7, top:3,
-          width:9, height:5, background:'#554433', borderRadius:'50%',
-        }} />
-        <div style={{
-          position:'absolute', left:1, top:1,
-          width:9, height:6, background:'#554433',
-          borderRadius:'50% 0 50% 50%',
-          transformOrigin:'right bottom',
-          animation:'hbg-bird-flap 0.25s ease-in-out infinite',
-          willChange:'transform',
-        }} />
-        <div style={{
-          position:'absolute', right:1, top:1,
-          width:9, height:6, background:'#554433',
-          borderRadius:'0 50% 50% 50%',
-          transformOrigin:'left bottom',
-          animation:'hbg-bird-flap 0.25s ease-in-out 0.125s infinite',
-          willChange:'transform',
-        }} />
-      </div>
-    </div>
-  )
+const P = {
+  skyD1:'#4ec8f0', skyD2:'#87ddff', skyD3:'#d4f7c0',
+  skyN1:'#0a1a3a', skyN2:'#1a2a5a', skyN3:'#2a3a7a',
+  gTop:'#5ac85a',  gMid:'#3a9a3a',  gBot:'#2a7a2a',
+  gNTop:'#1a3c1a', gNMid:'#0e2010', gNBot:'#0a1a0e',
+  mtn1D:'#a8d4a8', mtn2D:'#90c490',
+  mtn1N:'#121e3c', mtn2N:'#0e1c32',
+  trunk:'#5a3808', trunkN:'#182818',
+  leaf1:'#6ec040', leaf2:'#4a9828',
+  leafN1:'#1c3c1e', leafN2:'#122816',
+  path:'#d2b478', pathN:'#233750',
+  sun1:'#f8f040', sun2:'#f0c000', sunW:'#fffff0',
+  moon1:'#f8f0c0', moon2:'#eadc70',
+  cloud1:'#e8f0ff', cloud2:'#c8d4ee',
+  fl1:'#ff88cc', fl2:'#ffdd44', fl3:'#88aaff', flC:'#f0d020',
+  bfPink:'#ff99dd', bfYel:'#ffcc44', bfBody:'#443322',
+  bird:'#554433',
+  white:'#e8e8f8',
 }
 
 export default function HomeBackground({ hour }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
-  const isSunset = h >= 17 && h < 19
-  const isDawn = h >= 5 && h < 8
 
-  // Sky — vivid Pokémon FireRed/LeafGreen palette
-  const sky = isDay
-    ? isSunset
-      ? 'linear-gradient(180deg,#E87040 0%,#F5A060 20%,#FFC888 45%,#FFE4C0 70%,#FFF4E8 100%)'
-      : isDawn
-      ? 'linear-gradient(180deg,#F08860 0%,#F8B870 22%,#FFD898 46%,#FFF0D8 72%,#FFFAEE 100%)'
-      : 'linear-gradient(180deg,#4ec8f0 0%,#87ddff 45%,#c8f0ff 75%,#d4f7c0 100%)'
-    : 'linear-gradient(180deg,#0a1a3a 0%,#1a2a5a 35%,#2a3a7a 68%,#0d2a1a 100%)'
+  const canvasRef = useRef(null)
+  const rafRef = useRef(null)
 
-  const sunBg = isSunset
-    ? 'radial-gradient(circle at 40% 36%,#FF9060 0%,#FF5818 55%,#FF3800 85%)'
-    : 'radial-gradient(circle at 40% 34%,#FFF888 0%,#FFD700 50%,#FFC400 85%)'
-  const sunGlow = isSunset
-    ? '0 0 28px 14px rgba(255,120,30,0.42),0 0 55px 26px rgba(255,70,0,0.15)'
-    : '0 0 28px 14px rgba(255,215,50,0.52),0 0 65px 30px rgba(255,195,30,0.18)'
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-  // Mountains — vivid with distance tint
-  const mtn1 = isDay ? '#a8d4a8' : 'rgba(18,35,60,0.75)'
-  const mtn2 = isDay ? '#90c490' : 'rgba(14,28,50,0.65)'
+    const W = window.innerWidth
+    const H = Math.floor(window.innerHeight * 0.65)
+    canvas.width = W
+    canvas.height = H
 
-  // Ground + detail colors
-  const grass = isDay
-    ? 'linear-gradient(180deg,#5ac85a 0%,#3a9a3a 40%,#2a7a2a 100%)'
-    : 'linear-gradient(180deg,#142C16 0%,#0E2010 45%,#0A1A0E 100%)'
-  const groundMound = isDay ? '#5ac85a' : '#142C16'
-  const trunkC = isDay ? '#5A3808' : '#182818'
-  const leafC1 = isDay
-    ? 'radial-gradient(ellipse,#6EC040 0%,#4A9828 55%,#388020 100%)'
-    : 'radial-gradient(ellipse,#1C3C1E 0%,#122816 100%)'
-  const leafC2 = isDay
-    ? 'radial-gradient(ellipse,#76CC4A 0%,#54A632 55%,#3E8C22 100%)'
-    : 'radial-gradient(ellipse,#182E1A 0%,#101E10 100%)'
-  const bushC = isDay ? 'rgba(74,162,38,0.82)' : 'rgba(14,38,16,0.78)'
-  const pathC = isDay
-    ? 'linear-gradient(180deg,rgba(210,180,120,0.55) 0%,rgba(190,158,100,0.32) 100%)'
-    : 'linear-gradient(180deg,rgba(35,55,80,0.52) 0%,rgba(25,42,65,0.30) 100%)'
-  const nestGlow = isDay
-    ? 'radial-gradient(ellipse,rgba(255,230,90,0.22) 0%,rgba(255,200,50,0.08) 55%,transparent 78%)'
-    : 'radial-gradient(ellipse,rgba(90,65,180,0.20) 0%,rgba(55,35,130,0.08) 55%,transparent 78%)'
+    const S = Math.max(1, Math.floor(W / 160))
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+
+    const GY = Math.floor(H * 0.76)
+
+    function fr(color, x, y, w, h2) {
+      ctx.fillStyle = color
+      ctx.fillRect(Math.floor(x), Math.floor(y), Math.max(1, Math.floor(w)), Math.max(1, Math.floor(h2)))
+    }
+
+    function drawSky() {
+      if (isDay) {
+        fr(P.skyD1, 0, 0,        W, H * 0.50)
+        fr(P.skyD2, 0, H * 0.50, W, H * 0.22)
+        fr(P.skyD3, 0, H * 0.72, W, H * 0.28)
+      } else {
+        fr(P.skyN1, 0, 0,        W, H * 0.50)
+        fr(P.skyN2, 0, H * 0.50, W, H * 0.25)
+        fr(P.skyN3, 0, H * 0.75, W, H * 0.25)
+      }
+    }
+
+    function drawMountain(x, baseY, w, h2, color) {
+      const rows = Math.max(1, Math.floor(h2 / S))
+      for (let i = 0; i < rows; i++) {
+        const ratio = i / rows
+        const rw = Math.floor(w * (1 - ratio))
+        const rx = Math.floor(x + w / 2 - rw / 2)
+        ctx.fillStyle = color
+        ctx.fillRect(rx, Math.floor(baseY - h2 + i * S), rw, S)
+      }
+    }
+
+    function drawGround() {
+      fr(isDay ? P.gTop  : P.gNTop,  0, GY,         W, 4 * S)
+      fr(isDay ? P.gMid  : P.gNMid,  0, GY + 4 * S, W, 4 * S)
+      fr(isDay ? P.gBot  : P.gNBot,  0, GY + 8 * S, W, H - GY - 8 * S)
+    }
+
+    function drawTree(cx, baseY) {
+      const tw = 3 * S, th = 10 * S
+      const lw = 14 * S, lh = 18 * S
+      fr(isDay ? P.trunk : P.trunkN, cx - tw / 2, baseY - th, tw, th)
+      const rows = Math.floor(lh / S)
+      for (let i = 0; i < rows; i++) {
+        const ratio = i / rows
+        const rw = Math.floor(lw * (1 - ratio))
+        const rx = Math.floor(cx - rw / 2)
+        const ry = Math.floor(baseY - th - lh + i * S)
+        ctx.fillStyle = i < rows / 2 ? (isDay ? P.leaf1 : P.leafN1) : (isDay ? P.leaf2 : P.leafN2)
+        ctx.fillRect(rx, ry, rw, S)
+      }
+    }
+
+    function drawPath(cx, baseY) {
+      const rows = 14 * S
+      for (let i = 0; i < rows; i += S) {
+        const ratio = i / rows
+        const pw = Math.floor((8 + ratio * 20) * S)
+        const px = Math.floor(cx - pw / 2)
+        ctx.fillStyle = isDay ? P.path : P.pathN
+        ctx.fillRect(px, baseY - rows + i, pw, S)
+      }
+    }
+
+    function drawFlower(cx, y, color) {
+      const px = Math.floor(cx), py = Math.floor(y)
+      ctx.fillStyle = color
+      ctx.fillRect(px - S,     py - 3 * S, 2 * S, 2 * S)
+      ctx.fillRect(px - S,     py + S,     2 * S, 2 * S)
+      ctx.fillRect(px - 3 * S, py - S,     2 * S, 2 * S)
+      ctx.fillRect(px + S,     py - S,     2 * S, 2 * S)
+      ctx.fillStyle = P.flC
+      ctx.fillRect(px - S, py - S, 2 * S, 2 * S)
+    }
+
+    function drawStatic() {
+      drawSky()
+      drawMountain(W * 0.04, H * 0.63, W * 0.53, H * 0.28, isDay ? P.mtn1D : P.mtn1N)
+      drawMountain(W * 0.47, H * 0.65, W * 0.53, H * 0.22, isDay ? P.mtn2D : P.mtn2N)
+      drawGround()
+      drawTree(W * 0.07, GY)
+      drawTree(W * 0.87, GY)
+      drawPath(W / 2, GY)
+      if (isDay) {
+        const fxs = [0.12, 0.22, 0.35, 0.48, 0.58, 0.70, 0.80, 0.90]
+        const fcs = [P.fl1, P.fl2, P.fl3, P.fl1, P.fl2, P.fl3, P.fl1, P.fl2]
+        fxs.forEach((fx, i) => drawFlower(W * fx, GY - 2, fcs[i]))
+      }
+    }
+
+    // ── Animated sprites ───────────────────────────────────────────────
+
+    function drawSun(t) {
+      const pulse = 1 + Math.sin(t * 0.02) * 0.12
+      const cx = Math.floor(W * 0.84)
+      const cy = Math.floor(H * 0.11)
+      const r  = Math.floor(6 * S * pulse)
+      const rl = Math.floor(4 * S)
+      fr(P.sun1, cx - r, cy - r, 2 * r, 2 * r)
+      fr(P.sunW, cx - S, cy - S, S, S)
+      ctx.fillStyle = P.sun2
+      ctx.fillRect(cx - S, cy - r - rl, 2 * S, rl)
+      ctx.fillRect(cx - S, cy + r,       2 * S, rl)
+      ctx.fillRect(cx - r - rl, cy - S,  rl,    2 * S)
+      ctx.fillRect(cx + r,      cy - S,  rl,    2 * S)
+      const dr = Math.floor(rl * 0.6)
+      ctx.fillRect(cx - r - dr, cy - r - dr, dr, dr)
+      ctx.fillRect(cx + r,      cy - r - dr, dr, dr)
+      ctx.fillRect(cx - r - dr, cy + r,      dr, dr)
+      ctx.fillRect(cx + r,      cy + r,      dr, dr)
+    }
+
+    function drawMoon() {
+      const cx = Math.floor(W * 0.82)
+      const cy = Math.floor(H * 0.10)
+      const r  = 5 * S
+      fr(P.moon1, cx - r, cy - r, 2 * r, 2 * r)
+      fr(P.moon2, cx - r + S, cy - r + S, 2 * r - S, 2 * r - S)
+      fr(P.skyN1, cx - r + 3 * S, cy - r, 2 * r, 2 * r)
+    }
+
+    const STAR_POS = [
+      [0.04, 0.06, 0.0], [0.09, 0.16, 0.8], [0.16, 0.07, 1.4],
+      [0.23, 0.20, 0.4], [0.30, 0.09, 2.0], [0.38, 0.14, 1.1],
+      [0.46, 0.04, 1.8], [0.55, 0.18, 0.6], [0.64, 0.08, 2.3],
+      [0.72, 0.13, 1.6], [0.80, 0.19, 0.9], [0.90, 0.06, 2.1],
+    ]
+
+    function drawStars(t) {
+      STAR_POS.forEach(([fx, fy, phase]) => {
+        const b = (Math.sin(t * 0.05 + phase) + 1) * 0.5
+        if (b > 0.3) {
+          ctx.fillStyle = `rgba(255,252,230,${b.toFixed(2)})`
+          ctx.fillRect(Math.floor(fx * W), Math.floor(fy * H), S, S)
+        }
+      })
+    }
+
+    function drawCloud(x, y, w, h2) {
+      fr(P.cloud1, x, y + h2 * 0.35, w, h2 * 0.65)
+      fr(P.cloud1, x + w * 0.2, y, w * 0.6, h2)
+      fr(P.cloud2, x, y + h2 * 0.65, w, h2 * 0.35)
+    }
+
+    function drawButterfly(bx, by, color, wingPhase) {
+      const open = Math.abs(Math.cos(wingPhase))
+      const ww   = Math.max(S, Math.floor(5 * S * open))
+      ctx.fillStyle = color
+      ctx.fillRect(Math.floor(bx) - ww - S, Math.floor(by), ww, 3 * S)
+      ctx.fillRect(Math.floor(bx) + S,      Math.floor(by), ww, 3 * S)
+      fr(P.bfBody, Math.floor(bx) - S, Math.floor(by), 2 * S, 4 * S)
+    }
+
+    function drawBird(bx, by, wingPhase) {
+      const wingY = Math.sin(wingPhase) > 0 ? 0 : S
+      const bxf = Math.floor(bx), byf = Math.floor(by)
+      ctx.fillStyle = P.bird
+      ctx.fillRect(bxf,          byf + S,    3 * S, S)
+      ctx.fillRect(bxf - 3 * S, byf + wingY, 3 * S, S)
+      ctx.fillRect(bxf + 3 * S, byf + wingY, 3 * S, S)
+    }
+
+    function drawFirefly(fx, fy, t, phase) {
+      const g = (Math.sin(t * 0.08 + phase) + 1) * 0.5
+      if (g > 0.35) {
+        ctx.fillStyle = `rgba(255,255,170,${g.toFixed(2)})`
+        ctx.fillRect(Math.floor(fx) - S, Math.floor(fy) - S, 4 * S, 4 * S)
+        ctx.fillStyle = `rgba(255,255,170,${(g * 0.8).toFixed(2)})`
+        ctx.fillRect(Math.floor(fx), Math.floor(fy), 2 * S, 2 * S)
+      }
+    }
+
+    // ── Animation state ────────────────────────────────────────────────
+    const anim = {
+      t: 0,
+      clouds: [
+        { x: W * 0.15, y: H * 0.14, w: 24 * S, h: 8 * S, spd: 0.30 },
+        { x: W * 0.55, y: H * 0.07, w: 16 * S, h: 6 * S, spd: 0.18 },
+        { x: W * 0.78, y: H * 0.19, w: 20 * S, h: 7 * S, spd: 0.25 },
+      ],
+      bf: [
+        { x: W * 0.25, baseY: H * 0.38, vx: 0.70, phase: 0,       wingP: 0,         color: P.bfPink },
+        { x: W * 0.65, baseY: H * 0.44, vx: 0.45, phase: Math.PI, wingP: Math.PI/2, color: P.bfYel  },
+      ],
+      bird: { x: -20 * S, vx: 1.0, wingP: 0 },
+      ff: [
+        { x: W * 0.22, baseY: H * 0.46, phase: 0 },
+        { x: W * 0.68, baseY: H * 0.40, phase: Math.PI * 0.5 },
+        { x: W * 0.44, baseY: H * 0.52, phase: Math.PI },
+        { x: W * 0.80, baseY: H * 0.48, phase: Math.PI * 1.5 },
+      ],
+    }
+
+    function frame() {
+      anim.t++
+      ctx.clearRect(0, 0, W, H)
+      drawStatic()
+
+      if (isDay) {
+        drawSun(anim.t)
+        anim.clouds.forEach(c => {
+          c.x -= c.spd
+          if (c.x + c.w < 0) c.x = W + c.w
+          drawCloud(c.x, c.y, c.w, c.h)
+        })
+        anim.bf.forEach(b => {
+          b.x     += b.vx
+          b.phase += 0.04
+          b.wingP += 0.18
+          if (b.x > W + 20 * S) b.x = -20 * S
+          drawButterfly(b.x, b.baseY + Math.sin(b.phase) * 10 * S, b.color, b.wingP)
+        })
+        anim.bird.x    += anim.bird.vx
+        anim.bird.wingP += 0.22
+        if (anim.bird.x > W + 30 * S) anim.bird.x = -30 * S
+        drawBird(anim.bird.x, H * 0.10, anim.bird.wingP)
+      } else {
+        drawMoon()
+        drawStars(anim.t)
+        anim.ff.forEach(f => {
+          const fx = f.x + Math.sin(anim.t * 0.02 + f.phase * 0.7) * 5 * S
+          const fy = f.baseY + Math.sin(anim.t * 0.03 + f.phase) * 8 * S
+          drawFirefly(Math.floor(fx), Math.floor(fy), anim.t, f.phase)
+        })
+      }
+
+      rafRef.current = requestAnimationFrame(frame)
+    }
+
+    rafRef.current = requestAnimationFrame(frame)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [isDay])
 
   return (
-    <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none', zIndex:-1 }}>
-
-      {/* Layer 1 — Sky */}
-      <div style={{ position:'absolute', inset:0, background:sky }} />
-
-      {/* Layer 2 — Sun (day) */}
-      {isDay && (
-        <div style={{
-          position:'absolute', top:'5%', right:'11%',
-          width:56, height:56, borderRadius:'50%',
-          background:sunBg, boxShadow:sunGlow,
-          animation:'hbg-sun-pulse 4s ease-in-out infinite',
-          willChange:'transform',
-        }} />
-      )}
-
-      {/* Layer 2 — Moon + crescent (night) */}
-      {!isDay && (
-        <>
-          <div style={{
-            position:'absolute', top:'6%', right:'14%',
-            width:44, height:44, borderRadius:'50%',
-            background:'radial-gradient(circle at 38% 32%,#F8F0C0 0%,#EADC70 52%,#D8C840 82%)',
-            boxShadow:'0 0 22px 9px rgba(240,220,95,0.28),0 0 48px 22px rgba(240,218,80,0.10)',
-          }} />
-          <div style={{
-            position:'absolute', top:'7%', right:'11%',
-            width:34, height:34, borderRadius:'50%',
-            background:'#0a1a3a', opacity:0.90,
-          }} />
-        </>
-      )}
-
-      {/* Stars (night) */}
-      {!isDay && STAR_DEFS.map(([top, left, sz, delay], i) => (
-        <div key={i} style={{
-          position:'absolute', top:`${top}%`, left:`${left}%`,
-          width:sz, height:sz, borderRadius:'50%',
-          background:'rgba(255,252,230,0.92)',
-          animation:`hbg-twinkle ${2.8+(i%3)*0.6}s ease-in-out ${delay}s infinite`,
-        }} />
-      ))}
-
-      {/* Layer 3 — Clouds (day) */}
-      {isDay && (
-        <>
-          <div className="hbg-cloud hbg-cloud-1" />
-          <div className="hbg-cloud hbg-cloud-2" />
-          <div className="hbg-cloud hbg-cloud-3" />
-        </>
-      )}
-
-      {/* Layer 4 — Mountains */}
+    <div style={{ position:'absolute', inset:0, zIndex:-1, pointerEvents:'none' }}>
+      <canvas
+        ref={canvasRef}
+        style={{ display:'block', width:'100%', height:'65vh', imageRendering:'pixelated' }}
+      />
       <div style={{
-        position:'absolute', bottom:'34%', left:'-10%',
-        width:'62%', height:'28%',
-        borderRadius:'50% 50% 0 0 / 100% 100% 0 0',
-        background:mtn1,
+        position:'absolute', left:0, right:0, bottom:0, top:'65vh',
+        background: isDay ? '#2a7a2a' : '#0a1a0e',
       }} />
-      <div style={{
-        position:'absolute', bottom:'32%', right:'-8%',
-        width:'55%', height:'22%',
-        borderRadius:'50% 50% 0 0 / 100% 100% 0 0',
-        background:mtn2,
-      }} />
-
-      {/* Layer 5 — Ground */}
-      <div style={{
-        position:'absolute', bottom:0, left:0, right:0, height:'36%',
-        background:grass,
-        borderRadius:'50% 50% 0 0 / 30px 30px 0 0',
-      }} />
-
-      {/* Ground mounds for depth */}
-      <div style={{
-        position:'absolute', bottom:'33%', left:'30%',
-        width:48, height:12, borderRadius:'50%', background:groundMound,
-      }} />
-      <div style={{
-        position:'absolute', bottom:'33%', right:'25%',
-        width:36, height:10, borderRadius:'50%', background:groundMound,
-      }} />
-
-      {/* Layer 6 — Bushes */}
-      <div style={{
-        position:'absolute', bottom:'31%', left:'18%',
-        width:32, height:20, borderRadius:'50% 50% 40% 40%', background:bushC,
-      }} />
-      <div style={{
-        position:'absolute', bottom:'30%', right:'19%',
-        width:26, height:17, borderRadius:'50% 50% 40% 40%', background:bushC,
-      }} />
-
-      {/* Trees */}
-      <div style={{ position:'absolute', bottom:'27%', left:'5%' }}>
-        <div style={{ position:'relative', width:40, height:50 }}>
-          <div style={{ position:'absolute', bottom:0, left:14, width:12, height:38, background:trunkC, borderRadius:3 }} />
-          <div style={{ position:'absolute', bottom:26, left:0, width:40, height:44, background:leafC1, borderRadius:'50% 50% 42% 42%' }} />
-        </div>
-      </div>
-      <div style={{ position:'absolute', bottom:'28%', right:'6%' }}>
-        <div style={{ position:'relative', width:34, height:42 }}>
-          <div style={{ position:'absolute', bottom:0, left:11, width:10, height:30, background:trunkC, borderRadius:3 }} />
-          <div style={{ position:'absolute', bottom:22, left:0, width:34, height:38, background:leafC2, borderRadius:'50% 50% 42% 42%' }} />
-        </div>
-      </div>
-
-      {/* Path toward adventure */}
-      <div style={{
-        position:'absolute', bottom:'28%', left:'50%',
-        width:48, height:'16%',
-        transform:'translateX(-50%)',
-        background:pathC,
-        clipPath:'polygon(20% 0%,80% 0%,100% 100%,0% 100%)',
-      }} />
-
-      {/* Nest glow — soft aura behind egg */}
-      <div style={{
-        position:'absolute', top:'45%', left:'50%',
-        width:260, height:180,
-        transform:'translate(-50%,-50%)',
-        background:nestGlow, borderRadius:'50%',
-      }} />
-
-      {/* Layer 6b — Flowers (day) */}
-      {isDay && FLOWER_DEFS.map((f, i) => (
-        <div key={i} style={{
-          position:'absolute', bottom:f.b, left:f.l,
-          animation:`hbg-flower-float 2.5s ease-in-out ${f.d} infinite`,
-          willChange:'transform',
-        }}>
-          <div style={{
-            width:6, height:6, borderRadius:'50%', background:f.c,
-            boxShadow:`0 -5px 0 0 ${f.c},0 5px 0 0 ${f.c},-5px 0 0 0 ${f.c},5px 0 0 0 ${f.c}`,
-          }} />
-          <div style={{
-            position:'absolute', top:'50%', left:'50%',
-            width:4, height:4, transform:'translate(-50%,-50%)',
-            borderRadius:'50%', background:'#FFE866',
-          }} />
-        </div>
-      ))}
-
-      {/* Layer 7 — CSS Butterflies (day) */}
-      {isDay && (
-        <>
-          <Butterfly color="#ff99dd" flightAnim="hbg-bf1" flightDur="8s"  flightDelay="1s" top="32%" />
-          <Butterfly color="#ffcc44" flightAnim="hbg-bf2" flightDur="12s" flightDelay="6s" top="42%" />
-        </>
-      )}
-
-      {/* Layer 7 — CSS Bird (day) */}
-      {isDay && <Bird />}
-
-      {/* Layer 7 — Leaf particles (always) */}
-      {LEAF_DEFS.map((l, i) => (
-        <div key={i} style={{
-          position:'absolute', top:'-2%', left:l.l,
-          width:7, height:7,
-          background:l.c,
-          borderRadius:'50% 0 50% 0',
-          animation:`${l.anim} ${l.dur} ease-in ${l.delay} infinite`,
-          willChange:'transform', pointerEvents:'none',
-        }} />
-      ))}
-
-      {/* Layer 7 — Fireflies (night) */}
-      {!isDay && FIREFLY_DEFS.map((f, i) => (
-        <div key={i} style={{
-          position:'absolute', left:f.l, top:f.t,
-          width:4, height:4, borderRadius:'50%',
-          background:'#ffffaa',
-          boxShadow:'0 0 6px 3px rgba(255,255,170,0.55)',
-          animation:`${f.anim} ${f.dur} ease-in-out ${f.delay} infinite`,
-          willChange:'transform', pointerEvents:'none',
-        }} />
-      ))}
-
-      {/* Night magic particles */}
-      {!isDay && MAGIC_DEFS.map(([l, t, d], i) => (
-        <div key={i} style={{
-          position:'absolute', left:l, top:t,
-          width:3, height:3, borderRadius:'50%',
-          background:'rgba(155,135,255,0.82)',
-          animation:`hbg-float-magic 4.5s ease-in-out ${d} infinite`,
-        }} />
-      ))}
     </div>
   )
 }

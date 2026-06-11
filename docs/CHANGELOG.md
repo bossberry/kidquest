@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: pixel home scene — canvas tilemap with animated pixel sprites
+
+### HomeBackground.jsx (full rebuild)
+- Replaced all CSS-div/keyframe art with a `<canvas>` pixel renderer
+- Canvas size: `window.innerWidth × Math.floor(window.innerHeight * 0.65)`; scale `S = max(1, floor(W/160))`
+- `ctx.imageSmoothingEnabled = false`; every pixel drawn with `fillRect` only
+- Static tiles redrawn each frame: 3-band sky (day `#4ec8f0/#87ddff/#d4f7c0`; night `#0a1a3a/#1a2a5a/#2a3a7a`); 2 pixel mountains (stacked-`fillRect` triangles); 3-strip ground (bright/mid/dark); 2 pixel trees (triangle canopy rows + trunk); trapezoidal path (horizontal slices); 8 cross-shaped pixel flowers (day only)
+- Animated sprites via `requestAnimationFrame`: pulsing pixel sun (square + 8 rays); pixel moon + crescent cutout; 12 twinkling stars (sine opacity); 3 left-scrolling pixel clouds; 2 butterflies (sine-wave Y, cosine wing flap width); 1 bird (V-wing pixel shape, cross-screen); 4 fireflies with rgba glow (night only)
+- Below-canvas div fills remaining 35vh with solid ground color (day `#2a7a2a` / night `#0a1a0e`)
+- `hour` prop preserved; `isDay` computed internally — no Home.jsx changes required
+
 ## 2026-06-11 — Feat: pixel UI system — Press Start 2P font, pixel classes, square corners, hard shadows
 
 ### index.html

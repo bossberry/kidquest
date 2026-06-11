@@ -1,5 +1,30 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: Home screen redesign — Pokémon background + Tamagotchi ambient life
+
+### HomeBackground.jsx (full rebuild)
+- Sky: vivid FireRed/LeafGreen palette — `#4ec8f0→#87ddff→#c8f0ff→#d4f7c0` day; `#0a1a3a→#1a2a5a→#2a3a7a→#0d2a1a` night
+- Sun: `hbg-sun-pulse` 4s scale animation; moon+crescent retained for night
+- Clouds: 3 CSS clouds with ::before/::after bumps; sped up (28s/42s/35s); cloud-3 now 110px wide
+- Mountains: 2 prominent rounded-rectangle hills (height 28%/22%) with Pokémon green tints (#a8d4a8/#90c490)
+- Ground: curved top edge (`border-radius: 50% 50% 0 0 / 30px`); 3-stop vivid green gradient; 2 depth mounds
+- Butterflies (day): 2 CSS-drawn `Butterfly` components — 2 wings (`border-radius:50% 0 50% 50%` + mirror) + body; `hbg-flap-l/r` alternate scaleY; `hbg-bf1` (8s) + `hbg-bf2` (12s) sine-wave flight loops; `#ff99dd` + `#ffcc44` colors; `will-change:transform`
+- Bird (day): CSS `Bird` component — oval body + 2 wing shapes; `hbg-bird-flap` 0.25s alternating; `hbg-bird-fly` 15s left→right repeat
+- Leaf particles: 3 small rounded-diamond divs; `hbg-leaf1/2/3` fall+rotate+sway loops (6–9.5s staggered)
+- Fireflies (night only): 4 tiny 4px circles `#ffffaa` with static glow; `hbg-ff1/2/3/4` drift+opacity loops
+- Flowers (day): `hbg-flower-float` +3px bob with staggered delays; 6 CSS dot-shadow flowers retained
+
+### Home.jsx (targeted changes)
+- Title "ไข่ของ{name}" moved to above egg: smaller (17px Fredoka), soft `text-shadow` glow
+- Stage dots removed; replaced with single mood emoji (😊/🤩/😋/😴) driven by `eggAnim` state
+- Header left side simplified to stage-name label only; right side keeps sound button + readyToHatch badge
+- Item tray: outer container opacity reduced; inner glassmorphism card (`rgba(255,255,255,0.15)` + `backdropFilter:blur(8px)` + frosted 1px border + `borderRadius:20`)
+- ออกสำรวจ! button: shimmer gradient (`home-shimmer 3s linear infinite`, `background-size:200%`)
+- Egg canvas wrapped in relative container; ellipse ground shadow `radial-gradient(ellipse, rgba(0,0,0,0.18), transparent)` absolutely positioned -8px below canvas
+
+### styles.css additions
+- `hbg-sun-pulse`, `hbg-flap-l/r`, `hbg-bf1/2`, `hbg-bird-flap/fly`, `hbg-ff1/2/3/4`, `hbg-leaf1/2/3`, `hbg-flower-float`, `home-shimmer`
+
 ## 2026-06-11 — Fix: hint bar visual, enemy announce TTS, strict subject rotation
 
 - `MoveSelectBattleMode.jsx` — Added `HintBar` component: Thai shows word + "คืออะไร?", Eng shows word + "= ?", math arithmetic shows `a op b =?` in large Fredoka font, count/pattern/word questions show Thai labels

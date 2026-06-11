@@ -377,3 +377,15 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: Home screen redesign — Pokémon background + Tamagotchi ambient life:**
+- Built:
+  - `src/components/HomeBackground.jsx` (FULL REBUILD) — Vivid FireRed/LeafGreen sky gradient day/night; sun with 4s scale-pulse animation; clouds at new sizes+speeds (28/42/35s); 2 large CSS mountains (height 28%/22%, rounded-rect with vivid greens); curved ground (`border-radius:50% 50% 0 0 / 30px`); ground mounds for depth; `Butterfly` CSS component (2 wings with alternating scaleY flap + sine flight loops, #ff99dd and #ffcc44); `Bird` CSS component (oval body + 2 wings, 0.25s fast flap, 15s cross-screen loop); 3 leaf particles (fall+rotate+sway, looping); 4 fireflies (night only, static glow + drift+opacity loops); vivid night sky (#0a1a3a→#2a3a7a); stars retained. All animated elements have `will-change:transform`. No box-shadow animations.
+  - `src/components/Home.jsx` (TARGETED EDITS) — Title "ไข่ของ{name}" moved above egg (17px Fredoka, glow text-shadow); stage dots replaced with single `moodEmoji` (😊/🤩/😋/😴 driven by `eggAnim` state); header left side simplified to stage-name only; item tray has glassmorphism inner card (`rgba(255,255,255,0.15)` + blur(8px) + frosted border); ออกสำรวจ! button has shimmer (`home-shimmer` keyframe, background-position sweep); egg canvas wrapped with ellipse ground shadow.
+  - `src/styles.css` (ADDITIONS) — 15 new keyframes in HOME BACKGROUND SCENE section; cloud CSS classes resized/respeeded.
+- Not finished: none — all spec parts complete.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System, or Chopin playtest to validate Home feel.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

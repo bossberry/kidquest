@@ -385,7 +385,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       ? `egg-anim-${idleAnim}`
       : idleBaseClass
 
-  const stageDots = Array.from({ length: EGG_STAGES }, (_, i) => i <= stage)
   const STAGE_DOT_COLORS = [
     '#9B87B8','#C4956A','#7BAF6E','#9B59B6',
     '#D4AC0D','#E87E2C','#5E9BD8','#5DADE2','#FFD700',
@@ -393,6 +392,10 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const stageColor = STAGE_DOT_COLORS[stage] || '#9B87B8'
   const hour = new Date().getHours()
   const isDay = hour >= 6 && hour < 19
+  const moodEmoji =
+    eggAnim === 'sleepy'      ? '😴' :
+    eggAnim === 'eat'         ? '😋' :
+    (eggAnim === 'excited' || eggAnim === 'happy-spin') ? '🤩' : '😊'
 
   return (
     <div id="egg-home" style={{
@@ -460,32 +463,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         backdropFilter:'blur(2px)',
         borderRadius:'0 0 12px 12px',
       }}>
-        <div>
-          <div style={{
-            fontFamily:"'Fredoka One',cursive", fontSize:22,
-            color: isDay ? '#5A3A8B' : '#C8B4FF',
-            lineHeight:1.1,
-            textShadow: isDay ? '0 1px 3px rgba(255,255,255,0.5)' : '0 1px 5px rgba(0,0,0,0.6)',
-          }}>
-            ไข่ของ{state.name}
-          </div>
-          <div style={{ display:'flex', gap:4, marginTop:5, alignItems:'center' }}>
-            {stageDots.map((filled, i) => (
-              <div key={i} style={{
-                width:7, height:7, borderRadius:'50%',
-                background: filled ? stageColor : 'rgba(155,89,182,0.18)',
-                transition:'background 0.6s',
-              }} />
-            ))}
-            <span style={{
-              fontSize:10, color: stageColor, marginLeft:4,
-              fontFamily:'Mitr,sans-serif',
-              fontWeight: stage >= 6 ? 700 : 400,
-              transition:'color 0.8s',
-            }}>
-              {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
-            </span>
-          </div>
+        <div style={{
+          fontFamily:'Mitr,sans-serif', fontSize:11,
+          color: isDay ? stageColor : 'rgba(200,180,255,0.75)',
+          fontWeight: stage >= 6 ? 700 : 400,
+          transition:'color 0.8s',
+        }}>
+          {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {readyToHatch && (
@@ -511,6 +495,21 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
         position:'relative', paddingBottom:50,
       }}>
+
+        {/* Title + mood indicator above egg */}
+        <div style={{ textAlign:'center', marginBottom:6, zIndex:5 }}>
+          <div style={{
+            fontFamily:"'Fredoka One',cursive", fontSize:17,
+            color: isDay ? '#5A3A8B' : '#C8B4FF',
+            textShadow: isDay
+              ? '0 1px 8px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.3)'
+              : '0 1px 8px rgba(180,140,255,0.6)',
+            lineHeight:1.2,
+          }}>
+            ไข่ของ{state.name}
+          </div>
+          <div style={{ fontSize:18, marginTop:2, lineHeight:1 }}>{moodEmoji}</div>
+        </div>
 
         {/* Egg wrapper — animation class drives all movement */}
         <div
@@ -554,13 +553,22 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             </div>
           )}
 
-          {/* Canvas — glow class drives drop-shadow effect */}
-          <EggCanvas
-            stats={eggStatsData}
-            width={190} height={225}
-            className={[`egg-s${stage}`, eggGlow ? `egg-glow-${eggGlow}` : ''].filter(Boolean).join(' ')}
-            style={{ display:'block' }}
-          />
+          {/* Canvas with ground shadow */}
+          <div style={{ position:'relative', display:'inline-block' }}>
+            <EggCanvas
+              stats={eggStatsData}
+              width={190} height={225}
+              className={[`egg-s${stage}`, eggGlow ? `egg-glow-${eggGlow}` : ''].filter(Boolean).join(' ')}
+              style={{ display:'block' }}
+            />
+            <div style={{
+              position:'absolute', bottom:-8, left:'50%',
+              transform:'translateX(-50%)',
+              width:70, height:14,
+              background:'radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%)',
+              borderRadius:'50%', pointerEvents:'none',
+            }} />
+          </div>
         </div>
 
         {/* Hatch CTA */}
@@ -642,11 +650,19 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       {/* Item tray */}
       <div style={{
         width:'100%', maxWidth:480, padding:'8px 20px',
-        display:'flex', gap:10, justifyContent:'center', flexShrink:0,
-        borderTop: isDay ? '1px solid rgba(155,89,182,0.10)' : '1px solid rgba(100,80,180,0.20)',
-        background: isDay ? 'rgba(255,255,255,0.52)' : 'rgba(6,12,32,0.65)',
-        backdropFilter:'blur(6px)',
+        display:'flex', justifyContent:'center', flexShrink:0,
+        background: isDay ? 'rgba(255,255,255,0.28)' : 'rgba(6,12,32,0.50)',
+        backdropFilter:'blur(4px)',
       }}>
+        <div style={{
+          background:'rgba(255,255,255,0.15)',
+          backdropFilter:'blur(8px)',
+          borderRadius:20,
+          border:'1px solid rgba(255,255,255,0.30)',
+          padding:'6px 12px',
+          display:'flex',
+          gap:10,
+        }}>
         {ITEM_DEFS.map(({ key, emoji, label }) => {
           const count    = state.items?.[key] || 0
           const isActive = activeItem === key
@@ -683,6 +699,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             </div>
           )
         })}
+        </div>
       </div>
 
       {/* Action row — padding-bottom handled by #egg-home CSS (safe-area-aware) */}
@@ -728,7 +745,9 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           }}
           style={{
             flex:2, height:52, borderRadius:14,
-            background:'linear-gradient(135deg,#8E44AD,#6C3483)',
+            background:'linear-gradient(90deg, #6030b0, #9060e0, #6030b0)',
+            backgroundSize:'200%',
+            animation:'home-shimmer 3s linear infinite',
             border:'none',
             fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:16,
             color:'#fff', cursor:'pointer',

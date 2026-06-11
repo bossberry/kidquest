@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { playTone, speakTh, speakEn } from '../lib/audio.js'
+import { playTone, speakTh, speakEn, playSFX } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
@@ -243,7 +243,7 @@ export default function MoveSelectBattleMode({
     const times = [80,  200, 280, 400, 480, 530]
     const fns   = [
       () => mountedRef.current && setFlashVisible(false),
-      () => mountedRef.current && setFlashVisible(true),
+      () => { mountedRef.current && setFlashVisible(true); playSFX('battle_start') },
       () => mountedRef.current && setFlashVisible(false),
       () => mountedRef.current && setFlashVisible(true),
       () => mountedRef.current && setFlashVisible(false),
@@ -358,7 +358,7 @@ export default function MoveSelectBattleMode({
     if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
     lockedRef.current = true
     setSelectedCard(idx)
-    playTone('tap')
+    playTone('tap'); playSFX('attack_launch')
     setEggAnimClass('charge')
     setTimeout(() => {
       if (!mountedRef.current) return
@@ -404,7 +404,7 @@ export default function MoveSelectBattleMode({
     let log
     if (isUlt) {
       log = '💥 ULTIMATE!! ×2'
-      playTone('ultimate')
+      playTone('ultimate'); playSFX('ultra_move')
       if (mountedRef.current) { setCritFlash(true); setTimeout(() => mountedRef.current && setCritFlash(false), 400) }
       spawnConfetti(25)
     } else if (combo >= 4) {
@@ -413,11 +413,11 @@ export default function MoveSelectBattleMode({
       if (mountedRef.current) { setCritFlash(true); setTimeout(() => mountedRef.current && setCritFlash(false), 250) }
       spawnConfetti(8)
     } else if (combo === 3) {
-      log = '🔥 คอมโบ! 3 ต่อเนื่อง'; playTone('combo')
+      log = '🔥 คอมโบ! 3 ต่อเนื่อง'; playTone('combo'); playSFX('combo')
     } else if (combo === 2) {
-      log = '✨ คอมโบ! 2 ต่อเนื่อง'; playTone('combo')
+      log = '✨ คอมโบ! 2 ต่อเนื่อง'; playTone('combo'); playSFX('combo')
     } else {
-      log = `⚔️ โจมตี! +${earned} XP`; playTone('correct')
+      log = `⚔️ โจมตี! +${earned} XP`; playTone('correct'); playSFX('attack_hit')
     }
     if (mountedRef.current) { setBattleLog(log); setComboDisplay(Math.min(combo, 3)) }
     if (!isUlt && !ultimateRef.current && combo >= 3) {
@@ -463,7 +463,7 @@ export default function MoveSelectBattleMode({
         setTimeout(() => mountedRef.current && setEggHitFlash(false), 200)
       }, 300)
     }
-    playTone('miss')
+    playTone('miss'); playSFX('attack_miss')
     setTimeout(() => {
       if (!mountedRef.current) return
       if (cur + 1 >= total) {
@@ -480,7 +480,7 @@ export default function MoveSelectBattleMode({
     setEnemyDefeating(true)
     setVictoryMode(true)
     setBattleLog(`${enemy.name} หมดแรง!`)
-    playTone('fanfare')
+    playTone('fanfare'); playSFX('victory')
     spawnConfetti(35)
     // XP orbs fly from enemy to egg
     setTimeout(() => {

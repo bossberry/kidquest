@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle } from '../config/gameConfig.js'
-import { speakTh, speakEn } from '../lib/audio.js'
+import { speakTh, speakEn, playBGM, stopBGM } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 
 const TOTAL_QS = 8
@@ -115,6 +115,11 @@ export default function WorldBattle({ navigate }) {
   const mountedRef      = useRef(true)
   useEffect(() => () => { mountedRef.current = false }, [])
 
+  useEffect(() => {
+    playBGM('battle')
+    return () => stopBGM()
+  }, [])
+
   useEffect(() => { if (!enemy) navigate('world') }, []) // eslint-disable-line
 
   if (!enemy) return null
@@ -142,6 +147,7 @@ export default function WorldBattle({ navigate }) {
   function onComplete() {
     if (doneRef.current) return
     doneRef.current = true
+    stopBGM()
     const score = scoreRef.current / TOTAL_QS
     const dur   = Math.floor((Date.now() - startTime.current) / 1000)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score } })

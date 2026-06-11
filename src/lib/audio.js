@@ -159,6 +159,258 @@ export function erSfxCountdown(n){if(!_soundOn)return;try{const ctx=getACtx(),o=
 export function playTapCrackSound(tapNum){if(!_soundOn)return;try{const ctx=getACtx(),buf=ctx.createBuffer(1,ctx.sampleRate*.06,ctx.sampleRate),data=buf.getChannelData(0);for(let j=0;j<data.length;j++)data[j]=(Math.random()*2-1)*Math.exp(-j/(data.length*.35));const src=ctx.createBufferSource(),gain=ctx.createGain();gain.gain.value=.1+tapNum*.06;const filt=ctx.createBiquadFilter();filt.type='bandpass';filt.frequency.value=500+tapNum*120;src.buffer=buf;src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);src.start(ctx.currentTime);const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=300+tapNum*80;g.gain.setValueAtTime(0,ctx.currentTime+.05);g.gain.linearRampToValueAtTime(.15,ctx.currentTime+.07);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.25);o.start(ctx.currentTime+.05);o.stop(ctx.currentTime+.27)}catch(e){}}
 export function playHatchSound(){if(!_soundOn)return;try{const ctx=getACtx();const t=(f,d,v,dur,tp='sine')=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type=tp;o.frequency.value=f;const st=ctx.currentTime+d;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(v,st+.02);g.gain.exponentialRampToValueAtTime(.001,st+dur);o.start(st);o.stop(st+dur+.02)};[0,.15,.3,.5,.7,.9].forEach((d,i)=>{const buf=ctx.createBuffer(1,ctx.sampleRate*.05,ctx.sampleRate),data=buf.getChannelData(0);for(let j=0;j<data.length;j++)data[j]=(Math.random()*2-1)*Math.exp(-j/(data.length*.3));const src=ctx.createBufferSource(),gain=ctx.createGain();gain.gain.value=.12+i*.03;const filt=ctx.createBiquadFilter();filt.type='bandpass';filt.frequency.value=600+i*150;src.buffer=buf;src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);src.start(ctx.currentTime+d)});t(80,1.2,.4,.6,'sawtooth');t(120,1.2,.3,.5,'sawtooth');[523,587,659,698,784,880,988,1047].forEach((f,i)=>t(f,1.5+i*.1,.25,.4));[523,659,784,1047,1319,1568].forEach((f,i)=>t(f,2.5+i*.08,.3,.5))}catch(e){}}
 
+// ── BGM + SFX ────────────────────────────────────────────────────────────────────
+
+let bgmNodes  = []   // sustained oscillators { osc, gain }
+let bgmTimers = []   // loop scheduling timers for cleanup
+
+// Low-level primitive helpers ──────────────────────────────────────────────────
+function _t(ctx, f, vol, ms, type = 'sine', delayMs = 0) {
+  const o = ctx.createOscillator(), g = ctx.createGain()
+  o.connect(g); g.connect(ctx.destination)
+  o.type = type; o.frequency.value = f
+  const st = ctx.currentTime + delayMs / 1000
+  g.gain.setValueAtTime(0, st)
+  g.gain.linearRampToValueAtTime(vol, st + 0.02)
+  g.gain.exponentialRampToValueAtTime(0.001, st + ms / 1000)
+  o.start(st); o.stop(st + ms / 1000 + 0.05)
+}
+function _sweep(ctx, f0, f1, vol, type, ms = 180) {
+  const o = ctx.createOscillator(), g = ctx.createGain()
+  o.connect(g); g.connect(ctx.destination)
+  o.type = type
+  o.frequency.setValueAtTime(f0, ctx.currentTime)
+  o.frequency.exponentialRampToValueAtTime(f1, ctx.currentTime + ms / 1000)
+  g.gain.setValueAtTime(vol, ctx.currentTime)
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms / 1000)
+  o.start(ctx.currentTime); o.stop(ctx.currentTime + ms / 1000 + 0.05)
+}
+function _noise(ctx, vol, ms) {
+  const len = Math.ceil(ctx.sampleRate * ms / 1000)
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+  const src = ctx.createBufferSource(), g = ctx.createGain()
+  g.gain.setValueAtTime(vol, ctx.currentTime)
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms / 1000)
+  src.buffer = buf; src.connect(g); g.connect(ctx.destination)
+  src.start(ctx.currentTime); src.stop(ctx.currentTime + ms / 1000 + 0.01)
+}
+function _arp(ctx, freqs, msEach, type) {
+  freqs.forEach((f, i) => {
+    if (!f) return
+    const st = ctx.currentTime + i * msEach / 1000
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(ctx.destination)
+    o.type = type; o.frequency.value = f
+    g.gain.setValueAtTime(0, st)
+    g.gain.linearRampToValueAtTime(0.09, st + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.001, st + msEach / 1000 * 0.8)
+    o.start(st); o.stop(st + msEach / 1000)
+  })
+}
+function _vibrato(ctx, f, vol, type, rate) {
+  const o = ctx.createOscillator(), g = ctx.createGain()
+  const lfo = ctx.createOscillator(), lg = ctx.createGain()
+  lfo.frequency.value = rate; lg.gain.value = f * 0.04
+  lfo.connect(lg); lg.connect(o.frequency)
+  o.connect(g); g.connect(ctx.destination)
+  o.type = type; o.frequency.value = f
+  g.gain.setValueAtTime(vol, ctx.currentTime)
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+  lfo.start(ctx.currentTime); o.start(ctx.currentTime)
+  lfo.stop(ctx.currentTime + 0.35); o.stop(ctx.currentTime + 0.35)
+}
+
+// BGM tracks — each returns array of sustained { osc, gain } for graceful fade ─
+
+function _bgmHome(ctx) {
+  const nodes = []
+  const pad = ctx.createOscillator(), padG = ctx.createGain()
+  pad.type = 'sine'; pad.frequency.value = 261; padG.gain.value = 0.035
+  pad.connect(padG); padG.connect(ctx.destination); pad.start()
+  nodes.push({ osc: pad, gain: padG })
+  const mel = [261, 329, 392, 329]
+  let idx = 0
+  const tick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'triangle'; o.frequency.value = mel[idx++ % mel.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.022, ctx.currentTime + 0.04)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.42)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.48)
+    bgmTimers.push(setTimeout(tick, 400))
+  }
+  bgmTimers.push(setTimeout(tick, 300))
+  return nodes
+}
+
+function _bgmWorld(ctx) {
+  const nodes = []
+  const pad = ctx.createOscillator(), padG = ctx.createGain()
+  pad.type = 'sine'; pad.frequency.value = 130; padG.gain.value = 0.020
+  pad.connect(padG); padG.connect(ctx.destination); pad.start()
+  nodes.push({ osc: pad, gain: padG })
+  const bass = [130, 196, 130, 196], mel = [261, 293, 329, 392, 329, 293, 261, 0]
+  let bi = 0, mi = 0
+  const bassTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'square'; o.frequency.value = bass[bi++ % bass.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 0.02)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.36)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.40)
+    bgmTimers.push(setTimeout(bassTick, 400))
+  }
+  const melTick = () => {
+    if (bgmNodes !== nodes) return
+    const f = mel[mi++ % mel.length]
+    if (f) {
+      const o = ctx.createOscillator(), g = ctx.createGain()
+      o.type = 'sine'; o.frequency.value = f
+      g.gain.setValueAtTime(0, ctx.currentTime)
+      g.gain.linearRampToValueAtTime(0.028, ctx.currentTime + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45)
+      o.connect(g); g.connect(ctx.destination)
+      o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.50)
+    }
+    bgmTimers.push(setTimeout(melTick, 250))
+  }
+  bgmTimers.push(setTimeout(bassTick, 100))
+  bgmTimers.push(setTimeout(melTick, 200))
+  return nodes
+}
+
+function _bgmBattle(ctx) {
+  const nodes = []
+  const sub = ctx.createOscillator(), subG = ctx.createGain()
+  sub.type = 'sawtooth'; sub.frequency.value = 65; subG.gain.value = 0.014
+  sub.connect(subG); subG.connect(ctx.destination); sub.start()
+  nodes.push({ osc: sub, gain: subG })
+  const bass = [130, 130, 196, 130], riff = [261, 329, 392, 523, 392, 329]
+  let bi = 0, ri = 0
+  const bassTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'sawtooth'; o.frequency.value = bass[bi++ % bass.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.016, ctx.currentTime + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.21)
+    bgmTimers.push(setTimeout(bassTick, 210))
+  }
+  const riffTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'square'; o.frequency.value = riff[ri++ % riff.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.026, ctx.currentTime + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.20)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.22)
+    bgmTimers.push(setTimeout(riffTick, 170))
+  }
+  bgmTimers.push(setTimeout(bassTick, 50))
+  bgmTimers.push(setTimeout(riffTick, 90))
+  return nodes
+}
+
+function _bgmVictory(ctx) {
+  const freqs = [261, 329, 392, 523]
+  freqs.forEach((f, i) => {
+    const st = ctx.currentTime + i * 0.12
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'square'; o.frequency.value = f
+    g.gain.setValueAtTime(0, st)
+    g.gain.linearRampToValueAtTime(0.06, st + 0.02)
+    g.gain.exponentialRampToValueAtTime(0.001, st + 0.48)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(st); o.stop(st + 0.52)
+  })
+  const st2 = ctx.currentTime + freqs.length * 0.12
+  const o2 = ctx.createOscillator(), g2 = ctx.createGain()
+  o2.type = 'sine'; o2.frequency.value = 523
+  g2.gain.setValueAtTime(0, st2)
+  g2.gain.linearRampToValueAtTime(0.055, st2 + 0.05)
+  g2.gain.linearRampToValueAtTime(0, st2 + 0.8)
+  o2.connect(g2); g2.connect(ctx.destination)
+  o2.start(st2); o2.stop(st2 + 0.85)
+  return [] // one-shot, no sustained nodes
+}
+
+const BGM_TRACKS = { home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victory: _bgmVictory }
+
+export function playBGM(track) {
+  stopBGM(0)
+  if (!_soundOn) return
+  const fn = BGM_TRACKS[track]
+  if (!fn) return
+  try { bgmNodes = fn(getACtx()) || [] } catch(e) {}
+}
+
+export function stopBGM(fadeMs = 200) {
+  bgmTimers.forEach(t => clearTimeout(t))
+  bgmTimers = []
+  if (bgmNodes.length > 0 && audioCtx) {
+    bgmNodes.forEach(({ osc, gain }) => {
+      try {
+        if (fadeMs > 0 && gain) {
+          gain.gain.cancelScheduledValues(audioCtx.currentTime)
+          gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + fadeMs / 1000)
+          setTimeout(() => { try { osc.stop() } catch(e) {} }, fadeMs + 100)
+        } else {
+          try { osc.stop() } catch(e) {}
+        }
+      } catch(e) {}
+    })
+  }
+  bgmNodes = []
+}
+
+// SFX dictionary ───────────────────────────────────────────────────────────────
+const SFX = {
+  // Battle
+  attack_launch: ctx => _sweep(ctx, 200, 600, 0.09, 'sawtooth', 140),
+  attack_hit:    ctx => { _noise(ctx, 0.07, 70); _t(ctx, 100, 0.07, 90, 'sine') },
+  attack_miss:   ctx => _sweep(ctx, 400, 160, 0.10, 'sine', 200),
+  enemy_attack:  ctx => _sweep(ctx, 500, 180, 0.09, 'square', 170),
+  player_hit:    ctx => { _t(ctx, 75, 0.07, 110, 'sine'); _noise(ctx, 0.045, 55) },
+  combo:         ctx => _vibrato(ctx, 800, 0.11, 'sawtooth', 18),
+  ultra_move:    ctx => { _t(ctx, 80, 0.10, 280, 'sawtooth'); _sweep(ctx, 200, 1200, 0.09, 'sine', 380) },
+  victory:       ctx => _arp(ctx, [523, 659, 784, 1047], 115, 'square'),
+  battle_start:  ctx => _arp(ctx, [196, 261, 392], 58, 'square'),
+  level_up:      ctx => _arp(ctx, [523, 659, 784, 1047], 50, 'sine'),
+  // World
+  footstep:     ctx => _noise(ctx, 0.016, 16),
+  tall_grass:   ctx => _noise(ctx, 0.026, 60),
+  npc_talk:     ctx => _t(ctx, 600, 0.045, 65, 'sine'),
+  screen_enter: ctx => _sweep(ctx, 150, 400, 0.055, 'sine', 280),
+  item_collect: ctx => _arp(ctx, [523, 784], 75, 'sine'),
+  enemy_notice: ctx => _arp(ctx, [294, 440], 95, 'square'),
+  // Home
+  egg_pet:     ctx => _t(ctx, 440, 0.065, 95, 'sine'),
+  egg_excited: ctx => _arp(ctx, [523, 659, 784], 52, 'sine'),
+  egg_hatch:   ctx => { _noise(ctx, 0.10, 190); _sweep(ctx, 300, 800, 0.09, 'sine', 280) },
+  stage_up:    ctx => _arp(ctx, [261, 329, 392], 115, 'triangle'),
+}
+
+export function playSFX(name) {
+  if (!_soundOn) return
+  try { const fn = SFX[name]; if (fn) fn(getACtx()) } catch(e) {}
+}
+
+// iOS: resume AudioContext on first touch ──────────────────────────────────────
+if (typeof document !== 'undefined') {
+  document.addEventListener('touchstart', () => {
+    if (audioCtx?.state === 'suspended') audioCtx.resume()
+  }, { once: true })
+}
+
 export function initVoices() {
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices()

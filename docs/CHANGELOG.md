@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: full BGM + SFX sound system + adaptive battle difficulty
+
+- `src/lib/audio.js` — added `playBGM(track)`, `stopBGM(fadeMs)`, `playSFX(name)` exports; 5 primitive helpers (`_t`, `_sweep`, `_noise`, `_arp`, `_vibrato`); 4 BGM tracks (home/world/battle/victory) generated via Web Audio API (no files); 19 named SFX; iOS touchstart AudioContext resume listener
+- `src/lib/battleSubject.js` — fixed PRIORITY order (`notready` now ranks before `comfortable` so unplayed subjects appear); variety safeguard (last-3-same-subject → rotate away); `getBattleLevel` now rotates easy(1)→hard(maxUnlocked)→medium(ceil/2) every 3 battles
+- `src/components/Home.jsx` — BGM mount/unmount; `playSFX('stage_up')`, `egg_excited`, `egg_pet` wired to interactions
+- `src/components/WorldScreen.jsx` — BGM mount/unmount; footstep→`playSFX('footstep')`, tall grass→`tall_grass`, NPC→`npc_talk`, screen transition→`screen_enter`, bunny wake→`enemy_notice`
+- `src/components/WorldBattle.jsx` — BGM mount/unmount; `stopBGM()` on battle complete
+- `src/games/MoveSelectBattleMode.jsx` — `battle_start` at entry flash, `attack_launch` on tap, `attack_hit/combo/ultra_move` in hit chain, `attack_miss` on miss, `victory` on showVictory
+
 ## 2026-06-11 — Fix: battle subject+level driven by child readiness, not enemy type
 
 - `src/lib/battleSubject.js` (REWRITTEN) — `getBattleSubject(sessionLog, state)`: priority sort (exploring→comfortable→notready→strong), rotation tiebreaker via `dailyBattleRounds`. `getBattleLevel(subject, state)`: XP→level via `floor(xpX/120)+1`, clamped to LEVELS max id.

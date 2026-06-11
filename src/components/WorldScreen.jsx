@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { SCREENS } from '../config/worldConfig.js'
-import { playTone } from '../lib/audio.js'
+import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import {
   MAP_ROWS, MAP_COLS, T,
   renderMap, renderPlayer, canMove, getCamera, getExitAt,
@@ -52,6 +52,11 @@ export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const stateRef = useRef(state)
   useEffect(() => { stateRef.current = state }, [state])
+
+  useEffect(() => {
+    playBGM('world')
+    return () => stopBGM()
+  }, [])
   const canvasRef = useRef(null)
 
   const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -166,6 +171,7 @@ export default function WorldScreen({ navigate }) {
     const targetId = SCREENS[sid]?.connects[dirName]
     if (!targetId) return
 
+    playSFX('screen_enter')
     setTransitioning(true)
     setTransOverlay(1)
 
@@ -217,7 +223,7 @@ export default function WorldScreen({ navigate }) {
         enemiesRef.current = enemiesRef.current.map(e =>
           e.id === hitEnemy.id ? { ...e, woken: true, timer: 0 } : e
         )
-        playTone('tap')
+        playSFX('enemy_notice')
         return
       }
       triggerBattle(hitEnemy)
@@ -234,7 +240,7 @@ export default function WorldScreen({ navigate }) {
     g.moveStartTime = performance.now()
     g.walkFrame = (g.walkFrame + 1) % 2
 
-    playTone('tap')
+    playSFX('footstep')
 
     const exitType = getExitAt(tileMap, newCol, newRow)
     if (exitType !== null) {
@@ -245,7 +251,7 @@ export default function WorldScreen({ navigate }) {
     const raw = tileMap[newRow]?.[newCol]
     const ttype = typeof raw === 'object' ? raw.type : raw
     if (ttype === T.TALL && Math.random() < 0.25) {
-      playTone('open')
+      playSFX('tall_grass')
       setEncounterFlash(true)
       setTimeout(() => setEncounterFlash(false), 50)
       dispatch({ type: ACTIONS.ENCOUNTER_TRIGGERED })
@@ -261,8 +267,8 @@ export default function WorldScreen({ navigate }) {
 
   // ── Dialogue ─────────────────────────────────────────────────────────────────
 
-  const openNPC  = () => { setDialogue({ lines: OWL_LINES,  index: 0 }); playTone('cardOpen') }
-  const openSign = () => { setDialogue({ lines: SIGN_LINES, index: 0 }); playTone('cardOpen') }
+  const openNPC  = () => { setDialogue({ lines: OWL_LINES,  index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
+  const openSign = () => { setDialogue({ lines: SIGN_LINES, index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
   const advance  = () => {
     if (!dialogue) return
     if (dialogue.index < dialogue.lines.length - 1) setDialogue({ ...dialogue, index: dialogue.index + 1 })

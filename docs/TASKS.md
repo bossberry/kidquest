@@ -111,6 +111,7 @@ _Spec: `docs/research/gameplay/pokemon-style-learning-battle.md` + `docs/researc
 - [x] **PSLB-3: English Move-Select Battle** — Same shell. `genEngMoveQ()` returns emoji choices. TTS via `speakEn`. Build ✅.
 - [x] **PSLB-4: Animation polish** — `move-pulse`, `egg-charge`, `miss-fizzle`, `enemy-defeat`, `crit-flash` keyframes added. Combo glow ring on egg. Damage float. Hit flash on enemy. Build ✅.
 - [x] **PSLB-5: New audio tones** — `miss` (soft fizzle), `combo` (rising chime), `ultimate` (power fanfare) added to `playTone()`. Build ✅.
+- [x] **PSLB-6: Full BGM + SFX sound system** — Web Audio API only, no audio files. `playBGM(track)`, `stopBGM()`, `playSFX(name)` added to `audio.js`. 4 BGM tracks (home/world/battle/victory). 19 SFX. Wired to Home, WorldScreen, WorldBattle, MoveSelectBattleMode. Battle subject: fixed `notready` priority rank (math now appears), variety safeguard (last-3-same→rotate), adaptive level rotation (easy→hard→medium every 3 battles). Build ✅ 2026-06-11.
 
 ### Egg Companion Adventure — Implementation Queue (designed 2026-06-04)
 

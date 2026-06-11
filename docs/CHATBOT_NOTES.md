@@ -336,3 +336,18 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Chopin playtest — fight enemies of different types, confirm subjects rotate, confirm level increases with XP.
 - Needs Chatbot decision first: None.
 
+---
+
+**2026-06-11 — fix+feat: adaptive battle difficulty + full BGM/SFX sound system:**
+- Built:
+  - `src/lib/battleSubject.js` — fixed PRIORITY bug: `notready` now before `comfortable` (math now appears for new players). Variety safeguard: if last 3 sessionLog entries same subject, rotate to another. `getBattleLevel` now cycles `[1, maxUnlocked, ceil(maxUnlocked/2)]` via `dailyBattleRounds % 3` — easy→hard→medium adaptive rotation.
+  - `src/lib/audio.js` (additions only) — `playBGM(track)`, `stopBGM(fadeMs)`, `playSFX(name)` exports. 5 primitive helpers. 4 BGM tracks (home/world/battle/victory). 19 named SFX. iOS touchstart AudioContext resume. Existing `playTone()` untouched.
+  - `src/components/Home.jsx` — BGM on mount/off on unmount; `playSFX('stage_up')`, `egg_excited`, `egg_pet` added alongside existing `playTone` calls.
+  - `src/components/WorldScreen.jsx` — BGM on mount; `footstep`, `tall_grass`, `npc_talk`, `screen_enter`, `enemy_notice` SFX wired.
+  - `src/components/WorldBattle.jsx` — BGM on mount; `stopBGM()` called in `onComplete()` before navigate.
+  - `src/games/MoveSelectBattleMode.jsx` — `battle_start`, `attack_launch`, `attack_hit`, `combo`, `ultra_move`, `attack_miss`, `victory` SFX added alongside existing `playTone` calls.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System (Owl is wired, 4 more NPCs to add).
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

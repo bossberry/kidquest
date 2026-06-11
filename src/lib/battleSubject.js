@@ -2,26 +2,31 @@ import { computeReadiness } from './subjectReadiness.js'
 import { LEVELS } from '../config/gameConfig.js'
 
 const SUBJECTS = ['thai', 'math', 'eng']
-// Priority order: weakest first
-const PRIORITY = ['exploring', 'comfortable', 'notready', 'strong']
+// Priority: notready (never played) beats comfortable — child must see every subject
+const PRIORITY = ['exploring', 'notready', 'comfortable', 'strong']
 
 export function getBattleSubject(sessionLog, state) {
   const dailyCount = state?.dailyBattleRounds ?? 0
 
   if (!sessionLog?.length) {
-    // No session data yet — rotate evenly so all subjects get practice
     return SUBJECTS[dailyCount % SUBJECTS.length]
   }
 
   const readiness = {}
   for (const s of SUBJECTS) readiness[s] = computeReadiness(sessionLog, s)
 
-  // Sort by readiness priority (exploring first = most needs practice)
+  // Variety safeguard: if last 3 sessions were same subject, rotate away
+  const recent = (sessionLog || []).slice(-3).map(s => s.world)
+  const stuck = recent.length === 3 && recent.every(w => w === recent[0])
+  if (stuck) {
+    const other = SUBJECTS.filter(s => s !== recent[0])
+    return other[dailyCount % other.length]
+  }
+
   const sorted = [...SUBJECTS].sort(
     (a, b) => PRIORITY.indexOf(readiness[a]) - PRIORITY.indexOf(readiness[b])
   )
 
-  // Rotate among subjects tied at the same (weakest) readiness level
   const weakestLevel = readiness[sorted[0]]
   const tied = sorted.filter(s => readiness[s] === weakestLevel)
   return tied[dailyCount % tied.length]
@@ -32,7 +37,10 @@ export function getBattleLevel(subject, state) {
   const xp = state[XP_KEY[subject]] ?? 0
   const levels = LEVELS[subject]
   if (!levels?.length) return 1
-  // Use last entry's id as the ceiling so getLevelConfig always finds a valid level
   const maxId = levels[levels.length - 1].id
-  return Math.min(Math.floor(xp / 120) + 1, maxId)
+  const maxUnlocked = Math.min(Math.floor(xp / 120) + 1, maxId)
+  // Adaptive rotation: easy → hard → medium every 3 battles
+  const rotation = [1, maxUnlocked, Math.ceil(maxUnlocked / 2)]
+  const idx = (state?.dailyBattleRounds ?? 0) % 3
+  return Math.max(1, rotation[idx])
 }

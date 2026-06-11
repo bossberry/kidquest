@@ -3,7 +3,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
-import { playTone } from '../lib/audio.js'
+import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 
 const ITEM_DEFS = [
   { key:'food',   emoji:'🍗', label:'อาหาร' },
@@ -64,6 +64,11 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
+  useEffect(() => {
+    playBGM('home')
+    return () => stopBGM()
+  }, [])
+
   // Keep refs current
   useEffect(() => { stageRef.current = stage }, [stage])
   useEffect(() => { eggAnimRef.current = eggAnim }, [eggAnim])
@@ -72,7 +77,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   useEffect(() => {
     if (prevStageRef.current === null) { prevStageRef.current = stage; return }
     if (stage > prevStageRef.current) {
-      playTone('stageUp')
+      playTone('stageUp'); playSFX('stage_up')
       spawnParticles('sparkle', 18)
       spawnParticles('hearts', 6)
       const id = Date.now()
@@ -297,14 +302,14 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     if (targetState !== sm.state) {
       // Tier upgrade — full transition with new animation
       if (targetState === 'excited') {
-        playTone('giggle')
+        playTone('giggle'); playSFX('egg_excited')
         spawnParticles('sparkle', 10)
         spawnParticles('hearts', 6)
       } else if (targetState === 'happy') {
-        playTone('giggle')
+        playTone('giggle'); playSFX('egg_pet')
         spawnParticles('hearts', 6)
       } else {
-        playTone('chirp')
+        playTone('chirp'); playSFX('egg_pet')
         spawnParticles('sparkle', 3)
       }
       enterState(targetState)

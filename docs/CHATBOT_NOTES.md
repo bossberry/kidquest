@@ -578,3 +578,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — hotfix: battle balance — monster HP/DEF rebalance + damage formula fix:**
+- Built:
+  - `src/config/enemyConfig.js` — All 9 enemies rebalanced: hp 40–52 (was 18–36), atk 3–5 (was 4–9), `def` field added (0 or 1). Target ~10 correct hits to defeat easiest enemy at T0.
+  - `src/context/StateContext.jsx` — `scaleMonsterStats`: tier thresholds updated (1.0/1.3/1.8/2.4/3.2, was 1.4/2.0/2.8/3.8). Return type changed from uppercase `{HP,ATK,DEF}` to lowercase `{hp,atk,def}`.
+  - `src/components/WorldBattle.jsx` — Now passes `enemy.def` to `scaleMonsterStats`; uses `scaled.hp/atk/def`; scaledEnemy includes `def: scaled.def`.
+  - `src/components/WorldScreen.jsx` — `SET_PENDING_BATTLE` dispatch now includes `def: eData.def ?? 0`.
+  - `src/games/MoveSelectBattleMode.jsx` — Damage formula: `Math.round(Math.max(1, ATK − enemy.def) × mult)`. Monster DEF now correctly reduces player damage.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

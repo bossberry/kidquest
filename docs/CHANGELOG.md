@@ -1,5 +1,28 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: battle balance — monster HP/DEF rebalance + damage formula fix
+
+### src/config/enemyConfig.js
+- All 9 enemies rebalanced: hp raised to 40–52 (was 18–36), atk lowered to 3–5 (was 4–9), `def` field added (0 or 1).
+- Target: ~10 correct answers to defeat easiest enemy at Tier 0 creature.
+
+### src/context/StateContext.jsx
+- `scaleMonsterStats`: tier multipliers updated to 1.0/1.3/1.8/2.4/3.2 (was 1.0/1.4/2.0/2.8/3.8).
+- Return keys changed from uppercase `{HP,ATK,DEF}` to lowercase `{hp,atk,def}`.
+
+### src/components/WorldBattle.jsx
+- Passes `DEF: enemy.def ?? 0` to `scaleMonsterStats` (was hardcoded 0).
+- Uses `scaled.hp`, `scaled.atk`, `scaled.def` (updated for new lowercase return).
+- `scaledEnemy` now includes `def: scaled.def`.
+
+### src/components/WorldScreen.jsx
+- `SET_PENDING_BATTLE` dispatch now includes `def: eData.def ?? 0` in enemy payload.
+
+### src/games/MoveSelectBattleMode.jsx
+- Hit damage formula: `Math.round(Math.max(1, creatureATK − enemy.def) × mult)` (was `Math.ceil(ATK × mult)`).
+
+---
+
 ## 2026-06-12 — fix: battle uses all question types — full level rotation across thai/math/english
 
 ### src/components/WorldBattle.jsx

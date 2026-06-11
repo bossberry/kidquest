@@ -171,12 +171,14 @@ export default function WorldBattle({ navigate }) {
     if (!enemy) return null
     const baseHP  = enemy.hp  ?? 200
     const baseATK = enemy.atk ?? 10
-    const scaled  = scaleMonsterStats({ HP: baseHP, ATK: baseATK, DEF: 0 }, creatureLevel)
+    const baseDEF = enemy.def ?? 0
+    const scaled  = scaleMonsterStats({ HP: baseHP, ATK: baseATK, DEF: baseDEF }, creatureLevel)
     return {
       ...enemy,
       name: enemy.nameTH ?? WORLD_ENEMY_NAMES[enemy.type] ?? 'ศัตรู',
-      hp:   scaled.HP,
-      atk:  scaled.ATK,
+      hp:   scaled.hp,
+      atk:  scaled.atk,
+      def:  scaled.def,
       type: enemy.type || 'bunny',
       isBoss: false,
     }

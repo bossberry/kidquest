@@ -25,13 +25,13 @@ function calcBattleLevel(xp) {
 export function scaleMonsterStats(baseStats, creatureLevel) {
   const mult =
     creatureLevel <= 5  ? 1.0 :
-    creatureLevel <= 15 ? 1.4 :
-    creatureLevel <= 30 ? 2.0 :
-    creatureLevel <= 50 ? 2.8 : 3.8
+    creatureLevel <= 15 ? 1.3 :
+    creatureLevel <= 30 ? 1.8 :
+    creatureLevel <= 50 ? 2.4 : 3.2
   return {
-    HP:  Math.round(baseStats.HP  * mult),
-    ATK: Math.round(baseStats.ATK * mult),
-    DEF: Math.round(baseStats.DEF * mult),
+    hp:  Math.round(baseStats.HP  * mult),
+    atk: Math.round(baseStats.ATK * mult),
+    def: Math.round(baseStats.DEF * mult),
   }
 }
 

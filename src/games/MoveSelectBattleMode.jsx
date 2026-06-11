@@ -534,7 +534,7 @@ export default function MoveSelectBattleMode({
     }
 
     const dmg   = isWorldBattle
-      ? Math.ceil((creatureStats?.ATK ?? 20) * mult)
+      ? Math.round(Math.max(1, (creatureStats?.ATK ?? 20) - (enemy?.def ?? 0)) * mult)
       : Math.ceil(dmgBase * mult)
     const newHP = Math.max(0, enemyHPRef.current - dmg)
     enemyHPRef.current = newHP

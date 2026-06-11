@@ -600,3 +600,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — audit: enemy collision verified complete (no code changes needed):**
+- Audited `WorldScreen.jsx` collision system. All required pieces are in place:
+  - `tryMove` (L323): enemy collision at destination tile `e.col===newCol && e.row===newRow` ✓
+  - `tryMove` (L338): chaser (snake/baby_zombie/woken bunny) same-tile check ✓
+  - `triggerBattle` (L301): `if (stateRef.current.pendingBattle) return` guard ✓
+  - `triggerBattle` (L316): dispatches `SET_PENDING_BATTLE` with full enemy payload (type/subject/level/hp/atk/def/nameTH) ✓
+  - Enemy NOT marked `defeated` at collision — stays in world during PartySelect, flee keeps enemy ✓
+  - `updateEnemies` RAF loop (L614): woken bunny included in chase-collision alongside snake/zombie ✓
+- No code changes were needed. Previous session already restored all collision logic.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

@@ -441,3 +441,10 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System (world); or Green Meadow Phase 4 canvas pixel font pass (separate prompt O3).
 - Needs Chatbot decision first: None blocking immediate next task.
 
+---
+
+**2026-06-11 — fix: restore question display in answer panel:**
+- Built: Added Zone 2 question display in `MoveSelectBattleMode.jsx` above the 4 answer cards. Math → equation text (28px yellow pixel font, uses `q.question` with fallback `${q.a} ${q.op} ${q.b} = ?`). Thai → `q.word` (36px Sarabun) + 🔊 button calls speakTh. English → `q.word || q.letter` (36px pixel font) + 🔊 button calls speakEn. Also fixed Zone 1 (dialogue box) condition: now shows shownText battle log for Thai/English/non-arithmetic-math instead of swallowing HintBar's null return.
+- Not finished: none.
+- Ready to start next: Phase 4 NPC System or Green Meadow canvas pixel font pass.
+

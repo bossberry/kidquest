@@ -471,3 +471,14 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: Baby Zombie + Snake enemies:**
+- Built: `drawEnemy.js` — `_babyZombie` (24-unit grid, X-eyes, outstretched arms) + `_snake` (48-unit, S-curve body, slit eyes, forked tongue). `enemyConfig.js` — baby_zombie (hp30 L2) + snake (hp55 L3). `tileMaps.js` — BM+1 baby_zombie; MC+1 snake; TR+1 snake; MR+1 baby_zombie+1 snake. `WorldScreen.jsx` — baby_zombie chases player at ≈300ms intervals (fast), rendered at 60% sprite size. Snake patrols slowly (1800ms random drift), charges when player within 4 tiles (250ms), plays `enemy_notice` SFX + red `!` on aggro trigger.
+- Baby zombie fast chase: ✅ working — timer threshold 6 ticks at 20fps = ≈300ms per step.
+- Snake aggro trigger: ✅ working — dist ≤ 4 tiles, one-shot SFX + 10-tick aggroTimer for `!` indicator.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

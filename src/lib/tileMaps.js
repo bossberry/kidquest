@@ -156,11 +156,13 @@ export const SCREEN_ENEMIES = {
     { type: 'sleepy_bunny', col: 15, row: 3  },
     { type: 'bouncy_slime', col: 8,  row: 11 },
     { type: 'leaf_sprite',  col: 16, row: 10 },
+    { type: 'baby_zombie',  col: 14, row: 3  },
   ],
   MC: [
     { type: 'bouncy_slime', col: 5,  row: 4  },
     { type: 'fox_kit',      col: 14, row: 10 },
     { type: 'leaf_sprite',  col: 4,  row: 9  },
+    { type: 'snake',        col: 10, row: 8  },
   ],
   TM: [
     { type: 'leaf_sprite',  col: 5,  row: 5  },
@@ -174,6 +176,7 @@ export const SCREEN_ENEMIES = {
   TR: [
     { type: 'fox_kit',      col: 10, row: 5  },
     { type: 'mushroom_imp', col: 6,  row: 9  },
+    { type: 'snake',        col: 13, row: 7  },
   ],
   ML: [
     { type: 'bouncy_slime', col: 5,  row: 7  },
@@ -184,6 +187,8 @@ export const SCREEN_ENEMIES = {
     { type: 'fox_kit',      col: 12, row: 7  },
     { type: 'bouncy_slime', col: 6,  row: 10 },
     { type: 'mushroom_imp', col: 15, row: 4  },
+    { type: 'baby_zombie',  col: 8,  row: 3  },
+    { type: 'snake',        col: 15, row: 11 },
   ],
   BL: [
     { type: 'egg_pawn',     col: 6,  row: 7  },

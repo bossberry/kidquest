@@ -1,5 +1,28 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: Baby Zombie (tiny fast chaser) + Snake (patrol+aggro) enemies
+
+### drawEnemy.js
+- `_babyZombie(ctx, size)` — 24-unit grid (half-scale detail). Ragged green-grey shirt with tears, oversized head, X-mark dead eyes, open jagged mouth with 2 teeth, outstretched arms, stubby uneven legs
+- `_snake(ctx, size)` — 48-unit grid. S-curve body (tail + 3 segments), scale diamonds, belly stripe, flat triangular head, yellow slit-pupil eyes, forked red tongue
+- Added `baby_zombie` and `snake` to `DRAW_FNS` dispatch table
+
+### enemyConfig.js
+- `baby_zombie`: nameTH 'เบบี้ซอมบี้', hp 30, level 2, subject null
+- `snake`: nameTH 'งูยักษ์', hp 55, level 3, subject null
+
+### tileMaps.js SCREEN_ENEMIES
+- BM: +1 `baby_zombie` at col 14 row 3
+- MC: +1 `snake` at col 10 row 8
+- TR: +1 `snake` at col 13 row 7
+- MR: +1 `baby_zombie` at col 8 row 3, +1 `snake` at col 15 row 11
+
+### WorldScreen.jsx
+- Enemy init: added `isAggro: false`, `aggroTimer: 0` to all enemy state objects
+- `updateEnemies` `baby_zombie` case: always chases player, moves every 6 ticks (≈300ms); picks dominant axis (x or y) toward player each step
+- `updateEnemies` `snake` case: patrol (36 ticks ≈1800ms, random drift) when dist > 4; aggro charge (5 ticks ≈250ms, chase player) when dist ≤ 4; transition sets `aggroTimer=10` + fires `playSFX('enemy_notice')` once
+- `renderEnemies`: `baby_zombie` rendered at 60% sprite size (≈19px). Snake `aggroTimer > 0` draws red `!` above sprite for ≈500ms
+
 ## 2026-06-11 — Feat: pixel home scene — canvas tilemap with animated pixel sprites
 
 ### HomeBackground.jsx (full rebuild)

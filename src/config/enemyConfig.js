@@ -8,4 +8,6 @@ export const ENEMY_DATA = {
   leaf_sprite:  { nameTH: 'นางไม้ใบ',     hp: 3, level: 1, subject: 'thai' },
   grumpy_mole:  { nameTH: 'ตุ่นบึ้กตึง', hp: 4, level: 2, subject: 'math' },
   mushroom_imp: { nameTH: 'เห็ดนิสัยซน', hp: 3, level: 1, subject: 'eng'  },
+  baby_zombie:  { nameTH: 'เบบี้ซอมบี้',  hp: 30, level: 2, subject: null },
+  snake:        { nameTH: 'งูยักษ์',      hp: 55, level: 3, subject: null },
 }

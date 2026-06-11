@@ -201,6 +201,8 @@ export default function WorldScreen({ navigate }) {
       timer:        i * 17,
       rngSeed:      (i * 37 + 11) % 97,
       woken:        false,
+      isAggro:      false,
+      aggroTimer:   0,
       defeated:     false,
       respawnTimer: 0,
     }))
@@ -420,6 +422,66 @@ export default function WorldScreen({ navigate }) {
             }
             break
           }
+          case 'baby_zombie': {
+            // Fast chaser — always moves toward player every ~6 ticks (≈300ms at 20fps)
+            if (ne.timer >= 6) {
+              ne.timer = 0
+              const gc2 = gameRef.current
+              if (gc2) {
+                const dxZ = gc2.col - ne.col
+                const dyZ = gc2.row - ne.row
+                let nc, nr
+                if (Math.abs(dxZ) >= Math.abs(dyZ)) {
+                  nc = ne.col + Math.sign(dxZ); nr = ne.row
+                } else {
+                  nc = ne.col; nr = ne.row + Math.sign(dyZ)
+                }
+                if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
+              }
+            }
+            break
+          }
+          case 'snake': {
+            const gc3 = gameRef.current
+            const dist = gc3
+              ? Math.abs(gc3.col - ne.col) + Math.abs(gc3.row - ne.row)
+              : 999
+            const wasAggro = ne.isAggro
+            ne.isAggro = dist <= 4
+            if (ne.aggroTimer > 0) ne.aggroTimer--
+
+            if (!wasAggro && ne.isAggro) {
+              // Just entered aggro — flash indicator and play SFX
+              ne.aggroTimer = 10 // ≈500ms at 20fps
+              playSFX('enemy_notice')
+            }
+
+            if (ne.isAggro) {
+              // Aggressive charge — fast (≈5 ticks, 250ms)
+              if (ne.timer >= 5 && gc3) {
+                ne.timer = 0
+                const dxS = gc3.col - ne.col
+                const dyS = gc3.row - ne.row
+                let nc, nr
+                if (Math.abs(dxS) >= Math.abs(dyS)) {
+                  nc = ne.col + Math.sign(dxS); nr = ne.row
+                } else {
+                  nc = ne.col; nr = ne.row + Math.sign(dyS)
+                }
+                if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
+              }
+            } else {
+              // Slow patrol — random drift every ≈36 ticks (1800ms)
+              if (ne.timer >= 36) {
+                ne.timer = 0
+                ne.rngSeed = (ne.rngSeed * 31 + 7) % 97
+                const d = DIRS4[ne.rngSeed % 4]
+                const nc = ne.col + d[0]; const nr = ne.row + d[1]
+                if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
+              }
+            }
+            break
+          }
           default: break
         }
         return ne
@@ -430,12 +492,23 @@ export default function WorldScreen({ navigate }) {
       const spriteSize = TILE * 2 // 32px on world canvas
       enemiesRef.current.forEach(e => {
         if (e.defeated) return
-        const px = Math.round((e.col + 0.5) * TILE - camX) - spriteSize / 2
-        const py = Math.round((e.row + 0.5) * TILE - camY) - spriteSize / 2
-        drawEnemy(ctx, e.type, spriteSize, px, py)
+        const sz = e.type === 'baby_zombie' ? Math.round(spriteSize * 0.6) : spriteSize
+        const px = Math.round((e.col + 0.5) * TILE - camX) - sz / 2
+        const py = Math.round((e.row + 0.5) * TILE - camY) - sz / 2
+        drawEnemy(ctx, e.type, sz, px, py)
+        // Woken bunny alert
         if (e.type === 'sleepy_bunny' && e.woken) {
-          const cx = px + spriteSize / 2
+          const cx = px + sz / 2
           ctx.fillStyle = '#ffffff'
+          ctx.font = `bold ${TILE}px monospace`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText('!', cx, py - 2)
+        }
+        // Snake aggro alert
+        if (e.type === 'snake' && e.aggroTimer > 0) {
+          const cx = px + sz / 2
+          ctx.fillStyle = '#ff4444'
           ctx.font = `bold ${TILE}px monospace`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'

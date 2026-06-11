@@ -28,6 +28,8 @@ const DRAW_FNS = {
   leaf_sprite: _leafSprite,
   grumpy_mole: _grumpyMole,
   mushroom_imp: _mushroomImp,
+  baby_zombie: _babyZombie,
+  snake: _snake,
 }
 
 // ── SLEEPY BUNNY ──────────────────────────────────────────────────────────────
@@ -220,6 +222,94 @@ function _grumpyMole(ctx, size) {
   // Claws
   px(ctx,  8, 32,  3,  5, size, '#5a3010')
   px(ctx, 12, 32,  3,  5, size, '#5a3010')
+}
+
+// ── BABY ZOMBIE ───────────────────────────────────────────────────────────────
+// 24-unit grid — designed small so it renders at correct tiny scale
+
+function _babyZombie(ctx, size) {
+  const s = size / 24
+  const p = (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(Math.round(x*s),Math.round(y*s),Math.round(w*s),Math.round(h*s)) }
+
+  // Body (tiny, ragged shirt — green-grey)
+  p(7,  10, 10, 8, '#7a9a6a')
+  p(6,  11, 11, 6, '#7a9a6a')
+  p(8,  10,  2, 2, '#5a7a4a')  // shirt tear
+  p(14, 10,  2, 2, '#5a7a4a')  // shirt tear
+
+  // Head (slightly too big for body)
+  p(6,  3, 12, 9, '#9ab88a')
+  p(5,  4, 14, 7, '#9ab88a')
+
+  // Hair (patchy)
+  p(6,  3,  3, 2, '#3a2a1a')
+  p(12, 3,  4, 2, '#3a2a1a')
+
+  // Eyes (X marks — dead eyes)
+  p(7,  6, 1, 1, '#cc2020'); p(9,  6, 1, 1, '#cc2020')  // left X
+  p(8,  7, 1, 1, '#cc2020')
+  p(13, 6, 1, 1, '#cc2020'); p(15, 6, 1, 1, '#cc2020')  // right X
+  p(14, 7, 1, 1, '#cc2020')
+
+  // Mouth (open, jagged)
+  p(9,  9, 6, 1, '#1a0a0a')
+  p(10, 9, 1, 2, '#ffffff')   // tooth
+  p(13, 9, 1, 2, '#ffffff')   // tooth
+
+  // Arms reaching forward (outstretched)
+  p(2,  12, 5, 2, '#9ab88a')  // left arm
+  p(17, 12, 5, 2, '#9ab88a')  // right arm
+  p(0,  11, 3, 2, '#9ab88a')  // left hand
+  p(19, 11, 3, 2, '#9ab88a')  // right hand
+
+  // Legs (stubby, uneven)
+  p(8,  18, 3, 4, '#4a5a3a')  // left leg
+  p(13, 18, 3, 4, '#4a5a3a')  // right leg
+  p(7,  21, 4, 2, '#3a2a1a')  // left shoe
+  p(13, 21, 4, 2, '#3a2a1a')  // right shoe
+}
+
+// ── SNAKE ─────────────────────────────────────────────────────────────────────
+
+function _snake(ctx, size) {
+  const s = size / 48
+  const p = (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(Math.round(x*s),Math.round(y*s),Math.round(w*s),Math.round(h*s)) }
+
+  // Tail
+  p(8,  36,  4,  4, '#2a8a2a')
+  // Segment 3
+  p(10, 28,  8,  6, '#2a8a2a')
+  p(9,  30, 10,  4, '#2a8a2a')
+  // Segment 2
+  p(22, 22,  8,  6, '#2a8a2a')
+  p(21, 24, 10,  4, '#2a8a2a')
+  // Segment 1
+  p(18, 14,  8,  6, '#2a8a2a')
+  p(17, 16, 10,  4, '#2a8a2a')
+  // Scale pattern (darker diamonds)
+  p(12, 29,  2,  2, '#1a6a1a')
+  p(24, 23,  2,  2, '#1a6a1a')
+  p(20, 15,  2,  2, '#1a6a1a')
+  // Belly stripe
+  p(11, 31,  6,  2, '#4aaa4a')
+  p(23, 25,  6,  2, '#4aaa4a')
+
+  // Head (triangular/flat)
+  p(16,  6, 12,  8, '#2a8a2a')
+  p(14,  7, 16,  6, '#2a8a2a')
+  p(13,  8,  4,  4, '#2a8a2a')  // jaw left
+  p(27,  8,  4,  4, '#2a8a2a')  // jaw right
+
+  // Eyes (slit pupils)
+  p(17,  8,  4,  3, '#ffcc00')  // left eye yellow
+  p(25,  8,  4,  3, '#ffcc00')  // right eye yellow
+  p(18,  8,  2,  3, '#1a1a1a')  // left slit
+  p(26,  8,  2,  3, '#1a1a1a')  // right slit
+
+  // Forked tongue
+  p(21,  5,  2,  3, '#cc2020')  // tongue base
+  p(19,  3,  2,  2, '#cc2020')  // fork left
+  p(23,  3,  2,  2, '#cc2020')  // fork right
 }
 
 // ── MUSHROOM IMP ──────────────────────────────────────────────────────────────

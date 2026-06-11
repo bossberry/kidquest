@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: hint bar visual, enemy announce TTS, strict subject rotation
+
+- `MoveSelectBattleMode.jsx` — Added `HintBar` component: Thai shows word + "คืออะไร?", Eng shows word + "= ?", math arithmetic shows `a op b =?` in large Fredoka font, count/pattern/word questions show Thai labels
+- `MoveSelectBattleMode.jsx` — DIALOGUE BOX slot replaced: shows `HintBar` during battle (not victoryMode, q exists); falls back to `shownText` battle log during victory and loading
+- `MoveSelectBattleMode.jsx` — Enemy name announce on mount: `speakTh(enemy.name + ' ปรากฏตัว')` fires at 700ms; first-question TTS delayed to 1800ms via `isFirstQuestionRef` to avoid cancellation; subsequent questions TTS at 500ms
+- `src/lib/battleSubject.js` — `getBattleSubject` rewritten: strict thai→math→eng rotation (`dailyBattleRounds % 3`); `notready` override: if any subject has never been played it wins; old PRIORITY sort + variety safeguard removed
+- `src/lib/battleSubject.js` — `getBattleLevel` adds debug `console.log` for xpThai/xpMath/xpEng/dailyBattleRounds and returned level (logic unchanged)
+
 ## 2026-06-11 — Fix: 5 UX fixes — dpad center, hint bar, auto-TTS, tall grass battle, enemy collision
 
 - `WorldScreen.jsx` — D-pad repositioned to bottom-center (`left:'50%', transform:'translateX(-50%)'`); opacity 0.75→0.82

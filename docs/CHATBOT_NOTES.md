@@ -365,3 +365,15 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — fix: hint bar visual, enemy announce TTS, strict subject rotation:**
+- Built:
+  - `MoveSelectBattleMode.jsx` — Added `HintBar` component (visual question prompt: Thai word + "คืออะไร?", Eng word + "= ?", math arithmetic a op b =?, count/pattern/word labels). DIALOGUE BOX slot now shows HintBar during battle; shownText (hit/miss/victory log) only shown during victoryMode or when q is null. `display:'flex', alignItems:'center'` added to container so HintBar centers. ✅
+  - `MoveSelectBattleMode.jsx` — Enemy name announce: new mount-only useEffect fires `speakTh(enemy.name + ' ปรากฏตัว')` at 700ms (after entry animation). `isFirstQuestionRef` added: first question TTS delayed to 1800ms (after enemy announce), subsequent questions fire at 500ms as before. ✅
+  - `src/lib/battleSubject.js` — `getBattleSubject` rewritten: strict thai→math→eng rotation via `dailyBattleRounds % 3`; if any subject has `computeReadiness === 'notready'` it overrides the rotation. PRIORITY array and variety safeguard removed (replaced by strict rotation). `getBattleLevel` unchanged in logic but debug `console.log` statements added for xpThai/xpMath/xpEng/dailyBattleRounds and returned level. ✅
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

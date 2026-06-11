@@ -202,6 +202,35 @@ function QuestionHint({ q, subject, onSpeak }) {
   )
 }
 
+// ─── HintBar: visual question prompt shown in the dialogue box slot ───────────
+
+function HintBar({ q, subject }) {
+  if (!q) return null
+  if (subject === 'thai') return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'#FFD700' }}>{q.word}</span>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,.5)' }}>คืออะไร?</span>
+    </div>
+  )
+  if (subject === 'eng') return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'#FFD700', textTransform:'capitalize' }}>{q.word}</span>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,.5)' }}>= ?</span>
+    </div>
+  )
+  if (q.isCount) return <div style={{ textAlign:'center', fontSize:11, color:'rgba(255,255,255,.6)' }}>นับดูสิ มีกี่อัน?</div>
+  if (q.isPattern) return <div style={{ textAlign:'center', fontSize:11, color:'rgba(255,255,255,.6)' }}>อะไรมาต่อ?</div>
+  if (q.isWord) return <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textAlign:'center', lineHeight:1.5, padding:'0 8px' }}>{q.story}</div>
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>{q.a}</span>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'rgba(255,255,255,.5)' }}>{q.op}</span>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>{q.b}</span>
+      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'rgba(255,255,255,.3)' }}>=?</span>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MoveSelectBattleMode({
@@ -230,13 +259,14 @@ export default function MoveSelectBattleMode({
   const dmgBase   = Math.ceil(maxHP / total)
 
   // Core refs
-  const lockedRef     = useRef(false)
-  const battleOverRef = useRef(false)
-  const comboRef      = useRef(0)
-  const ultimateRef   = useRef(false)
-  const enemyHPRef    = useRef(maxHP)
-  const mountedRef    = useRef(true)
-  const typeTimerRef  = useRef(null)
+  const lockedRef          = useRef(false)
+  const battleOverRef      = useRef(false)
+  const comboRef           = useRef(0)
+  const ultimateRef        = useRef(false)
+  const enemyHPRef         = useRef(maxHP)
+  const mountedRef         = useRef(true)
+  const typeTimerRef       = useRef(null)
+  const isFirstQuestionRef = useRef(true)
 
   // Effect system refs
   const battleFieldRef  = useRef(null)
@@ -325,6 +355,15 @@ export default function MoveSelectBattleMode({
     return () => { alive = false; cancelAnimationFrame(effectRafRef.current) }
   }, [])
 
+  // ── Enemy name announce on mount ────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!mountedRef.current) return
+      speakTh(enemy.name + ' ปรากฏตัว')
+    }, 700)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line
+
   // ── Typewriter dialogue ─────────────────────────────────────────────────────
   useEffect(() => {
     if (typeTimerRef.current) clearInterval(typeTimerRef.current)
@@ -339,12 +378,15 @@ export default function MoveSelectBattleMode({
 
   // ── TTS on question ─────────────────────────────────────────────────────────
   useEffect(() => {
+    // First question: delay until after enemy-name announce (700ms) completes
+    const delay = isFirstQuestionRef.current ? 1800 : 500
+    isFirstQuestionRef.current = false
     const t = setTimeout(() => {
       if (!mountedRef.current) return
       if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
       else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
       else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
-    }, 500)
+    }, delay)
     return () => clearTimeout(t)
   }, [cur, subject]) // eslint-disable-line
 
@@ -707,10 +749,13 @@ export default function MoveSelectBattleMode({
       <div style={{
         background:'#0a1a0a', padding:'8px 14px', minHeight:52, flexShrink:0,
         borderBottom:'1px solid rgba(58,106,58,0.45)',
+        display:'flex', alignItems:'center',
       }}>
-        <div style={{ fontFamily:'Mitr,sans-serif', fontSize:13, color:'#c8e8c8', lineHeight:1.6 }}>
-          ▶ {shownText}
-        </div>
+        {!victoryMode && q ? <HintBar q={q} subject={subject} /> : (
+          <div style={{ fontFamily:'Mitr,sans-serif', fontSize:13, color:'#c8e8c8', lineHeight:1.6 }}>
+            {shownText}
+          </div>
+        )}
       </div>
 
       {/* ── QUESTION HINT ────────────────────────────────────────────────── */}

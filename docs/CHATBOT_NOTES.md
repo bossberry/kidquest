@@ -389,3 +389,14 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System, or Chopin playtest to validate Home feel.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — fix: hint bar dots-only for math; enemy sprites rebuilt as pixel art:**
+- Built:
+  - `src/games/MoveSelectBattleMode.jsx` — `HintBar` rewritten: Thai/English return `null` (QuestionHint already shows the word + 🔊). Math arithmetic shows 2 dot groups (blue=`q.a`, orange=`q.b`) + operator + `= ?`. Math isCount/isPattern/isWord also return null. Uses `q.a`/`q.b`/`q.op` directly (not regex). ✅
+  - `src/lib/drawEnemy.js` (FULL REBUILD) — All 7 draw functions replaced with `ctx.fillRect()`-only pixel art. `px(ctx, gx, gy, gw, gh, size, color)` maps 48×48 grid to pixels. `ctx.imageSmoothingEnabled = false` in `drawEnemy()`. `DRAW_FNS` lookup replaces switch. All type aliases preserved (`bunny`/`sleepy_bunny`, `slime`/`bouncy_slime`, `fox`/`fox_kit`/`tiny_fox`, etc.). ✅
+- Not finished: none.
+- Blockers/risks found: None.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

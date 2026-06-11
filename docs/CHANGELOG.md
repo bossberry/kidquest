@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: hint bar dots-only for math + pixel art enemy sprites
+
+### MoveSelectBattleMode.jsx
+- `HintBar` rewritten: Thai/English return null (QuestionHint below already shows the word + 🔊 button)
+- Math arithmetic: HintBar now shows dot groups only — blue dots for `q.a`, orange dots for `q.b`, operator, `= ?`
+- Math isCount/isPattern/isWord questions: HintBar returns null (QuestionHint handles display)
+- Uses `q.a`/`q.b`/`q.op` fields directly — no regex parsing
+
+### drawEnemy.js (full rebuild)
+- All 7 enemy draw functions rebuilt with `ctx.fillRect()` only — no arcs, ellipses, or bezier curves
+- `px(ctx, gx, gy, gw, gh, size, color)` helper function scales 48×48 grid coordinates to actual pixels
+- `ctx.imageSmoothingEnabled = false` added for crisp pixel art at all sizes
+- `DRAW_FNS` dispatch object replaces switch statement
+- All type aliases preserved (`bunny`/`sleepy_bunny`, `slime`/`bouncy_slime`, `fox`/`fox_kit`/`tiny_fox`, etc.)
+- Sprite designs: sleepy_bunny (floppy ears, closed-line eyes, pink blush, ZZZ rects), bouncy_slime (blob stacked rects, flower-pot hat), fox_kit (pixel triangle ears, tail+scarf), egg_pawn (chest panel+visor+antennae), leaf_sprite (layered leaf rects+veins), grumpy_mole (square glasses+shovel+frown+claws), mushroom_imp (cap dome rows+white spots+O mouth+worried eyebrows)
+
 ## 2026-06-11 — Feat: Home screen redesign — Pokémon background + Tamagotchi ambient life
 
 ### HomeBackground.jsx (full rebuild)

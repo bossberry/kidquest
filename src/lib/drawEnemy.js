@@ -1,329 +1,258 @@
-// Enemy sprite renderer — Canvas 2D pixel art (design space: 48×48 units)
-// x,y: offset on a shared canvas (world mode). x=0,y=0: dedicated canvas (battle mode).
+// Enemy sprite renderer — pixel art style (48×48 grid, scaled to `size` px)
+// x,y: offset on shared canvas (world mode). Default 0,0: dedicated battle canvas.
 
-export function drawEnemy(ctx, enemyType, size, x = 0, y = 0) {
-  const p = (v) => Math.round(v * size / 48)
+function px(ctx, gx, gy, gw, gh, size, color) {
+  const s = size / 48
+  ctx.fillStyle = color
+  ctx.fillRect(
+    Math.round(gx * s), Math.round(gy * s),
+    Math.round(gw * s), Math.round(gh * s)
+  )
+}
+
+export function drawEnemy(ctx, type, size, x = 0, y = 0) {
   ctx.save()
   ctx.translate(x, y)
+  ctx.imageSmoothingEnabled = false
   if (x === 0 && y === 0) ctx.clearRect(0, 0, size, size)
-  switch (enemyType) {
-    case 'bunny':
-    case 'sleepy_bunny':  _bunny(ctx, p);       break
-    case 'slime':
-    case 'bouncy_slime':  _slime(ctx, p);       break
-    case 'fox':
-    case 'fox_kit':       _fox(ctx, p);         break
-    case 'egg_pawn':      _eggPawn(ctx, p);     break
-    case 'leaf_sprite':   _leafSprite(ctx, p);  break
-    case 'grumpy_mole':   _grumpyMole(ctx, p);  break
-    case 'mushroom_imp':  _mushroomImp(ctx, p); break
-    default:              _bunny(ctx, p)
-  }
+  const fn = DRAW_FNS[type] || _bunny
+  fn(ctx, size)
   ctx.restore()
 }
 
-function _bunny(ctx, p) {
-  // Floppy ears
-  ctx.fillStyle = '#e8d8d0'
-  ctx.beginPath(); ctx.ellipse(p(16), p(13), p(4), p(10), -0.3, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(32), p(13), p(4), p(10),  0.3, 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#ffb0b0'
-  ctx.beginPath(); ctx.ellipse(p(16), p(14), p(2.2), p(7), -0.3, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(32), p(14), p(2.2), p(7),  0.3, 0, Math.PI*2); ctx.fill()
-
-  // Body
-  ctx.fillStyle = '#f0ece8'
-  ctx.beginPath(); ctx.ellipse(p(24), p(32), p(12), p(10), 0, 0, Math.PI*2); ctx.fill()
-
-  // Head
-  ctx.fillStyle = '#f0ece8'
-  ctx.beginPath(); ctx.arc(p(24), p(20), p(10), 0, Math.PI*2); ctx.fill()
-
-  // Blush
-  ctx.fillStyle = 'rgba(255,150,150,0.38)'
-  ctx.beginPath(); ctx.ellipse(p(17), p(23), p(4), p(2.5), 0, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(31), p(23), p(4), p(2.5), 0, 0, Math.PI*2); ctx.fill()
-
-  // Closed droopy eyes
-  ctx.strokeStyle = '#555'; ctx.lineWidth = Math.max(1, p(1.8)); ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.ellipse(p(20), p(20), p(3.5), p(1.5), 0, 0, Math.PI); ctx.stroke()
-  ctx.beginPath(); ctx.ellipse(p(28), p(20), p(3.5), p(1.5), 0, 0, Math.PI); ctx.stroke()
-
-  // Nose
-  ctx.fillStyle = '#c09090'
-  ctx.beginPath(); ctx.arc(p(24), p(25), p(1.5), 0, Math.PI*2); ctx.fill()
-
-  // Flower crown
-  const petals = ['#ff9090','#ffcc66','#99ccff','#cc99ff','#99ff99']
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2
-    ctx.fillStyle = petals[i]
-    ctx.beginPath(); ctx.arc(p(24) + p(3.5)*Math.cos(a), p(9) + p(3.5)*Math.sin(a), p(2.5), 0, Math.PI*2); ctx.fill()
-  }
-  ctx.fillStyle = '#ffe0a0'
-  ctx.beginPath(); ctx.arc(p(24), p(9), p(2), 0, Math.PI*2); ctx.fill()
-
-  // ZZZ
-  ctx.fillStyle = '#aaaaff'
-  ctx.font = `bold ${p(9)}px monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  ctx.fillText('z', p(35), p(11))
-  ctx.font = `bold ${p(7)}px monospace`
-  ctx.fillText('z', p(39), p(7))
+const DRAW_FNS = {
+  bunny: _bunny, sleepy_bunny: _bunny,
+  slime: _slime, bouncy_slime: _slime,
+  fox: _fox, fox_kit: _fox, tiny_fox: _fox,
+  egg_pawn: _eggPawn,
+  leaf_sprite: _leafSprite,
+  grumpy_mole: _grumpyMole,
+  mushroom_imp: _mushroomImp,
 }
 
-function _slime(ctx, p) {
-  // Body shadow
-  ctx.fillStyle = 'rgba(0,120,0,0.18)'
-  ctx.beginPath(); ctx.ellipse(p(24), p(36), p(13), p(4), 0, 0, Math.PI*2); ctx.fill()
+// ── SLEEPY BUNNY ──────────────────────────────────────────────────────────────
 
-  // Main body
-  ctx.fillStyle = '#5acd5a'
-  ctx.beginPath(); ctx.arc(p(24), p(26), p(16), 0, Math.PI*2); ctx.fill()
-  // Flat bottom clip
-  ctx.fillStyle = '#5acd5a'
-  ctx.fillRect(p(8), p(33), p(32), p(8))
+function _bunny(ctx, size) {
+  // Floppy ears (drooped to sides)
+  px(ctx,  8,  6,  7, 14, size, '#e8d8d0')
+  px(ctx,  9,  7,  5, 12, size, '#ffb0b0')
+  px(ctx, 33,  8,  7, 12, size, '#e8d8d0')
+  px(ctx, 34,  9,  5, 10, size, '#ffb0b0')
+  // Head
+  px(ctx, 14, 12, 20, 16, size, '#f0ece8')
+  px(ctx, 12, 14, 24, 12, size, '#f0ece8')
+  // Body
+  px(ctx, 14, 26, 20, 16, size, '#f0ece8')
+  px(ctx, 12, 28, 24, 14, size, '#f0ece8')
+  // Cheeks
+  px(ctx, 12, 22,  6,  4, size, '#ffb0b0')
+  px(ctx, 30, 22,  6,  4, size, '#ffb0b0')
+  // Closed eyes (thin horizontal lines)
+  px(ctx, 17, 18,  6,  2, size, '#666666')
+  px(ctx, 25, 18,  6,  2, size, '#666666')
+  // Nose
+  px(ctx, 22, 23,  4,  3, size, '#c09090')
+  // ZZZ accent rects above head
+  px(ctx, 30,  2,  6,  4, size, '#aaaaff')
+  px(ctx, 35,  6,  5,  3, size, '#aaaaff')
+}
 
-  // Highlight blob
-  ctx.fillStyle = '#8aff8a'
-  ctx.beginPath(); ctx.ellipse(p(16), p(18), p(6), p(4), -0.4, 0, Math.PI*2); ctx.fill()
+// ── BOUNCY SLIME ──────────────────────────────────────────────────────────────
 
-  // Eyes (white)
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath(); ctx.arc(p(17), p(24), p(6), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(31), p(24), p(6), 0, Math.PI*2); ctx.fill()
+function _slime(ctx, size) {
+  // Body (stacked rects for blobby silhouette)
+  px(ctx, 16, 12, 16,  4, size, '#5acd5a')
+  px(ctx, 10, 14, 28,  6, size, '#5acd5a')
+  px(ctx,  8, 18, 32, 12, size, '#5acd5a')
+  px(ctx, 10, 28, 28,  8, size, '#5acd5a')
+  px(ctx, 14, 34, 20,  4, size, '#4ab44a')
+  px(ctx, 18, 36, 12,  4, size, '#3a9a3a')
+  // Highlight patch
+  px(ctx, 14, 16,  8,  4, size, '#8aff8a')
+  // Eyes — white sclera
+  px(ctx, 11, 20, 10,  8, size, '#ffffff')
+  px(ctx, 27, 20, 10,  8, size, '#ffffff')
   // Pupils
-  ctx.fillStyle = '#222'
-  ctx.beginPath(); ctx.arc(p(18), p(24), p(3), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(32), p(24), p(3), 0, Math.PI*2); ctx.fill()
-  // Eye shine
-  ctx.fillStyle = '#fff'
-  ctx.beginPath(); ctx.arc(p(19), p(22), p(1.2), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(33), p(22), p(1.2), 0, Math.PI*2); ctx.fill()
-
-  // Smile
-  ctx.strokeStyle = '#2a7a2a'; ctx.lineWidth = Math.max(1, p(2)); ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.arc(p(24), p(28), p(7), 0.1, Math.PI - 0.1); ctx.stroke()
-
-  // Tiny hat (flower pot)
-  ctx.fillStyle = '#a05020'
-  ctx.fillRect(p(19), p(7), p(10), p(5))
-  ctx.fillStyle = '#c06030'
-  ctx.fillRect(p(17), p(9), p(14), p(3))
-  ctx.fillStyle = '#5acd5a'
-  ctx.beginPath(); ctx.arc(p(24), p(7), p(3), 0, Math.PI*2); ctx.fill()
+  px(ctx, 13, 22,  6,  6, size, '#1a1a2a')
+  px(ctx, 29, 22,  6,  6, size, '#1a1a2a')
+  // Shine
+  px(ctx, 13, 22,  2,  2, size, '#ffffff')
+  px(ctx, 29, 22,  2,  2, size, '#ffffff')
+  // Smile (3 rects for blocky curve)
+  px(ctx, 14, 30,  2,  2, size, '#2a7a2a')
+  px(ctx, 16, 32, 16,  2, size, '#2a7a2a')
+  px(ctx, 32, 30,  2,  2, size, '#2a7a2a')
+  // Tiny flower-pot hat
+  px(ctx, 19,  6, 10,  4, size, '#a05020')
+  px(ctx, 17,  8, 14,  3, size, '#c06030')
+  px(ctx, 20,  2,  8,  6, size, '#5acd5a')
 }
 
-function _fox(ctx, p) {
-  // Tail (big, behind body)
-  ctx.fillStyle = '#e87030'
-  ctx.beginPath()
-  ctx.moveTo(p(10), p(38)); ctx.bezierCurveTo(p(2), p(22), p(14), p(16), p(20), p(28))
-  ctx.bezierCurveTo(p(22), p(34), p(14), p(40), p(10), p(38))
-  ctx.fill()
-  // Tail tip
-  ctx.fillStyle = '#f8f8f8'
-  ctx.beginPath(); ctx.ellipse(p(6), p(22), p(5), p(7), -0.3, 0, Math.PI*2); ctx.fill()
+// ── FOX KIT ───────────────────────────────────────────────────────────────────
 
+function _fox(ctx, size) {
+  // Tail (behind body, left side)
+  px(ctx,  2, 22, 14, 18, size, '#e87030')
+  px(ctx,  2, 18, 10, 14, size, '#e87030')
+  px(ctx,  2, 18,  8,  8, size, '#f8f8f8')
   // Body
-  ctx.fillStyle = '#e87030'
-  ctx.beginPath(); ctx.ellipse(p(26), p(32), p(10), p(11), 0, 0, Math.PI*2); ctx.fill()
-  // Belly patch
-  ctx.fillStyle = '#f0c080'
-  ctx.beginPath(); ctx.ellipse(p(26), p(34), p(6), p(7), 0, 0, Math.PI*2); ctx.fill()
-
-  // Ears (triangles)
-  ctx.fillStyle = '#e87030'
-  ctx.beginPath(); ctx.moveTo(p(17), p(14)); ctx.lineTo(p(13), p(4)); ctx.lineTo(p(23), p(10)); ctx.closePath(); ctx.fill()
-  ctx.beginPath(); ctx.moveTo(p(31), p(14)); ctx.lineTo(p(35), p(4)); ctx.lineTo(p(25), p(10)); ctx.closePath(); ctx.fill()
-  ctx.fillStyle = '#ffb0a0'
-  ctx.beginPath(); ctx.moveTo(p(17), p(13)); ctx.lineTo(p(15), p(7)); ctx.lineTo(p(21), p(11)); ctx.closePath(); ctx.fill()
-  ctx.beginPath(); ctx.moveTo(p(31), p(13)); ctx.lineTo(p(33), p(7)); ctx.lineTo(p(27), p(11)); ctx.closePath(); ctx.fill()
-
+  px(ctx, 14, 24, 20, 18, size, '#e87030')
+  px(ctx, 12, 26, 24, 16, size, '#e87030')
+  // Belly
+  px(ctx, 17, 27, 14, 12, size, '#f0c080')
+  // Ears (pointy pixel triangles via stacked rects)
+  px(ctx, 12,  2,  8, 12, size, '#e87030')
+  px(ctx, 28,  2,  8, 12, size, '#e87030')
+  px(ctx, 13,  3,  6, 10, size, '#ffb0a0')
+  px(ctx, 29,  3,  6, 10, size, '#ffb0a0')
+  px(ctx, 14,  2,  4,  8, size, '#e87030')
+  px(ctx, 30,  2,  4,  8, size, '#e87030')
   // Head
-  ctx.fillStyle = '#e87030'
-  ctx.beginPath(); ctx.arc(p(24), p(18), p(10), 0, Math.PI*2); ctx.fill()
-  // Face belly
-  ctx.fillStyle = '#f0c080'
-  ctx.beginPath(); ctx.ellipse(p(24), p(20), p(6), p(5), 0, 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 14, 12, 20, 14, size, '#e87030')
+  px(ctx, 12, 14, 24, 12, size, '#e87030')
+  // Face belly patch
+  px(ctx, 17, 18, 14,  8, size, '#f0c080')
   // Eyes
-  ctx.fillStyle = '#333'
-  ctx.beginPath(); ctx.arc(p(20), p(17), p(2.5), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(28), p(17), p(2.5), 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#fff'
-  ctx.beginPath(); ctx.arc(p(21), p(16), p(1), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(29), p(16), p(1), 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 16, 14,  4,  4, size, '#333333')
+  px(ctx, 28, 14,  4,  4, size, '#333333')
+  px(ctx, 16, 14,  2,  2, size, '#ffffff')
+  px(ctx, 28, 14,  2,  2, size, '#ffffff')
   // Nose
-  ctx.fillStyle = '#553030'
-  ctx.beginPath(); ctx.ellipse(p(24), p(21), p(2), p(1.5), 0, 0, Math.PI*2); ctx.fill()
-
-  // Scarf (blue)
-  ctx.fillStyle = '#4488cc'
-  ctx.fillRect(p(16), p(27), p(16), p(4))
-  ctx.fillStyle = '#6699dd'
-  ctx.fillRect(p(16), p(27), p(16), p(1.5))
+  px(ctx, 21, 22,  6,  4, size, '#553030')
+  // Blue scarf
+  px(ctx, 14, 28, 20,  4, size, '#4488cc')
+  px(ctx, 14, 28, 20,  2, size, '#6699dd')
 }
 
-function _eggPawn(ctx, p) {
-  // Arms (stubby)
-  ctx.fillStyle = '#cc2020'
-  ctx.beginPath(); ctx.ellipse(p(10), p(30), p(5), p(4), -0.3, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(38), p(30), p(5), p(4),  0.3, 0, Math.PI*2); ctx.fill()
+// ── EGG PAWN ──────────────────────────────────────────────────────────────────
 
+function _eggPawn(ctx, size) {
+  // Stubby arms
+  px(ctx,  4, 24,  8,  8, size, '#cc2020')
+  px(ctx, 36, 24,  8,  8, size, '#cc2020')
   // Body
-  ctx.fillStyle = '#cc2020'
-  ctx.beginPath(); ctx.ellipse(p(24), p(30), p(14), p(13), 0, 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 12, 18, 24, 22, size, '#cc2020')
+  px(ctx, 10, 22, 28, 18, size, '#cc2020')
   // Chest plate
-  ctx.fillStyle = '#f0f0f0'
-  ctx.beginPath(); ctx.ellipse(p(24), p(31), p(9), p(8), 0, 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 16, 22, 16, 14, size, '#f0f0f0')
   // Yellow buttons
-  const btnY = [p(26), p(32)]
-  ctx.fillStyle = '#ffcc00'
-  for (const by of btnY) {
-    ctx.beginPath(); ctx.arc(p(24), by, p(2.5), 0, Math.PI*2); ctx.fill()
-  }
-
-  // Head
-  ctx.fillStyle = '#cc2020'
-  ctx.beginPath(); ctx.arc(p(24), p(14), p(9), 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 18, 25,  5,  5, size, '#ffcc00')
+  px(ctx, 25, 25,  5,  5, size, '#ffcc00')
+  px(ctx, 18, 32,  5,  5, size, '#ffcc00')
+  px(ctx, 25, 32,  5,  5, size, '#ffcc00')
+  // Head dome
+  px(ctx, 16,  4, 16, 12, size, '#cc2020')
+  px(ctx, 14,  6, 20, 12, size, '#cc2020')
   // Visor
-  ctx.fillStyle = '#4444cc'
-  ctx.beginPath(); ctx.ellipse(p(24), p(14), p(8), p(3.5), 0, 0, Math.PI*2); ctx.fill()
-  // Visor shine
-  ctx.fillStyle = 'rgba(180,220,255,0.45)'
-  ctx.beginPath(); ctx.ellipse(p(22), p(13), p(4), p(1.5), 0, 0, Math.PI*2); ctx.fill()
-
-  // Antennae
-  ctx.strokeStyle = '#cc2020'; ctx.lineWidth = Math.max(1, p(1.5)); ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(p(18), p(5)); ctx.lineTo(p(20), p(10)); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(p(30), p(5)); ctx.lineTo(p(28), p(10)); ctx.stroke()
-  ctx.fillStyle = '#ffcc00'
-  ctx.beginPath(); ctx.arc(p(18), p(4), p(2), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(30), p(4), p(2), 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 14, 10, 20,  6, size, '#4444cc')
+  px(ctx, 16, 11, 16,  4, size, '#6666ff')
+  px(ctx, 16, 11,  8,  2, size, '#9999ff')
+  // Antennae orbs
+  px(ctx, 17,  2,  5,  5, size, '#ffcc00')
+  px(ctx, 26,  2,  5,  5, size, '#ffcc00')
+  // Antenna stems
+  px(ctx, 19,  5,  3,  5, size, '#cc2020')
+  px(ctx, 26,  5,  3,  5, size, '#cc2020')
   // Legs
-  ctx.fillStyle = '#881818'
-  ctx.fillRect(p(16), p(42), p(5), p(5))
-  ctx.fillRect(p(27), p(42), p(5), p(5))
+  px(ctx, 16, 40,  6,  6, size, '#881818')
+  px(ctx, 26, 40,  6,  6, size, '#881818')
 }
 
-function _leafSprite(ctx, p) {
-  // Outline leaves
-  ctx.fillStyle = '#2a6a2a'
-  ctx.beginPath(); ctx.ellipse(p(24), p(26), p(7), p(14), 0, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(15), p(24), p(5), p(11), -0.5, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(33), p(24), p(5), p(11),  0.5, 0, Math.PI*2); ctx.fill()
+// ── LEAF SPRITE ───────────────────────────────────────────────────────────────
 
-  // Main leaves
-  ctx.fillStyle = '#4aaa4a'
-  ctx.beginPath(); ctx.ellipse(p(24), p(25), p(6), p(13), 0, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(15), p(23), p(4), p(9.5), -0.5, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(33), p(23), p(4), p(9.5),  0.5, 0, Math.PI*2); ctx.fill()
-
-  // Highlight streak
-  ctx.fillStyle = '#8aff8a'
-  ctx.beginPath(); ctx.ellipse(p(21), p(19), p(2.5), p(6), -0.2, 0, Math.PI*2); ctx.fill()
-
-  // Eyes
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath(); ctx.arc(p(20), p(23), p(2.2), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(28), p(23), p(2.2), 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#113311'
-  ctx.beginPath(); ctx.arc(p(21), p(23), p(1.1), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(29), p(23), p(1.1), 0, Math.PI*2); ctx.fill()
-
-  // Tiny feet
-  ctx.fillStyle = '#2a6a2a'
-  ctx.beginPath(); ctx.ellipse(p(20), p(38), p(3.5), p(2), 0, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(28), p(38), p(3.5), p(2), 0, 0, Math.PI*2); ctx.fill()
-}
-
-function _grumpyMole(ctx, p) {
-  // Shovel handle + blade (behind body)
-  ctx.fillStyle = '#7a5020'
-  ctx.fillRect(p(34), p(8), p(3), p(28))
-  ctx.fillStyle = '#909090'
-  ctx.beginPath(); ctx.ellipse(p(35.5), p(8), p(5), p(3), 0, 0, Math.PI*2); ctx.fill()
-
-  // Body
-  ctx.fillStyle = '#8a6030'
-  ctx.beginPath(); ctx.arc(p(21), p(31), p(13), 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#c09060'
-  ctx.beginPath(); ctx.ellipse(p(21), p(33), p(7), p(8), 0, 0, Math.PI*2); ctx.fill()
-
+function _leafSprite(ctx, size) {
+  // Central leaf body
+  px(ctx, 18, 14, 12, 28, size, '#4aaa4a')
+  px(ctx, 16, 16, 16, 24, size, '#4aaa4a')
+  px(ctx, 14, 20, 20, 18, size, '#4aaa4a')
+  // Side arm leaves
+  px(ctx,  6, 20, 10,  6, size, '#3a9a3a')
+  px(ctx, 32, 18, 10,  6, size, '#5aaa3a')
+  // Leaf veins
+  px(ctx, 22, 16,  4, 24, size, '#2a8a2a')
+  px(ctx, 14, 26,  8,  2, size, '#2a8a2a')
+  px(ctx, 26, 24,  8,  2, size, '#2a8a2a')
   // Head
-  ctx.fillStyle = '#8a6030'
-  ctx.beginPath(); ctx.arc(p(21), p(16), p(11), 0, Math.PI*2); ctx.fill()
-
-  // Snout
-  ctx.fillStyle = '#c09060'
-  ctx.beginPath(); ctx.ellipse(p(21), p(19), p(6), p(5), 0, 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#7a4020'
-  ctx.beginPath(); ctx.arc(p(21), p(17), p(2), 0, Math.PI*2); ctx.fill()
-
-  // Glasses frames
-  ctx.strokeStyle = '#333'; ctx.lineWidth = Math.max(1, p(1.5)); ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.arc(p(15), p(14), p(4), 0, Math.PI*2); ctx.stroke()
-  ctx.beginPath(); ctx.arc(p(26), p(14), p(4), 0, Math.PI*2); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(p(19), p(14)); ctx.lineTo(p(22), p(14)); ctx.stroke()
-  // Lens tint
-  ctx.fillStyle = 'rgba(170,221,255,0.32)'
-  ctx.beginPath(); ctx.arc(p(15), p(14), p(4), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(26), p(14), p(4), 0, Math.PI*2); ctx.fill()
-
-  // Frown
-  ctx.strokeStyle = '#5a3010'; ctx.lineWidth = Math.max(1, p(2))
-  ctx.beginPath(); ctx.arc(p(21), p(24), p(4), 0.2, Math.PI - 0.2, true); ctx.stroke()
-
-  // Claws
-  ctx.fillStyle = '#5a3010'
-  for (const cx of [8, 11]) { ctx.fillRect(p(cx), p(30), p(2.5), p(4)) }
-  for (const cx of [28, 31]) { ctx.fillRect(p(cx), p(30), p(2.5), p(4)) }
+  px(ctx, 18, 10, 12, 10, size, '#5ac05a')
+  // Eyes
+  px(ctx, 20, 13,  4,  4, size, '#ffffff')
+  px(ctx, 26, 13,  4,  4, size, '#ffffff')
+  px(ctx, 21, 14,  2,  2, size, '#1a3a1a')
+  px(ctx, 27, 14,  2,  2, size, '#1a3a1a')
 }
 
-function _mushroomImp(ctx, p) {
+// ── GRUMPY MOLE ───────────────────────────────────────────────────────────────
+
+function _grumpyMole(ctx, size) {
+  // Shovel handle (behind, right side)
+  px(ctx, 34,  6,  4, 28, size, '#7a5020')
+  px(ctx, 30, 32, 12,  6, size, '#909090')
+  px(ctx, 32, 30,  8,  4, size, '#aaaaaa')
+  // Body
+  px(ctx, 10, 22, 26, 20, size, '#8a6030')
+  px(ctx,  8, 26, 28, 16, size, '#8a6030')
+  // Belly fur
+  px(ctx, 14, 26, 16, 12, size, '#c09060')
+  // Head
+  px(ctx, 10, 10, 26, 14, size, '#8a6030')
+  px(ctx,  8, 12, 28, 12, size, '#8a6030')
+  // Snout
+  px(ctx, 14, 18, 18,  8, size, '#c09060')
+  px(ctx, 16, 16, 14,  6, size, '#c09060')
+  // Nostrils
+  px(ctx, 17, 20,  5,  4, size, '#7a4020')
+  px(ctx, 24, 20,  5,  4, size, '#7a4020')
+  // Glasses frames (square)
+  px(ctx,  9, 11, 14, 11, size, '#333333')
+  px(ctx, 25, 11, 14, 11, size, '#333333')
+  // Lenses
+  px(ctx, 10, 12, 12,  9, size, '#aaddff')
+  px(ctx, 26, 12, 12,  9, size, '#aaddff')
+  // Lens shine
+  px(ctx, 10, 12,  4,  3, size, '#ffffff')
+  px(ctx, 26, 12,  4,  3, size, '#ffffff')
+  // Bridge
+  px(ctx, 23, 14,  2,  4, size, '#333333')
+  // Frown (3 rects)
+  px(ctx, 15, 26,  3,  3, size, '#5a3010')
+  px(ctx, 18, 28, 10,  2, size, '#5a3010')
+  px(ctx, 28, 26,  3,  3, size, '#5a3010')
+  // Claws
+  px(ctx,  8, 32,  3,  5, size, '#5a3010')
+  px(ctx, 12, 32,  3,  5, size, '#5a3010')
+}
+
+// ── MUSHROOM IMP ──────────────────────────────────────────────────────────────
+
+function _mushroomImp(ctx, size) {
   // Body / stem
-  ctx.fillStyle = '#e8c890'
-  ctx.beginPath(); ctx.ellipse(p(24), p(34), p(8), p(10), 0, 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 16, 26, 16, 18, size, '#e8c890')
+  px(ctx, 14, 28, 20, 16, size, '#e8c890')
   // Arms
-  ctx.beginPath(); ctx.ellipse(p(12), p(33), p(5), p(3), -0.5, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(p(36), p(33), p(5), p(3),  0.5, 0, Math.PI*2); ctx.fill()
-
+  px(ctx,  6, 28, 10,  6, size, '#e8c890')
+  px(ctx, 32, 26, 10,  6, size, '#e8c890')
   // Cap rim
-  ctx.fillStyle = '#dd4444'
-  ctx.beginPath(); ctx.ellipse(p(24), p(24), p(14), p(5), 0, 0, Math.PI*2); ctx.fill()
-
-  // Cap dome
-  ctx.fillStyle = '#cc3030'
-  ctx.beginPath(); ctx.arc(p(24), p(17), p(13), Math.PI, 0); ctx.fill()
-  ctx.fillStyle = '#dd4444'
-  ctx.beginPath(); ctx.ellipse(p(24), p(17), p(13), p(4), 0, 0, Math.PI*2); ctx.fill()
-
+  px(ctx,  8, 22, 32,  8, size, '#dd4444')
+  // Cap dome (stacked rows narrowing toward top)
+  px(ctx, 10, 16, 28,  8, size, '#cc3030')
+  px(ctx, 12, 10, 24,  8, size, '#cc3030')
+  px(ctx, 16,  6, 16,  6, size, '#cc3030')
+  px(ctx, 18,  4, 12,  4, size, '#cc3030')
   // White spots
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath(); ctx.arc(p(19), p(13), p(3),   0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(29), p(14), p(2.5), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(24), p(10), p(2.5), 0, Math.PI*2); ctx.fill()
-
-  // Wide scared eyes
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath(); ctx.arc(p(18), p(30), p(4), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(30), p(30), p(4), 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#222'
-  ctx.beginPath(); ctx.arc(p(17), p(29), p(2), 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(p(29), p(29), p(2), 0, Math.PI*2); ctx.fill()
-
+  px(ctx, 13, 10,  7,  7, size, '#ffffff')
+  px(ctx, 25, 12,  6,  6, size, '#ffffff')
+  px(ctx, 20,  6,  6,  6, size, '#ffffff')
+  // Eyes (wide + scared)
+  px(ctx, 14, 28,  8,  8, size, '#ffffff')
+  px(ctx, 26, 28,  8,  8, size, '#ffffff')
+  px(ctx, 15, 29,  6,  6, size, '#1a1a2a')
+  px(ctx, 27, 29,  6,  6, size, '#1a1a2a')
+  px(ctx, 15, 29,  2,  2, size, '#ffffff')
+  px(ctx, 27, 29,  2,  2, size, '#ffffff')
   // Worried eyebrows
-  ctx.strokeStyle = '#8a5020'; ctx.lineWidth = Math.max(1, p(1.5)); ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(p(14), p(25)); ctx.lineTo(p(21), p(26)); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(p(34), p(25)); ctx.lineTo(p(27), p(26)); ctx.stroke()
-
-  // O mouth
-  ctx.fillStyle = '#8a5020'
-  ctx.beginPath(); ctx.arc(p(24), p(36), p(2.5), 0, Math.PI*2); ctx.fill()
+  px(ctx, 11, 24,  8,  3, size, '#8a5020')
+  px(ctx, 29, 24,  8,  3, size, '#8a5020')
+  // O mouth (frame + cutout)
+  px(ctx, 20, 38,  8,  4, size, '#8a5020')
+  px(ctx, 22, 39,  4,  2, size, '#e8c890')
 }

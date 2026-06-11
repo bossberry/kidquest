@@ -202,31 +202,27 @@ function QuestionHint({ q, subject, onSpeak }) {
   )
 }
 
-// ─── HintBar: visual question prompt shown in the dialogue box slot ───────────
+// ─── HintBar: dot groups for math arithmetic only ─────────────────────────────
 
 function HintBar({ q, subject }) {
-  if (!q) return null
-  if (subject === 'thai') return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'#FFD700' }}>{q.word}</span>
-      <span style={{ fontSize:11, color:'rgba(255,255,255,.5)' }}>คืออะไร?</span>
-    </div>
-  )
-  if (subject === 'eng') return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'#FFD700', textTransform:'capitalize' }}>{q.word}</span>
-      <span style={{ fontSize:11, color:'rgba(255,255,255,.5)' }}>= ?</span>
-    </div>
-  )
-  if (q.isCount) return <div style={{ textAlign:'center', fontSize:11, color:'rgba(255,255,255,.6)' }}>นับดูสิ มีกี่อัน?</div>
-  if (q.isPattern) return <div style={{ textAlign:'center', fontSize:11, color:'rgba(255,255,255,.6)' }}>อะไรมาต่อ?</div>
-  if (q.isWord) return <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textAlign:'center', lineHeight:1.5, padding:'0 8px' }}>{q.story}</div>
+  if (subject !== 'math') return null
+  if (!q || q.isCount || q.isPattern || q.isWord || q.a === undefined) return null
+  const numA = Math.min(q.a, 10)
+  const numB = Math.min(q.b, 10)
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>{q.a}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'rgba(255,255,255,.5)' }}>{q.op}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>{q.b}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'rgba(255,255,255,.3)' }}>=?</span>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+      <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center', maxWidth:80 }}>
+        {Array.from({ length: numA }, (_, i) => (
+          <div key={i} style={{ width:14, height:14, borderRadius:'50%', background:'#4488ff', boxShadow:'0 0 4px #4488ff88' }} />
+        ))}
+      </div>
+      <div style={{ color:'rgba(255,255,255,0.6)', fontSize:18, fontWeight:'bold' }}>{q.op}</div>
+      <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center', maxWidth:80 }}>
+        {Array.from({ length: numB }, (_, i) => (
+          <div key={i} style={{ width:14, height:14, borderRadius:'50%', background:'#ff8844', boxShadow:'0 0 4px #ff884488' }} />
+        ))}
+      </div>
+      <div style={{ color:'rgba(255,255,255,0.4)', fontSize:18 }}>= ?</div>
     </div>
   )
 }

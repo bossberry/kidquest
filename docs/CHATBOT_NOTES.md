@@ -592,3 +592,11 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — hotfix: fix enemy collision — battle triggers on contact, flee keeps enemy alive:**
+- Built: `WorldScreen.jsx` — removed `defeated` marking from `triggerBattle` (enemy stays alive while PartySelect is open; flee no longer silently removes enemy). Added `pendingBattle` guard to prevent double-dispatch. Added woken `sleepy_bunny` to RAF-loop chase-collision and `tryMove` same-tile check alongside snake/baby_zombie.
+- Not finished: none. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

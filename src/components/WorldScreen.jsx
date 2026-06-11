@@ -299,12 +299,10 @@ export default function WorldScreen({ navigate }) {
   // ── Player movement ──────────────────────────────────────────────────────────
 
   const triggerBattle = useCallback((enemy) => {
+    if (stateRef.current.pendingBattle) return  // already awaiting creature selection
     const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
     const level   = getBattleLevel(subject, stateRef.current)
-    enemiesRef.current = enemiesRef.current.map(e =>
-      e.id === enemy.id ? { ...e, defeated: true, respawnTimer: 1800 } : e
-    )
-    // Persist defeat info so death animation plays on return
+    // Write info so death animation plays when WorldScreen remounts after victory
     if (enemy.id !== '_grass_') {
       try {
         sessionStorage.setItem('kq_last_battle', JSON.stringify({
@@ -314,13 +312,11 @@ export default function WorldScreen({ navigate }) {
     }
     setEncounterFlash(true)
     setTimeout(() => setEncounterFlash(false), 80)
-    // Use research-doc HP/ATK values directly — scaleMonsterStats applies creature-level multiplier later
     const eData = ENEMY_DATA[enemy.type] || { hp: 24, atk: 4, nameTH: 'ศัตรู' }
     dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
       position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
       enemy:    { type: enemy.type, subject, level, hp: eData.hp ?? 24, atk: eData.atk ?? 4, def: eData.def ?? 0, nameTH: eData.nameTH ?? '?' },
     }})
-    // Navigation handled by PartySelect in App.jsx after creature is chosen
   }, [dispatch]) // eslint-disable-line
   triggerBattleRef.current = triggerBattle
 
@@ -335,12 +331,13 @@ export default function WorldScreen({ navigate }) {
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 
-    // Dynamic enemy collision — also catches fast enemies already on player's tile
+    // Dynamic enemy collision — also catches chasers already on player's tile
     const hitEnemy = enemiesRef.current.find(e => {
       if (e.defeated || e.dead) return false
       if (e.col === newCol && e.row === newRow) return true
-      if ((e.type === 'snake' || e.type === 'baby_zombie') &&
-          e.col === g.col && e.row === g.row) return true
+      const isChaser = e.type === 'snake' || e.type === 'baby_zombie' ||
+                       (e.type === 'sleepy_bunny' && e.woken)
+      if (isChaser && e.col === g.col && e.row === g.row) return true
       return false
     })
     if (hitEnemy) {
@@ -614,8 +611,10 @@ export default function WorldScreen({ navigate }) {
           default: break
         }
 
-        // Fast-moving enemies that ran into the player trigger battle
-        if (!pendingBattle && (ne.type === 'snake' || ne.type === 'baby_zombie')) {
+        // Enemies that ran into the player trigger battle
+        const isChaser = ne.type === 'snake' || ne.type === 'baby_zombie' ||
+                         (ne.type === 'sleepy_bunny' && ne.woken)
+        if (!pendingBattle && isChaser) {
           const gc = gameRef.current
           if (gc && ne.col === gc.col && ne.row === gc.row) {
             pendingBattle = ne

@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: fix enemy collision — battle triggers on contact, flee keeps enemy alive
+
+### src/components/WorldScreen.jsx
+- `triggerBattle`: removed `defeated: true` marking at collision time — enemy stays alive in world while PartySelect is open; flee no longer silently removes enemies.
+- `triggerBattle`: added `if (stateRef.current.pendingBattle) return` guard to prevent re-triggering while PartySelect is already open.
+- `updateEnemies`: woken `sleepy_bunny` added to chase-collision check alongside snake/baby_zombie — bunny chasing the player now triggers battle when it reaches the player's tile.
+- `tryMove`: woken `sleepy_bunny` added to "chaser already on player's tile" check — consistent with updateEnemies fix.
+
+---
+
 ## 2026-06-12 — hotfix: battle balance — monster HP/DEF rebalance + damage formula fix
 
 ### src/config/enemyConfig.js

@@ -173,6 +173,13 @@ export default function MoveSelectBattleMode({
   enemyData,
   showReturnButton,
   onComplete,
+  isWorldBattle,
+  creatureStats,
+  creatureCurrentHP,
+  creatureName,
+  onCreatureTakeDamage,
+  onBattleXP,
+  onFaint,
 }) {
   const bg = BG[subject] || '#1a1040'
   const nearHatch = readyToHatch || (eggProgress?.stage ?? 0) >= 5
@@ -188,8 +195,8 @@ export default function MoveSelectBattleMode({
       : { enemy: pool[Math.floor(Math.random() * pool.length)], isBoss: false }
   })
   const enemyType = enemy.type || 'bunny'
-  const maxHP     = isBoss ? total * 14 : total * 9
-  const dmgBase   = Math.ceil(maxHP / total)
+  const maxHP     = isWorldBattle ? (enemyData?.hp ?? 200) : (isBoss ? total * 14 : total * 9)
+  const dmgBase   = isWorldBattle ? 1 : Math.ceil(maxHP / total)
 
   // Core refs
   const lockedRef          = useRef(false)
@@ -509,7 +516,9 @@ export default function MoveSelectBattleMode({
       )
     }
 
-    const dmg   = Math.ceil(dmgBase * mult)
+    const dmg   = isWorldBattle
+      ? Math.ceil((creatureStats?.ATK ?? 20) * mult)
+      : Math.ceil(dmgBase * mult)
     const newHP = Math.max(0, enemyHPRef.current - dmg)
     enemyHPRef.current = newHP
     if (mountedRef.current) setEnemyHP(newHP)
@@ -546,8 +555,8 @@ export default function MoveSelectBattleMode({
         setTimeout(() => mountedRef.current && setBattleLog('🌟 ท่าพิเศษพร้อม!'), 1100)
       }
     }
-    // Victory when enemy KO'd (HP reaches 0) OR all questions answered
-    const isOver = newHP <= 0 || cur + 1 >= total
+    // Victory from HP=0; in world battle questions loop, no question-count victory
+    const isOver = newHP <= 0 || (!isWorldBattle && cur + 1 >= total)
     setTimeout(() => {
       if (!mountedRef.current) return
       if (isOver) {
@@ -577,7 +586,7 @@ export default function MoveSelectBattleMode({
       playTone('miss')
       setTimeout(() => {
         if (!mountedRef.current) return
-        if (cur + 1 >= total) {
+        if (!isWorldBattle && cur + 1 >= total) {
           enemyHPRef.current = 0; setEnemyHP(0)
           setTimeout(() => mountedRef.current && showVictory(), 350)
         } else {
@@ -586,14 +595,38 @@ export default function MoveSelectBattleMode({
       }, 600)
       return
     }
+
+    // World battle: SPD dodge + creature damage + faint check
+    let faintTriggered = false
+    let missLog = '💨 โจมตีพลาด!'
+    if (isWorldBattle) {
+      const spd    = creatureStats?.SPD ?? 40
+      const dodged = Math.random() < spd / 200
+      if (dodged) {
+        missLog = '🌀 หลบได้!'
+      } else {
+        const rawDmg   = enemy.atk ?? 10
+        const def      = creatureStats?.DEF ?? 10
+        const finalDmg = Math.max(1, Math.round(rawDmg - def * 0.5))
+        missLog = `💥 โดนโจมตี -${finalDmg} HP!`
+        onCreatureTakeDamage?.(finalDmg)
+        const newCreatureHP = (creatureCurrentHP ?? 0) - finalDmg
+        if (newCreatureHP <= 0) {
+          faintTriggered = true
+          battleOverRef.current = true
+          missLog = '😴 ตัวเอกหมดแรง...'
+        }
+      }
+    }
+
     spawnEffect('miss')
     if (mountedRef.current) {
       setSelectedCard(-1)
       setMissCard(idx)
       setTimeout(() => mountedRef.current && setMissCard(-1), 550)
-      setBattleLog('💨 โจมตีพลาด!')
+      setBattleLog(missLog)
       setComboDisplay(0)
-      setPlayerHP(h => Math.max(8, h - 8))
+      if (!isWorldBattle) setPlayerHP(h => Math.max(8, h - 8))
       setTimeout(() => {
         if (!mountedRef.current) return
         setEnemyLunge(true)
@@ -606,9 +639,14 @@ export default function MoveSelectBattleMode({
       }, 300)
     }
     playTone('miss'); playSFX('attack_miss')
+
+    if (faintTriggered) {
+      setTimeout(() => { if (mountedRef.current) onFaint?.() }, 1000)
+      return
+    }
     setTimeout(() => {
       if (!mountedRef.current) return
-      if (cur + 1 >= total) {
+      if (!isWorldBattle && cur + 1 >= total) {
         enemyHPRef.current = 0; setEnemyHP(0)
         setTimeout(() => mountedRef.current && showVictory(), 350)
       } else {
@@ -638,6 +676,9 @@ export default function MoveSelectBattleMode({
       spawnEffect('xp')
       setBattleLog('✨ ไข่ได้รับ XP!')
       playTone('item')
+      if (isWorldBattle && onBattleXP) {
+        onBattleXP(10 + (comboRef.current >= 3 ? 5 : 0))
+      }
     }, 750)
     // Auto-advance only when no return button shown
     // Use onComplete if provided (handles early-KO finalization); else fall back to onNext
@@ -657,8 +698,10 @@ export default function MoveSelectBattleMode({
   }
 
   // Derived
-  const hpPct       = (enemyHP / maxHP) * 100
-  const playerHpPct = (playerHP / MAX_PLAYER_HP) * 100
+  const hpPct              = (enemyHP / maxHP) * 100
+  const _displayPlayerHP   = isWorldBattle ? (creatureCurrentHP ?? 0) : playerHP
+  const _displayMaxPlayerHP = isWorldBattle ? (creatureStats?.HP || 1) : MAX_PLAYER_HP
+  const playerHpPct        = (_displayPlayerHP / _displayMaxPlayerHP) * 100
   const eggAnim = eggAnimClass === 'charge' ? 'egg-charge .3s ease'
     : eggAnimClass === 'lunge'  ? 'adv-jump .42s ease'
     : victoryMode               ? 'eggBounce .6s ease infinite'
@@ -782,7 +825,7 @@ export default function MoveSelectBattleMode({
           minWidth:140, maxWidth:172, padding:'5px 10px',
         }}>
           <div className="px-name-badge" style={{ marginBottom:5, fontFamily:'var(--font-thai)', fontSize:11 }}>
-            {EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ'}
+            {isWorldBattle ? (creatureName || 'ตัวเอก') : (EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ')}
           </div>
           <GBHPBar pct={playerHpPct} isPlayer />
         </div>

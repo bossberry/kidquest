@@ -1,5 +1,50 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — feat: Pokémon battle system — real HP, party select, creature faint, battle leveling
+
+### src/lib/state.js
+- Added `pendingBattle`, `party`, `partySlots`, `battleCreatureId` to `defaultState()`.
+- Added and exported `_migrateBattleStats()`: adds `id/battleLevel/battleXP/currentHP/inParty/archived` to existing eggs; builds `party` from `inParty` flags; called in both `loadState()` paths.
+
+### src/context/StateContext.jsx
+- Added 8 new ACTIONS: SET_PENDING_BATTLE, CLEAR_PENDING_BATTLE, SET_BATTLE_CREATURE, CREATURE_TAKE_DAMAGE, CREATURE_HEAL, CREATURE_GAIN_BATTLE_XP, ADD_TO_PARTY, UNLOCK_PARTY_SLOT.
+- Added local `calcBattleLevel(xp)` (quadratic thresholds) and exported `scaleMonsterStats(baseStats, creatureLevel)` (×1.0–×3.8 by tier).
+- `HATCH_COMPLETE`: new eggs get `id`, battle stats, auto-join party if party empty.
+- `ENTER_BATTLE_FROM_WORLD` clears `pendingBattle`. `RETURN_FROM_WORLD_BATTLE` clears `battleCreatureId`.
+- All new reducers added. StateProvider lazy initializer now calls `_migrateBattleStats`.
+
+### src/components/PartySelect.jsx (NEW)
+- Pre-battle creature selection overlay (zIndex 80). Shows party creatures with CreatureCanvas, HP bars, battle level, faint state. Flee button dispatches CLEAR_PENDING_BATTLE.
+
+### src/App.jsx
+- PartySelect overlay shown when `state.pendingBattle && !state.battleCreatureId`.
+- On creature select: SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD + navigate('world-battle').
+
+### src/components/WorldScreen.jsx
+- `triggerBattle` now dispatches `SET_PENDING_BATTLE` with scaled HP/ATK from ENEMY_DATA. No longer calls navigate directly.
+
+### src/components/WorldBattle.jsx (REBUILT)
+- Reads `battleCreatureId` to resolve fighting creature. Scales enemy via `scaleMonsterStats`.
+- Passes `isWorldBattle/creatureStats/creatureCurrentHP/creatureName/onCreatureTakeDamage/onBattleXP/onFaint` to MoveSelectBattleMode.
+- Questions loop indefinitely (regenerates bank); victory only from enemy HP=0.
+- `handleCreatureTakeDamage` → CREATURE_TAKE_DAMAGE. `handleBattleXP` → CREATURE_GAIN_BATTLE_XP + UNLOCK_PARTY_SLOT at 10/50 XP total. `handleFaint` → RETURN_FROM_WORLD_BATTLE + navigate('world').
+
+### src/games/MoveSelectBattleMode.jsx
+- Added world battle props: `isWorldBattle`, `creatureStats`, `creatureCurrentHP`, `creatureName`, `onCreatureTakeDamage`, `onBattleXP`, `onFaint`.
+- World battle: `maxHP` from `enemyData.hp`; hit damage = creature ATK × combo mult; miss = SPD dodge check (SPD/200) + DEF reduction (`max(1, rawDmg − DEF×0.5)`); faint calls `onFaint()`; victory only from HP=0 (no question-count victory); `onBattleXP(10+5)` called on victory.
+- Player HP bar shows creature HP when `isWorldBattle`; name badge shows `creatureName`.
+
+### src/components/Home.jsx
+- Added compact party HP strip above item tray: each party creature shown as CreatureCanvas 22px + name + HP bar + HP text. Only shown when `state.party.length > 0`.
+
+### src/components/Collection.jsx
+- Added ทีม tab (`PartyGrid`: HP bars + battle level, dispatches ADD_TO_PARTY).
+- Added คลังสะสม tab (`VaultGrid`: non-party creatures greyed out, เพิ่มในทีม button).
+- Kept ทั้งหมด (all) and กำลังฟัก tabs.
+
+### docs/research/creatures/creature-battle-system.md (NEW)
+- Full design rationale: state fields, battle flow diagram, stat calculations, combat mechanics, battle level progression, party slot milestones, UI surfaces, design constraints.
+
 ## 2026-06-11 — Fix: Snake battle + enemy death animation + respawn + player glow
 
 ### src/components/WorldScreen.jsx

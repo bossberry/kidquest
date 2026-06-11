@@ -46,6 +46,55 @@ export function defaultState() {
     discoveredScreens: [],
     worldPosition: null,
     worldBattleEnemy: null,
+    pendingBattle: null,
+    party: [],
+    partySlots: 1,
+    battleCreatureId: null,
+  }
+}
+
+export function _migrateBattleStats(s) {
+  if (!Array.isArray(s.hatchedEggs) || !s.hatchedEggs.length) return s
+
+  // Sort most-recent-first (by hatched_at timestamp)
+  const sorted = [...s.hatchedEggs].sort((a, b) =>
+    (b.hatched_at ?? 0) - (a.hatched_at ?? 0)
+  )
+
+  let dirty = false
+  const migratedEggs = sorted.map((egg, i) => {
+    let e = egg
+    if (e.id === undefined) {
+      e = { ...e, id: `egg_${i}_${e.hatched_at ?? i}` }
+      dirty = true
+    }
+    const needsBattle = e.battleLevel === undefined || e.currentHP === undefined
+    if (needsBattle) {
+      const stats = e.stats ?? calcCreatureStats({ ...e, tier: e.tier || 0 })
+      e = {
+        ...e,
+        battleLevel:  e.battleLevel  ?? 1,
+        battleXP:     e.battleXP     ?? 0,
+        currentHP:    e.currentHP    ?? stats.HP,
+        inParty:      e.inParty      ?? (i < 1),
+        archived:     e.archived     ?? (i >= 6),
+      }
+      dirty = true
+    }
+    return e
+  })
+
+  if (!dirty) return s
+
+  const party = s.party?.length
+    ? s.party
+    : migratedEggs.filter(e => e.inParty).map(e => e.id).slice(0, 1)
+
+  return {
+    ...s,
+    hatchedEggs: migratedEggs,
+    party,
+    partySlots: s.partySlots ?? 1,
   }
 }
 
@@ -87,7 +136,8 @@ export async function loadState() {
           .single()
         if (data?.state_json) {
           console.log('[KQ:load] cloud has data → using cloud')
-          const migrated = _migrateEggs(data.state_json)
+          let migrated = _migrateEggs(data.state_json)
+          migrated = _migrateBattleStats(migrated)
           if (migrated !== data.state_json) {
             console.log('[KQ:load] migrating cloud eggs')
             syncToSupabase(migrated)
@@ -110,7 +160,8 @@ export async function loadState() {
   } catch (e) {
     s = defaultState()
   }
-  const migrated = _migrateEggs(s)
+  let migrated = _migrateEggs(s)
+  migrated = _migrateBattleStats(migrated)
   if (migrated !== s) {
     console.log('[KQ:load] migrated', s.hatchedEggs?.length, 'eggs → saving')
     localStorage.setItem(KEY, JSON.stringify(migrated))

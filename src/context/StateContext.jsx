@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
-import { KEY, defaultState, loadState, saveState, syncToSupabase } from '../lib/state.js'
+import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
@@ -7,6 +7,33 @@ import { getCreatureForHatch } from './creatureHelpers.js'
 import { buildCreatureDNA } from '../lib/creatureGenerator.js'
 
 export const StateContext = createContext(null)
+
+// Battle level progression: XP thresholds grow quadratically
+function calcBattleLevel(xp) {
+  let level = 1, cumulative = 0
+  while (true) {
+    const needed = 10 + level * level * 2
+    if (cumulative + needed > xp) break
+    cumulative += needed
+    level++
+    if (level >= 100) break
+  }
+  return level
+}
+
+// Scale world enemy stats by creature battle level
+export function scaleMonsterStats(baseStats, creatureLevel) {
+  const mult =
+    creatureLevel <= 5  ? 1.0 :
+    creatureLevel <= 15 ? 1.4 :
+    creatureLevel <= 30 ? 2.0 :
+    creatureLevel <= 50 ? 2.8 : 3.8
+  return {
+    HP:  Math.round(baseStats.HP  * mult),
+    ATK: Math.round(baseStats.ATK * mult),
+    DEF: Math.round(baseStats.DEF * mult),
+  }
+}
 
 // Dynamic egg progression — first egg fast, later eggs gradually harder
 // requiredXP = min(800, 120 + hatchedCount * 60)
@@ -65,6 +92,15 @@ export const ACTIONS = {
   ENTER_BATTLE_FROM_WORLD:   'ENTER_BATTLE_FROM_WORLD',
   RETURN_FROM_WORLD_BATTLE:  'RETURN_FROM_WORLD_BATTLE',
   CLEAR_WORLD_POSITION:      'CLEAR_WORLD_POSITION',
+  // Party + creature battle system
+  SET_PENDING_BATTLE:        'SET_PENDING_BATTLE',
+  CLEAR_PENDING_BATTLE:      'CLEAR_PENDING_BATTLE',
+  SET_BATTLE_CREATURE:       'SET_BATTLE_CREATURE',
+  CREATURE_TAKE_DAMAGE:      'CREATURE_TAKE_DAMAGE',
+  CREATURE_HEAL:             'CREATURE_HEAL',
+  CREATURE_GAIN_BATTLE_XP:   'CREATURE_GAIN_BATTLE_XP',
+  ADD_TO_PARTY:              'ADD_TO_PARTY',
+  UNLOCK_PARTY_SLOT:         'UNLOCK_PARTY_SLOT',
 }
 
 function reducer(state, action) {
@@ -128,7 +164,9 @@ function reducer(state, action) {
       // Legacy creatures (no dna field) continue to render as emojis unchanged.
       let dna = null
       try { dna = buildCreatureDNA(eggStats) } catch (_) { /* silent — emoji fallback */ }
+      const eggStats2 = calcCreatureStats(eggSnap)
       const newEgg = {
+        id:      `egg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         creature,
         eggStats,
         xpThai: snapXpThai,
@@ -138,11 +176,23 @@ function reducer(state, action) {
         tier,
         streak: state.streak || 0,
         acc:    state.acc    || 70,
-        stats:  calcCreatureStats(eggSnap),
+        stats:  eggStats2,
         date: new Date().toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' }),
         hatched_at: Date.now(),
         dna,
+        // Battle fields
+        battleLevel: 1,
+        battleXP:    0,
+        currentHP:   eggStats2.HP,
+        inParty:     false,
+        archived:    false,
       }
+      // Auto-add to party if party is empty (first creature always joins)
+      const newEggInParty = (state.party || []).length === 0
+      const updatedNewEgg = newEggInParty ? { ...newEgg, inParty: true } : newEgg
+      const newParty = newEggInParty
+        ? [...(state.party || []), newEgg.id]
+        : (state.party || [])
       return {
         ...state,
         xpThai: 0, xpEng: 0, xpMath: 0,
@@ -154,7 +204,8 @@ function reducer(state, action) {
         eggHour: new Date().getHours(),
         firstSubject: -1,
         badges: (state.badges || 0) + 1,
-        hatchedEggs: [newEgg, ...(state.hatchedEggs || [])],
+        hatchedEggs: [updatedNewEgg, ...(state.hatchedEggs || [])],
+        party: newParty,
       }
     }
 
@@ -349,14 +400,69 @@ function reducer(state, action) {
 
     case ACTIONS.ENTER_BATTLE_FROM_WORLD: {
       const { position, enemy } = action.payload
-      return { ...state, worldPosition: position, worldBattleEnemy: enemy }
+      return { ...state, worldPosition: position, worldBattleEnemy: enemy, pendingBattle: null }
     }
 
     case ACTIONS.RETURN_FROM_WORLD_BATTLE:
-      return { ...state, worldBattleEnemy: null }
+      return { ...state, worldBattleEnemy: null, battleCreatureId: null }
 
     case ACTIONS.CLEAR_WORLD_POSITION:
       return { ...state, worldPosition: null }
+
+    // ── Party + creature battle system ────────────────────────────────────────
+
+    case ACTIONS.SET_PENDING_BATTLE:
+      return { ...state, pendingBattle: action.payload }
+
+    case ACTIONS.CLEAR_PENDING_BATTLE:
+      return { ...state, pendingBattle: null, battleCreatureId: null }
+
+    case ACTIONS.SET_BATTLE_CREATURE:
+      return { ...state, battleCreatureId: action.payload }
+
+    case ACTIONS.CREATURE_TAKE_DAMAGE: {
+      const { creatureId, damage } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e =>
+        e.id === creatureId
+          ? { ...e, currentHP: Math.max(0, (e.currentHP ?? e.stats?.HP ?? 10) - damage) }
+          : e
+      )
+      return { ...state, hatchedEggs }
+    }
+
+    case ACTIONS.CREATURE_HEAL: {
+      const { creatureId, amount } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e => {
+        if (e.id !== creatureId) return e
+        const maxHP = e.stats?.HP ?? 10
+        return { ...e, currentHP: Math.min(maxHP, (e.currentHP ?? maxHP) + amount) }
+      })
+      return { ...state, hatchedEggs }
+    }
+
+    case ACTIONS.CREATURE_GAIN_BATTLE_XP: {
+      const { creatureId, xp } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e => {
+        if (e.id !== creatureId) return e
+        const newBattleXP  = (e.battleXP ?? 0) + xp
+        const newBattleLevel = calcBattleLevel(newBattleXP)
+        return { ...e, battleXP: newBattleXP, battleLevel: newBattleLevel }
+      })
+      return { ...state, hatchedEggs }
+    }
+
+    case ACTIONS.ADD_TO_PARTY: {
+      const cid = action.payload
+      if ((state.party || []).includes(cid)) return state
+      if ((state.party || []).length >= (state.partySlots || 1)) return state
+      const hatchedEggs = (state.hatchedEggs || []).map(e =>
+        e.id === cid ? { ...e, inParty: true } : e
+      )
+      return { ...state, party: [...(state.party || []), cid], hatchedEggs }
+    }
+
+    case ACTIONS.UNLOCK_PARTY_SLOT:
+      return { ...state, partySlots: Math.min(6, (state.partySlots || 1) + 1) }
 
     default:
       return state
@@ -365,7 +471,10 @@ function reducer(state, action) {
 
 export function StateProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
-    try { return { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) } }
+    try {
+      const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
+      return _migrateBattleStats(raw)
+    }
     catch { return defaultState() }
   })
 

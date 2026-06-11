@@ -651,6 +651,55 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         </div>
       </div>
 
+      {/* Party HP bars */}
+      {(state.party || []).length > 0 && (
+        <div style={{
+          width:'100%', maxWidth:480, padding:'5px 14px',
+          display:'flex', gap:8, justifyContent:'center',
+          flexShrink:0,
+          background:'var(--px-darker, #16162a)',
+          borderTop:'1px solid var(--px-border)',
+        }}>
+          {(state.party || []).map(id => {
+            const c = (state.hatchedEggs || []).find(e => e.id === id)
+            if (!c) return null
+            const maxHP = c.stats?.HP ?? 10
+            const curHP = c.currentHP ?? maxHP
+            const pct   = Math.max(0, (curHP / maxHP) * 100)
+            const dna   = c.dna ?? (() => { try { return buildLegacyPreviewDNA(c, 0) } catch { return null } })()
+            return (
+              <div key={id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:48 }}>
+                {dna ? (
+                  <CreatureCanvas dna={dna} size={22} animationEnabled={false} />
+                ) : (
+                  <div style={{ fontSize:16 }}>🥚</div>
+                )}
+                <div style={{
+                  fontFamily:'var(--font-thai)', fontSize:7,
+                  color:'rgba(255,255,255,0.5)',
+                  maxWidth:44, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                }}>
+                  {c.creature?.n || '?'}
+                </div>
+                <div style={{ width:44, background:'#000', border:'1px solid #333', height:4 }}>
+                  <div style={{
+                    width:`${pct}%`, height:'100%',
+                    background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
+                    transition:'width 300ms steps(8)',
+                  }} />
+                </div>
+                <div style={{
+                  fontFamily:'var(--font-pixel)', fontSize:6,
+                  color:'rgba(255,255,255,0.35)',
+                }}>
+                  {curHP}/{maxHP}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Item tray */}
       <div style={{
         width:'100%', maxWidth:480, padding:'8px 20px',

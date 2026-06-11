@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, scaleMonsterStats } from '../context/StateContext.jsx'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle } from '../config/gameConfig.js'
 import { speakTh, speakEn, playBGM, stopBGM } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
@@ -17,9 +17,11 @@ const WORLD_ENEMY_NAMES = {
   leaf_sprite:  'นางไม้ใบ',
   grumpy_mole:  'ตุ่นบึ้กตึง',
   mushroom_imp: 'เห็ดนิสัยซน',
+  baby_zombie:  'เบบี้ซอมบี้',
+  snake:        'งูยักษ์',
 }
 
-// ── Question generators (same as GameSubjectAdventure move-question variants) ─
+// ── Question generators ────────────────────────────────────────────────────────
 
 function genMathQ(lv) {
   if (lv?.op === 'count') {
@@ -57,28 +59,14 @@ function genMathQ(lv) {
 
 function genThaiMoveQ() {
   const items = shuffle([...TH_ALPHA])
-  const correct = items[0]
-  const wrongs  = items.slice(1, 4)
-  return {
-    isThai:  true,
-    ttsWord: correct.word,
-    answer:  correct.emoji,
-    choices: shuffle([correct.emoji, ...wrongs.map(w => w.emoji)]),
-    word:    correct.word,
-  }
+  const correct = items[0]; const wrongs = items.slice(1, 4)
+  return { isThai:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
 }
 
 function genEngMoveQ() {
   const items = shuffle([...EN_ALPHA])
-  const correct = items[0]
-  const wrongs  = items.slice(1, 4)
-  return {
-    isEng:   true,
-    ttsWord: correct.word,
-    answer:  correct.emoji,
-    choices: shuffle([correct.emoji, ...wrongs.map(w => w.emoji)]),
-    word:    correct.word,
-  }
+  const correct = items[0]; const wrongs = items.slice(1, 4)
+  return { isEng:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
 }
 
 function genMoveQuestion(subject, lv) {
@@ -96,23 +84,43 @@ function getLevelConfig(subject, levelId) {
 
 export default function WorldBattle({ navigate }) {
   const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
-  const enemy = state.worldBattleEnemy // { type, subject, level }
+  const enemy = state.worldBattleEnemy  // { type, subject, level, hp, atk, nameTH }
 
-  // Compute stable values from enemy data (fixed for duration of this battle)
+  // Resolve creature in party
+  const creatureId   = state.battleCreatureId
+  const creature     = (state.hatchedEggs || []).find(e => e.id === creatureId)
+  const creatureStats = creature?.stats ?? {}
+  const creatureLevel = creature?.battleLevel ?? 1
+
+  // Scale enemy stats by creature battle level
+  const scaledEnemy = React.useMemo(() => {
+    if (!enemy) return null
+    const baseHP  = enemy.hp  ?? 200
+    const baseATK = enemy.atk ?? 10
+    const scaled  = scaleMonsterStats({ HP: baseHP, ATK: baseATK, DEF: 0 }, creatureLevel)
+    return {
+      ...enemy,
+      name: enemy.nameTH ?? WORLD_ENEMY_NAMES[enemy.type] ?? 'ศัตรู',
+      hp:   scaled.HP,
+      atk:  scaled.ATK,
+      type: enemy.type || 'bunny',
+      isBoss: false,
+    }
+  }, [enemy, creatureLevel]) // eslint-disable-line
+
   const subject     = enemy?.subject || 'thai'
-  const enemyType   = enemy?.type    || 'bunny'
   const levelConfig = getLevelConfig(subject, enemy?.level)
-  const enemyData   = { name: WORLD_ENEMY_NAMES[enemyType] || 'ศัตรู', type: enemyType, isBoss: false }
 
-  const [qs] = useState(() =>
+  // Generate initial question bank (loops continuously)
+  const [qs, setQs] = useState(() =>
     Array.from({ length: TOTAL_QS }, () => genMoveQuestion(subject, levelConfig))
   )
-  const [cur, setCur]   = useState(0)
-  const streakRef       = useRef(0)
-  const scoreRef        = useRef(0)
-  const startTime       = useRef(Date.now())
-  const doneRef         = useRef(false)
-  const mountedRef      = useRef(true)
+  const [cur, setCur]  = useState(0)
+  const streakRef      = useRef(0)
+  const scoreRef       = useRef(0)
+  const startTime      = useRef(Date.now())
+  const doneRef        = useRef(false)
+  const mountedRef     = useRef(true)
   useEffect(() => () => { mountedRef.current = false }, [])
 
   useEffect(() => {
@@ -122,7 +130,9 @@ export default function WorldBattle({ navigate }) {
 
   useEffect(() => { if (!enemy) navigate('world') }, []) // eslint-disable-line
 
-  if (!enemy) return null
+  if (!enemy || !scaledEnemy) return null
+
+  const creatureCurrentHP = creature?.currentHP ?? creatureStats.HP ?? 20
 
   function onCorrect() {
     const isCrit = streakRef.current >= 2
@@ -137,27 +147,57 @@ export default function WorldBattle({ navigate }) {
     streakRef.current = 0
   }
 
-  // Advance to next question (called between questions, not on victory)
+  // Loop questions indefinitely — victory comes from enemy HP=0, not question count
   function onNext() {
-    const nextCur = cur + 1
-    if (nextCur < TOTAL_QS) setCur(nextCur)
+    const nextIdx = cur + 1
+    if (nextIdx < TOTAL_QS) {
+      setCur(nextIdx)
+    } else {
+      // Regenerate fresh bank and restart from 0
+      setQs(Array.from({ length: TOTAL_QS }, () => genMoveQuestion(subject, levelConfig)))
+      setCur(0)
+    }
   }
 
-  // Finalize battle — called once on victory (KO or last question)
+  function handleCreatureTakeDamage(damage) {
+    if (!creatureId) return
+    dispatch({ type: ACTIONS.CREATURE_TAKE_DAMAGE, payload: { creatureId, damage } })
+  }
+
+  function handleBattleXP(xp) {
+    if (!creatureId) return
+    dispatch({ type: ACTIONS.CREATURE_GAIN_BATTLE_XP, payload: { creatureId, xp } })
+    // Milestone: unlock party slot 2 at 10 total battle XP
+    const totalXP = (creature?.battleXP ?? 0) + xp
+    if ((state.partySlots ?? 1) < 2 && totalXP >= 10) {
+      dispatch({ type: ACTIONS.UNLOCK_PARTY_SLOT })
+    }
+    if ((state.partySlots ?? 1) < 4 && totalXP >= 50) {
+      dispatch({ type: ACTIONS.UNLOCK_PARTY_SLOT })
+    }
+  }
+
   function onComplete() {
     if (doneRef.current) return
     doneRef.current = true
     stopBGM()
-    const score = scoreRef.current / TOTAL_QS
+    const score = scoreRef.current / Math.max(1, scoreRef.current + (TOTAL_QS - scoreRef.current))
     const dur   = Math.floor((Date.now() - startTime.current) / 1000)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score } })
     dispatch({ type: ACTIONS.LOG_SESSION, payload: {
       ts: Date.now(), world: subject,
-      missionId: `world-${enemyType}`,
+      missionId: `world-${enemy.type}`,
       level: levelConfig.id, score,
-      wrong: TOTAL_QS - scoreRef.current,
-      dur, completed: true,
+      wrong: 0, dur, completed: true,
     }})
+    dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
+    navigate('world')
+  }
+
+  function onFaint() {
+    if (doneRef.current) return
+    doneRef.current = true
+    stopBGM()
     dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
     navigate('world')
   }
@@ -181,13 +221,20 @@ export default function WorldBattle({ navigate }) {
         onWrong={onWrong}
         onNext={onNext}
         onComplete={onComplete}
+        onFaint={onFaint}
         onSpeak={onSpeak}
         eggStats={eggStatsData}
         eggProgress={eggProgressData}
         readyToHatch={state.readyToHatch}
         isFirstLevel={false}
-        enemyData={enemyData}
+        enemyData={scaledEnemy}
         showReturnButton={true}
+        isWorldBattle={true}
+        creatureStats={creatureStats}
+        creatureCurrentHP={creatureCurrentHP}
+        creatureName={creature?.creature?.n}
+        onCreatureTakeDamage={handleCreatureTakeDamage}
+        onBattleXP={handleBattleXP}
       />
     </div>
   )

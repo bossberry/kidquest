@@ -8,6 +8,7 @@ import Report from './components/Report.jsx'
 import GameScreen from './games/GameScreen.jsx'
 import WorldScreen from './components/WorldScreen.jsx'
 import WorldBattle from './components/WorldBattle.jsx'
+import PartySelect from './components/PartySelect.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
@@ -83,6 +84,18 @@ export default function App() {
       )}
       {screen === 'world' && <WorldScreen navigate={navigate} />}
       {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
+
+      {/* Party select overlay — shown when a battle is pending but no creature chosen yet */}
+      {state.pendingBattle && !state.battleCreatureId && (
+        <PartySelect
+          onSelect={(creatureId) => {
+            dispatch({ type: ACTIONS.SET_BATTLE_CREATURE, payload: creatureId })
+            dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: state.pendingBattle })
+            navigate('world-battle')
+          }}
+          onFlee={() => dispatch({ type: ACTIONS.CLEAR_PENDING_BATTLE })}
+        />
+      )}
 
       {/* Bottom nav (hidden during game, world, and world battle) */}
       {screen !== 'game' && screen !== 'world' && screen !== 'world-battle' && <BottomNav current={screen} navigate={navigate} />}

@@ -532,3 +532,22 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System, OR any Chatbot-decided next task.
 - Needs Chatbot decision first: nothing blocking.
 
+**2026-06-12 — Pokémon battle system — real HP, party, creature faint, battle leveling:**
+- Built:
+  - `src/lib/state.js` — `defaultState()` extended with `pendingBattle`, `party`, `partySlots`, `battleCreatureId`. `_migrateBattleStats()` adds `id/battleLevel/battleXP/currentHP/inParty/archived` to all existing eggs; called in both loadState() paths.
+  - `src/context/StateContext.jsx` — 8 new ACTIONS (SET_PENDING_BATTLE, CLEAR_PENDING_BATTLE, SET_BATTLE_CREATURE, CREATURE_TAKE_DAMAGE, CREATURE_HEAL, CREATURE_GAIN_BATTLE_XP, ADD_TO_PARTY, UNLOCK_PARTY_SLOT). `calcBattleLevel()` + exported `scaleMonsterStats()`. HATCH_COMPLETE now assigns `id`, battle stats, auto-joins party. ENTER_BATTLE_FROM_WORLD clears pendingBattle. RETURN_FROM_WORLD_BATTLE clears battleCreatureId.
+  - `src/components/PartySelect.jsx` (NEW) — pre-battle creature picker; HP bars; fainted creatures disabled; flee button.
+  - `src/App.jsx` — PartySelect overlay (zIndex 80) when `pendingBattle && !battleCreatureId`.
+  - `src/components/WorldScreen.jsx` — `triggerBattle` now dispatches SET_PENDING_BATTLE (with scaled hp/atk from ENEMY_DATA) instead of directly navigating.
+  - `src/components/WorldBattle.jsx` — full rewrite: reads battleCreatureId, scales enemy via scaleMonsterStats, passes isWorldBattle props to MoveSelectBattleMode, loops questions (no question-count victory), handleCreatureTakeDamage/handleBattleXP/handleFaint, UNLOCK_PARTY_SLOT milestones at 10/50 XP.
+  - `src/games/MoveSelectBattleMode.jsx` — added isWorldBattle/creatureStats/creatureCurrentHP/creatureName/onCreatureTakeDamage/onBattleXP/onFaint props. World battle: maxHP from enemyData.hp, creature ATK for hit damage, SPD dodge + DEF reduction for miss damage, faint triggers onFaint, no question-count victory, onBattleXP called on victory.
+  - `src/components/Home.jsx` — compact party HP strip above item tray (CreatureCanvas 22px + HP bar + HP text).
+  - `src/components/Collection.jsx` — added ทีม/คลังสะสม/ทั้งหมด tabs; PartyGrid shows HP bars + battle level; VaultGrid shows non-party creatures with เพิ่มในทีม button (ADD_TO_PARTY dispatch).
+  - `docs/research/creatures/creature-battle-system.md` (NEW) — full design rationale doc.
+- Not finished: none.
+- Blockers/risks found:
+  - Creature HP is NOT auto-healed. Players need Potions. Heal-over-time mechanic could be a future task.
+  - Party system only tracks creature IDs; if `hatchedEggs` is empty, party functions gracefully (empty array).
+- Ready to start next: Phase 4 NPC System (Phase 3 world/battle now complete).
+- Needs Chatbot decision first: (1) Should HP auto-restore after battle? (2) Should party slot 3 unlock at 25 XP (between 10 and 50)?
+

@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Fix: 5 UX fixes — dpad center, hint bar, auto-TTS, tall grass battle, enemy collision
+
+- `WorldScreen.jsx` — D-pad repositioned to bottom-center (`left:'50%', transform:'translateX(-50%)'`); opacity 0.75→0.82
+- `WorldScreen.jsx` — Tall grass encounter: replaced `ENCOUNTER_TRIGGERED` (was no-op) with `triggerBattle` on random hidden enemy (30% chance, 5-type pool); now correctly enters WorldBattle
+- `MoveSelectBattleMode.jsx` — Added `THAI_NUMS`, `numTh()`, `mathToThai()` module-level helpers for math speech
+- `MoveSelectBattleMode.jsx` — Added `DotGroup` component; math arithmetic `QuestionHint` now shows colored dot groups (blue for a, orange for b) when both ≤ 10
+- `MoveSelectBattleMode.jsx` — `🔊 ฟังอีกครั้ง` / `🔊 Listen` → icon-only `🔊` buttons; math 🔊 speaks via `speakTh(mathToThai(q))`
+- `MoveSelectBattleMode.jsx` — Auto-TTS useEffect fires for all subjects (math → Thai number equation via `speakTh`); `handleDismissTeach` extended to speak math equations
+- `MoveSelectBattleMode.jsx` — Question hint container `minHeight` 48→58 to accommodate dot row
+
 ## 2026-06-11 — Feat: full BGM + SFX sound system + adaptive battle difficulty
 
 - `src/lib/audio.js` — added `playBGM(track)`, `stopBGM(fadeMs)`, `playSFX(name)` exports; 5 primitive helpers (`_t`, `_sweep`, `_noise`, `_arp`, `_vibrato`); 4 BGM tracks (home/world/battle/victory) generated via Web Audio API (no files); 19 named SFX; iOS touchstart AudioContext resume listener

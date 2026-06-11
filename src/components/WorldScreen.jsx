@@ -250,11 +250,12 @@ export default function WorldScreen({ navigate }) {
 
     const raw = tileMap[newRow]?.[newCol]
     const ttype = typeof raw === 'object' ? raw.type : raw
-    if (ttype === T.TALL && Math.random() < 0.25) {
+    if (ttype === T.TALL && Math.random() < 0.30) {
       playSFX('tall_grass')
-      setEncounterFlash(true)
-      setTimeout(() => setEncounterFlash(false), 50)
-      dispatch({ type: ACTIONS.ENCOUNTER_TRIGGERED })
+      const GRASS_POOL = ['sleepy_bunny', 'bouncy_slime', 'fox_kit', 'leaf_sprite', 'mushroom_imp']
+      const randomType = GRASS_POOL[Math.floor(Math.random() * GRASS_POOL.length)]
+      triggerBattle({ id: '_grass_', type: randomType })
+      return
     }
 
     checkProximity(newCol, newRow)
@@ -488,12 +489,13 @@ export default function WorldScreen({ navigate }) {
         }}>📋 อ่าน</button>
       )}
 
-      {/* D-pad — bottom left, overlays on canvas */}
+      {/* D-pad — bottom center, overlays on canvas */}
       <div style={{
         position: 'absolute',
         bottom: 'calc(24px + env(safe-area-inset-bottom))',
-        left: 24,
-        opacity: 0.75,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        opacity: 0.82,
         width: 168,
         height: 168,
         zIndex: 30,

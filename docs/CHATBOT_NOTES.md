@@ -351,3 +351,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System (Owl is wired, 4 more NPCs to add).
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — fix: 5 UX fixes — dpad center, hint bar, auto-TTS, tall grass battle, enemy collision:**
+- Built:
+  - D-pad centered: `left: 24` → `left:'50%', transform:'translateX(-50%)'`. Opacity 0.75→0.82. ✅
+  - Hint bar: `QuestionHint` updated — `🔊 ฟังอีกครั้ง`/`🔊 Listen` → icon-only `🔊` button. Math arithmetic: added `DotGroup` colored dot visualization (blue for a, orange for b) when both ≤ 10. Math 🔊 button calls `speakTh(mathToThai(q))`. ✅
+  - Auto-TTS: TTS `useEffect` now fires for all subjects — Thai/Eng speak `ttsWord`, math calls `speakTh(mathToThai(q))` (Thai number words + บวก/ลบ). `handleDismissTeach` same. `THAI_NUMS` + `numTh()` + `mathToThai()` added at module level. ✅
+  - Tall grass battle: ENCOUNTER_TRIGGERED (was no-op reducer) replaced with `triggerBattle({ id:'_grass_', type:randomType })` from GRASS_POOL (5 hidden enemies). 30% encounter rate (was 25%). Flash + battle + navigate all fire correctly. ✅
+  - Visible enemy collision: already worked correctly (dynamic enemy check before canMove, triggerBattle fires for all non-sleeping enemies). No static T.ENEMY tiles remain in maps. Confirmed working. ✅
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

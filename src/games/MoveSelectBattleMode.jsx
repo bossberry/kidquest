@@ -115,24 +115,48 @@ function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
   )
 }
 
+// ─── Math speech helpers ──────────────────────────────────────────────────────
+
+const THAI_NUMS = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า',
+  'สิบ','สิบเอ็ด','สิบสอง','สิบสาม','สิบสี่','สิบห้า','สิบหก','สิบเจ็ด','สิบแปด','สิบเก้า','ยี่สิบ']
+function numTh(n) { return THAI_NUMS[n] ?? String(n) }
+function mathToThai(q) {
+  if (!q) return ''
+  if (q.isCount) return 'มีกี่อัน'
+  if (q.isPattern) return 'อะไรมาต่อ'
+  if (q.isWord || q.a === undefined) return ''
+  const opTh = q.op === '+' ? 'บวก' : q.op === '-' ? 'ลบ' : ''
+  return opTh ? `${numTh(q.a)} ${opTh} ${numTh(q.b)} เท่ากับ เท่าไหร่` : ''
+}
+
 // ─── Question Hint (compact) ──────────────────────────────────────────────────
 
+function DotGroup({ count, color }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:3, justifyContent:'center', maxWidth:90 }}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} style={{ width:10, height:10, borderRadius:'50%', background:color, flexShrink:0 }} />
+      ))}
+    </div>
+  )
+}
+
 function QuestionHint({ q, subject, onSpeak }) {
-  const btnStyle = {
-    background:'rgba(255,255,255,.12)', border:'none', borderRadius:8,
-    padding:'4px 10px', fontSize:13, cursor:'pointer', color:'rgba(255,255,255,.85)',
-    fontFamily:'Mitr,sans-serif', touchAction:'manipulation', flexShrink:0,
+  const iconBtn = {
+    background:'rgba(255,255,255,.14)', border:'none', borderRadius:8,
+    padding:'5px 9px', fontSize:17, cursor:'pointer', color:'rgba(255,255,255,.9)',
+    touchAction:'manipulation', flexShrink:0, lineHeight:1,
   }
   if (subject === 'thai') return (
     <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center' }}>
       <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'#FFD700', lineHeight:1 }}>{q.word}</span>
-      <button onClick={onSpeak} style={btnStyle}>🔊 ฟังอีกครั้ง</button>
+      <button onClick={onSpeak} style={iconBtn}>🔊</button>
     </div>
   )
   if (subject === 'eng') return (
     <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center' }}>
       <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700', lineHeight:1, textTransform:'capitalize' }}>{q.word}</span>
-      <button onClick={onSpeak} style={btnStyle}>🔊 Listen</button>
+      <button onClick={onSpeak} style={iconBtn}>🔊</button>
     </div>
   )
   if (q.isCount) return (
@@ -155,13 +179,25 @@ function QuestionHint({ q, subject, onSpeak }) {
   if (q.isWord) return (
     <div style={{ fontSize:11, color:'rgba(255,255,255,.75)', lineHeight:1.5, textAlign:'center', maxWidth:240 }}>{q.story}</div>
   )
+  // Arithmetic — equation + dot groups for small numbers
+  const showDots = (q.op === '+' || q.op === '-') && q.a <= 10 && q.b <= 10
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:38, color:'#FFD700', lineHeight:1 }}>{q.a}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'rgba(255,255,255,.5)' }}>{q.op}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:38, color:'#FFD700', lineHeight:1 }}>{q.b}</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'rgba(255,255,255,.3)' }}>=</span>
-      <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:38, color:'#fff', lineHeight:1 }}>?</span>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#FFD700', lineHeight:1 }}>{q.a}</span>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'rgba(255,255,255,.5)' }}>{q.op}</span>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#FFD700', lineHeight:1 }}>{q.b}</span>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'rgba(255,255,255,.3)' }}>=</span>
+        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:34, color:'#fff', lineHeight:1 }}>?</span>
+        <button onClick={() => { const t = mathToThai(q); if (t) speakTh(t) }} style={{ ...iconBtn, marginLeft:4 }}>🔊</button>
+      </div>
+      {showDots && (
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <DotGroup count={q.a} color='#5599ff' />
+          <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:16, color:'rgba(255,255,255,.4)' }}>{q.op}</span>
+          <DotGroup count={q.b} color='#ff9944' />
+        </div>
+      )}
     </div>
   )
 }
@@ -303,12 +339,12 @@ export default function MoveSelectBattleMode({
 
   // ── TTS on question ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!q?.ttsWord) return
     const t = setTimeout(() => {
       if (!mountedRef.current) return
-      if (subject === 'thai') speakTh(q.ttsWord)
-      else if (subject === 'eng') speakEn(q.ttsWord)
-    }, 400)
+      if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
+      else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
+      else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
+    }, 500)
     return () => clearTimeout(t)
   }, [cur, subject]) // eslint-disable-line
 
@@ -498,13 +534,12 @@ export default function MoveSelectBattleMode({
 
   function handleDismissTeach() {
     setShowTeach(false)
-    if (q?.ttsWord) {
-      setTimeout(() => {
-        if (!mountedRef.current) return
-        if (subject === 'thai') speakTh(q.ttsWord)
-        else if (subject === 'eng') speakEn(q.ttsWord)
-      }, 300)
-    }
+    setTimeout(() => {
+      if (!mountedRef.current) return
+      if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
+      else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
+      else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
+    }, 300)
   }
 
   // Derived
@@ -680,7 +715,7 @@ export default function MoveSelectBattleMode({
 
       {/* ── QUESTION HINT ────────────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={{ padding:'5px 14px 3px', display:'flex', alignItems:'center', justifyContent:'center', minHeight:48, flexShrink:0 }}>
+        <div style={{ padding:'5px 14px 3px', display:'flex', alignItems:'center', justifyContent:'center', minHeight:58, flexShrink:0 }}>
           <QuestionHint q={q} subject={subject} onSpeak={onSpeak} />
         </div>
       )}

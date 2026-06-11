@@ -50,6 +50,7 @@ export function defaultState() {
     party: [],
     partySlots: 1,
     battleCreatureId: null,
+    battleWins: 0,
   }
 }
 
@@ -61,6 +62,7 @@ export function _migrateBattleStats(s) {
     (b.hatched_at ?? 0) - (a.hatched_at ?? 0)
   )
 
+  const now = Date.now()
   let dirty = false
   const migratedEggs = sorted.map((egg, i) => {
     let e = egg
@@ -71,30 +73,47 @@ export function _migrateBattleStats(s) {
     const needsBattle = e.battleLevel === undefined || e.currentHP === undefined
     if (needsBattle) {
       const stats = e.stats ?? calcCreatureStats({ ...e, tier: e.tier || 0 })
+      // Most recent 6 join the party; older creatures go to archive
       e = {
         ...e,
-        battleLevel:  e.battleLevel  ?? 1,
-        battleXP:     e.battleXP     ?? 0,
-        currentHP:    e.currentHP    ?? stats.HP,
-        inParty:      e.inParty      ?? (i < 1),
-        archived:     e.archived     ?? (i >= 6),
+        battleLevel:   e.battleLevel   ?? 1,
+        battleXP:      e.battleXP      ?? 0,
+        currentHP:     e.currentHP     ?? stats.HP,
+        hpUpdatedAt:   e.hpUpdatedAt   ?? now,
+        inParty:       e.inParty       ?? (i < 6),
+        archived:      e.archived      ?? (i >= 6),
       }
       dirty = true
+    }
+    // Time-based HP recovery: 1 HP per 30 seconds since last update
+    if (e.hpUpdatedAt && e.hpUpdatedAt < now) {
+      const stats = e.stats ?? calcCreatureStats({ ...e, tier: e.tier || 0 })
+      const maxHP  = stats.HP + (e.battleLevel - 1)  // includes level bonus
+      if ((e.currentHP ?? maxHP) < maxHP) {
+        const recovered  = Math.floor((now - e.hpUpdatedAt) / 30000)
+        const newHP      = Math.min(maxHP, (e.currentHP ?? 0) + recovered)
+        if (newHP !== e.currentHP) {
+          e = { ...e, currentHP: newHP, hpUpdatedAt: now }
+          dirty = true
+        }
+      }
     }
     return e
   })
 
   if (!dirty) return s
 
+  // Build party from inParty flags if not already set
   const party = s.party?.length
     ? s.party
-    : migratedEggs.filter(e => e.inParty).map(e => e.id).slice(0, 1)
+    : migratedEggs.filter(e => e.inParty).map(e => e.id)
 
   return {
     ...s,
     hatchedEggs: migratedEggs,
     party,
-    partySlots: s.partySlots ?? 1,
+    partySlots:  s.partySlots  ?? 1,
+    battleWins:  s.battleWins  ?? 0,
   }
 }
 

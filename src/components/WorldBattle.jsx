@@ -87,10 +87,20 @@ export default function WorldBattle({ navigate }) {
   const enemy = state.worldBattleEnemy  // { type, subject, level, hp, atk, nameTH }
 
   // Resolve creature in party
-  const creatureId   = state.battleCreatureId
-  const creature     = (state.hatchedEggs || []).find(e => e.id === creatureId)
-  const creatureStats = creature?.stats ?? {}
+  const creatureId    = state.battleCreatureId
+  const creature      = (state.hatchedEggs || []).find(e => e.id === creatureId)
   const creatureLevel = creature?.battleLevel ?? 1
+
+  // Apply level bonuses: +1 HP and +0.5 ATK per level above 1 (research doc spec)
+  const creatureStats = React.useMemo(() => {
+    const base = creature?.stats ?? {}
+    const lvBonus = creatureLevel - 1
+    return {
+      ...base,
+      HP:  (base.HP  ?? 10) + lvBonus,
+      ATK: (base.ATK ?? 5)  + Math.floor(lvBonus * 0.5),
+    }
+  }, [creature, creatureLevel]) // eslint-disable-line
 
   // Scale enemy stats by creature battle level
   const scaledEnemy = React.useMemo(() => {
@@ -167,12 +177,13 @@ export default function WorldBattle({ navigate }) {
   function handleBattleXP(xp) {
     if (!creatureId) return
     dispatch({ type: ACTIONS.CREATURE_GAIN_BATTLE_XP, payload: { creatureId, xp } })
-    // Milestone: unlock party slot 2 at 10 total battle XP
-    const totalXP = (creature?.battleXP ?? 0) + xp
-    if ((state.partySlots ?? 1) < 2 && totalXP >= 10) {
+    dispatch({ type: ACTIONS.INCREMENT_BATTLE_WINS })
+    // Party slot milestones by battle win count (research doc spec)
+    const newWins = (state.battleWins ?? 0) + 1
+    if ((state.partySlots ?? 1) < 2 && newWins >= 10) {
       dispatch({ type: ACTIONS.UNLOCK_PARTY_SLOT })
     }
-    if ((state.partySlots ?? 1) < 4 && totalXP >= 50) {
+    if ((state.partySlots ?? 1) < 4 && newWins >= 50) {
       dispatch({ type: ACTIONS.UNLOCK_PARTY_SLOT })
     }
   }

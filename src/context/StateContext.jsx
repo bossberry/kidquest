@@ -101,6 +101,7 @@ export const ACTIONS = {
   CREATURE_GAIN_BATTLE_XP:   'CREATURE_GAIN_BATTLE_XP',
   ADD_TO_PARTY:              'ADD_TO_PARTY',
   UNLOCK_PARTY_SLOT:         'UNLOCK_PARTY_SLOT',
+  INCREMENT_BATTLE_WINS:     'INCREMENT_BATTLE_WINS',
 }
 
 function reducer(state, action) {
@@ -422,9 +423,10 @@ function reducer(state, action) {
 
     case ACTIONS.CREATURE_TAKE_DAMAGE: {
       const { creatureId, damage } = action.payload
+      const now = Date.now()
       const hatchedEggs = (state.hatchedEggs || []).map(e =>
         e.id === creatureId
-          ? { ...e, currentHP: Math.max(0, (e.currentHP ?? e.stats?.HP ?? 10) - damage) }
+          ? { ...e, currentHP: Math.max(0, (e.currentHP ?? e.stats?.HP ?? 10) - damage), hpUpdatedAt: now }
           : e
       )
       return { ...state, hatchedEggs }
@@ -434,8 +436,8 @@ function reducer(state, action) {
       const { creatureId, amount } = action.payload
       const hatchedEggs = (state.hatchedEggs || []).map(e => {
         if (e.id !== creatureId) return e
-        const maxHP = e.stats?.HP ?? 10
-        return { ...e, currentHP: Math.min(maxHP, (e.currentHP ?? maxHP) + amount) }
+        const maxHP = (e.stats?.HP ?? 10) + ((e.battleLevel ?? 1) - 1)
+        return { ...e, currentHP: Math.min(maxHP, (e.currentHP ?? maxHP) + amount), hpUpdatedAt: Date.now() }
       })
       return { ...state, hatchedEggs }
     }
@@ -444,7 +446,7 @@ function reducer(state, action) {
       const { creatureId, xp } = action.payload
       const hatchedEggs = (state.hatchedEggs || []).map(e => {
         if (e.id !== creatureId) return e
-        const newBattleXP  = (e.battleXP ?? 0) + xp
+        const newBattleXP    = (e.battleXP ?? 0) + xp
         const newBattleLevel = calcBattleLevel(newBattleXP)
         return { ...e, battleXP: newBattleXP, battleLevel: newBattleLevel }
       })
@@ -452,7 +454,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.ADD_TO_PARTY: {
-      const cid = action.payload
+      const { creatureId: cid } = action.payload
       if ((state.party || []).includes(cid)) return state
       if ((state.party || []).length >= (state.partySlots || 1)) return state
       const hatchedEggs = (state.hatchedEggs || []).map(e =>
@@ -463,6 +465,9 @@ function reducer(state, action) {
 
     case ACTIONS.UNLOCK_PARTY_SLOT:
       return { ...state, partySlots: Math.min(6, (state.partySlots || 1) + 1) }
+
+    case ACTIONS.INCREMENT_BATTLE_WINS:
+      return { ...state, battleWins: (state.battleWins ?? 0) + 1 }
 
     default:
       return state

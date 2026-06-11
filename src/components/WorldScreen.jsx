@@ -314,13 +314,11 @@ export default function WorldScreen({ navigate }) {
     }
     setEncounterFlash(true)
     setTimeout(() => setEncounterFlash(false), 80)
-    // Scale enemy stats from ENEMY_DATA for the real HP battle system
-    const eData   = ENEMY_DATA[enemy.type] || { hp: 5, nameTH: 'ศัตรู' }
-    const baseHP  = Math.min(Math.max(50, (eData.hp ?? 5) * 60), 600)
-    const baseATK = Math.min(Math.max(5, Math.round((eData.hp ?? 5) * 3)), 100)
+    // Use research-doc HP/ATK values directly — scaleMonsterStats applies creature-level multiplier later
+    const eData = ENEMY_DATA[enemy.type] || { hp: 24, atk: 4, nameTH: 'ศัตรู' }
     dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
       position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
-      enemy:    { type: enemy.type, subject, level, hp: baseHP, atk: baseATK, nameTH: eData.nameTH ?? '?' },
+      enemy:    { type: enemy.type, subject, level, hp: eData.hp ?? 24, atk: eData.atk ?? 4, nameTH: eData.nameTH ?? '?' },
     }})
     // Navigation handled by PartySelect in App.jsx after creature is chosen
   }, [dispatch]) // eslint-disable-line

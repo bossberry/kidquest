@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: 7 enemy types across all screens with movement patterns
+
+- `src/lib/drawEnemy.js` (UPDATED) — Signature changed to `drawEnemy(ctx, type, size, x=0, y=0)` with `ctx.save/translate/restore` for world canvas rendering. Backward-compat aliases: `bunny`=`sleepy_bunny`, `slime`=`bouncy_slime`, `fox`=`fox_kit`. 3 new sprites: `leaf_sprite` (3-leaf wispy figure, #4aaa4a body, white dot eyes), `grumpy_mole` (round brown body, #8a6030, tinted glasses, frown, shovel), `mushroom_imp` (red cap #cc3030 with 3 white dots, scared wide eyes, O-mouth).
+- `src/config/enemyConfig.js` (NEW) — `ENEMY_DATA` lookup for 7 types with `nameTH`, `hp`, `level`.
+- `src/lib/tileMaps.js` (UPDATED) — `SCREEN_ENEMIES` export: per-screen enemy placement arrays for all 9 screens (3–4 enemies per screen). Static `ENEMY('bunny')` tile in BM_MAP row 11 replaced with grass.
+- `src/components/WorldScreen.jsx` (UPDATED) — Imports `drawEnemy` + `SCREEN_ENEMIES`. `enemiesRef` for rAF-safe enemy array. `useEffect([screenId])` initializes enemies with `{id, type, col, row, dir, timer, rngSeed, woken, defeated, respawnTimer}`. `triggerBattle(enemy)` callback: marks defeated+respawnTimer=1800, flash, dispatch, navigate. `tryMove` now uses dynamic enemy collision (replaces T.ENEMY tile check): bumping sleepy_bunny wakes it; all others trigger battle. rAF loop: `updateEnemies` at ~20fps with per-type movement (slime=N/S bounce 45fr, fox=E/W patrol 60fr, egg_pawn=N/S patrol 60fr, leaf/mushroom=random wander 90fr via rngSeed, sleepy_bunny=proximity wake ≤3 tiles+chase 60fr). `renderEnemies`: 32px sprite per enemy at tile center offset by camera; `!` text bubble above woken bunny.
+- `src/components/WorldBattle.jsx` (UPDATED) — `WORLD_ENEMY_NAMES` expanded with all 7 types including new ones.
+- Build: ✅ zero errors.
+
 ## 2026-06-11 — Workflow: ntfy push notification rule
 
 - Added ntfy push notification rule to `CLAUDE.md` for all future tasks. Claude Code must send a curl notification to `ntfy.sh/kidquest-boss` at the end of every task (success or error).

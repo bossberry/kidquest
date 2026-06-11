@@ -7,10 +7,16 @@ import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 const TOTAL_QS = 8
 
 const WORLD_ENEMY_NAMES = {
-  bunny:    'กระต่ายหลับ',
-  slime:    'สไลม์กระโดด',
-  fox:      'จิ้งจอกน้อย',
-  egg_pawn: 'Egg Pawn',
+  bunny:        'กระต่ายหลับ',
+  sleepy_bunny: 'กระต่ายหลับ',
+  slime:        'สไลม์กระโดด',
+  bouncy_slime: 'สไลม์กระโดด',
+  fox:          'จิ้งจอกน้อย',
+  fox_kit:      'จิ้งจอกน้อย',
+  egg_pawn:     'Egg Pawn',
+  leaf_sprite:  'นางไม้ใบ',
+  grumpy_mole:  'ตุ่นบึ้กตึง',
+  mushroom_imp: 'เห็ดนิสัยซน',
 }
 
 // ── Question generators (same as GameSubjectAdventure move-question variants) ─

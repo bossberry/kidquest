@@ -273,3 +273,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 **2026-06-11 — fix: battle end bug resolved.** `MoveSelectBattleMode.fireHit` now checks `newHP <= 0 || isLast` (was `isLast` only); `battleOverRef` blocks input after victory; `WorldBattle` split into `onNext` (advance question) + `onComplete` (finalize + navigate) so early KO doesn't require multiple taps to exit.
 
+---
+
+**2026-06-11 — feat: all 7 enemy types across all 9 screens with movement patterns:**
+- Built:
+  - `drawEnemy.js`: 3 new sprites (leaf_sprite, grumpy_mole, mushroom_imp), `(ctx, type, size, x, y)` signature for world canvas
+  - `enemyConfig.js` (new): ENEMY_DATA with nameTH/hp/level for all 7 types
+  - `tileMaps.js`: SCREEN_ENEMIES export (3–4 enemies per screen across all 9 screens); static ENEMY tile removed from BM_MAP
+  - `WorldScreen.jsx`: full dynamic enemy system — `enemiesRef`, per-screen init, triggerBattle, proximity wake for sleepy_bunny, movement patterns (slime/fox/egg_pawn patrol, leaf/mushroom wander, bunny chase), 32px sprite rendering, `!` bubble, 30s respawn
+  - `WorldBattle.jsx`: WORLD_ENEMY_NAMES expanded for all 7 types
+- Not finished: Tiny Fox flee mechanic. Weather/day-night enemy variations.
+- Blockers/risks found: None. Build passes cleanly.
+- Ready to start next: Phase 4 NPC System (Prof Owl dialogue already in WorldScreen; 4 more NPCs to add).
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

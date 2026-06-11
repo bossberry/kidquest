@@ -1,15 +1,25 @@
 // Enemy sprite renderer — Canvas 2D pixel art (design space: 48×48 units)
+// x,y: offset on a shared canvas (world mode). x=0,y=0: dedicated canvas (battle mode).
 
-export function drawEnemy(ctx, enemyType, size) {
-  ctx.clearRect(0, 0, size, size)
+export function drawEnemy(ctx, enemyType, size, x = 0, y = 0) {
   const p = (v) => Math.round(v * size / 48)
+  ctx.save()
+  ctx.translate(x, y)
+  if (x === 0 && y === 0) ctx.clearRect(0, 0, size, size)
   switch (enemyType) {
-    case 'bunny':    return _bunny(ctx, p)
-    case 'slime':    return _slime(ctx, p)
-    case 'fox':      return _fox(ctx, p)
-    case 'egg_pawn': return _eggPawn(ctx, p)
-    default:         return _bunny(ctx, p)
+    case 'bunny':
+    case 'sleepy_bunny':  _bunny(ctx, p);       break
+    case 'slime':
+    case 'bouncy_slime':  _slime(ctx, p);       break
+    case 'fox':
+    case 'fox_kit':       _fox(ctx, p);         break
+    case 'egg_pawn':      _eggPawn(ctx, p);     break
+    case 'leaf_sprite':   _leafSprite(ctx, p);  break
+    case 'grumpy_mole':   _grumpyMole(ctx, p);  break
+    case 'mushroom_imp':  _mushroomImp(ctx, p); break
+    default:              _bunny(ctx, p)
   }
+  ctx.restore()
 }
 
 function _bunny(ctx, p) {
@@ -199,4 +209,121 @@ function _eggPawn(ctx, p) {
   ctx.fillStyle = '#881818'
   ctx.fillRect(p(16), p(42), p(5), p(5))
   ctx.fillRect(p(27), p(42), p(5), p(5))
+}
+
+function _leafSprite(ctx, p) {
+  // Outline leaves
+  ctx.fillStyle = '#2a6a2a'
+  ctx.beginPath(); ctx.ellipse(p(24), p(26), p(7), p(14), 0, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(15), p(24), p(5), p(11), -0.5, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(33), p(24), p(5), p(11),  0.5, 0, Math.PI*2); ctx.fill()
+
+  // Main leaves
+  ctx.fillStyle = '#4aaa4a'
+  ctx.beginPath(); ctx.ellipse(p(24), p(25), p(6), p(13), 0, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(15), p(23), p(4), p(9.5), -0.5, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(33), p(23), p(4), p(9.5),  0.5, 0, Math.PI*2); ctx.fill()
+
+  // Highlight streak
+  ctx.fillStyle = '#8aff8a'
+  ctx.beginPath(); ctx.ellipse(p(21), p(19), p(2.5), p(6), -0.2, 0, Math.PI*2); ctx.fill()
+
+  // Eyes
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(p(20), p(23), p(2.2), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(28), p(23), p(2.2), 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#113311'
+  ctx.beginPath(); ctx.arc(p(21), p(23), p(1.1), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(29), p(23), p(1.1), 0, Math.PI*2); ctx.fill()
+
+  // Tiny feet
+  ctx.fillStyle = '#2a6a2a'
+  ctx.beginPath(); ctx.ellipse(p(20), p(38), p(3.5), p(2), 0, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(28), p(38), p(3.5), p(2), 0, 0, Math.PI*2); ctx.fill()
+}
+
+function _grumpyMole(ctx, p) {
+  // Shovel handle + blade (behind body)
+  ctx.fillStyle = '#7a5020'
+  ctx.fillRect(p(34), p(8), p(3), p(28))
+  ctx.fillStyle = '#909090'
+  ctx.beginPath(); ctx.ellipse(p(35.5), p(8), p(5), p(3), 0, 0, Math.PI*2); ctx.fill()
+
+  // Body
+  ctx.fillStyle = '#8a6030'
+  ctx.beginPath(); ctx.arc(p(21), p(31), p(13), 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#c09060'
+  ctx.beginPath(); ctx.ellipse(p(21), p(33), p(7), p(8), 0, 0, Math.PI*2); ctx.fill()
+
+  // Head
+  ctx.fillStyle = '#8a6030'
+  ctx.beginPath(); ctx.arc(p(21), p(16), p(11), 0, Math.PI*2); ctx.fill()
+
+  // Snout
+  ctx.fillStyle = '#c09060'
+  ctx.beginPath(); ctx.ellipse(p(21), p(19), p(6), p(5), 0, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#7a4020'
+  ctx.beginPath(); ctx.arc(p(21), p(17), p(2), 0, Math.PI*2); ctx.fill()
+
+  // Glasses frames
+  ctx.strokeStyle = '#333'; ctx.lineWidth = Math.max(1, p(1.5)); ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.arc(p(15), p(14), p(4), 0, Math.PI*2); ctx.stroke()
+  ctx.beginPath(); ctx.arc(p(26), p(14), p(4), 0, Math.PI*2); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(p(19), p(14)); ctx.lineTo(p(22), p(14)); ctx.stroke()
+  // Lens tint
+  ctx.fillStyle = 'rgba(170,221,255,0.32)'
+  ctx.beginPath(); ctx.arc(p(15), p(14), p(4), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(26), p(14), p(4), 0, Math.PI*2); ctx.fill()
+
+  // Frown
+  ctx.strokeStyle = '#5a3010'; ctx.lineWidth = Math.max(1, p(2))
+  ctx.beginPath(); ctx.arc(p(21), p(24), p(4), 0.2, Math.PI - 0.2, true); ctx.stroke()
+
+  // Claws
+  ctx.fillStyle = '#5a3010'
+  for (const cx of [8, 11]) { ctx.fillRect(p(cx), p(30), p(2.5), p(4)) }
+  for (const cx of [28, 31]) { ctx.fillRect(p(cx), p(30), p(2.5), p(4)) }
+}
+
+function _mushroomImp(ctx, p) {
+  // Body / stem
+  ctx.fillStyle = '#e8c890'
+  ctx.beginPath(); ctx.ellipse(p(24), p(34), p(8), p(10), 0, 0, Math.PI*2); ctx.fill()
+
+  // Arms
+  ctx.beginPath(); ctx.ellipse(p(12), p(33), p(5), p(3), -0.5, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(p(36), p(33), p(5), p(3),  0.5, 0, Math.PI*2); ctx.fill()
+
+  // Cap rim
+  ctx.fillStyle = '#dd4444'
+  ctx.beginPath(); ctx.ellipse(p(24), p(24), p(14), p(5), 0, 0, Math.PI*2); ctx.fill()
+
+  // Cap dome
+  ctx.fillStyle = '#cc3030'
+  ctx.beginPath(); ctx.arc(p(24), p(17), p(13), Math.PI, 0); ctx.fill()
+  ctx.fillStyle = '#dd4444'
+  ctx.beginPath(); ctx.ellipse(p(24), p(17), p(13), p(4), 0, 0, Math.PI*2); ctx.fill()
+
+  // White spots
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(p(19), p(13), p(3),   0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(29), p(14), p(2.5), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(24), p(10), p(2.5), 0, Math.PI*2); ctx.fill()
+
+  // Wide scared eyes
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(p(18), p(30), p(4), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(30), p(30), p(4), 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#222'
+  ctx.beginPath(); ctx.arc(p(17), p(29), p(2), 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(p(29), p(29), p(2), 0, Math.PI*2); ctx.fill()
+
+  // Worried eyebrows
+  ctx.strokeStyle = '#8a5020'; ctx.lineWidth = Math.max(1, p(1.5)); ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(p(14), p(25)); ctx.lineTo(p(21), p(26)); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(p(34), p(25)); ctx.lineTo(p(27), p(26)); ctx.stroke()
+
+  // O mouth
+  ctx.fillStyle = '#8a5020'
+  ctx.beginPath(); ctx.arc(p(24), p(36), p(2.5), 0, Math.PI*2); ctx.fill()
 }

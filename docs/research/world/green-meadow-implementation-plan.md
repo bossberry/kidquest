@@ -294,23 +294,29 @@ The child sees creatures in the world. They can walk into them to start a battle
 - `src/components/WorldScreen.jsx` (EDITED) — Added `orientationchange` resize listener.
 - `src/styles.css` (EDITED) — `.move-card-btn` tap highlight + active scale.
 
+### What was actually built (2026-06-11, session 3 — dynamic enemies + all 7 types)
+- `src/lib/drawEnemy.js` (UPDATED) — `drawEnemy(ctx, type, size, x=0, y=0)` with save/translate/restore for shared world canvas. 3 new sprites: `leaf_sprite`, `grumpy_mole`, `mushroom_imp`. Backward-compat aliases for old type names.
+- `src/config/enemyConfig.js` (NEW) — `ENEMY_DATA` for all 7 types with `nameTH`, `hp`, `level`.
+- `src/lib/tileMaps.js` (UPDATED) — `SCREEN_ENEMIES` export: per-screen array of `{type, col, row}` for all 9 screens. Static ENEMY tile removed from BM_MAP row 11.
+- `src/components/WorldScreen.jsx` (UPDATED) — Full dynamic enemy system: `enemiesRef` + init `useEffect`, `triggerBattle`, updated `tryMove` (bumping sleepy_bunny wakes it), movement in rAF loop at ~20fps, 32px sprite rendering, `!` bubble, defeat + 30s respawn.
+- `src/components/WorldBattle.jsx` (UPDATED) — `WORLD_ENEMY_NAMES` expanded for all 7 types.
+
 ### What was NOT built in Phase 3
-- Sleepy Bunny double-tap wake rule (single-contact for MVP — deferred to Phase 4 polish).
-- Enemy respawn timer (enemy stays gone after battle — deferred).
-- Tiny Fox flee mechanic (not yet implemented).
-- Per-enemy movement patterns (enemies are static tiles, not animated world sprites).
+- Tiny Fox flee mechanic (fox now just patrols — random flee not implemented).
+- Weather/day-night enemy behavior variations (Phase 7 remainder).
 
 ### Review checklist
 - [x] After battle, does child return to the exact screen they left?
 - [x] Does the battle use the correct subject (weakest from sessionLog)?
 - [x] Does XP flow correctly to the egg?
-- [ ] Sleepy Bunny double-tap (deferred)
-- [ ] Enemy respawn (deferred)
+- [x] Sleepy Bunny wakes on approach + proximity
+- [x] Enemy respawn after 30s (1800 frames)
+- [x] All 7 enemy types present across 9 screens
 
 ### Success criteria
 **A child should be able to see an enemy, choose to approach or avoid it, enter a battle, and return to the world at the same place. The loop from Phase 1 (Home → World → Home) should now include Home → World → Battle → World → Home.**
 
-✅ DONE — Build passes. Phase 3 shipped 2026-06-11.
+✅ DONE — Build passes. Phase 3 fully shipped 2026-06-11.
 
 ---
 

@@ -7,7 +7,10 @@ import {
   renderMap, renderPlayer, canMove, getCamera, getExitAt,
   EXIT_OPPOSITE, EXIT_DIR_NAME, getEntryPosition,
 } from '../lib/tileEngine.js'
-import { SCREEN_MAPS } from '../lib/tileMaps.js'
+import { SCREEN_MAPS, SCREEN_ENEMIES } from '../lib/tileMaps.js'
+import { drawEnemy } from '../lib/drawEnemy.js'
+
+const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
 const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
@@ -81,6 +84,7 @@ export default function WorldScreen({ navigate }) {
   const dialogueRef  = useRef(dialogue)
   const rafRef       = useRef(null)
   const transTimer   = useRef(null)
+  const enemiesRef   = useRef([]) // dynamic enemy runtime state
 
   screenIdRef.current   = screenId
   transRef.current      = transitioning
@@ -135,6 +139,27 @@ export default function WorldScreen({ navigate }) {
     }
   }, []) // eslint-disable-line
 
+  // ── Enemy initialization on screen change ────────────────────────────────────
+
+  useEffect(() => {
+    const defs = SCREEN_ENEMIES[screenId] || []
+    enemiesRef.current = defs.map((def, i) => ({
+      id:           `${screenId}_${i}`,
+      type:         def.type,
+      col:          def.col,
+      row:          def.row,
+      dir:          def.type === 'bouncy_slime' ? 'up'
+                  : def.type === 'egg_pawn'     ? 'down'
+                  : def.type === 'fox_kit'      ? 'right'
+                  : 'none',
+      timer:        i * 17,          // stagger so they don't all move at once
+      rngSeed:      (i * 37 + 11) % 97,
+      woken:        false,           // sleepy_bunny: starts asleep
+      defeated:     false,
+      respawnTimer: 0,               // frames until respawn (1800 = ~30s at 60fps)
+    }))
+  }, [screenId]) // eslint-disable-line
+
   // ── Proximity detection ─────────────────────────────────────────────────────
 
   const checkProximity = useCallback((col, row) => {
@@ -168,6 +193,21 @@ export default function WorldScreen({ navigate }) {
 
   // ── Player movement ──────────────────────────────────────────────────────────
 
+  const triggerBattle = useCallback((enemy) => {
+    const subject = getWeakestSubject(stateRef.current.sessionLog)
+    const level   = stateRef.current.subjectLevels?.[subject] || 1
+    enemiesRef.current = enemiesRef.current.map(e =>
+      e.id === enemy.id ? { ...e, defeated: true, respawnTimer: 1800 } : e
+    )
+    setEncounterFlash(true)
+    setTimeout(() => setEncounterFlash(false), 80)
+    dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: {
+      position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
+      enemy:    { type: enemy.type, subject, level },
+    }})
+    navigate('world-battle')
+  }, [dispatch, navigate]) // eslint-disable-line
+
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
     if (!g || g.moving || transRef.current || dialogueRef.current) return
@@ -179,18 +219,20 @@ export default function WorldScreen({ navigate }) {
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 
-    // Detect ENEMY tile collision → trigger world battle
-    const targetRaw  = tileMap[newRow]?.[newCol]
-    const targetType = typeof targetRaw === 'object' ? targetRaw.type : targetRaw
-    if (targetType === T.ENEMY) {
-      const subject   = getWeakestSubject(stateRef.current.sessionLog)
-      const level     = stateRef.current.subjectLevels?.[subject] || 1
-      const enemyType = typeof targetRaw === 'object' ? (targetRaw.enemy_type || 'bunny') : 'bunny'
-      dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: {
-        position: { screen: screenIdRef.current, tileX: g.col, tileY: g.row },
-        enemy:    { type: enemyType, subject, level },
-      }})
-      navigate('world-battle')
+    // Dynamic enemy collision
+    const hitEnemy = enemiesRef.current.find(e =>
+      !e.defeated && e.col === newCol && e.row === newRow
+    )
+    if (hitEnemy) {
+      if (hitEnemy.type === 'sleepy_bunny' && !hitEnemy.woken) {
+        // Wake the bunny — player bumped it, bunny wakes up
+        enemiesRef.current = enemiesRef.current.map(e =>
+          e.id === hitEnemy.id ? { ...e, woken: true, timer: 0 } : e
+        )
+        playTone('tap')
+        return
+      }
+      triggerBattle(hitEnemy)
       return
     }
 
@@ -222,7 +264,7 @@ export default function WorldScreen({ navigate }) {
     }
 
     checkProximity(newCol, newRow)
-  }, [dispatch, handleExit, checkProximity, navigate])
+  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle])
 
   const moveUp    = useCallback(() => tryMove( 0, -1, 'up'),    [tryMove])
   const moveDown  = useCallback(() => tryMove( 0,  1, 'down'),  [tryMove])
@@ -247,6 +289,104 @@ export default function WorldScreen({ navigate }) {
     const ctx = canvas.getContext('2d')
     let alive = true
 
+    const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
+
+    function updateEnemies(tileMap, frame) {
+      enemiesRef.current = enemiesRef.current.map(e => {
+        if (e.defeated) {
+          const rt = e.respawnTimer - 1
+          if (rt <= 0) return { ...e, defeated: false, respawnTimer: 0, timer: 0 }
+          return { ...e, respawnTimer: rt }
+        }
+
+        let ne = { ...e, timer: e.timer + 1 }
+
+        switch (e.type) {
+          case 'sleepy_bunny': {
+            // Proximity wake check
+            const gc = gameRef.current
+            if (gc && !ne.woken) {
+              const dist = Math.abs(gc.col - ne.col) + Math.abs(gc.row - ne.row)
+              if (dist <= 3) ne.woken = true
+            }
+            // Chase player when woken
+            if (ne.woken && ne.timer >= 60 && gc) {
+              ne.timer = 0
+              const dc = Math.sign(gc.col - ne.col)
+              const dr = Math.sign(gc.row - ne.row)
+              const tryC = Math.abs(dc) >= Math.abs(dr)
+              const nc1 = ne.col + (tryC ? dc : 0)
+              const nr1 = ne.row + (tryC ? 0 : dr)
+              const nc2 = ne.col + (tryC ? 0 : dc)
+              const nr2 = ne.row + (tryC ? dr : 0)
+              if (canMove(tileMap, nc1, nr1)) { ne.col = nc1; ne.row = nr1 }
+              else if (canMove(tileMap, nc2, nr2)) { ne.col = nc2; ne.row = nr2 }
+            }
+            break
+          }
+          case 'bouncy_slime': {
+            if (ne.timer >= 45) {
+              ne.timer = 0
+              const nr = ne.row + (ne.dir === 'up' ? -1 : 1)
+              if (canMove(tileMap, ne.col, nr)) { ne.row = nr }
+              else { ne.dir = ne.dir === 'up' ? 'down' : 'up' }
+            }
+            break
+          }
+          case 'fox_kit': {
+            if (ne.timer >= 60) {
+              ne.timer = 0
+              const nc = ne.col + (ne.dir === 'right' ? 1 : -1)
+              if (canMove(tileMap, nc, ne.row)) { ne.col = nc }
+              else { ne.dir = ne.dir === 'right' ? 'left' : 'right' }
+            }
+            break
+          }
+          case 'egg_pawn': {
+            if (ne.timer >= 60) {
+              ne.timer = 0
+              const nr = ne.row + (ne.dir === 'down' ? 1 : -1)
+              if (canMove(tileMap, ne.col, nr)) { ne.row = nr }
+              else { ne.dir = ne.dir === 'down' ? 'up' : 'down' }
+            }
+            break
+          }
+          case 'leaf_sprite':
+          case 'mushroom_imp': {
+            if (ne.timer >= 90) {
+              ne.timer = 0
+              ne.rngSeed = (ne.rngSeed * 31 + 7) % 97
+              const d = DIRS4[ne.rngSeed % 4]
+              const nc = ne.col + d[0]; const nr = ne.row + d[1]
+              if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
+            }
+            break
+          }
+          default: break
+        }
+        return ne
+      })
+    }
+
+    function renderEnemies(ctx, camX, camY) {
+      const spriteSize = TILE * 2 // 32px on world canvas
+      enemiesRef.current.forEach(e => {
+        if (e.defeated) return
+        const px = Math.round((e.col + 0.5) * TILE - camX) - spriteSize / 2
+        const py = Math.round((e.row + 0.5) * TILE - camY) - spriteSize / 2
+        drawEnemy(ctx, e.type, spriteSize, px, py)
+        // ! bubble above woken sleepy_bunny
+        if (e.type === 'sleepy_bunny' && e.woken) {
+          const cx = px + spriteSize / 2
+          ctx.fillStyle = '#ffffff'
+          ctx.font = `bold ${TILE}px monospace`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText('!', cx, py - 2)
+        }
+      })
+    }
+
     function loop(now) {
       if (!alive) return
       rafRef.current = requestAnimationFrame(loop)
@@ -263,12 +403,14 @@ export default function WorldScreen({ navigate }) {
       }
 
       g.frame = (g.frame + 1) % 120
+      if (g.frame % 3 === 0) updateEnemies(tileMap, g.frame) // update at ~20fps
 
       const vw = canvas.width
       const vh = canvas.height
       const { camX, camY } = getCamera(g.displayX, g.displayY, vw, vh)
       ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
+      renderEnemies(ctx, camX, camY)
       renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
     }
 

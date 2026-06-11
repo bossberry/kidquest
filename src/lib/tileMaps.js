@@ -45,8 +45,8 @@ export const BM_MAP = [
   [TR,G, G, G, G, P, P, P, P, P, P, P, P, P, P, G, G, G, G, TR],
   // Row 10 — open grass
   [TR,G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, TR],
-  // Row 11 — enemy bunny
-  [TR,G, G, ENEMY('bunny'), G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, TR],
+  // Row 11 — open grass (enemies placed dynamically via SCREEN_ENEMIES)
+  [TR,G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, G, TR],
   // Row 12 — flowers, player start here (col 10)
   [TR,G, G, G, G, G, FL,G, G, G, G, G, G, G, G, G, G, G, G, TR],
   // Row 13 — open
@@ -146,6 +146,55 @@ export const BR_MAP = makeMinimalMap([
   { side: 'W', startRow: 6, endRow: 8 },
 ])
 export const BR_START = { col: 10, row: 13 }
+
+// ─── Enemy placement per screen ───────────────────────────────────────────────
+// Each entry: { type, col, row } — initial tile position (1-indexed from interior)
+
+export const SCREEN_ENEMIES = {
+  BM: [
+    { type: 'sleepy_bunny', col: 4,  row: 5  },
+    { type: 'sleepy_bunny', col: 15, row: 3  },
+    { type: 'bouncy_slime', col: 8,  row: 11 },
+    { type: 'leaf_sprite',  col: 16, row: 10 },
+  ],
+  MC: [
+    { type: 'bouncy_slime', col: 5,  row: 4  },
+    { type: 'fox_kit',      col: 14, row: 10 },
+    { type: 'leaf_sprite',  col: 4,  row: 9  },
+  ],
+  TM: [
+    { type: 'leaf_sprite',  col: 5,  row: 5  },
+    { type: 'leaf_sprite',  col: 15, row: 9  },
+    { type: 'grumpy_mole',  col: 10, row: 7  },
+  ],
+  TL: [
+    { type: 'grumpy_mole',  col: 6,  row: 5  },
+    { type: 'mushroom_imp', col: 14, row: 9  },
+  ],
+  TR: [
+    { type: 'fox_kit',      col: 10, row: 5  },
+    { type: 'mushroom_imp', col: 6,  row: 9  },
+  ],
+  ML: [
+    { type: 'bouncy_slime', col: 5,  row: 7  },
+    { type: 'leaf_sprite',  col: 13, row: 5  },
+    { type: 'grumpy_mole',  col: 8,  row: 11 },
+  ],
+  MR: [
+    { type: 'fox_kit',      col: 12, row: 7  },
+    { type: 'bouncy_slime', col: 6,  row: 10 },
+    { type: 'mushroom_imp', col: 15, row: 4  },
+  ],
+  BL: [
+    { type: 'egg_pawn',     col: 6,  row: 7  },
+    { type: 'grumpy_mole',  col: 14, row: 5  },
+  ],
+  BR: [
+    { type: 'egg_pawn',     col: 14, row: 7  },
+    { type: 'mushroom_imp', col: 7,  row: 5  },
+    { type: 'bouncy_slime', col: 10, row: 10 },
+  ],
+}
 
 // ─── Map registry ─────────────────────────────────────────────────────────────
 

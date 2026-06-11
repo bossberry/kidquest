@@ -611,6 +611,7 @@ export default function WorldScreen({ navigate }) {
       {/* Treasure slot machine overlay */}
       {slotMachineOpen && (
         <TreasureSlot
+          subject={getBattleSubject(stateRef.current.sessionLog, stateRef.current)}
           onReward={handleTreasureReward}
           onClose={() => setSlotMachineOpen(false)}
         />

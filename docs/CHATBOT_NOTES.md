@@ -462,3 +462,12 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: treasure chest requires 1 easy question before slot machine:**
+- Built: `TreasureSlot.jsx` — added question gate phase (`phase: 'question' → 'spin'`). `genGateQuestion(subject)` picks level-1 questions: math L1 add 1–5, thai = TH_ALPHA emoji match, eng = EN_ALPHA emoji match. Correct → `playSFX('item_collect')` + spin phase. Wrong → `playSFX('attack_miss')` + red flash overlay + `onClose()` after 700ms (chest stays closed). `WorldScreen.jsx` — passes `subject={getBattleSubject(...)}` prop to TreasureSlot (same subject logic as battle). Gate is always level 1 — easy hurdle, not a test.
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
+

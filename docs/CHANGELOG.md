@@ -1,5 +1,38 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: pixel UI system — Press Start 2P font, pixel classes, square corners, hard shadows
+
+### index.html
+- Added Press Start 2P + Sarabun to Google Fonts link (combined with existing Mitr + Fredoka One)
+
+### src/styles.css
+- Added 20 pixel CSS variables to `:root`: `--font-pixel`, `--font-thai`, full 16-color `--px-*` palette, border/radius/shadow tokens
+- Appended pixel class library: `px-box`, `px-box-light`, `px-btn` (+purple/yellow/dark), `px-hp-bar-outer/inner`, `px-xp-bar-outer/inner`, `px-dialogue`, `px-name-badge`, `px-item-card`, `px-badge`, `px-title`, `px-subtitle`, `px-cursor`, `px-answer-card` (+correct/wrong + `px-shake` keyframe), `px-combo-badge`, `px-transition-overlay`, `px-bottom-nav`, `px-nav-item`, `px-nav-dot`
+- Global border-radius kill on interactive elements (`button, input, .card, [class*="btn"]` etc. → `border-radius: 0 !important`)
+- `img, canvas` get `image-rendering: pixelated`
+
+### src/components/BottomNav.jsx
+- Replaced `bottom-nav` / `nav-btn` / `nav-dot` with `px-bottom-nav` / `px-nav-item` / `px-nav-dot`
+- Nav labels use Sarabun via `var(--font-thai)` (Press Start 2P cannot render Thai)
+
+### src/components/Home.jsx
+- Header: removed `backdropFilter: blur`, flat `var(--px-darkest)` background + pixel border
+- Stage label: Thai font + `var(--px-light)` color
+- Ready-to-hatch badge: `px-badge` with yellow fill, no gradient
+- Title: Thai font + `var(--px-yellow)` + `2px 2px 0` hard text-shadow
+- Mood indicator: moodEmoji replaced with `px-subtitle` Thai text + 3-dot pixel level squares
+- Hatch CTA: `px-btn px-btn-yellow`, flat, no gradient
+- Item tray: removed glassmorphism blur — flat `var(--px-darkest)` bg + `px-item-card` per item + `px-badge` counts
+- Action row: `px-btn px-btn-dark` for ลูบไข่/คอลเลกชัน, `px-btn px-btn-purple` for ออกสำรวจ!; no gradients, no blur, emoji removed from labels
+
+### src/games/MoveSelectBattleMode.jsx
+- `GBHPBar`: `px-hp-bar-outer/inner` (stepped width transition)
+- `MoveCard`: `px-answer-card` base + `.wrong` class on miss (px-shake replaces miss-fizzle)
+- Enemy/player status panels: `px-box`
+- Enemy/player name labels: `px-name-badge` with Thai font override
+- Dialogue box: `px-dialogue` class
+- Teach start button + victory return button: `px-btn` variants with Thai font
+
 ## 2026-06-11 — Feat: element attack system — 6 elements × 4 tiers with canvas animations and SFX
 
 ### New files

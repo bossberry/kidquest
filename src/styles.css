@@ -6,6 +6,17 @@
   --purple:#7F77DD;--purple-l:#EEEDFE;--purple-d:#3C3489;
   --amber:#EF9F27;--amber-l:#FAEEDA;--amber-d:#633806;
   --red:#E24B4A;--red-l:#FCEBEB;
+  /* ===== PIXEL ART SYSTEM ===== */
+  --font-pixel:'Press Start 2P',monospace;
+  --font-thai:'Sarabun',sans-serif;
+  --px-black:#0a0a12;--px-darkest:#1a1a2e;--px-dark:#2a2a4a;
+  --px-mid:#3a3a6a;--px-border:#5a5a9a;--px-light:#9090c0;--px-white:#e8e8f8;
+  --px-green:#3aaa3a;--px-green2:#5acc5a;--px-yellow:#f0d020;--px-orange:#e08020;
+  --px-red:#cc2020;--px-blue:#2060cc;--px-blue2:#40a0ff;--px-purple:#8020cc;--px-pink:#cc4088;
+  --px-border-style:2px solid var(--px-border);
+  --px-border-dark:2px solid var(--px-darkest);
+  --px-radius:0px;
+  --px-shadow:3px 3px 0px var(--px-darkest);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -574,3 +585,73 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
   .ci-happy,.ci-curious,.ci-brave,.ci-playful,.ci-gentle,
   .ci-sleepy,.ci-shy,.ci-celebrate{animation:none!important}
 }
+
+/* ===== PIXEL ART UI CLASSES ===== */
+
+img,canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+
+:lang(th),.thai,[data-lang="th"]{font-family:var(--font-thai);font-size:14px}
+
+/* Kill border-radius on interactive elements */
+button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel"],[class*="modal"]{border-radius:0!important}
+
+/* Pixel box panels */
+.px-box{background:var(--px-dark);border:var(--px-border-style);box-shadow:var(--px-shadow);border-radius:0;padding:12px}
+.px-box-light{background:var(--px-mid);border:2px solid var(--px-light);box-shadow:3px 3px 0 var(--px-dark);border-radius:0;padding:12px}
+
+/* Pixel buttons */
+.px-btn{font-family:var(--font-pixel);font-size:9px;background:var(--px-green);color:var(--px-white);border:2px solid var(--px-darkest);box-shadow:3px 3px 0 var(--px-darkest);border-radius:0;padding:10px 18px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:transform 80ms,box-shadow 80ms;image-rendering:pixelated;outline:none}
+.px-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--px-darkest)}
+.px-btn-purple{background:var(--px-purple)}
+.px-btn-yellow{background:var(--px-yellow);color:var(--px-black)}
+.px-btn-dark{background:var(--px-dark);border-color:var(--px-border)}
+
+/* HP bars */
+.px-hp-bar-outer{background:var(--px-black);border:2px solid var(--px-border);height:10px;width:100%;box-shadow:inset 1px 1px 0 var(--px-darkest)}
+.px-hp-bar-inner{height:100%;transition:width 400ms steps(20);image-rendering:pixelated}
+
+/* Pixel XP bar */
+.px-xp-bar-outer{background:var(--px-black);border:2px solid var(--px-border);height:8px}
+.px-xp-bar-inner{background:var(--px-blue2);height:100%;transition:width 600ms steps(30)}
+
+/* Pixel dialogue box */
+.px-dialogue{background:var(--px-darkest);border:3px solid var(--px-white);box-shadow:4px 4px 0 var(--px-black),inset 2px 2px 0 var(--px-mid);padding:10px 14px;font-family:var(--font-pixel);font-size:8px;line-height:2;border-radius:0;min-height:52px}
+.px-dialogue .thai-text{font-family:var(--font-thai);font-size:13px}
+
+/* Pixel name badge */
+.px-name-badge{background:var(--px-darkest);border:2px solid var(--px-border);padding:4px 8px;font-family:var(--font-pixel);font-size:8px;box-shadow:2px 2px 0 var(--px-black);display:inline-block}
+
+/* Pixel item card */
+.px-item-card{background:var(--px-dark);border:2px solid var(--px-border);box-shadow:2px 2px 0 var(--px-darkest);border-radius:0;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform 80ms;position:relative}
+.px-item-card:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--px-darkest)}
+
+/* Pixel badge (count) */
+.px-badge{background:var(--px-red);color:var(--px-white);border:2px solid var(--px-darkest);font-family:var(--font-pixel);font-size:7px;padding:2px 5px;border-radius:0;box-shadow:1px 1px 0 var(--px-darkest);display:inline-block}
+
+/* Pixel titles */
+.px-title{font-family:var(--font-pixel);font-size:11px;color:var(--px-yellow);text-shadow:2px 2px 0 var(--px-darkest);letter-spacing:2px;text-transform:uppercase}
+.px-subtitle{font-family:var(--font-thai);font-size:13px;color:var(--px-light)}
+
+/* Blinking cursor */
+.px-cursor{display:inline-block;width:8px;height:10px;background:var(--px-white);animation:px-blink .7s steps(1) infinite;margin-left:4px;vertical-align:middle}
+@keyframes px-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+/* Answer cards (battle) */
+.px-answer-card{background:var(--px-dark);border:2px solid var(--px-border);box-shadow:3px 3px 0 var(--px-darkest);border-radius:0;padding:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-pixel);font-size:14px;cursor:pointer;transition:transform 80ms,box-shadow 80ms}
+.px-answer-card:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--px-darkest)}
+.px-answer-card.correct{background:var(--px-green);border-color:var(--px-green2)}
+.px-answer-card.wrong{background:var(--px-red);animation:px-shake 200ms steps(4)}
+@keyframes px-shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}
+
+/* Combo badge */
+.px-combo-badge{background:var(--px-yellow);color:var(--px-black);border:2px solid var(--px-darkest);box-shadow:2px 2px 0 var(--px-darkest);font-family:var(--font-pixel);font-size:9px;padding:3px 8px;border-radius:0}
+
+/* Screen transition overlay */
+.px-transition-overlay{position:fixed;inset:0;background:var(--px-black);z-index:999;pointer-events:none}
+
+/* Pixel bottom nav */
+.px-bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:800;background:var(--px-darkest);border-top:3px solid var(--px-border);display:flex;justify-content:space-around;padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
+.px-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font-pixel);font-size:7px;color:var(--px-light);cursor:pointer;padding:4px 12px;border:none;background:none;-webkit-tap-highlight-color:transparent}
+.px-nav-item.active{color:var(--px-yellow)}
+.px-nav-item.active .px-nav-dot{background:var(--px-yellow)}
+.px-nav-dot{width:4px;height:4px;background:transparent}

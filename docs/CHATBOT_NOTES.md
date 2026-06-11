@@ -427,3 +427,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: pixel UI system — Press Start 2P font, pixel classes, square corners, hard shadows:**
+- Built:
+  - `index.html` — added Press Start 2P + Sarabun to Google Fonts link (combined with existing Mitr+Fredoka One).
+  - `src/styles.css` — 20 new CSS variables in `:root` (`--font-pixel`, `--font-thai`, full `--px-*` palette of 16 colors, border/radius/shadow tokens). Pixel CSS class library appended: `px-box`, `px-box-light`, `px-btn` (+purple/yellow/dark variants), `px-hp-bar-outer/inner`, `px-xp-bar-outer/inner`, `px-dialogue`, `px-name-badge`, `px-item-card`, `px-badge`, `px-title`, `px-subtitle`, `px-cursor`, `px-answer-card` (+correct/wrong), `px-combo-badge`, `px-transition-overlay`, `px-bottom-nav`, `px-nav-item`, `px-nav-dot`. Global border-radius kill on interactive elements (`!important`). `img,canvas` get `image-rendering:pixelated`.
+  - `src/components/BottomNav.jsx` — replaced `bottom-nav`/`nav-btn`/`nav-dot` with `px-bottom-nav`/`px-nav-item`/`px-nav-dot`. Nav labels use `var(--font-thai)` (Thai can't render Press Start 2P). Emoji icons kept (visual navigation cue for child).
+  - `src/components/Home.jsx` — Header: removed `backdropFilter:blur`, flat `var(--px-darkest)` bg + border. Title: Thai font + `var(--px-yellow)` + hard shadow; moodEmoji replaced with `px-subtitle` Thai mood text + 3 pixel dot mood-level indicators (6×6px squares, yellow when active). Hatch CTA: `px-btn px-btn-yellow`, flat, no gradient. Item tray: removed blur/glassmorphism, `px-item-card` per item, `px-badge` for counts. Action row: `px-btn px-btn-dark` (ลูบไข่/คอลเลกชัน) + `px-btn px-btn-purple` (ออกสำรวจ!), flat backgrounds, no gradient/blur, emoji removed from button labels, Thai font override on all 3.
+  - `src/games/MoveSelectBattleMode.jsx` — `GBHPBar`: `px-hp-bar-outer/inner` classes (stepped width transition). `MoveCard`: `px-answer-card` base + `wrong` class on miss (replaces miss-fizzle). Enemy/player status panels: `px-box`. Name labels: `px-name-badge` with Thai font. Dialogue box: `px-dialogue`. Teach overlay start button + victory return button: `px-btn` with Thai font.
+- Not finished: none.
+- Blockers/risks found: Press Start 2P cannot render Thai — all Thai text elements need explicit `fontFamily:'var(--font-thai)'` override when inside pixel-styled containers. This pattern is consistent throughout the changes.
+- Ready to start next: Phase 4 NPC System (world); or Green Meadow Phase 4 canvas pixel font pass (separate prompt O3).
+- Needs Chatbot decision first: None blocking immediate next task.
+

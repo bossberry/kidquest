@@ -392,10 +392,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const stageColor = STAGE_DOT_COLORS[stage] || '#9B87B8'
   const hour = new Date().getHours()
   const isDay = hour >= 6 && hour < 19
-  const moodEmoji =
-    eggAnim === 'sleepy'      ? '😴' :
-    eggAnim === 'eat'         ? '😋' :
-    (eggAnim === 'excited' || eggAnim === 'happy-spin') ? '🤩' : '😊'
+  const moodText =
+    eggAnim === 'sleepy'      ? 'ง่วงนอน' :
+    eggAnim === 'eat'         ? 'กินข้าว' :
+    (eggAnim === 'excited' || eggAnim === 'happy-spin') ? 'สุขมาก!' : 'สบายดี'
+  const moodLevel =
+    (eggAnim === 'excited' || eggAnim === 'happy-spin') ? 3 :
+    (eggAnim === 'eat' || eggAnim === 'pet') ? 2 : 1
 
   return (
     <div id="egg-home" style={{
@@ -459,28 +462,23 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         width:'100%', maxWidth:480, padding:'14px 20px 8px',
         display:'flex', alignItems:'flex-start', justifyContent:'space-between',
         flexShrink:0,
-        background: isDay ? 'rgba(255,255,255,0.12)' : 'rgba(0,5,20,0.30)',
-        backdropFilter:'blur(2px)',
-        borderRadius:'0 0 12px 12px',
+        background: 'var(--px-darkest)',
+        borderBottom: '2px solid var(--px-border)',
       }}>
         <div style={{
-          fontFamily:'Mitr,sans-serif', fontSize:11,
-          color: isDay ? stageColor : 'rgba(200,180,255,0.75)',
+          fontFamily:'var(--font-thai)', fontSize:11,
+          color: 'var(--px-light)',
           fontWeight: stage >= 6 ? 700 : 400,
-          transition:'color 0.8s',
         }}>
           {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {readyToHatch && (
-            <div style={{
-              background:'linear-gradient(135deg,#FFD700,#FF9500)', color:'#5A3A00',
-              borderRadius:16, padding:'5px 12px', fontFamily:'Mitr,sans-serif',
-              fontWeight:700, fontSize:12,
+            <div className="px-badge" style={{
+              background:'var(--px-yellow)', color:'var(--px-black)',
               animation:'challenger-pulse 1s ease-in-out infinite',
-              boxShadow:'0 2px 10px rgba(255,165,0,0.35)',
             }}>
-              🥚 พร้อมฟัก!
+              พร้อมฟัก!
             </div>
           )}
           <button onClick={toggleSound} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', opacity:0.5, padding:4 }}>
@@ -499,16 +497,23 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         {/* Title + mood indicator above egg */}
         <div style={{ textAlign:'center', marginBottom:6, zIndex:5 }}>
           <div style={{
-            fontFamily:"'Fredoka One',cursive", fontSize:17,
-            color: isDay ? '#5A3A8B' : '#C8B4FF',
-            textShadow: isDay
-              ? '0 1px 8px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.3)'
-              : '0 1px 8px rgba(180,140,255,0.6)',
+            fontFamily:'var(--font-thai)', fontSize:17, fontWeight:700,
+            color:'var(--px-yellow)',
+            textShadow:'2px 2px 0 var(--px-darkest)',
             lineHeight:1.2,
           }}>
             ไข่ของ{state.name}
           </div>
-          <div style={{ fontSize:18, marginTop:2, lineHeight:1 }}>{moodEmoji}</div>
+          <div className="px-subtitle" style={{ marginTop:2 }}>{moodText}</div>
+          <div style={{ display:'flex', justifyContent:'center', gap:4, marginTop:4 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{
+                width:6, height:6,
+                background: i < moodLevel ? 'var(--px-yellow)' : 'var(--px-border)',
+                boxShadow: i < moodLevel ? '0 0 3px var(--px-yellow)' : 'none',
+              }} />
+            ))}
+          </div>
         </div>
 
         {/* Egg wrapper — animation class drives all movement */}
@@ -575,15 +580,10 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         {readyToHatch && (
           <button
             onClick={() => dispatch({ type: ACTIONS.SET_HATCHING, payload: true })}
-            style={{
-              marginTop:14, background:'linear-gradient(135deg,#FFD700,#FFA500)',
-              color:'#5A3A00', border:'none', borderRadius:24,
-              padding:'11px 28px', fontFamily:'Mitr,sans-serif',
-              fontWeight:700, fontSize:17, cursor:'pointer',
-              boxShadow:'0 4px 18px rgba(255,165,0,0.45)',
-            }}
+            className="px-btn px-btn-yellow"
+            style={{ marginTop:14, fontFamily:'var(--font-thai)', fontSize:14 }}
           >
-            🥚 แตะเพื่อฟักไข่!
+            แตะเพื่อฟักไข่!
           </button>
         )}
 
@@ -651,18 +651,10 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       <div style={{
         width:'100%', maxWidth:480, padding:'8px 20px',
         display:'flex', justifyContent:'center', flexShrink:0,
-        background: isDay ? 'rgba(255,255,255,0.28)' : 'rgba(6,12,32,0.50)',
-        backdropFilter:'blur(4px)',
+        background: 'var(--px-darkest)',
+        borderTop: '2px solid var(--px-border)',
       }}>
-        <div style={{
-          background:'rgba(255,255,255,0.15)',
-          backdropFilter:'blur(8px)',
-          borderRadius:20,
-          border:'1px solid rgba(255,255,255,0.30)',
-          padding:'6px 12px',
-          display:'flex',
-          gap:10,
-        }}>
+        <div style={{ display:'flex', gap:8 }}>
         {ITEM_DEFS.map(({ key, emoji, label }) => {
           const count    = state.items?.[key] || 0
           const isActive = activeItem === key
@@ -670,31 +662,20 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             <div
               key={key}
               onClick={() => count > 0 && handleTapItem(key)}
+              className="px-item-card"
               style={{
-                width:64, height:64, borderRadius:16,
-                background: isActive ? 'rgba(155,89,182,0.15)' : 'rgba(255,255,255,0.9)',
-                border: isActive ? '2px solid #9B59B6' : '1.5px solid rgba(155,89,182,0.16)',
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                cursor: count > 0 ? 'pointer' : 'default', position:'relative',
-                opacity: count > 0 ? 1 : 0.3,
+                width:60,
+                opacity: count > 0 ? 1 : 0.35,
+                cursor: count > 0 ? 'pointer' : 'default',
+                border: isActive ? '2px solid var(--px-purple)' : undefined,
                 transform: isActive ? 'scale(1.1) translateY(-3px)' : 'scale(1)',
-                transition:'all 0.14s',
-                boxShadow: isActive ? '0 4px 14px rgba(155,89,182,0.22)' : 'none',
+                boxShadow: isActive ? '3px 3px 0 var(--px-purple)' : undefined,
               }}
             >
               <span style={{ fontSize:22, lineHeight:1 }}>{emoji}</span>
-              <span style={{ fontSize:8, color:'#7A5FB5', fontFamily:'Mitr,sans-serif', marginTop:2 }}>{label}</span>
+              <span style={{ fontFamily:'var(--font-thai)', fontSize:8, color:'var(--px-light)', marginTop:2 }}>{label}</span>
               {count > 0 && (
-                <div style={{
-                  position:'absolute', top:-5, right:-5,
-                  background:'#9B59B6', color:'#fff',
-                  borderRadius:10, minWidth:17, height:17,
-                  fontSize:9, fontWeight:700, fontFamily:'Mitr,sans-serif',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  padding:'0 3px', boxShadow:'0 1px 4px rgba(0,0,0,0.18)',
-                }}>
-                  {count}
-                </div>
+                <div className="px-badge" style={{ position:'absolute', top:-5, right:-5 }}>{count}</div>
               )}
             </div>
           )
@@ -705,37 +686,23 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       {/* Action row — padding-bottom handled by #egg-home CSS (safe-area-aware) */}
       <div style={{
         width:'100%', maxWidth:480, padding:'6px 20px 10px',
-        display:'flex', gap:10, flexShrink:0,
-        background: isDay ? 'rgba(255,255,255,0.45)' : 'rgba(6,12,32,0.60)',
-        backdropFilter:'blur(6px)',
+        display:'flex', gap:8, flexShrink:0,
+        background: 'var(--px-darkest)',
+        borderTop: '2px solid var(--px-border)',
       }}>
         <button
           onClick={handlePetEgg}
-          style={{
-            flex:1, height:52, borderRadius:14,
-            background: isDay ? 'rgba(255,255,255,0.85)' : 'rgba(30,20,60,0.78)',
-            border: isDay ? '1.5px solid rgba(155,89,182,0.18)' : '1.5px solid rgba(140,110,220,0.28)',
-            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
-            color: isDay ? '#7A4FB8' : '#C8A8FF', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-            boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
-          }}
+          className="px-btn px-btn-dark"
+          style={{ flex:1, height:48, fontFamily:'var(--font-thai)', fontSize:13 }}
         >
-          🤚 ลูบไข่
+          ลูบไข่
         </button>
         <button
           onClick={() => { playTone('tap'); navigate('collection') }}
-          style={{
-            flex:1, height:52, borderRadius:14,
-            background: isDay ? 'rgba(255,255,255,0.85)' : 'rgba(30,20,60,0.78)',
-            border: isDay ? '1.5px solid rgba(155,89,182,0.18)' : '1.5px solid rgba(140,110,220,0.28)',
-            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:14,
-            color: isDay ? '#7A4FB8' : '#C8A8FF', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-            boxShadow:'0 2px 8px rgba(155,89,182,0.07)',
-          }}
+          className="px-btn px-btn-dark"
+          style={{ flex:1, height:48, fontFamily:'var(--font-thai)', fontSize:13 }}
         >
-          🥚 คอลเลกชัน
+          คอลเลกชัน
         </button>
         <button
           onClick={() => {
@@ -743,19 +710,10 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             dispatch({ type: ACTIONS.ENTER_WORLD, payload: { region: 'green-meadow', screen: 'BM' } })
             navigate('world')
           }}
-          style={{
-            flex:2, height:52, borderRadius:14,
-            background:'linear-gradient(90deg, #6030b0, #9060e0, #6030b0)',
-            backgroundSize:'200%',
-            animation:'home-shimmer 3s linear infinite',
-            border:'none',
-            fontFamily:'Mitr,sans-serif', fontWeight:700, fontSize:16,
-            color:'#fff', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-            boxShadow:'0 4px 18px rgba(140,68,173,0.38)',
-          }}
+          className="px-btn px-btn-purple"
+          style={{ flex:2, height:48, fontFamily:'var(--font-thai)', fontSize:14 }}
         >
-          🗺️ ออกสำรวจ!
+          ออกสำรวจ!
         </button>
       </div>
     </div>

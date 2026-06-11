@@ -55,13 +55,13 @@ const ELEMENT_ICONS = {
 
 function GBHPBar({ pct, isPlayer }) {
   const color = isPlayer
-    ? (pct > 50 ? '#44bb44' : pct > 25 ? '#ffcc00' : '#ee5522')
-    : (pct > 50 ? '#E24B4A' : pct > 25 ? '#EF9F27' : '#f66')
+    ? (pct > 50 ? 'var(--px-green)' : pct > 25 ? 'var(--px-yellow)' : 'var(--px-red)')
+    : (pct > 50 ? 'var(--px-red)' : pct > 25 ? 'var(--px-orange)' : '#f66')
   return (
     <div style={{ display:'flex', alignItems:'center', gap:4 }}>
       <span style={{ fontSize:9, color:'rgba(255,255,255,0.4)', flexShrink:0, fontFamily:'monospace' }}>HP</span>
-      <div style={{ flex:1, height:10, background:'rgba(0,0,0,0.5)', borderRadius:5, overflow:'hidden', border:'1px solid rgba(255,255,255,0.12)' }}>
-        <div style={{ height:'100%', width:`${Math.max(0, pct)}%`, background:color, transition:'width .65s ease, background-color .3s', borderRadius:4 }} />
+      <div className="px-hp-bar-outer" style={{ flex:1 }}>
+        <div className="px-hp-bar-inner" style={{ width:`${Math.max(0, pct)}%`, background:color }} />
       </div>
     </div>
   )
@@ -102,17 +102,12 @@ function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
     <button
       onClick={onTap}
       disabled={disabled}
-      className="move-card-btn"
+      className={`move-card-btn px-answer-card${isMiss ? ' wrong' : ''}`}
       style={{
-        background: isMiss ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.10)',
-        border: isSelected ? '2px solid rgba(255,255,255,.75)' : '1.5px solid rgba(255,255,255,.2)',
-        borderRadius: 10,
         cursor: disabled ? 'default' : 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
         touchAction: 'manipulation',
-        animation: isSelected ? 'move-pulse .22s ease' : isMiss ? 'miss-fizzle .5s ease forwards' : 'none',
+        animation: isSelected ? 'move-pulse .22s ease' : undefined,
         opacity: isMiss ? 0.4 : 1,
-        transition: 'opacity .15s, border-color .1s',
         userSelect: 'none', WebkitUserSelect: 'none',
       }}
     >
@@ -623,13 +618,13 @@ export default function MoveSelectBattleMode({
         )}
 
         {/* Enemy status — top left */}
-        <div style={{
+        <div className="px-box" style={{
           position:'absolute', top:8, left:10, zIndex:10,
-          background:'rgba(0,0,0,0.60)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:178,
+          minWidth:140, maxWidth:178, padding:'5px 10px',
         }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
-            <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:12, color:'#fff', lineHeight:1 }}>
-              {isBoss ? '👑 ' : ''}{enemy.name}
+            <span className="px-name-badge" style={{ fontFamily:'var(--font-thai)', fontSize:12 }}>
+              {isBoss ? 'BOSS: ' : ''}{enemy.name}
             </span>
             <span style={{ fontSize:9, color:'rgba(255,255,255,.3)', marginLeft:6 }}>{cur+1}/{total}</span>
           </div>
@@ -675,11 +670,11 @@ export default function MoveSelectBattleMode({
         </div>
 
         {/* Player status — bottom right */}
-        <div style={{
+        <div className="px-box" style={{
           position:'absolute', bottom:8, right:10, zIndex:10,
-          background:'rgba(0,0,0,0.60)', borderRadius:8, padding:'5px 10px', minWidth:140, maxWidth:172,
+          minWidth:140, maxWidth:172, padding:'5px 10px',
         }}>
-          <div style={{ marginBottom:5, fontFamily:"'Fredoka One',cursive", fontSize:11, color:'rgba(255,255,255,.7)' }}>
+          <div className="px-name-badge" style={{ marginBottom:5, fontFamily:'var(--font-thai)', fontSize:11 }}>
             {EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ'}
           </div>
           <GBHPBar pct={playerHpPct} isPlayer />
@@ -743,13 +738,9 @@ export default function MoveSelectBattleMode({
       </div>
 
       {/* ── DIALOGUE BOX ─────────────────────────────────────────────────── */}
-      <div style={{
-        background:'#0a1a0a', padding:'8px 14px', minHeight:52, flexShrink:0,
-        borderBottom:'1px solid rgba(58,106,58,0.45)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-      }}>
+      <div className="px-dialogue" style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
         {!victoryMode && q ? <HintBar q={q} subject={subject} /> : (
-          <div style={{ fontFamily:'Mitr,sans-serif', fontSize:13, color:'#c8e8c8', lineHeight:1.6 }}>
+          <div style={{ fontFamily:'var(--font-thai)', fontSize:13, color:'var(--px-white)', lineHeight:1.6 }}>
             {shownText}
           </div>
         )}
@@ -783,14 +774,10 @@ export default function MoveSelectBattleMode({
           {showReturnButton && (
             <button
               onClick={onComplete || onNext}
-              style={{
-                marginTop:8, background:'rgba(58,106,58,0.85)', color:'#c8f8c8',
-                border:'2px solid rgba(88,160,88,0.6)', borderRadius:14, padding:'13px 36px',
-                fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:700,
-                cursor:'pointer', touchAction:'manipulation',
-              }}
+              className="px-btn px-btn-dark"
+              style={{ marginTop:8, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation' }}
             >
-              🗺️ กลับสำรวจ
+              กลับสำรวจ
             </button>
           )}
         </div>
@@ -817,12 +804,10 @@ export default function MoveSelectBattleMode({
           </div>
           <button
             onClick={handleDismissTeach}
-            style={{
-              background:'#7F77DD', color:'#fff', border:'none', borderRadius:14, padding:'13px 38px',
-              fontFamily:"'Fredoka One',cursive", fontSize:18, cursor:'pointer', touchAction:'manipulation',
-            }}
+            className="px-btn px-btn-purple"
+            style={{ marginTop:22, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation' }}
           >
-            ⚔️ เริ่มต่อสู้!
+            เริ่มต่อสู้!
           </button>
         </div>
       )}

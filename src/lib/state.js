@@ -17,7 +17,7 @@ export function defaultState() {
     happiness: 80,
     hatched: false,
     hatchedCreature: null,
-    items: { food: 2, star: 0, ribbon: 0, potion: 0 },
+    items: { food: 2, star: 0, ribbon: 0, potion: 0, scroll: 0, thunder: 0, gem: 0, mirror: 0, clover: 0 },
     xpBoost: 1, xpBoostEnd: 0,
     thaiMastery: {}, thSpellLevel: 1,
     dailyRounds: 0, lastPlayDate: '',

@@ -7,6 +7,9 @@ import { drawEnemy } from '../lib/drawEnemy.js'
 import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
 import { ELEMENTS, getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
+import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import PixelItemIcon from '../components/PixelItemIcon.jsx'
+import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -242,6 +245,16 @@ export default function MoveSelectBattleMode({
   const [flashVisible, setFlashVisible]   = useState(true)
   const [entered, setEntered]             = useState(false)
 
+  // Battle item state
+  const { state, dispatch } = useAppState()
+  const [itemUsed, setItemUsed]             = useState(false)
+  const [eliminatedChoices, setEliminated]  = useState([])
+  const [shieldActive, setShieldActive]     = useState(false)
+  const [xpBoostActive, setXpBoost]         = useState(false)
+  const [victoryBonus, setVictoryBonus]     = useState(null)
+  const shieldActiveRef  = useRef(false)
+  const xpBoostActiveRef = useRef(false)
+
   // ── Entry: 3 white flashes + slide-in ──────────────────────────────────────
   useEffect(() => {
     const times = [80,  200, 280, 400, 480, 530]
@@ -338,6 +351,7 @@ export default function MoveSelectBattleMode({
     if (!mountedRef.current) return
     setSelectedCard(-1); setMissCard(-1)
     setEggAnimClass('')
+    setEliminated([])
     lockedRef.current = false
     if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
   }, [cur])
@@ -374,6 +388,63 @@ export default function MoveSelectBattleMode({
     }
   }
 
+  // ── Battle item use ────────────────────────────────────────────────────────
+  function useBattleItem(itemKey) {
+    if (itemUsed || lockedRef.current || victoryMode || battleOverRef.current) return
+    if ((state.items?.[itemKey] || 0) <= 0) return
+
+    dispatch({ type: ACTIONS.USE_ITEM, payload: { key: itemKey } })
+    setItemUsed(true)
+    playSFX('item_collect')
+
+    const effect = BATTLE_ITEMS[itemKey]?.effect
+
+    if (effect === 'skip') {
+      setBattleLog('ม้วนใบ! ข้ามคำถาม')
+      lockedRef.current = true
+      setTimeout(() => {
+        if (!mountedRef.current) return
+        if (cur + 1 >= total) {
+          enemyHPRef.current = 0; setEnemyHP(0)
+          showVictory()
+        } else {
+          lockedRef.current = false; onNext()
+        }
+      }, 500)
+    } else if (effect === 'free_attack') {
+      const dmg = 15
+      const newHP = Math.max(0, enemyHPRef.current - dmg)
+      enemyHPRef.current = newHP
+      setEnemyHP(newHP)
+      setDmgFloat({ val: dmg, isCrit: true, isUlt: false })
+      setTimeout(() => mountedRef.current && setDmgFloat(null), 950)
+      setHitFlash(true)
+      setTimeout(() => mountedRef.current && setHitFlash(false), 300)
+      setBattleLog('สายฟ้า! โจมตีอิสระ!')
+      spawnEffect('attack')
+      if (newHP <= 0) {
+        enemyHPRef.current = 0; setEnemyHP(0)
+        setTimeout(() => mountedRef.current && showVictory(), 700)
+      }
+    } else if (effect === 'hint') {
+      const wrongIdxs = q.choices
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => c !== q.answer)
+        .map(({ i }) => i)
+      const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
+      setEliminated(toElim)
+      setBattleLog('กระจก! ตัวเลือกผิด 2 ตัว หายไป!')
+    } else if (effect === 'block') {
+      shieldActiveRef.current = true
+      setShieldActive(true)
+      setBattleLog('โคลเวอร์! ป้องกันการโจมตีครั้งถัดไป!')
+    } else if (effect === 'double_xp') {
+      xpBoostActiveRef.current = true
+      setXpBoost(true)
+      setBattleLog('อัญมณี! XP สองเท่าสำหรับคำตอบถัดไป!')
+    }
+  }
+
   // ── Tap handler ────────────────────────────────────────────────────────────
   function handleTap(choiceVal, idx) {
     if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
@@ -395,6 +466,11 @@ export default function MoveSelectBattleMode({
 
   function fireHit(_idx) {
     const { earned, isCrit } = onCorrect()
+    if (xpBoostActiveRef.current) {
+      xpBoostActiveRef.current = false
+      if (mountedRef.current) setXpBoost(false)
+      dispatch({ type: ACTIONS.ADD_XP, payload: { world: subject, amount: earned } })
+    }
     comboRef.current += 1
     const combo = comboRef.current
     const isUlt = ultimateRef.current
@@ -487,6 +563,29 @@ export default function MoveSelectBattleMode({
     onWrong()
     comboRef.current = 0
     if (ultimateRef.current) { ultimateRef.current = false; if (mountedRef.current) setUltimateReady(false) }
+    // Shield absorbs the first miss
+    if (shieldActiveRef.current) {
+      shieldActiveRef.current = false
+      if (mountedRef.current) {
+        setShieldActive(false)
+        setSelectedCard(-1)
+        setMissCard(idx)
+        setTimeout(() => mountedRef.current && setMissCard(-1), 550)
+        setBattleLog('โล่ป้องกัน! ไม่ได้รับความเสียหาย!')
+        setComboDisplay(0)
+      }
+      playTone('miss')
+      setTimeout(() => {
+        if (!mountedRef.current) return
+        if (cur + 1 >= total) {
+          enemyHPRef.current = 0; setEnemyHP(0)
+          setTimeout(() => mountedRef.current && showVictory(), 350)
+        } else {
+          lockedRef.current = false; onNext()
+        }
+      }, 600)
+      return
+    }
     spawnEffect('miss')
     if (mountedRef.current) {
       setSelectedCard(-1)
@@ -525,6 +624,14 @@ export default function MoveSelectBattleMode({
     setBattleLog(`${enemy.name} หมดแรง!`)
     playTone('fanfare'); playSFX('victory')
     spawnConfetti(35)
+    // 10% chance to drop a battle item on victory
+    if (Math.random() < 0.10) {
+      const bonus = rollBattleItem()
+      if (bonus) {
+        dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: bonus } })
+        if (mountedRef.current) setVictoryBonus(bonus)
+      }
+    }
     // XP orbs fly from enemy to egg
     setTimeout(() => {
       if (!mountedRef.current) return
@@ -791,6 +898,50 @@ export default function MoveSelectBattleMode({
         </div>
       )}
 
+      {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
+      {!victoryMode && Object.keys(BATTLE_ITEMS).some(k => (state.items?.[k] || 0) > 0) && (
+        <div style={{ display:'flex', gap:6, padding:'0 10px 4px', flexShrink:0, alignItems:'center' }}>
+          {Object.keys(BATTLE_ITEMS).map(key => {
+            const count = state.items?.[key] || 0
+            if (count <= 0) return null
+            const item = BATTLE_ITEMS[key]
+            return (
+              <button
+                key={key}
+                onClick={() => useBattleItem(key)}
+                disabled={itemUsed}
+                title={item.name_th}
+                style={{
+                  position: 'relative',
+                  background: itemUsed ? 'rgba(60,60,60,0.5)' : `${item.color}22`,
+                  border: `2px solid ${itemUsed ? '#555' : item.color}`,
+                  borderRadius: 4, padding: 4, cursor: itemUsed ? 'default' : 'pointer',
+                  opacity: itemUsed ? 0.45 : 1,
+                  touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <PixelItemIcon type={key} size={24} />
+                <div style={{
+                  position: 'absolute', top: -5, right: -5,
+                  background: '#ff4444', color: '#fff',
+                  fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold',
+                  borderRadius: '50%', width: 14, height: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {count}
+                </div>
+              </button>
+            )
+          })}
+          {shieldActive && (
+            <span style={{ fontSize:10, color:'#44cc44', fontFamily:'var(--font-thai)', marginLeft:2 }}>โล่</span>
+          )}
+          {xpBoostActive && (
+            <span style={{ fontSize:10, color:'#ffcc00', fontFamily:'var(--font-thai)', marginLeft:2 }}>XP×2</span>
+          )}
+        </div>
+      )}
+
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
         <div style={{
@@ -798,16 +949,19 @@ export default function MoveSelectBattleMode({
           display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr',
           gap:8, height:168, flexShrink:0,
         }}>
-          {q.choices.map((choice, idx) => (
-            <MoveCard
-              key={idx}
-              content={choice}
-              isSelected={selectedCard === idx}
-              isMiss={missCard === idx}
-              onTap={() => handleTap(choice, idx)}
-              disabled={lockedRef.current || victoryMode}
-            />
-          ))}
+          {q.choices.map((choice, idx) => {
+            const eliminated = eliminatedChoices.includes(idx)
+            return (
+              <MoveCard
+                key={idx}
+                content={choice}
+                isSelected={selectedCard === idx}
+                isMiss={missCard === idx || eliminated}
+                onTap={() => !eliminated && handleTap(choice, idx)}
+                disabled={lockedRef.current || victoryMode || eliminated}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -816,6 +970,12 @@ export default function MoveSelectBattleMode({
         <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, padding:'0 20px 20px' }}>
           <div style={{ fontSize:64, animation:'victory-bounce .7s ease' }}>🎉</div>
           <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'#FFD700' }}>ชนะแล้ว!</div>
+          {victoryBonus && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,0.1)', border:`1px solid ${BATTLE_ITEMS[victoryBonus].color}`, borderRadius:8, padding:'6px 12px' }}>
+              <PixelItemIcon type={victoryBonus} size={20} />
+              <span style={{ fontSize:12, color:'#FFD700', fontFamily:'var(--font-thai)' }}>ได้รับ: {BATTLE_ITEMS[victoryBonus].name_th}</span>
+            </div>
+          )}
           {showReturnButton && (
             <button
               onClick={onComplete || onNext}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, COUNTABLES, shuffle } from '../config/gameConfig.js'
 import { playSFX } from '../lib/audio.js'
+import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
 
 const ITEMS = ['🍖','🎀','💧','⭐','🍎','🍪','🎲','💎','🌟']
 
@@ -113,6 +114,12 @@ export default function TreasureSlot({ onClose, onReward, subject = 'thai' }) {
     if (max === 3)      reward = { type: 'star',   qty: 3, label: 'แจ็คพอต!' }
     else if (max === 2) reward = { type: 'ribbon',  qty: 1, label: 'เยี่ยม!' }
     else                reward = { type: 'food',    qty: 1, label: 'ได้ของแล้ว!' }
+
+    const bonusItem = rollBattleItem()
+    if (bonusItem) {
+      reward.battleItem = bonusItem
+      reward.label = reward.label + ' + ' + BATTLE_ITEMS[bonusItem].name_th + '!'
+    }
 
     setRewardLabel(reward.label)
     setTimeout(() => { onReward(reward) }, 800)

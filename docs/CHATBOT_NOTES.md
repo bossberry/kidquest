@@ -503,3 +503,18 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: HatchOverlay creature reveal + BattleScreen creature visual — replace emoji with CreatureCanvas?
 
+---
+
+**2026-06-11 — Battle item system:**
+- Built:
+  - `src/config/itemConfig.js` (NEW) — `BATTLE_ITEMS` (5 items: scroll/thunder/gem/mirror/clover), `rollBattleItem()` (55% chance, weighted random)
+  - `src/components/PixelItemIcon.jsx` (NEW) — 10×10 canvas icon renderer, palette-indexed colors per item type, `imageRendering: pixelated`
+  - `src/lib/state.js` — `defaultState.items` extended with `scroll/thunder/gem/mirror/clover: 0`
+  - `src/games/MoveSelectBattleMode.jsx` — added `useAppState`/`dispatch`; item bar UI above answer panel; `useBattleItem()` implementing all 5 effects; shield ref absorbs 1 miss; XP boost dispatches second ADD_XP; mirror hint eliminates 2 wrong cards; 10% victory drop dispatched via DROP_ITEM; `cur` useEffect clears eliminatedChoices on question advance
+  - `src/components/TreasureSlot.jsx` — `resolveReward()` calls `rollBattleItem()`, sets `reward.battleItem` + appends name to label
+  - `src/components/WorldScreen.jsx` — `handleTreasureReward()` dispatches extra DROP_ITEM for `reward.battleItem`
+- Not finished: none.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking — item system is self-contained.
+

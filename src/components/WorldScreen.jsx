@@ -568,6 +568,9 @@ export default function WorldScreen({ navigate }) {
     for (let i = 0; i < reward.qty; i++) {
       dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: reward.type } })
     }
+    if (reward.battleItem) {
+      dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: reward.battleItem } })
+    }
     playSFX('stage_up')
   }
 

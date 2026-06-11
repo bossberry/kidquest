@@ -1,5 +1,39 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: Battle item system
+
+### src/config/itemConfig.js (NEW)
+- `BATTLE_ITEMS` — 5 items: scroll (skip), thunder (free_attack 15dmg), gem (double_xp), mirror (hint/eliminate 2 wrong), clover (block next miss)
+- `rollBattleItem()` — 55% drop chance, weighted random from DROP_TABLE
+
+### src/components/PixelItemIcon.jsx (NEW)
+- 10×10 grid canvas icons for all 5 battle item types
+- Palette-indexed per type (dark border + main + highlight colors)
+- `imageRendering: pixelated`; size prop scales cell size
+
+### src/lib/state.js
+- `defaultState.items` — added `scroll: 0, thunder: 0, gem: 0, mirror: 0, clover: 0`
+
+### src/games/MoveSelectBattleMode.jsx
+- Added imports: `useAppState`, `ACTIONS`, `PixelItemIcon`, `BATTLE_ITEMS`, `rollBattleItem`
+- Added state: `itemUsed`, `eliminatedChoices`, `shieldActive`, `xpBoostActive`, `victoryBonus`
+- Added refs: `shieldActiveRef`, `xpBoostActiveRef`
+- `useBattleItem(key)` — dispatches USE_ITEM; handles 5 effects; one use per battle
+- Item bar UI above answer panel — shows only battle items with count > 0; hides if none owned; shows โล่/XP×2 status indicators
+- `fireHit()` — XP boost check: dispatches second ADD_XP if xpBoostActiveRef active
+- `fireMiss()` — shield check: absorbs miss damage, clears shield, then proceeds normally
+- `showVictory()` — 10% chance rolls and dispatches DROP_ITEM for bonus battle item; shows in victory screen
+- Answer cards — `eliminatedChoices` renders dimmed/disabled for mirror hint effect
+- `cur` useEffect — added `setEliminated([])` to clear hint on question advance
+
+### src/components/TreasureSlot.jsx
+- `resolveReward()` — calls `rollBattleItem()` after primary reward; sets `reward.battleItem` + appends item name to label
+
+### src/components/WorldScreen.jsx
+- `handleTreasureReward()` — dispatches extra `DROP_ITEM` for `reward.battleItem` if present
+
+---
+
 ## 2026-06-11 — Fix: Remove all UI emoji + apply pixel post-processing
 
 ### Home.jsx

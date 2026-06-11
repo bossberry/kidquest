@@ -13,6 +13,15 @@ function hsl(h, s, l, a = 1) {
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v }
 
+function lighten(hslStr, amount) {
+  return hslStr.replace(/(,)([\d.]+)(%\))/, (_, c, l, e) =>
+    `${c}${clamp(parseFloat(l) + amount, 0, 100)}${e}`)
+}
+function darken(hslStr, amount) {
+  return hslStr.replace(/(,)([\d.]+)(%\))/, (_, c, l, e) =>
+    `${c}${clamp(parseFloat(l) - amount, 0, 100)}${e}`)
+}
+
 function starPath(ctx, cx, cy, r, n = 5) {
   const step = (Math.PI * 2) / n
   const inner = r * 0.42
@@ -88,11 +97,25 @@ const BODY_DEF = {
 }
 const HEAD_DEF = { normal: 23, large: 26, oversized: 30 }
 
+// Width/height ratio per family — applied geometry-mean-preserving in buildGeometry
+const FAM_RATIO = {
+  puff:1.00, fluff:0.90, bear:1.14, cat:0.95, fox:0.73, bunny:0.82,
+  bird:1.22, dragon:0.65, moon:0.80, star:1.00, leaf:0.92, ocean:1.00,
+  dream:1.00, flower:0.95, cloud:1.05, crystal:0.92,
+}
+
 function buildGeometry(dna, sc) {
   let { bx, by, bcy } = BODY_DEF[dna.bodyType] || BODY_DEF.compact
   const sf = dna.signatureFeature
   if (sf === 'extra-round') { bx = by * 1.25; by *= 1.05 }
   if (sf === 'tiny-body')   { bx *= 0.70; by *= 0.70; bcy += 4 }
+  // Distinct family silhouettes: preserve geometric mean, shift w/h ratio
+  const famR = FAM_RATIO[dna.family] || 1.0
+  if (famR !== 1.0) {
+    const gm = Math.sqrt(bx * by)
+    bx = gm * Math.sqrt(famR)
+    by = gm / Math.sqrt(famR)
+  }
   const hr0 = HEAD_DEF[dna.headRatio] || 23
   const hr   = hr0
   const CX   = 60
@@ -111,9 +134,9 @@ function gradEll(ctx, cx, cy, rx, ry, cL, cD, stroke, lw) {
     cx - rx * 0.22, cy - ry * 0.28, rx * 0.05,
     cx + rx * 0.05, cy + ry * 0.05, rx * 1.45
   )
-  g.addColorStop(0, cL)
-  g.addColorStop(0.65, cD.replace(/hsl\(/, 'hsl(').replace(/hsla\(/, 'hsla('))
-  g.addColorStop(1, cD)
+  g.addColorStop(0,    cL)
+  g.addColorStop(0.55, cD)
+  g.addColorStop(1,    darken(cD, 12))
   ctx.beginPath()
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
   ctx.fillStyle = g
@@ -127,6 +150,21 @@ function fillCirc(ctx, cx, cy, r, fill, stroke, lw) {
   ctx.fillStyle = fill
   ctx.fill()
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.2; ctx.stroke() }
+}
+
+function eyeHighlight(ctx, ex, ey, eyeR, C) {
+  const hlr = eyeR * 0.28
+  fillCirc(ctx, ex - eyeR * 0.26, ey - eyeR * 0.28, hlr, C.white)
+}
+
+function withShadow(ctx, sc, fn) {
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.20)'
+  ctx.shadowBlur = 5 * sc
+  ctx.shadowOffsetX = 2 * sc
+  ctx.shadowOffsetY = 3 * sc
+  fn()
+  ctx.restore()
 }
 
 // ── Layer functions ───────────────────────────────────────────────────────────
@@ -247,13 +285,47 @@ function drawWings(ctx, G, C, dna, sc) {
   }
 }
 
+function _cloudBody(ctx, G, C, lw) {
+  const { bcx, bcy, brx } = G
+  const offsets = [[-0.32, 0.08, brx * 0.70], [0.32, 0.08, brx * 0.70], [0, -0.12, brx * 0.88]]
+  for (const [dx, dy, r] of offsets)
+    fillCirc(ctx, bcx + dx * brx, bcy + dy * brx, r, C.bodyL, C.outline, lw)
+}
+
+function _crystalBody(ctx, G, C, lw) {
+  const { bcx, bcy, brx, bry } = G
+  const n = 6, step = Math.PI * 2 / n
+  ctx.beginPath()
+  for (let i = 0; i < n; i++) {
+    const a = i * step - Math.PI / 2
+    ctx[i === 0 ? 'moveTo' : 'lineTo'](bcx + Math.cos(a) * brx, bcy + Math.sin(a) * bry)
+  }
+  ctx.closePath()
+  const g = ctx.createRadialGradient(bcx - brx * 0.22, bcy - bry * 0.28, brx * 0.05, bcx, bcy, brx * 1.3)
+  g.addColorStop(0, C.bodyL); g.addColorStop(0.55, C.body); g.addColorStop(1, darken(C.body, 12))
+  ctx.fillStyle = g; ctx.fill()
+  ctx.strokeStyle = C.outline; ctx.lineWidth = lw; ctx.stroke()
+  ctx.save()
+  ctx.globalAlpha = 0.50
+  for (let i = 0; i < n; i++) {
+    const a = i * step - Math.PI / 2
+    ctx.beginPath()
+    ctx.moveTo(bcx, bcy)
+    ctx.lineTo(bcx + Math.cos(a) * brx, bcy + Math.sin(a) * bry)
+    ctx.strokeStyle = C.bodyL; ctx.lineWidth = lw * 0.5; ctx.stroke()
+  }
+  ctx.restore()
+}
+
 function drawBody(ctx, G, C, dna, sc) {
   const lw = (dna.beautyProfile?.outlineWeight || 2.0) * sc
-  gradEll(ctx, G.bcx, G.bcy, G.brx, G.bry, C.bodyL, C.body, C.outline, lw)
+  if (dna.family === 'cloud')        _cloudBody(ctx, G, C, lw)
+  else if (dna.family === 'crystal') _crystalBody(ctx, G, C, lw)
+  else                               gradEll(ctx, G.bcx, G.bcy, G.brx, G.bry, C.bodyL, C.body, C.outline, lw)
 }
 
 function drawBellyPatch(ctx, G, C, dna, sc) {
-  if (!dna.bellyPatch) return
+  if (!dna.bellyPatch || dna.family === 'cloud' || dna.family === 'crystal') return
   const rx = G.brx * 0.58
   const ry = G.bry * 0.68
   const g  = ctx.createRadialGradient(G.bcx, G.bcy, 0, G.bcx, G.bcy, rx * 1.1)
@@ -268,7 +340,7 @@ function drawBellyPatch(ctx, G, C, dna, sc) {
 
 function drawPattern(ctx, G, C, dna, sc) {
   const { patternType } = dna
-  if (patternType === 'solid') return
+  if (patternType === 'solid' || dna.family === 'cloud' || dna.family === 'crystal') return
   const { bcx, bcy, brx, bry } = G
   ctx.save()
   ctx.beginPath()
@@ -423,23 +495,26 @@ function drawHorn(ctx, G, C, dna, sc) {
   if (hornType === 'stubby') {
     fillCirc(ctx, hbx, hby - hr * 0.14, hr * 0.13, C.pat, C.outline, lw)
   } else if (hornType === 'spiral') {
-    // Crescent-style spiral horn
-    ctx.save()
-    ctx.translate(hbx, hby - hr * 0.08)
-    for (let r = hr * 0.38; r > hr * 0.08; r -= hr * 0.10) {
-      ctx.beginPath()
-      ctx.arc(0, 0, r, Math.PI * 1.1, Math.PI * 2.1)
-      ctx.strokeStyle = r > hr * 0.25 ? C.sig : hsl(C.ha, 70, 78)
-      ctx.lineWidth = r > hr * 0.25 ? lw * 1.2 : lw * 0.8
-      ctx.stroke()
-    }
-    ctx.restore()
+    withShadow(ctx, sc, () => {
+      ctx.save()
+      ctx.translate(hbx, hby - hr * 0.08)
+      for (let r = hr * 0.38; r > hr * 0.08; r -= hr * 0.10) {
+        ctx.beginPath()
+        ctx.arc(0, 0, r, Math.PI * 1.1, Math.PI * 2.1)
+        ctx.strokeStyle = r > hr * 0.25 ? C.sig : hsl(C.ha, 70, 78)
+        ctx.lineWidth = r > hr * 0.25 ? lw * 1.2 : lw * 0.8
+        ctx.stroke()
+      }
+      ctx.restore()
+    })
   } else if (hornType === 'star') {
-    starPath(ctx, hbx, hby - hr * 0.22, hr * 0.30)
-    ctx.fillStyle = C.sig
-    ctx.fill()
-    ctx.strokeStyle = hsl(C.ha, 70, 48)
-    ctx.lineWidth = lw; ctx.stroke()
+    withShadow(ctx, sc, () => {
+      starPath(ctx, hbx, hby - hr * 0.22, hr * 0.30)
+      ctx.fillStyle = C.sig
+      ctx.fill()
+      ctx.strokeStyle = hsl(C.ha, 70, 48)
+      ctx.lineWidth = lw; ctx.stroke()
+    })
   } else if (hornType === 'bumps') {
     for (let i = -1; i <= 1; i++) {
       const bx = hbx + i * hr * 0.32
@@ -455,6 +530,7 @@ function drawEyes(ctx, G, C, dna, sc, blinkAmt = 0) {
   const { hcx, hcy, hr } = G
   const BASE_R = { small: 6, normal: 8, large: 10 }
   let er = (BASE_R[eyeSize] || 8) * sc
+  er = Math.min(er, hr * 0.30)  // cap: eye ≤ 30% head radius
   if (signatureFeature === 'mega-cheeks') er *= 1.0  // unchanged
   const twoColor = signatureFeature === 'two-color-eyes'
   const bigShine = signatureFeature === 'big-shine'
@@ -508,6 +584,7 @@ function drawEyes(ctx, G, C, dna, sc, blinkAmt = 0) {
       ctx.fillStyle = eyeCD
       ctx.fill()
       ctx.restore()
+      if (bScale > 0.45) eyeHighlight(ctx, ex, ey, er * 0.75, C)
     } else {
       // Base eye fill
       const eG = ctx.createRadialGradient(ex - er * 0.2, ey - er * 0.2, er * 0.05, ex, ey, er * 1.1)
@@ -530,14 +607,11 @@ function drawEyes(ctx, G, C, dna, sc, blinkAmt = 0) {
         ctx.fill()
       }
 
-      // Gloss highlights — skip when nearly closed
+      // Highlights — always on
       if (bScale > 0.45) {
-        if (eyeType === 'dewy' || gloss >= 2) {
-          fillCirc(ctx, ex - er * 0.28, ey - er * 0.28, er * (bigShine ? 0.42 : 0.28), C.white)
+        eyeHighlight(ctx, ex, ey, er, C)
+        if (eyeType === 'dewy' || gloss >= 2)
           fillCirc(ctx, ex + er * 0.20, ey + er * 0.20, er * 0.14, 'rgba(255,255,255,0.65)')
-        } else {
-          fillCirc(ctx, ex - er * 0.26, ey - er * 0.28, er * (bigShine ? 0.38 : 0.24), C.white)
-        }
       }
     }
   }
@@ -629,9 +703,9 @@ function drawCheeks(ctx, G, C, dna, sc) {
       ctx.fill()
     } else {
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr)
-      g.addColorStop(0,   hsl(C.h1, 68, 74, bp * 0.90))
-      g.addColorStop(0.5, hsl(C.h1, 62, 78, bp * 0.55))
-      g.addColorStop(1,   hsl(C.h1, 58, 82, 0))
+      g.addColorStop(0,   hsl(C.h1, 68, 74, 0.73))
+      g.addColorStop(0.5, hsl(C.h1, 62, 78, 0.40))
+      g.addColorStop(1,   hsl(C.h1, 58, 82, 0.00))
       ctx.beginPath()
       ctx.arc(cx, cy, cr, 0, Math.PI * 2)
       ctx.fillStyle = g
@@ -672,10 +746,12 @@ function drawTail(ctx, G, C, dna, sc) {
       ctx.bezierCurveTo(brx * 0.5 * meg, -bry * 0.3, brx * 0.8 * meg, -bry * 0.8, brx * 0.4 * meg, -bry * 1.3 * meg)
       ctx.strokeStyle = C.body; ctx.lineWidth = lw * 1.6; ctx.stroke()
       ctx.strokeStyle = C.outline; ctx.lineWidth = lw * 0.6; ctx.stroke()
-      // Star
-      starPath(ctx, brx * 0.4 * meg, -bry * 1.3 * meg, brx * 0.18 * meg)
-      ctx.fillStyle = C.sig; ctx.fill()
-      ctx.strokeStyle = C.outline; ctx.lineWidth = lw * 0.7; ctx.stroke()
+      // Star with drop shadow
+      withShadow(ctx, sc, () => {
+        starPath(ctx, brx * 0.4 * meg, -bry * 1.3 * meg, brx * 0.18 * meg)
+        ctx.fillStyle = C.sig; ctx.fill()
+        ctx.strokeStyle = C.outline; ctx.lineWidth = lw * 0.7; ctx.stroke()
+      })
       ctx.restore()
     } else if (tailType === 'wiggly' || (tailType !== 'none' && curly)) {
       ctx.save()
@@ -901,12 +977,27 @@ function drawBirthMark(ctx, G, C, dna, sc) {
   ctx.stroke()
 }
 
+function drawAmbientGlow(ctx, G, C) {
+  const { bcx, bcy, brx } = G
+  const r = brx * 2.2
+  const g = ctx.createRadialGradient(bcx, bcy, 0, bcx, bcy, r)
+  g.addColorStop(0,   hsl(C.h1, 60, 70, 0.18))
+  g.addColorStop(0.5, hsl(C.h1, 55, 72, 0.08))
+  g.addColorStop(1,   hsl(C.h1, 50, 74, 0))
+  ctx.beginPath()
+  ctx.arc(bcx, bcy, r, 0, Math.PI * 2)
+  ctx.fillStyle = g
+  ctx.fill()
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function drawCreature(canvas, dna, anim = {}) {
   if (!canvas || !dna) return
   const ctx = canvas.getContext('2d')
   const S   = canvas.width
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
   ctx.clearRect(0, 0, S, S)
 
   const sc = S / 120
@@ -915,6 +1006,7 @@ export function drawCreature(canvas, dna, anim = {}) {
   const { blinkAmt = 0, sleepParticles = null } = anim
 
   // Painter's algorithm — back to front
+  drawAmbientGlow(ctx, G, C)
   drawAura(ctx, G, C, dna, sc)
   drawWings(ctx, G, C, dna, sc)
   drawBody(ctx, G, C, dna, sc)

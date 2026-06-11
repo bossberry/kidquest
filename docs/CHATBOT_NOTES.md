@@ -287,3 +287,26 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System (Prof Owl dialogue already in WorldScreen; 4 more NPCs to add).
 - Needs Chatbot decision first: GM-Q10 (Post Bird scope) before Phase 4 ships.
 
+---
+
+**2026-06-11 — feat: creature Beauty Layer — Pokémon-quality rendering in drawCreature.js:**
+- Built (all changes in `src/lib/drawCreature.js` only):
+  - `lighten()/darken()` helpers — operate on `hsl(h,s%,l%)` strings via lightness regex
+  - `eyeHighlight()` — always-on highlight dot (28% eye radius, upper-left), applied to all eye types except crescent; button type uses effective radius (er×0.75)
+  - `withShadow()` — save/restore wrapper applying `rgba(0,0,0,0.20)` shadow with 5px blur
+  - `gradEll()` updated — 3-stop gradient (cL at 0, cD at 0.55, darken(cD,12) at 1.0) — edge darkening for rounder look
+  - `FAM_RATIO` table — 16 family width/height ratios applied geometry-mean-preserving in `buildGeometry()`
+  - `_cloudBody()` — 3 overlapping circles (offsets -0.32/+0.32/0, radii 0.70/0.70/0.88 × brx)
+  - `_crystalBody()` — 6-sided polygon with radial gradient + 50%-alpha facet lines
+  - `drawBody()` dispatches to `_cloudBody`/`_crystalBody` for those families; `drawBellyPatch()`/`drawPattern()` skip cloud+crystal
+  - `drawHorn()` — spiral and star horns wrapped in `withShadow()`
+  - `drawEyes()` — eye size cap `Math.min(er, hr*0.30)`; always-on `eyeHighlight()`; replaced conditional gloss block
+  - `drawCheeks()` — fixed gradient opacity: 0.73/0.40/0.00 (was bp×0.90/0.55/0)
+  - `drawTail()` — star-tipped star wrapped in `withShadow()`
+  - `drawAmbientGlow()` — subtle primary-color radial glow (r=brx×2.2, opacity 0.18→0.08→0) drawn before aura
+  - `drawCreature()` — `imageSmoothingEnabled=true/imageSmoothingQuality='high'`; calls `drawAmbientGlow` first
+- Not finished: none — all 9 fixes complete.
+- Blockers/risks found: None. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System or Chopin playtest.
+- Needs Chatbot decision first: None for this task. GM-Q10 still open for Phase 4.
+

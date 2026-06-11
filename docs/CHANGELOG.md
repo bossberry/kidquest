@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-11 — Feat: creature Beauty Layer — Pokémon-quality rendering
+
+- `src/lib/drawCreature.js` only:
+- Added `lighten()/darken()` HSL string helpers, `eyeHighlight()` always-on white dot, `withShadow()` drop-shadow wrapper
+- `gradEll()` 3-stop gradient: lighten → base → darken-12 at edge
+- `FAM_RATIO` table: 16 family silhouettes applied in `buildGeometry()` (geometry-mean-preserving)
+- `_cloudBody()` (3 circles) + `_crystalBody()` (hexagon + facets); `drawBody()` dispatches; belly/pattern skip cloud+crystal
+- `drawHorn()` spiral+star wrapped in `withShadow()`; `drawTail()` star-tipped star wrapped in `withShadow()`
+- `drawEyes()` eye size cap `hr×0.30`; always-on `eyeHighlight()` for all types except crescent
+- `drawCheeks()` fixed opacity 0.73/0.40/0.00
+- `drawAmbientGlow()` primary-color radial before aura; `imageSmoothingEnabled/Quality='high'` on canvas
+
 ## 2026-06-11 — Feat: 7 enemy types across all screens with movement patterns
 
 - `src/lib/drawEnemy.js` (UPDATED) — Signature changed to `drawEnemy(ctx, type, size, x=0, y=0)` with `ctx.save/translate/restore` for world canvas rendering. Backward-compat aliases: `bunny`=`sleepy_bunny`, `slime`=`bouncy_slime`, `fox`=`fox_kit`. 3 new sprites: `leaf_sprite` (3-leaf wispy figure, #4aaa4a body, white dot eyes), `grumpy_mole` (round brown body, #8a6030, tinted glasses, frown, shovel), `mushroom_imp` (red cap #cc3030 with 3 white dots, scared wide eyes, O-mouth).

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { SCREENS } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
@@ -123,7 +123,11 @@ const DPAD_BTN = (pos) => ({
 export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const stateRef = useRef(state)
-  useEffect(() => { stateRef.current = state }, [state])
+  // useLayoutEffect runs before the browser paint (unlike useEffect which runs after).
+  // This ensures stateRef.current.pendingBattle is set before the next RAF frame fires,
+  // preventing triggerBattle from dispatching SET_PENDING_BATTLE multiple times in rapid
+  // succession (the "PartySelect infinite loop" bug).
+  useLayoutEffect(() => { stateRef.current = state }, [state])
 
   useEffect(() => {
     playBGM('world')

@@ -673,6 +673,19 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — hotfix: PartySelect infinite loop / freeze on mount:**
+- Root cause (A): `WorldScreen.jsx` used `useEffect` to sync `stateRef.current = state`. `useEffect` runs AFTER the browser paint. The RAF loop fires between dispatch and effect, reads stale `stateRef.current.pendingBattle = null`, and calls `triggerBattle` again → another `SET_PENDING_BATTLE` dispatch. This repeats every 3 frames (~50ms) until the effect finally runs. Dozens of dispatches → dozens of PartySelect re-renders.
+- Root cause (B): `PartySelect.jsx` computed `dna` via an IIFE inside `.map()`, outside any `useMemo`. On every re-render, a new DNA object was created. `CreatureCanvas.useEffect([dna])` fires on every new reference → RAF animation restarted every re-render. Combined with rapid dispatches above, `buildLegacyPreviewDNA` was being called dozens of times per second → freeze.
+- Root cause (C): If `partyCreatures.length === 0`, there was no escape button. UX deadlock.
+- Built:
+  - `WorldScreen.jsx` — `useEffect(() => { stateRef.current = state })` → `useLayoutEffect`. Runs before browser paint; stateRef is updated before next RAF fires. Guard `if (stateRef.current.pendingBattle) return` now blocks re-entry correctly.
+  - `PartySelect.jsx` — `dna` moved into `partyCreatures` useMemo (computed once per `[state.party, state.hatchedEggs]` change). JSX map destructures `{ creature, dna }`. `allFainted` check uses `({ creature: c })` destructure. Empty party now shows "กลับแมพ" button.
+- Not finished: none. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — hotfix: damage calculation — creature 1-shots all enemies:**
 - Root cause: `calcCreatureStats` uses `TIERS[0].baseStat = 100`, producing ATK≈40–70 for all Tier 0 creatures. World enemies have HP=32–52 and were designed for ATK=4–5 hits. The formula `max(1, 60−0)×1 = 60` one-shot kills `sleepy_bunny` (HP=44). Both damage directions were broken: creature ATK×10 too high, and creature DEF×0.5 always absorbed all enemy ATK leaving `max(1, …)=1`.
 - Built: `src/components/WorldBattle.jsx` — `creatureStats` useMemo now applies world-battle scaling: `WB_STAT_SCALE=0.07` (ATK/DEF: ~60→4, giving ~11 hits vs easiest enemy), `WB_HP_SCALE=0.10` (HP: ~166→17, faint after ~8–9 non-dodged wrong answers). `creatureCurrentHP` computed as `min(scaledMaxHP, round(creature.currentHP × WB_HP_SCALE))` — carries scaled HP across battles. `handleCreatureTakeDamage` dispatches `round(damage / WB_HP_SCALE)` to state so state HP decreases proportionally. DEF now actually reduces enemy damage (was always blocked by 50× higher value).

@@ -6,14 +6,25 @@ import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 export default function PartySelect({ onSelect, onFlee }) {
   const { state } = useAppState()
 
+  // dna is included in the memo so it is stable across re-renders.
+  // Without this, the IIFE in the map creates a new object every render,
+  // causing CreatureCanvas.useEffect([dna]) to restart the animation RAF
+  // on every re-render — the amplifying half of the "PartySelect freeze" bug.
   const partyCreatures = useMemo(() => {
     return (state.party || [])
-      .map(id => (state.hatchedEggs || []).find(e => e.id === id))
+      .map(id => {
+        const creature = (state.hatchedEggs || []).find(e => e.id === id)
+        if (!creature) return null
+        const dna = creature.dna ?? (() => {
+          try { return buildLegacyPreviewDNA(creature, 0) } catch { return null }
+        })()
+        return { creature, dna }
+      })
       .filter(Boolean)
   }, [state.party, state.hatchedEggs])
 
   const allFainted = partyCreatures.length > 0 &&
-    partyCreatures.every(c => (c.currentHP ?? 0) <= 0)
+    partyCreatures.every(({ creature: c }) => (c.currentHP ?? 0) <= 0)
 
   return (
     <div style={{
@@ -50,14 +61,11 @@ export default function PartySelect({ onSelect, onFlee }) {
         width: '100%',
         maxWidth: partyCreatures.length === 1 ? 200 : 320,
       }}>
-        {partyCreatures.map(creature => {
+        {partyCreatures.map(({ creature, dna }) => {
           const lvBonus = Math.max(0, (creature.battleLevel ?? 1) - 1)
           const maxHP = (creature.stats?.HP ?? 10) + lvBonus
           const currentHP = Math.min(creature.currentHP ?? maxHP, maxHP)
           const fainted = currentHP <= 0
-          const dna = creature.dna ?? (() => {
-            try { return buildLegacyPreviewDNA(creature, 0) } catch { return null }
-          })()
 
           return (
             <button
@@ -138,14 +146,29 @@ export default function PartySelect({ onSelect, onFlee }) {
         ))}
       </div>
 
-      {/* No party at all */}
+      {/* No party at all — must show escape button or player is stuck */}
       {partyCreatures.length === 0 && (
-        <div style={{
-          fontFamily: 'var(--font-thai)', fontSize: 12,
-          color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280,
-        }}>
-          ยังไม่มี creature ในทีม<br/>
-          <span style={{ fontSize: 10 }}>ฟักไข่ก่อนออกสำรวจ!</span>
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{
+            fontFamily: 'var(--font-thai)', fontSize: 12,
+            color: 'rgba(255,255,255,0.5)', maxWidth: 280, marginBottom: 14,
+          }}>
+            ยังไม่มี creature ในทีม<br/>
+            <span style={{ fontSize: 10 }}>ฟักไข่ก่อนออกสำรวจ!</span>
+          </div>
+          <button
+            onClick={onFlee}
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: 'rgba(255,255,255,0.5)',
+              borderRadius: 0, padding: '8px 28px',
+              fontFamily: 'var(--font-thai)', fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            กลับแมพ
+          </button>
         </div>
       )}
 

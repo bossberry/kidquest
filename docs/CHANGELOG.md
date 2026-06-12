@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: PartySelect infinite loop / freeze on mount
+
+### src/components/WorldScreen.jsx
+- `useEffect(() => { stateRef.current = state })` → `useLayoutEffect`.
+  Root cause: `useEffect` runs after the browser paint, so the RAF loop fires before
+  `stateRef.current.pendingBattle` is updated, causing `triggerBattle` to bypass its guard
+  and dispatch `SET_PENDING_BATTLE` dozens of times per second → freeze.
+
+### src/components/PartySelect.jsx
+- `dna` computation moved inside `partyCreatures` useMemo — stable reference across re-renders.
+  Previously an IIFE in `.map()` created a new DNA object every render, causing
+  `CreatureCanvas.useEffect([dna])` to restart the animation RAF on each re-render.
+- JSX `.map(creature =>` → `.map(({ creature, dna }) =>` — destructures from memo.
+- `allFainted` check: `c.currentHP` → `({ creature: c }).currentHP` to match new shape.
+- Empty party now shows "กลับแมพ" escape button — previously UX deadlock (no way to close).
+
+---
+
 ## 2026-06-12 — hotfix: damage calculation — creature 1-shots world enemies
 
 ### src/components/WorldBattle.jsx

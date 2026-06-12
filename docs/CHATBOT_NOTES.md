@@ -602,6 +602,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — hotfix: fix PartySelect never appearing after enemy collision:**
+- Root cause: `battleCreatureId` persists to localStorage. App closed mid-battle → next load has `battleCreatureId = 'egg_xxx'`. `state.pendingBattle && !state.battleCreatureId` → false → PartySelect never renders → player sees nothing after walking into enemy.
+- Built:
+  - `src/context/StateContext.jsx` — `useReducer` initializer now forces `battleCreatureId: null`, `pendingBattle: null`, `worldBattleEnemy: null` after migration. These are transient battle fields that must never survive an app restart.
+  - `src/lib/state.js` — `_migrateBattleStats`: party validation now runs independently of `dirty` flag. Validates stored party IDs against actual egg IDs; falls back to `inParty` flag rebuild if valid party is empty. Previously only ran inside `if (dirty)` block — fully-migrated users with stale party never got it fixed.
+- Not finished: none. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — audit: enemy collision verified complete (no code changes needed):**
 - Audited `WorldScreen.jsx` collision system. All required pieces are in place:
   - `tryMove` (L323): enemy collision at destination tile `e.col===newCol && e.row===newRow` ✓

@@ -1,5 +1,26 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: fix PartySelect never appearing after enemy collision
+
+### Root cause
+`battleCreatureId` persists to localStorage. If the app was closed mid-battle,
+it remains non-null on next load. `state.pendingBattle && !state.battleCreatureId`
+evaluates false → PartySelect never renders → player sees nothing after collision.
+
+### src/context/StateContext.jsx
+- `useReducer` initializer: force `battleCreatureId: null`, `pendingBattle: null`,
+  `worldBattleEnemy: null` after migration — clears any stale battle state from
+  an app-closed-mid-battle session.
+
+### src/lib/state.js
+- `_migrateBattleStats`: party validation now runs independently of `dirty` flag.
+  - Filters stored party IDs against actual egg IDs (removes stale/mismatched IDs).
+  - Falls back to rebuilding from `inParty` flags if valid party is empty.
+  - Previously this only ran when `dirty = true` (eggs needed migration), so a
+    fully-migrated user with an empty/stale party never got it rebuilt.
+
+---
+
 ## 2026-06-12 — hotfix: fix enemy collision — battle triggers on contact, flee keeps enemy alive
 
 ### src/components/WorldScreen.jsx

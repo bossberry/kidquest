@@ -478,7 +478,10 @@ export function StateProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
-      return _migrateBattleStats(raw)
+      const migrated = _migrateBattleStats(raw)
+      // Always clear transient battle state — these can be stale if app was closed mid-battle.
+      // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
+      return { ...migrated, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
     }
     catch { return defaultState() }
   })

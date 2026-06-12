@@ -101,12 +101,15 @@ export function _migrateBattleStats(s) {
     return e
   })
 
-  if (!dirty) return s
-
-  // Build party from inParty flags if not already set
-  const party = s.party?.length
-    ? s.party
+  // Validate party — always rebuild if empty or any stored ID doesn't resolve to an egg.
+  // This runs independently of dirty so stale IDs after a migration never leave party empty.
+  const validParty = (s.party || []).filter(id => migratedEggs.some(e => e.id === id))
+  const party = validParty.length > 0
+    ? validParty
     : migratedEggs.filter(e => e.inParty).map(e => e.id)
+
+  if (!dirty && party.length === (s.party || []).length &&
+      party.every((id, i) => id === (s.party || [])[i])) return s
 
   return {
     ...s,

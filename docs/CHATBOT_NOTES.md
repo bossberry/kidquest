@@ -627,6 +627,19 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — hotfix: item reuse per question + no corpse + smooth glow + no flee:**
+- Built:
+  - `MoveSelectBattleMode.jsx` — Added `setItemUsed(false)` to the per-question reset `useEffect([cur])`. Item is now usable once per question turn (was once per battle). No other item logic changed.
+  - `StateContext.jsx` USE_ITEM — Already correctly decrements item count. Verified key alignment: BATTLE_ITEMS keys (`scroll/thunder/gem/mirror/clover`) match `state.items` keys. No change needed.
+  - `WorldScreen.jsx` death animation — Removed corpse rendering entirely. Dead enemies now removed from array immediately in `updateEnemies()` (calls `scheduleRespawn` + returns null). Removed `fillCirclePixel` helper + replaced `drawPlayerGlow` with smooth `ctx.arc` rings (outer 85%, inner 58% of tile). Pulse: `(sin(frame×0.06)+1)/2` — continuous sine, no step function. Init changed from `dead: true, deathTimer: 180, opacity: 1.0` to just `dead: true`.
+  - `PartySelect.jsx` — Removed the "หนี" flee button. Player must choose a creature. Only when ALL creatures are fainted does a "กลับแมพ" forced-retreat button appear (calls `onFlee` → CLEAR_PENDING_BATTLE).
+- Not finished: none. Build ✅ zero errors.
+- Blockers/risks: none.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — hotfix: battle still not opening after collision (INIT dispatch overwrites null):**
 - Root cause (deeper than previous fix): `useReducer` initializer correctly sets `battleCreatureId: null`. BUT the `loadState().then(remote => dispatch(ACTIONS.INIT, remote))` runs ~50ms later and dispatches `ACTIONS.INIT` with the full saved state — including the stale `battleCreatureId` from Supabase or localStorage. The previous INIT reducer did `{ ...defaultState(), ...payload }` which spread the stale value back in, silently undoing the initializer's null.
 - Built: `src/context/StateContext.jsx` — `ACTIONS.INIT` reducer case now appends `battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null` after the payload spread. These transient fields must never survive app restart regardless of what loadState returns.

@@ -373,6 +373,7 @@ export default function MoveSelectBattleMode({
     setSelectedCard(-1); setMissCard(-1)
     setEggAnimClass('')
     setEliminated([])
+    setItemUsed(false)
     lockedRef.current = false
     if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
   }, [cur])

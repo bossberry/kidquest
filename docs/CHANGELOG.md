@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: item reuse per question + no corpse + smooth glow + no flee
+
+### src/games/MoveSelectBattleMode.jsx
+- `setItemUsed(false)` added to per-question reset `useEffect([cur])` — item available once per question, not once per battle.
+
+### src/components/WorldScreen.jsx
+- `fillCirclePixel` helper removed; `drawPlayerGlow` now uses `ctx.arc` for smooth circular rings.
+  Pulse formula `(sin(frame×0.06)+1)/2` (continuous sine). Outer ring 85% tile radius, inner 58%.
+- `updateEnemies`: dead enemies immediately call `scheduleRespawn()` + return `null` — no death-timer countdown.
+- `renderEnemies`: corpse rendering block removed entirely (squish/rotate/opacity/✕ mark gone).
+- Enemy init: `dead: true` without `deathTimer/opacity` fields.
+
+### src/components/PartySelect.jsx
+- "หนี" flee button removed. Battle is mandatory when any creature is available.
+- When all creatures are fainted, "กลับแมพ" forced-retreat button shown.
+
+---
+
 ## 2026-06-12 — hotfix: battle not opening — INIT dispatch overwrites initializer null
 
 ### Root cause

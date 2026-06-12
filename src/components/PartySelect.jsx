@@ -144,31 +144,30 @@ export default function PartySelect({ onSelect, onFlee }) {
         </div>
       )}
 
-      {/* All fainted */}
+      {/* All fainted — forced retreat only */}
       {allFainted && (
-        <div style={{
-          fontFamily: 'var(--font-pixel)', fontSize: 9,
-          color: '#cc2020', textAlign: 'center',
-        }}>
-          CREATURE ทุกตัวกำลังหลับ...<br/>ใช้ potion หรือรอสักครู่
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{
+            fontFamily: 'var(--font-pixel)', fontSize: 9,
+            color: '#cc2020', marginBottom: 14,
+          }}>
+            CREATURE ทุกตัวกำลังหลับ...<br/>ใช้ potion หรือรอสักครู่
+          </div>
+          <button
+            onClick={onFlee}
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: 'rgba(255,255,255,0.5)',
+              borderRadius: 0, padding: '8px 28px',
+              fontFamily: 'var(--font-thai)', fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            กลับแมพ
+          </button>
         </div>
       )}
-
-      {/* Flee */}
-      <button
-        onClick={onFlee}
-        style={{
-          marginTop: 8,
-          background: 'transparent',
-          border: '1px solid rgba(255,255,255,0.2)',
-          color: 'rgba(255,255,255,0.4)',
-          borderRadius: 0, padding: '8px 28px',
-          fontFamily: 'var(--font-thai)', fontSize: 12,
-          cursor: 'pointer',
-        }}
-      >
-        หนี
-      </button>
     </div>
   )
 }

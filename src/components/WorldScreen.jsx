@@ -69,37 +69,22 @@ const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0
 
 // ── Player glow rendering ────────────────────────────────────────────────────
 
-function fillCirclePixel(ctx, cx, cy, r, blockSize) {
-  const B = blockSize
-  for (let y = -r; y <= r; y += B) {
-    for (let x = -r; x <= r; x += B) {
-      const d = x * x + y * y
-      if (d > (r - B) * (r - B) && d <= r * r) {
-        ctx.fillRect(Math.round(cx + x), Math.round(cy + y), B, B)
-      }
-    }
-  }
-}
-
 function drawPlayerGlow(ctx, px, py, frame) {
   const cx = px + TILE / 2
   const cy = py + TILE / 2
-  const r  = TILE * 0.9
-  const pulse = Math.sin(frame * 0.08) * 0.3 + 0.7
+  const pulse = (Math.sin(frame * 0.06) + 1) / 2
 
-  ctx.globalAlpha = 0.13 * pulse
-  ctx.fillStyle = '#ffffaa'
-  fillCirclePixel(ctx, cx, cy, r + 5, 4)
+  ctx.strokeStyle = `rgba(255,255,180,${0.15 + pulse * 0.50})`
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(cx, cy, TILE * 0.85, 0, Math.PI * 2)
+  ctx.stroke()
 
-  ctx.globalAlpha = 0.28 * pulse
-  ctx.fillStyle = '#ffffff'
-  fillCirclePixel(ctx, cx, cy, r + 2, 4)
-
-  ctx.globalAlpha = 0.50
-  ctx.fillStyle = '#ffffdd'
-  fillCirclePixel(ctx, cx, cy, r, 2)
-
-  ctx.globalAlpha = 1
+  ctx.strokeStyle = `rgba(255,255,220,${0.30 + pulse * 0.40})`
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(cx, cy, TILE * 0.58, 0, Math.PI * 2)
+  ctx.stroke()
 }
 
 const OWL_LINES = [
@@ -256,7 +241,7 @@ export default function WorldScreen({ navigate }) {
         enemiesRef.current = enemiesRef.current.map(e => {
           if (!applied && e.type === lb.enemyType) {
             applied = true
-            return { ...e, dead: true, deathTimer: 180, opacity: 1.0 }
+            return { ...e, dead: true }
           }
           return e
         })
@@ -474,14 +459,10 @@ export default function WorldScreen({ navigate }) {
     function updateEnemies(tileMap, frame) {
       let pendingBattle = null
       enemiesRef.current = enemiesRef.current.map(e => {
-        // Death animation tick
+        // Dead → schedule respawn and remove immediately
         if (e.dead) {
-          const newTimer = (e.deathTimer || 0) - 1
-          if (newTimer <= 0) {
-            scheduleRespawn(e)
-            return null
-          }
-          return { ...e, deathTimer: newTimer, opacity: newTimer / 180 }
+          scheduleRespawn(e)
+          return null
         }
         if (e.defeated) {
           const rt = e.respawnTimer - 1
@@ -636,27 +617,6 @@ export default function WorldScreen({ navigate }) {
         const cy = Math.round((e.row + 0.5) * TILE - camY)
         const px = cx - sz / 2
         const py = cy - sz / 2
-
-        if (e.dead) {
-          // Corpse: squished flat on its side, fading out
-          ctx.save()
-          ctx.globalAlpha = Math.max(0, e.opacity ?? 0)
-          ctx.translate(cx, cy + sz * 0.2)
-          ctx.rotate(Math.PI / 2)
-          ctx.scale(1, 0.3)
-          drawEnemy(ctx, e.type, sz, -sz / 2, -sz / 2)
-          ctx.restore()
-          // ✕ mark above corpse
-          ctx.save()
-          ctx.globalAlpha = Math.max(0, (e.opacity ?? 0) * 0.85)
-          ctx.fillStyle = '#ff2222'
-          ctx.font = `bold ${TILE}px monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText('✕', cx, cy)
-          ctx.restore()
-          return
-        }
 
         drawEnemy(ctx, e.type, sz, px, py)
         // Woken bunny alert

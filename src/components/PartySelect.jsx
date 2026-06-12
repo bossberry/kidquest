@@ -1,30 +1,47 @@
-import React, { useMemo } from 'react'
+import React, { useRef } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
-import CreatureCanvas from './CreatureCanvas.jsx'
-import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 
 export default function PartySelect({ onSelect, onFlee }) {
   const { state } = useAppState()
 
-  // dna is included in the memo so it is stable across re-renders.
-  // Without this, the IIFE in the map creates a new object every render,
-  // causing CreatureCanvas.useEffect([dna]) to restart the animation RAF
-  // on every re-render — the amplifying half of the "PartySelect freeze" bug.
-  const partyCreatures = useMemo(() => {
-    return (state.party || [])
-      .map(id => {
-        const creature = (state.hatchedEggs || []).find(e => e.id === id)
-        if (!creature) return null
-        const dna = creature.dna ?? (() => {
-          try { return buildLegacyPreviewDNA(creature, 0) } catch { return null }
-        })()
-        return { creature, dna }
-      })
-      .filter(Boolean)
-  }, [state.party, state.hatchedEggs])
+  // Render-loop safety net: bail out visibly instead of freezing the app.
+  const renderCount = useRef(0)
+  renderCount.current++
+  if (renderCount.current > 50) {
+    console.error('PartySelect render loop detected, count:', renderCount.current)
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 80,
+        background: '#0a0a12',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <button
+          onClick={onFlee}
+          style={{
+            color: 'white', fontSize: 16, background: 'transparent',
+            border: '1px solid #555', padding: '12px 24px', cursor: 'pointer',
+          }}
+        >
+          กลับแมพ (เกิดข้อผิดพลาด)
+        </button>
+      </div>
+    )
+  }
 
-  const allFainted = partyCreatures.length > 0 &&
-    partyCreatures.every(({ creature: c }) => (c.currentHP ?? 0) <= 0)
+  // Pure derivation from state — no side effects, no dispatch, no useMemo needed.
+  const partyCreatures = (state.party ?? [])
+    .map(id => (state.hatchedEggs ?? []).find(e => e.id === id))
+    .filter(Boolean)
+
+  // Fallback: if party is empty but eggs exist, show most recently hatched one
+  const displayCreatures = partyCreatures.length > 0
+    ? partyCreatures
+    : [...(state.hatchedEggs ?? [])]
+        .sort((a, b) => (b.hatched_at ?? 0) - (a.hatched_at ?? 0))
+        .slice(0, 1)
+
+  const allFainted = displayCreatures.length > 0 &&
+    displayCreatures.every(c => (c.currentHP ?? 1) <= 0)
 
   return (
     <div style={{
@@ -49,77 +66,59 @@ export default function PartySelect({ onSelect, onFlee }) {
           fontFamily: 'var(--font-thai)', fontSize: 14,
           color: 'var(--px-light, #9090c0)',
         }}>
-          vs {state.pendingBattle.enemy.nameTH ?? state.pendingBattle.enemy.type}
+          vs {state.pendingBattle.enemy.nameTH ?? state.pendingBattle.enemy.type ?? '???'}
         </div>
       )}
 
-      {/* Party grid */}
+      {/* Creature buttons */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: partyCreatures.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-        gap: 12,
-        width: '100%',
-        maxWidth: partyCreatures.length === 1 ? 200 : 320,
+        display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center',
+        width: '100%', maxWidth: 320,
       }}>
-        {partyCreatures.map(({ creature, dna }) => {
-          const lvBonus = Math.max(0, (creature.battleLevel ?? 1) - 1)
-          const maxHP = (creature.stats?.HP ?? 10) + lvBonus
-          const currentHP = Math.min(creature.currentHP ?? maxHP, maxHP)
-          const fainted = currentHP <= 0
-
+        {displayCreatures.map(c => {
+          const lvBonus = Math.max(0, (c.battleLevel ?? 1) - 1)
+          const maxHP = (c.stats?.HP ?? 10) + lvBonus
+          const hp = Math.min(c.currentHP ?? maxHP, maxHP)
+          const fainted = hp <= 0
           return (
             <button
-              key={creature.id}
-              onClick={() => !fainted && onSelect(creature.id)}
+              key={c.id}
+              onClick={() => !fainted && onSelect(c.id)}
               disabled={fainted}
               style={{
                 background: fainted ? '#111' : 'var(--px-dark, #2a2a4a)',
                 border: `2px solid ${fainted ? '#333' : 'var(--px-border, #5a5a9a)'}`,
-                borderRadius: 0,
-                padding: 10,
+                borderRadius: 0, padding: '12px 16px', minWidth: 140,
                 opacity: fainted ? 0.4 : 1,
                 cursor: fainted ? 'not-allowed' : 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                 boxShadow: fainted ? 'none' : '3px 3px 0 #000',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
               }}
             >
-              {dna ? (
-                <CreatureCanvas
-                  dna={dna}
-                  size={60}
-                  personality={dna.personality}
-                  animationEnabled={!fainted}
-                  idleMode={fainted ? 'sleep' : 'idle'}
-                />
-              ) : (
-                <div style={{ fontSize: 40, lineHeight: 1 }}>🥚</div>
-              )}
+              {/* Egg placeholder — CreatureCanvas removed to eliminate RAF loop risk */}
+              <div style={{ fontSize: 40, lineHeight: 1 }}>🥚</div>
 
-              {/* Creature name */}
               <div style={{
                 fontFamily: 'var(--font-thai)', fontSize: 12,
                 color: fainted ? '#555' : 'var(--px-white, #f0f0f0)',
                 textAlign: 'center',
               }}>
-                {creature.creature?.n || 'สัตว์ลึกลับ'}
+                {c.creature?.n ?? 'สัตว์ลึกลับ'}
               </div>
 
-              {/* Battle level */}
               <div style={{
                 fontFamily: 'var(--font-pixel)', fontSize: 8,
                 color: 'var(--px-light, #9090c0)',
               }}>
-                Lv.{creature.battleLevel ?? 1}
+                Lv.{c.battleLevel ?? 1}
               </div>
 
-              {/* HP bar */}
               <div style={{ width: '100%', background: '#000', border: '1px solid #333', height: 6 }}>
                 <div style={{
-                  width: `${Math.max(0, (currentHP / maxHP) * 100)}%`,
+                  width: `${Math.max(0, (hp / maxHP) * 100)}%`,
                   height: '100%',
-                  background: currentHP / maxHP > 0.5 ? '#4acd4a'
-                    : currentHP / maxHP > 0.2 ? '#cdcd20' : '#cd2020',
-                  transition: 'width 300ms steps(10)',
+                  background: hp / maxHP > 0.5 ? '#4acd4a'
+                    : hp / maxHP > 0.2 ? '#cdcd20' : '#cd2020',
                 }} />
               </div>
 
@@ -127,74 +126,40 @@ export default function PartySelect({ onSelect, onFlee }) {
                 fontFamily: 'var(--font-pixel)', fontSize: 7,
                 color: 'var(--px-light, #9090c0)',
               }}>
-                {fainted ? 'หลับ...' : `${currentHP}/${maxHP}`}
+                {fainted ? 'หลับ...' : `${hp}/${maxHP}`}
               </div>
             </button>
           )
         })}
-
-        {/* Empty party slots */}
-        {Array.from({ length: Math.max(0, (state.partySlots || 1) - partyCreatures.length) }).map((_, i) => (
-          <div key={`empty-${i}`} style={{
-            border: '2px dashed #333', borderRadius: 0,
-            height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 8, color: '#333' }}>
-              EMPTY
-            </span>
-          </div>
-        ))}
       </div>
 
-      {/* No party at all — must show escape button or player is stuck */}
-      {partyCreatures.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <div style={{
-            fontFamily: 'var(--font-thai)', fontSize: 12,
-            color: 'rgba(255,255,255,0.5)', maxWidth: 280, marginBottom: 14,
-          }}>
-            ยังไม่มี creature ในทีม<br/>
-            <span style={{ fontSize: 10 }}>ฟักไข่ก่อนออกสำรวจ!</span>
-          </div>
-          <button
-            onClick={onFlee}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: 'rgba(255,255,255,0.5)',
-              borderRadius: 0, padding: '8px 28px',
-              fontFamily: 'var(--font-thai)', fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            กลับแมพ
-          </button>
+      {/* No eggs at all */}
+      {displayCreatures.length === 0 && (
+        <div style={{
+          fontFamily: 'var(--font-thai)', fontSize: 12,
+          color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280,
+          marginBottom: 8,
+        }}>
+          ยังไม่มี creature ในทีม<br/>
+          <span style={{ fontSize: 10 }}>ฟักไข่ก่อนออกสำรวจ!</span>
         </div>
       )}
 
-      {/* All fainted — forced retreat only */}
-      {allFainted && (
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <div style={{
-            fontFamily: 'var(--font-pixel)', fontSize: 9,
-            color: '#cc2020', marginBottom: 14,
-          }}>
-            CREATURE ทุกตัวกำลังหลับ...<br/>ใช้ potion หรือรอสักครู่
-          </div>
-          <button
-            onClick={onFlee}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: 'rgba(255,255,255,0.5)',
-              borderRadius: 0, padding: '8px 28px',
-              fontFamily: 'var(--font-thai)', fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            กลับแมพ
-          </button>
-        </div>
+      {/* Escape button — shown when all fainted OR party is empty */}
+      {(allFainted || displayCreatures.length === 0) && (
+        <button
+          onClick={onFlee}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: 'rgba(255,255,255,0.5)',
+            borderRadius: 0, padding: '8px 28px',
+            fontFamily: 'var(--font-thai)', fontSize: 12,
+            cursor: 'pointer',
+          }}
+        >
+          {allFainted ? 'CREATURE ทุกตัวกำลังหลับ... กลับแมพ' : 'กลับแมพ'}
+        </button>
       )}
     </div>
   )

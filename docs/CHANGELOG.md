@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: replace PartySelect with simple loop-free version
+
+### src/components/PartySelect.jsx (full rewrite)
+- Removed `CreatureCanvas` and `buildLegacyPreviewDNA` — eliminates all RAF animation risk
+  from this component (those were the amplifying factor in the freeze).
+- Removed `useMemo` — not needed without expensive DNA computation.
+- Added `renderCount` ref bailout: if render count exceeds 50, renders an escape button
+  and logs an error instead of freezing the browser.
+- Fallback to most-recently-hatched egg when party is empty (sorted by `hatched_at`).
+- Escape button shown for both empty-party and all-fainted states.
+- Creature shown as 🥚 placeholder for now; CreatureCanvas can be restored once
+  stability is confirmed.
+
+---
+
 ## 2026-06-12 — hotfix: PartySelect infinite loop / freeze on mount
 
 ### src/components/WorldScreen.jsx

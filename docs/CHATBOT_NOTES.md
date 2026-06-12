@@ -686,6 +686,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — hotfix: replace PartySelect with definitive loop-free version:**
+- Previous fix (e8c51e8) addressed the RAF timing race and dna reference issue, but CreatureCanvas remained — it starts its own RAF animation on mount and `buildLegacyPreviewDNA` still runs once per useMemo invalidation.
+- Built: `PartySelect.jsx` full rewrite. Removed `CreatureCanvas`, `buildLegacyPreviewDNA`, and `useMemo`. Added `renderCount` ref bailout (>50 renders → show error button instead of freezing). Pure state derivation: `partyCreatures` computed inline each render (no expensive ops, array is tiny). Fallback to most-recently-hatched egg if party is empty. Escape button for both empty-party and all-fainted. Creatures shown as 🥚 for now.
+- Root cause summary: WorldScreen stateRef race (useLayoutEffect fix, previous session) + CreatureCanvas RAF amplifier (dna memo, previous session) + remaining risk from buildLegacyPreviewDNA inside useMemo. Definitive fix removes all canvas concerns from PartySelect entirely.
+- Not finished: CreatureCanvas can be restored to PartySelect once stability is confirmed.
+- Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — hotfix: damage calculation — creature 1-shots all enemies:**
 - Root cause: `calcCreatureStats` uses `TIERS[0].baseStat = 100`, producing ATK≈40–70 for all Tier 0 creatures. World enemies have HP=32–52 and were designed for ATK=4–5 hits. The formula `max(1, 60−0)×1 = 60` one-shot kills `sleepy_bunny` (HP=44). Both damage directions were broken: creature ATK×10 too high, and creature DEF×0.5 always absorbed all enemy ATK leaving `max(1, …)=1`.
 - Built: `src/components/WorldBattle.jsx` — `creatureStats` useMemo now applies world-battle scaling: `WB_STAT_SCALE=0.07` (ATK/DEF: ~60→4, giving ~11 hits vs easiest enemy), `WB_HP_SCALE=0.10` (HP: ~166→17, faint after ~8–9 non-dodged wrong answers). `creatureCurrentHP` computed as `min(scaledMaxHP, round(creature.currentHP × WB_HP_SCALE))` — carries scaled HP across battles. `handleCreatureTakeDamage` dispatches `round(damage / WB_HP_SCALE)` to state so state HP decreases proportionally. DEF now actually reduces enemy damage (was always blocked by 50× higher value).

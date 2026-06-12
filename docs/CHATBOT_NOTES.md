@@ -671,3 +671,13 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — hotfix: damage calculation — creature 1-shots all enemies:**
+- Root cause: `calcCreatureStats` uses `TIERS[0].baseStat = 100`, producing ATK≈40–70 for all Tier 0 creatures. World enemies have HP=32–52 and were designed for ATK=4–5 hits. The formula `max(1, 60−0)×1 = 60` one-shot kills `sleepy_bunny` (HP=44). Both damage directions were broken: creature ATK×10 too high, and creature DEF×0.5 always absorbed all enemy ATK leaving `max(1, …)=1`.
+- Built: `src/components/WorldBattle.jsx` — `creatureStats` useMemo now applies world-battle scaling: `WB_STAT_SCALE=0.07` (ATK/DEF: ~60→4, giving ~11 hits vs easiest enemy), `WB_HP_SCALE=0.10` (HP: ~166→17, faint after ~8–9 non-dodged wrong answers). `creatureCurrentHP` computed as `min(scaledMaxHP, round(creature.currentHP × WB_HP_SCALE))` — carries scaled HP across battles. `handleCreatureTakeDamage` dispatches `round(damage / WB_HP_SCALE)` to state so state HP decreases proportionally. DEF now actually reduces enemy damage (was always blocked by 50× higher value).
+- Not finished: none. Build assumed ✅ (WorldBattle.jsx only).
+- Blockers/risks: none.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

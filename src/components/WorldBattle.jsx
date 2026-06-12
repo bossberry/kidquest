@@ -155,14 +155,21 @@ export default function WorldBattle({ navigate }) {
   const creature      = (state.hatchedEggs || []).find(e => e.id === creatureId)
   const creatureLevel = creature?.battleLevel ?? 1
 
-  // Apply level bonuses: +1 HP and +0.5 ATK per level above 1 (research doc spec)
+  // Scale creature stats to world-battle range.
+  // calcCreatureStats produces baseStat=100 scale: ATK≈40-70, HP≈120-200.
+  // World enemies are balanced for ATK=4-5, HP=32-52 — divide by ~10-14.
+  const WB_STAT_SCALE = 0.07   // ATK/DEF: ~60 → 4  (11 hits vs easiest enemy)
+  const WB_HP_SCALE   = 0.10   // HP:      ~166 → 17 (faint after ~8-9 non-dodged misses)
+
   const creatureStats = React.useMemo(() => {
     const base = creature?.stats ?? {}
     const lvBonus = creatureLevel - 1
     return {
       ...base,
-      HP:  (base.HP  ?? 10) + lvBonus,
-      ATK: (base.ATK ?? 5)  + Math.floor(lvBonus * 0.5),
+      HP:  Math.max(15, Math.round((base.HP  ?? 100) * WB_HP_SCALE)  + lvBonus),
+      ATK: Math.max(3,  Math.round((base.ATK ?? 50)  * WB_STAT_SCALE) + Math.floor(lvBonus * 0.5)),
+      DEF: Math.max(0,  Math.round((base.DEF ?? 50)  * WB_STAT_SCALE)),
+      SPD: base.SPD ?? 40,
     }
   }, [creature, creatureLevel]) // eslint-disable-line
 
@@ -223,7 +230,10 @@ export default function WorldBattle({ navigate }) {
 
   if (!enemy || !scaledEnemy) return null
 
-  const creatureCurrentHP = creature?.currentHP ?? creatureStats.HP ?? 20
+  const creatureCurrentHP = Math.min(
+    creatureStats.HP,
+    Math.max(0, Math.round((creature?.currentHP ?? (creature?.stats?.HP ?? 100)) * WB_HP_SCALE))
+  )
 
   function onCorrect() {
     const isCrit = streakRef.current >= 2
@@ -252,7 +262,8 @@ export default function WorldBattle({ navigate }) {
 
   function handleCreatureTakeDamage(damage) {
     if (!creatureId) return
-    dispatch({ type: ACTIONS.CREATURE_TAKE_DAMAGE, payload: { creatureId, damage } })
+    // Scale battle damage back to state HP range so state HP decreases proportionally
+    dispatch({ type: ACTIONS.CREATURE_TAKE_DAMAGE, payload: { creatureId, damage: Math.round(damage / WB_HP_SCALE) } })
   }
 
   function handleBattleXP(xp) {

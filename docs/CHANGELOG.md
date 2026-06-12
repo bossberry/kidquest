@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: damage calculation — creature 1-shots world enemies
+
+### src/components/WorldBattle.jsx
+- `creatureStats` useMemo now scales creature stats to world-battle range.
+  `WB_STAT_SCALE=0.07`: ATK/DEF ~60→4 (Tier 0, balanced XP). `WB_HP_SCALE=0.10`: HP ~166→17.
+  Result: ~11 hits (no combo) / ~7 hits (×1.5 combo) vs `sleepy_bunny` (HP=44). ✅
+- `creatureCurrentHP` now computed as `min(scaledMaxHP, round(creature.currentHP × WB_HP_SCALE))`.
+  Carries persistent HP across battles (creature heals only via items/full-restore). ✅
+- `handleCreatureTakeDamage` dispatches `round(damage / WB_HP_SCALE)` to state.
+  State HP decreases proportionally → creature faint in state matches battle faint. ✅
+- Root cause: `TIERS[0].baseStat = 100` → `calcCreatureStats` outputs ATK≈40–70 (designed for
+  academic battles vs AI opponents with HP=280–700). World battle enemies (HP=32–52, ATK=3–5)
+  require a separate scale factor; previous code passed raw stats directly.
+
+---
+
 ## 2026-06-12 — feat: PartySelect centered layout + HP display fix
 
 ### src/components/PartySelect.jsx

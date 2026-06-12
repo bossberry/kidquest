@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — hotfix: battle not opening — INIT dispatch overwrites initializer null
+
+### Root cause
+`ACTIONS.INIT` reducer spread `action.payload` which included the stale `battleCreatureId`
+from Supabase/localStorage, undoing the `useReducer` initializer's `null` override. The
+`loadState().then(dispatch INIT)` runs ~50ms after mount; the stale value came back every load.
+
+### src/context/StateContext.jsx
+- `ACTIONS.INIT` case now appends `battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null`
+  after the payload spread — transient battle fields are always cleared on any full state load.
+
+---
+
 ## 2026-06-12 — hotfix: fix PartySelect never appearing after enemy collision
 
 ### Root cause

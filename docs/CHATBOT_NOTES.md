@@ -625,3 +625,13 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+---
+
+**2026-06-12 — hotfix: battle still not opening after collision (INIT dispatch overwrites null):**
+- Root cause (deeper than previous fix): `useReducer` initializer correctly sets `battleCreatureId: null`. BUT the `loadState().then(remote => dispatch(ACTIONS.INIT, remote))` runs ~50ms later and dispatches `ACTIONS.INIT` with the full saved state — including the stale `battleCreatureId` from Supabase or localStorage. The previous INIT reducer did `{ ...defaultState(), ...payload }` which spread the stale value back in, silently undoing the initializer's null.
+- Built: `src/context/StateContext.jsx` — `ACTIONS.INIT` reducer case now appends `battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null` after the payload spread. These transient fields must never survive app restart regardless of what loadState returns.
+- Not finished: none. Build assumed ✅ (single-line change).
+- Blockers/risks: none.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+

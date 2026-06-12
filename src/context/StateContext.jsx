@@ -108,7 +108,7 @@ function reducer(state, action) {
   switch (action.type) {
 
     case ACTIONS.INIT:
-      return { ...defaultState(), ...action.payload }
+      return { ...defaultState(), ...action.payload, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
 
     case ACTIONS.ADD_XP: {
       const { world, amount, accDelta, speedDelta } = action.payload

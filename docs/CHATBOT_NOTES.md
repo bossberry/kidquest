@@ -627,6 +627,17 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — feat: PartySelect centered + no flee + selected creature wired to battle:**
+- Fix 1 (flee button): Already removed in prior session. No change needed.
+- Fix 2 (layout centering): Added `justifyContent: 'center'` to wrapper. `gap: 14→20`. Enemy preview switched from `font-pixel/10px` to `font-thai/14px`. Grid now uses `gridTemplateColumns: partyCreatures.length === 1 ? '1fr' : 'repeat(2, 1fr)'` and `maxWidth: 1 creature → 200, else 320`.
+- Fix 3 (selected creature wired to battle): Already working via App.jsx `onSelect` → `SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD + navigate('world-battle')`. WorldBattle.jsx reads `state.battleCreatureId`, resolves creature, passes stats to MoveSelectBattleMode. No change needed.
+- Fix 4 (HP display): `maxHP` now includes battle level bonus: `(creature.stats.HP ?? 10) + Math.max(0, (creature.battleLevel ?? 1) - 1)`. `currentHP` display clamped to `Math.min(creature.currentHP, maxHP)`. Fixes 191/188 overflow bug.
+- Built: `PartySelect.jsx` only. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — audit: battle balance fixes verified already in place (no code changes):**
 - Verified all 4 requested fixes are already implemented from prior sessions:
   - Fix 1: `enemyConfig.js` has correct HP/ATK/DEF (hp=44 bunny, 44 slime, 40 leaf/imp, 36 fox, 52 mole, 32 zombie, 50 snake, 44 egg_pawn; ATK 3–5; DEF 0–1). Lowercase keys match tileMaps.js (`sleepy_bunny`, `fox_kit`, etc.) — task spec uppercase keys would have broken tile map lookups. Subjects kept as `'thai'`/`'math'`/`'eng'` for battle routing (task spec had `null` for all; existing design is intentional).

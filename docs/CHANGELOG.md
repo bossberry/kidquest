@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-12 — feat: PartySelect centered layout + HP display fix
+
+### src/components/PartySelect.jsx
+- `justifyContent: 'center'` added to wrapper — content vertically centered on screen.
+- `gap: 14 → 20` between sections.
+- Enemy preview: `var(--font-pixel)/10px → var(--font-thai)/14px` for readability.
+- Grid: single-creature case uses `gridTemplateColumns: '1fr'` and `maxWidth: 200`
+  (was always `repeat(2, 1fr)` and `maxWidth: 320`).
+- `maxHP` now includes battle level bonus: `stats.HP + max(0, battleLevel - 1)`.
+  Fixes HP display overflow (e.g. 191/188) when battleLevel > 1.
+- `currentHP` display clamped to `Math.min(currentHP, maxHP)`.
+
+---
+
 ## 2026-06-12 — hotfix: item reuse per question + no corpse + smooth glow + no flee
 
 ### src/games/MoveSelectBattleMode.jsx

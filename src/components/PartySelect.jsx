@@ -20,7 +20,8 @@ export default function PartySelect({ onSelect, onFlee }) {
       position: 'fixed', inset: 0, zIndex: 80,
       background: 'var(--px-darkest, #0a0a12)',
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', padding: '24px 16px', gap: 14,
+      alignItems: 'center', justifyContent: 'center',
+      gap: 20, padding: '24px 16px',
       overflowY: 'auto',
     }}>
       {/* Title */}
@@ -34,7 +35,7 @@ export default function PartySelect({ onSelect, onFlee }) {
       {/* Enemy preview */}
       {state.pendingBattle?.enemy && (
         <div style={{
-          fontSize: 10, fontFamily: 'var(--font-pixel)',
+          fontFamily: 'var(--font-thai)', fontSize: 14,
           color: 'var(--px-light, #9090c0)',
         }}>
           vs {state.pendingBattle.enemy.nameTH ?? state.pendingBattle.enemy.type}
@@ -43,12 +44,16 @@ export default function PartySelect({ onSelect, onFlee }) {
 
       {/* Party grid */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 10, width: '100%', maxWidth: 320,
+        display: 'grid',
+        gridTemplateColumns: partyCreatures.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+        gap: 12,
+        width: '100%',
+        maxWidth: partyCreatures.length === 1 ? 200 : 320,
       }}>
         {partyCreatures.map(creature => {
-          const maxHP = creature.stats?.HP ?? 10
-          const currentHP = creature.currentHP ?? maxHP
+          const lvBonus = Math.max(0, (creature.battleLevel ?? 1) - 1)
+          const maxHP = (creature.stats?.HP ?? 10) + lvBonus
+          const currentHP = Math.min(creature.currentHP ?? maxHP, maxHP)
           const fainted = currentHP <= 0
           const dna = creature.dna ?? (() => {
             try { return buildLegacyPreviewDNA(creature, 0) } catch { return null }

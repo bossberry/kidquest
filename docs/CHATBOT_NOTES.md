@@ -627,6 +627,18 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-12 — audit: battle balance fixes verified already in place (no code changes):**
+- Verified all 4 requested fixes are already implemented from prior sessions:
+  - Fix 1: `enemyConfig.js` has correct HP/ATK/DEF (hp=44 bunny, 44 slime, 40 leaf/imp, 36 fox, 52 mole, 32 zombie, 50 snake, 44 egg_pawn; ATK 3–5; DEF 0–1). Lowercase keys match tileMaps.js (`sleepy_bunny`, `fox_kit`, etc.) — task spec uppercase keys would have broken tile map lookups. Subjects kept as `'thai'`/`'math'`/`'eng'` for battle routing (task spec had `null` for all; existing design is intentional).
+  - Fix 2: Damage formula `Math.round(Math.max(1, creatureStats.ATK - enemy.def) * mult)` already correct at `MoveSelectBattleMode.jsx:537–538`.
+  - Fix 3: `scaleMonsterStats(baseStats, creatureLevel)` in `StateContext.jsx` already uses tier thresholds ≤5/≤15/≤30/≤50/>50 → 1.0/1.3/1.8/2.4/3.2. `WorldBattle.jsx` passes `creature?.battleLevel ?? 1`.
+  - Fix 4: `WorldScreen.jsx:303` `SET_PENDING_BATTLE` dispatch already includes `atk: eData.atk ?? 4, def: eData.def ?? 0`.
+- No code changes made. Build status: unchanged ✅.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.
+
+---
+
 **2026-06-12 — hotfix: item reuse per question + no corpse + smooth glow + no flee:**
 - Built:
   - `MoveSelectBattleMode.jsx` — Added `setItemUsed(false)` to the per-question reset `useEffect([cur])`. Item is now usable once per question turn (was once per battle). No other item logic changed.

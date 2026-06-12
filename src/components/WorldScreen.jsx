@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { SCREENS } from '../config/worldConfig.js'
+import { SCREENS, SCREEN_THEMES } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import {
   MAP_ROWS, MAP_COLS, T,
@@ -12,6 +12,7 @@ import { drawEnemy } from '../lib/drawEnemy.js'
 import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
 import { ENEMY_DATA } from '../config/enemyConfig.js'
 import TreasureSlot from './TreasureSlot.jsx'
+import PixelItemIcon from './PixelItemIcon.jsx'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
@@ -119,6 +120,207 @@ const DPAD_BTN = (pos) => ({
   userSelect: 'none', fontFamily: 'system-ui,sans-serif',
   ...pos,
 })
+
+// ── World Map HUD ─────────────────────────────────────────────────────────────
+
+const SCREEN_GRID_LAYOUT = [
+  ['TL', 'TM', 'TR'],
+  ['ML', 'MC', 'MR'],
+  ['BL', 'BM', 'BR'],
+]
+
+const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
+
+export const HUD_CONTENT_H = 64
+
+function xpProgress(creature) {
+  const level = creature?.battleLevel ?? 1
+  const xp = creature?.battleXP ?? 0
+  let threshold = 0
+  for (let l = 1; l < level; l++) threshold += 10 + l * l * 2
+  const inLevel = Math.max(0, xp - threshold)
+  const needed = 10 + level * level * 2
+  return { level, fraction: Math.min(1, inLevel / needed) }
+}
+
+const HUD_SEP = (
+  <div style={{ width: 1, background: 'rgba(60,120,60,0.25)', alignSelf: 'stretch' }} />
+)
+
+function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
+  const discovered = new Set(discoveredScreens ?? [])
+  const MINI_TILE = 12
+  const MINI_GAP  = 1
+
+  const eggs     = state.hatchedEggs ?? []
+  const partyId  = (state.party ?? [])[0]
+  const creature = (partyId ? eggs.find(e => e.id === partyId) : null)
+    ?? [...eggs].sort((a, b) => (b.hatched_at ?? 0) - (a.hatched_at ?? 0))[0]
+    ?? null
+
+  const lvBonus = Math.max(0, (creature?.battleLevel ?? 1) - 1)
+  const maxHP   = (creature?.stats?.HP ?? 10) + lvBonus
+  const hp      = creature ? Math.min(creature.currentHP ?? maxHP, maxHP) : 0
+  const hpFrac  = creature ? Math.max(0, hp / maxHP) : 0
+  const hpColor = hpFrac > 0.5 ? '#38c038' : hpFrac > 0.2 ? '#c8c820' : '#c82020'
+
+  const { level: xpLevel, fraction: xpFrac } = xpProgress(creature)
+  const items = state.items ?? {}
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      background: 'rgba(5,10,5,0.86)',
+      borderBottom: '1px solid rgba(50,110,50,0.3)',
+    }}>
+      <div style={{
+        height: HUD_CONTENT_H,
+        display: 'flex', alignItems: 'stretch',
+      }}>
+
+        {/* Mini-map */}
+        <div style={{
+          width: 52, flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '4px 2px', gap: 3,
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: MINI_GAP }}>
+            {SCREEN_GRID_LAYOUT.map((row, ri) => (
+              <div key={ri} style={{ display: 'flex', gap: MINI_GAP }}>
+                {row.map(id => {
+                  const isCurrent = id === screenId
+                  const isDisc    = discovered.has(id)
+                  return (
+                    <div key={id} style={{
+                      width: MINI_TILE, height: MINI_TILE,
+                      background: isDisc ? (SCREEN_THEMES[id]?.grdA ?? '#2a4a2a') : '#0a120a',
+                      outline: isCurrent ? '1px solid #e0e040' : '1px solid #182018',
+                      outlineOffset: -1, position: 'relative',
+                    }}>
+                      {isCurrent && (
+                        <div style={{
+                          position: 'absolute', inset: 0, background: 'rgba(255,255,140,0.72)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 8, color: '#333',
+                        }}>•</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-pixel)', fontSize: 6,
+            color: 'rgba(130,190,130,0.45)', lineHeight: 1, textAlign: 'center',
+          }}>
+            {SCREENS[screenId]?.label ?? ''}
+          </div>
+        </div>
+
+        {HUD_SEP}
+
+        {/* Creature + HP */}
+        <div style={{
+          flex: 1, minWidth: 0,
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', padding: '0 8px', gap: 3,
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-thai)', fontSize: 10, color: '#c0c8c0',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {creature?.creature?.n ?? (creature ? '???' : 'ไม่มีสัตว์')}
+          </div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 7, color: '#505080', lineHeight: 1 }}>
+            Lv.{creature?.battleLevel ?? 1}
+          </div>
+          <div style={{ width: '100%', height: 5, background: '#050a05', border: '1px solid #182018' }}>
+            <div style={{ width: `${hpFrac * 100}%`, height: '100%', background: hpColor }} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 6, color: '#304030' }}>
+            {creature ? `${hp}/${maxHP}` : '—'}
+          </div>
+        </div>
+
+        {HUD_SEP}
+
+        {/* XP bar */}
+        <div style={{
+          width: 58, flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', padding: '0 6px', gap: 3,
+        }}>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 7, color: '#906828', lineHeight: 1 }}>
+            Lv.{xpLevel}
+          </div>
+          <div style={{ width: '100%', height: 4, background: '#050a05', border: '1px solid #182018' }}>
+            <div style={{ width: `${xpFrac * 100}%`, height: '100%', background: '#d09820' }} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 6, color: '#584010', lineHeight: 1 }}>
+            XP
+          </div>
+        </div>
+
+        {HUD_SEP}
+
+        {/* Battle items */}
+        <div style={{
+          width: 78, flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', padding: '0 6px', gap: 3,
+        }}>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 6, color: '#304030', lineHeight: 1 }}>
+            ITEMS
+          </div>
+          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            {BATTLE_ITEM_KEYS.map(key => {
+              const count = items[key] ?? 0
+              return (
+                <div key={key} style={{ position: 'relative', opacity: count > 0 ? 1 : 0.2 }}>
+                  <PixelItemIcon type={key} size={13} />
+                  {count > 0 && (
+                    <div style={{
+                      position: 'absolute', bottom: -1, right: -2,
+                      background: '#101a08', color: '#a8d030',
+                      fontFamily: 'var(--font-pixel)', fontSize: 6,
+                      lineHeight: 1, padding: '0 1px', pointerEvents: 'none',
+                    }}>
+                      {count > 9 ? '9+' : count}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Home button */}
+        <button onClick={onGoHome} style={{
+          width: 42, flexShrink: 0, alignSelf: 'stretch',
+          background: 'transparent',
+          border: 'none', borderLeft: '1px solid rgba(50,110,50,0.25)',
+          cursor: 'pointer',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 2,
+          WebkitTapHighlightColor: 'transparent', padding: 0,
+        }}>
+          <div style={{ fontFamily: 'Mitr,sans-serif', fontSize: 16, lineHeight: 1, color: 'rgba(180,230,180,0.6)' }}>
+            &#8962;
+          </div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 6, color: 'rgba(120,180,120,0.4)', lineHeight: 1 }}>
+            HOME
+          </div>
+        </button>
+
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function WorldScreen({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
@@ -677,7 +879,8 @@ export default function WorldScreen({ navigate }) {
 
       const vw = canvas.width
       const vh = canvas.height
-      const { camX, camY } = getCamera(g.displayX, g.displayY, vw, vh)
+      const { camX, camY: camYBase } = getCamera(g.displayX, g.displayY, vw, vh)
+      const camY = camYBase - Math.round(HUD_CONTENT_H / 2)
       ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY)
@@ -709,8 +912,6 @@ export default function WorldScreen({ navigate }) {
     playSFX('stage_up')
   }
 
-  const screenLabel = SCREENS[screenId]?.label || ''
-
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#0a1a0a' }}>
 
@@ -737,25 +938,13 @@ export default function WorldScreen({ navigate }) {
         pointerEvents: 'none', zIndex: 22,
       }} />
 
-      {/* Top bar */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 12px',
-        paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
-      }}>
-        <button onClick={goHome} style={{
-          background: 'rgba(255,255,255,0.88)', border: 'none', borderRadius: 20,
-          padding: '5px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
-          fontSize: 13, color: '#2d5a1b', cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-          WebkitTapHighlightColor: 'transparent',
-        }}>กลับบ้าน</button>
-        <div style={{
-          background: 'rgba(0,0,0,0.35)', borderRadius: 12, padding: '3px 10px',
-          fontFamily: 'Mitr,sans-serif', fontWeight: 700, fontSize: 11, color: '#fff',
-        }}>{screenLabel}</div>
-      </div>
+      {/* World HUD */}
+      <WorldHUD
+        screenId={screenId}
+        discoveredScreens={state.discoveredScreens}
+        state={state}
+        onGoHome={goHome}
+      />
 
       {/* NPC talk button */}
       {nearNPC && !dialogue && (

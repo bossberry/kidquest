@@ -705,3 +705,16 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
 
+
+---
+
+**2026-06-12 — World Map HUD (mini-map + creature status + XP bar + items):**
+- Built:
+  - `WorldScreen.jsx` — Replaced flat top bar (home button + screen label) with `WorldHUD` component. 4 sections: (1) Mini-map — 3×3 grid of 9 screens (TL/TM/TR/ML/MC/MR/BL/BM/BR), undiscovered=dark, discovered=grdA color from SCREEN_THEMES, current screen=yellow highlight with • dot; (2) Creature — first party member (fallback: most recent egg), name/level/HP bar/HP numbers; (3) XP bar — Lv.N + gold progress bar using `10 + level² × 2` threshold; (4) Items — 5 PixelItemIcon (scroll/thunder/gem/mirror/clover) at 13px, count badge, dimmed at 0. Home button (⌂ HTML entity + HOME label) replaces old "กลับบ้าน" button.
+  - Camera offset: `camY = camYBase − round(HUD_CONTENT_H / 2)` — player character centered in visible play area below the 64px HUD strip.
+  - Safe-area support: `paddingTop: env(safe-area-inset-top, 0px)` so HUD content sits below notch on iPhone.
+  - `SCREEN_THEMES` import added. `PixelItemIcon` import added. `screenLabel` const removed.
+- Not finished: none. Build ✅ zero errors.
+- Blockers/risks: none.
+- Ready to start next: Phase 4 NPC System.
+- Needs Chatbot decision first: nothing blocking.

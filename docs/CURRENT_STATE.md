@@ -51,6 +51,19 @@
 - **State**: No new fields. `ENCOUNTER_TRIGGERED` action added (no-op).
 - Phase 1 CSS art WorldScreen fully replaced.
 
+### World Map HUD (2026-06-12)
+
+- **`WorldHUD` component** in `WorldScreen.jsx` (module-level, above `export default`): Semi-transparent dark strip at top of world screen (`64px + env(safe-area-inset-top)`). 4 sections divided by hairline separators:
+  - **Mini-map** (52px wide): 3×3 canvas-less grid (divs) of all 9 screens. Discovered = `SCREEN_THEMES[id].grdA` ground color. Undiscovered = very dark. Current screen = yellow outline + translucent dot overlay.
+  - **Creature status**: First party member (fallback: most recently hatched egg). Shows name, Lv.N, HP bar (green/yellow/red by fraction), HP numbers.
+  - **XP bar** (58px): Current battle level + gold progress bar using `10 + level² × 2` threshold per level.
+  - **Items** (78px): 5 `PixelItemIcon` at 13px for `scroll/thunder/gem/mirror/clover`. Count badge. Dimmed to 20% opacity when count=0.
+  - **Home button**: Compact ⌂ + "HOME" label replaces old "กลับบ้าน" pill button.
+- **Camera offset**: `camY = camYBase − round(HUD_CONTENT_H / 2)` shifts map viewport so player centers in visible area below HUD.
+- New exports from `WorldScreen.jsx`: `HUD_CONTENT_H = 64` (number constant).
+
+---
+
 ### Green Meadow Phase 3 — World Battle + Pokémon Party System (2026-06-12)
 
 - **Party system**: `state.party` (array of creature IDs), `state.partySlots` (1–4, unlocks via battle milestones), `state.battleCreatureId` (fighting creature), `state.pendingBattle` (enemy awaiting creature selection).

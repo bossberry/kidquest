@@ -1213,3 +1213,8 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 - Migrated from single-file HTML prototype (~600KB) to React 18 + Vite.
 - Supabase auth and state sync implemented.
 - All game screens, minigames, and UI rebuilt as React components.
+
+## 2026-06-12 — World Map HUD
+- `WorldScreen.jsx`: New `WorldHUD` component replaces plain top bar. Sections: 3×3 mini-map (screen colors from SCREEN_THEMES, discovered/undiscovered/current states), creature status (name + level + HP bar + HP numbers), XP bar (Lv.N + gold progress), battle items (5 PixelItemIcon at 13px with count badges). Home button replaced with compact ⌂ symbol.
+- Camera `camY` offset adjusted by `−HUD_CONTENT_H/2` so the player avatar centers in the visible play area below the HUD.
+- Added `SCREEN_THEMES` and `PixelItemIcon` imports; removed unused `screenLabel` const.

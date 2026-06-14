@@ -734,3 +734,7 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Blockers/risks found: Old saves with `currentScreen: 'BM'` etc. default to 'NW' via `VALID_DYNAMIC.has()` guard. `SCREEN_ENEMIES` static export still in `tileMaps.js` (harmless but unused — left for backward compat with any other importer).
 - Ready to start next: Chopin playtest; then Phase 4 NPC System or Boss battle tuning.
 - Needs Chatbot decision first: (1) Should maze have enemies? (2) Is 20 battleWins for Dark Forest / 50 for Crystal Cave the right pace for Chopin?
+
+---
+
+**2026-06-14 — feat: food item heals active creature +10 HP in Home screen:** `Home.jsx` — food use dispatches `CREATURE_HEAL` for `state.party[0]` + `playSFX('egg_pet')` + floating "+10 HP" text (green, `dmg-float` 1.1s) above party HP bar. `CREATURE_HEAL` already existed in StateContext. Build ✅ pushed c5d9469.

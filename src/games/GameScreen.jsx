@@ -11,7 +11,6 @@ const EggTower    = lazy(() => import('./minigames/EggTower.jsx'))
 const EggFishing  = lazy(() => import('./minigames/EggFishing.jsx'))
 const GameShop        = lazy(() => import('./GameShop.jsx'))
 const GameMathBattle       = lazy(() => import('./GameMathBattle.jsx'))
-const GameSubjectAdventure = lazy(() => import('./GameSubjectAdventure.jsx'))
 
 const WORLD_TITLES = {
   thai:'ภาษาไทย 🇹🇭', math:'Math 🔢', eng:'English Phonics 🔤',
@@ -19,48 +18,13 @@ const WORLD_TITLES = {
   tower:'🏗️ Egg Tower', fishing:'🎣 Egg Fishing',
   shop:'🏪 ร้านค้า',
   mathbattle:'⚔️ Math Battle',
-  'adventure-thai':'🇹🇭 ผจญภัย Thai',
-  'adventure-math':'⚔️ ผจญภัย Math',
-  'adventure-eng':'🔤 ผจญภัย English',
 }
 
 export default function GameScreen({ navigate, soundOn, toggleSound }) {
   const { state } = useAppState()
   const world = state.currentWorld || 'thai'
-  const isAdventure = world.startsWith('adventure-')
 
-  // ── Adventure: true full-screen overlay, escapes all parent constraints ──
-  if (isAdventure) {
-    return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 50,
-        display: 'flex', flexDirection: 'column',
-      }}>
-        {/* Minimal back escape for parents — sits above game content */}
-        <button
-          onClick={() => navigate('home')}
-          style={{
-            position: 'absolute', top: 10, left: 12, zIndex: 200,
-            background: 'rgba(0,0,0,.28)', color: 'rgba(255,255,255,.55)',
-            border: 'none', borderRadius: 8, padding: '6px 10px',
-            fontSize: 14, cursor: 'pointer', touchAction: 'manipulation',
-            fontFamily: 'Mitr,sans-serif', lineHeight: 1,
-          }}
-        >←</button>
-
-        {/* Game fills the full overlay */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Suspense fallback={null}>
-            {world === 'adventure-thai' && <GameSubjectAdventure subject="thai" navigate={navigate} />}
-            {world === 'adventure-math' && <GameSubjectAdventure subject="math" navigate={navigate} />}
-            {world === 'adventure-eng'  && <GameSubjectAdventure subject="eng"  navigate={navigate} />}
-          </Suspense>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Classic games: existing constrained layout ───────────────────────────
+  // ── Classic games ────────────────────────────────────────────────────────
   return (
     <div style={{ display:'flex', flexDirection:'column', width:'100%', height:'100%', background:'var(--bg)' }}>
       <div className="back-bar">

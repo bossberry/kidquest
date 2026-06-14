@@ -737,4 +737,6 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 ---
 
+**2026-06-14 — chore: remove Subject Adventure random mode:** Deleted `GameSubjectAdventure.jsx`; removed adventure-* routes and `isAdventure` block from `GameScreen.jsx`. `currentWorld`/`SET_CURRENT_WORLD`/`sessionXP` kept (used by classic games). Home "ออกสำรวจ" already routed to world map only. Build ✅.
+
 **2026-06-14 — feat: food item heals active creature +10 HP in Home screen:** `Home.jsx` — food use dispatches `CREATURE_HEAL` for `state.party[0]` + `playSFX('egg_pet')` + floating "+10 HP" text (green, `dmg-float` 1.1s) above party HP bar. `CREATURE_HEAL` already existed in StateContext. Build ✅ pushed c5d9469.

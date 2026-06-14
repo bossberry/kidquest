@@ -365,7 +365,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       // Heal active creature +10 HP
       const activeCreatureId = state.party?.[0]
       if (activeCreatureId) {
-        dispatch({ type: ACTIONS.CREATURE_HEAL, payload: { creatureId: activeCreatureId, amount: 10 } })
+        dispatch({ type: ACTIONS.CREATURE_HEAL, payload: { creatureId: activeCreatureId, amount: 100 } })
         playSFX('egg_pet')
         const floatId = Date.now()
         setHealFloat(floatId)
@@ -678,7 +678,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
               color:'#44ee44', pointerEvents:'none', zIndex:10,
               animation:'dmg-float 1.1s ease-out forwards',
             }}>
-              +10 HP
+              +100 HP
             </div>
           )}
           {(state.party || []).map(id => {

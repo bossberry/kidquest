@@ -918,40 +918,57 @@ export default function MoveSelectBattleMode({
       </div>
 
       {/* ── QUESTION DISPLAY (Zone 2) ─────────────────────────────────────── */}
-      {!victoryMode && q && (
-        <div style={{
-          textAlign: 'center',
-          padding: '14px 12px 10px',
-          borderBottom: '2px solid rgba(255,255,255,0.08)',
-          flexShrink: 0,
-        }}>
-          <span style={{
-            fontFamily: subject === 'thai'
-              ? 'Sarabun, sans-serif'
-              : '"Press Start 2P", monospace',
-            fontSize: subject === 'thai' ? 32 : 24,
-            fontWeight: 'bold',
-            color: '#f0d020',
+      {!victoryMode && q && (() => {
+        // Compute display text per question type
+        let display = null
+        if (subject === 'math') {
+          if (q.question)                               display = q.question
+          else if (q.a !== undefined && q.op != null)  display = `${q.a} ${q.op} ${q.b} = ?`
+          else if (q.story)                             display = q.story
+          // count / pattern: HintBar (Zone 1) already visualises these — skip Zone 2
+        } else if (subject === 'thai') {
+          display = q.word ?? q.question
+        } else {
+          display = q.word ?? q.letter ?? q.question
+        }
+        if (!display) return null
+
+        const ttsText = q.ttsWord || q.question || q.word || q.letter || ''
+        return (
+          <div style={{
+            textAlign: 'center',
+            padding: '12px 16px 8px',
+            background: 'var(--px-darkest, #0a0a12)',
+            borderBottom: '1px solid rgba(255,255,255,0.10)',
+            flexShrink: 0,
           }}>
-            {q.question ?? q.word ?? q.letter ?? '???'}
-          </span>
-          {' '}
-          <button
-            onClick={() => {
-              const text = q.question ?? q.word ?? q.letter ?? ''
-              if (!text) return
-              if (subject === 'thai') speakTh(text)
-              else if (subject === 'eng') speakEn(text)
-            }}
-            style={{
-              background: 'transparent', border: 'none',
-              fontSize: 18, cursor: 'pointer', verticalAlign: 'middle',
-            }}
-          >
-            🔊
-          </button>
-        </div>
-      )}
+            <span style={{
+              fontFamily: subject === 'thai'
+                ? 'Sarabun, sans-serif'
+                : 'var(--font-pixel, "Press Start 2P"), monospace',
+              fontSize: subject === 'thai' ? 34 : 26,
+              fontWeight: 'bold',
+              color: '#f0d020',
+            }}>
+              {display}
+            </span>
+            {' '}
+            <button
+              onClick={() => {
+                if (!ttsText) return
+                if (subject === 'thai') speakTh(ttsText)
+                else speakEn(ttsText)
+              }}
+              style={{
+                background: 'transparent', border: 'none',
+                fontSize: 18, cursor: 'pointer', verticalAlign: 'middle',
+              }}
+            >
+              🔊
+            </button>
+          </div>
+        )
+      })()}
 
       {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
       {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.items?.[k] || 0) > 0) && (

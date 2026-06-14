@@ -922,10 +922,11 @@ export default function MoveSelectBattleMode({
         // Compute display text per question type
         let display = null
         if (subject === 'math') {
-          if (q.question)                               display = q.question
+          if (q.isCount)                                display = (q.objects || []).join(' ') + ' = ?'
+          else if (q.isPattern)                         display = (q.seq || []).join(' ') + ' ?'
+          else if (q.question)                          display = q.question
           else if (q.a !== undefined && q.op != null)  display = `${q.a} ${q.op} ${q.b} = ?`
           else if (q.story)                             display = q.story
-          // count / pattern: HintBar (Zone 1) already visualises these — skip Zone 2
         } else if (subject === 'thai') {
           display = q.word ?? q.question
         } else {

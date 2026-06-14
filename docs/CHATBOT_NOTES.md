@@ -740,3 +740,8 @@ See GPT_HANDOFF.md for full Phase 1 details.
 **2026-06-14 — chore: remove Subject Adventure random mode:** Deleted `GameSubjectAdventure.jsx`; removed adventure-* routes and `isAdventure` block from `GameScreen.jsx`. `currentWorld`/`SET_CURRENT_WORLD`/`sessionXP` kept (used by classic games). Home "ออกสำรวจ" already routed to world map only. Build ✅.
 
 **2026-06-14 — feat: food item heals active creature +10 HP in Home screen:** `Home.jsx` — food use dispatches `CREATURE_HEAL` for `state.party[0]` + `playSFX('egg_pet')` + floating "+10 HP" text (green, `dmg-float` 1.1s) above party HP bar. `CREATURE_HEAL` already existed in StateContext. Build ✅ pushed c5d9469.
+
+---
+
+**2026-06-14 — hotfix: question display for math count/pattern questions:**
+Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has its own self-contained generators. The real issue: `isCount`/`isPattern` questions skipped Zone 2 (comment said "HintBar handles these") but HintBar also returns null for them — leaving genuinely blank Zone 2. For a new player (xpMath=0), ALL math battles are level 0 (count), so every math battle showed no question text. Fix: Zone 2 now shows `q.objects.join(' ') + ' = ?'` for count, `q.seq.join(' ') + ' ?'` for pattern. Build ✅.

@@ -918,49 +918,38 @@ export default function MoveSelectBattleMode({
       </div>
 
       {/* ── QUESTION DISPLAY (Zone 2) ─────────────────────────────────────── */}
-      {/* Always shows the question clearly above the 4 answer cards. */}
       {!victoryMode && q && (
-        <div style={{ padding:'10px 14px 4px', textAlign:'center', flexShrink:0 }}>
-          {subject === 'math' ? (
-            <span style={{
-              fontSize:28, fontWeight:'bold', color:'var(--px-yellow)',
-              fontFamily:'var(--font-pixel, "Press Start 2P", monospace)',
-            }}>
-              {q.question ?? (q.a !== undefined && q.op ? `${q.a} ${q.op} ${q.b} = ?` : '')}
-            </span>
-          ) : subject === 'thai' ? (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap' }}>
-              <span style={{
-                fontSize: q.question ? 15 : 36, fontWeight:'bold', color:'var(--px-yellow)',
-                fontFamily:'Sarabun, var(--font-thai), sans-serif',
-                textAlign:'center', lineHeight:1.4,
-              }}>
-                {q.question || q.word}
-              </span>
-              <button
-                onClick={() => q.ttsWord && speakTh(q.ttsWord)}
-                style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', padding:4, opacity:0.85 }}
-              >
-                🔊
-              </button>
-            </div>
-          ) : (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap' }}>
-              <span style={{
-                fontSize: q.question ? 13 : 36, fontWeight:'bold', color:'var(--px-yellow)',
-                fontFamily: q.question ? 'Sarabun,sans-serif' : 'var(--font-pixel, "Press Start 2P", monospace)',
-                textAlign:'center', lineHeight:1.4,
-              }}>
-                {q.question || q.word || q.letter}
-              </span>
-              <button
-                onClick={() => (q.ttsWord || q.word || q.letter) && speakEn(q.ttsWord || q.word || q.letter)}
-                style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', padding:4, opacity:0.85 }}
-              >
-                🔊
-              </button>
-            </div>
-          )}
+        <div style={{
+          textAlign: 'center',
+          padding: '14px 12px 10px',
+          borderBottom: '2px solid rgba(255,255,255,0.08)',
+          flexShrink: 0,
+        }}>
+          <span style={{
+            fontFamily: subject === 'thai'
+              ? 'Sarabun, sans-serif'
+              : '"Press Start 2P", monospace',
+            fontSize: subject === 'thai' ? 32 : 24,
+            fontWeight: 'bold',
+            color: '#f0d020',
+          }}>
+            {q.question ?? q.word ?? q.letter ?? '???'}
+          </span>
+          {' '}
+          <button
+            onClick={() => {
+              const text = q.question ?? q.word ?? q.letter ?? ''
+              if (!text) return
+              if (subject === 'thai') speakTh(text)
+              else if (subject === 'eng') speakEn(text)
+            }}
+            style={{
+              background: 'transparent', border: 'none',
+              fontSize: 18, cursor: 'pointer', verticalAlign: 'middle',
+            }}
+          >
+            🔊
+          </button>
         </div>
       )}
 

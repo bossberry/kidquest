@@ -44,6 +44,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [creatureState, setCreatureState] = useState('walk') // walk|wave|sit|celebrate|gift|look|sleep
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [stageUp, setStageUp]             = useState(null)  // null | {stage, id}
+  const [healFloat, setHealFloat]         = useState(null)  // null | id
 
   const particleIdRef   = useRef(0)
   const animTimerRef    = useRef(null)
@@ -361,6 +362,15 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         setFlyingItem(null)
         setTimeout(() => playTone('sigh'), 250)
       }, 620)
+      // Heal active creature +10 HP
+      const activeCreatureId = state.party?.[0]
+      if (activeCreatureId) {
+        dispatch({ type: ACTIONS.CREATURE_HEAL, payload: { creatureId: activeCreatureId, amount: 10 } })
+        playSFX('egg_pet')
+        const floatId = Date.now()
+        setHealFloat(floatId)
+        setTimeout(() => setHealFloat(f => f === floatId ? null : f), 1200)
+      }
 
     } else if (key === 'ribbon') {
       setHasRibbon(true)
@@ -656,10 +666,21 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         <div style={{
           width:'100%', maxWidth:480, padding:'5px 14px',
           display:'flex', gap:8, justifyContent:'center',
-          flexShrink:0,
+          flexShrink:0, position:'relative',
           background:'var(--px-darker, #16162a)',
           borderTop:'1px solid var(--px-border)',
         }}>
+          {healFloat && (
+            <div key={healFloat} style={{
+              position:'absolute', top:0, left:'50%',
+              transform:'translateX(-50%)',
+              fontFamily:'var(--font-pixel)', fontSize:11,
+              color:'#44ee44', pointerEvents:'none', zIndex:10,
+              animation:'dmg-float 1.1s ease-out forwards',
+            }}>
+              +10 HP
+            </div>
+          )}
           {(state.party || []).map(id => {
             const c = (state.hatchedEggs || []).find(e => e.id === id)
             if (!c) return null

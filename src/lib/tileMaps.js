@@ -1,6 +1,6 @@
-// Tile maps for all 9 Green Meadow screens
-// T = tile type constants, objects = tiles with metadata
+// Tile maps: legacy 9-screen Green Meadow + dynamic level generators
 import { T } from './tileEngine.js'
+import { WORLD_LEVELS } from '../config/worldConfig.js'
 
 const G = T.GRASS
 const TL = T.TALL
@@ -199,6 +199,137 @@ export const SCREEN_ENEMIES = {
     { type: 'mushroom_imp', col: 7,  row: 5  },
     { type: 'bouncy_slime', col: 10, row: 10 },
   ],
+}
+
+// ─── Dynamic map generators ───────────────────────────────────────────────────
+// Exit placement per slot:
+//   NW:  EXIT_E(right), EXIT_S(bottom)
+//   NE:  EXIT_W(left),  EXIT_S(bottom)
+//   SW:  EXIT_N(top),   EXIT_E(right),  EXIT_S(bottom)
+//   SE:  EXIT_N(top),   EXIT_W(left),   EXIT_S(bottom)
+//   BOSS: EXIT_N at row 14 (entry+return to SW via north connection)
+//   MAZE: EXIT_N(top row 0), EXIT_E(right), EXIT_S(bottom)
+
+const TALL_PATCHES = {
+  NW: [[3, 5], [8, 3]],
+  NE: [[3, 14], [7, 12]],
+  SW: [[9, 5], [12, 3]],
+  SE: [[9, 14], [11, 12]],
+}
+
+export function generateScreenMap(screenSlot, worldLevel) {
+  const map = Array.from({ length: 15 }, () => Array(20).fill(T.GRASS))
+
+  // TREE border
+  for (let r = 0; r < 15; r++)
+    for (let c = 0; c < 20; c++)
+      if (r === 0 || r === 14 || c === 0 || c === 19) map[r][c] = T.TREE
+
+  // PATH strip (horizontal, rows 7-8)
+  for (let c = 1; c < 19; c++) { map[7][c] = T.PATH; map[8][c] = T.PATH }
+
+  // Tall grass patches (vary by slot)
+  const patches = TALL_PATCHES[screenSlot] ?? [[4, 5], [9, 12]]
+  for (const [pr, pc] of patches) {
+    for (let dr = 0; dr < 3; dr++)
+      for (let dc = 0; dc < 4; dc++)
+        if (map[pr + dr]?.[pc + dc] !== undefined) map[pr + dr][pc + dc] = T.TALL
+  }
+
+  // Flower accents
+  for (let c = 2; c < 18; c += 4) map[2][c] = T.FLOWER
+
+  // Exit tiles
+  const slot = screenSlot
+  if (slot === 'NW' || slot === 'SW' || slot === 'SE') {
+    // EXIT_N at top (row 0)
+    if (slot === 'SW' || slot === 'SE') {
+      for (let c = 7; c <= 12; c++) map[0][c] = T.EXIT_N
+    }
+  }
+  if (slot === 'NE') {
+    // NE has no top exit
+  }
+  // EXIT_S at bottom (row 14)
+  for (let c = 7; c <= 12; c++) map[14][c] = T.EXIT_S
+  // EXIT_E at right (col 19)
+  if (slot === 'NW' || slot === 'SW') {
+    for (let r = 6; r <= 8; r++) map[r][19] = T.EXIT_E
+  }
+  // EXIT_W at left (col 0)
+  if (slot === 'NE' || slot === 'SE') {
+    for (let r = 6; r <= 8; r++) map[r][0] = T.EXIT_W
+  }
+
+  return map
+}
+
+export function generateBossMap(worldLevel) {
+  const map = Array.from({ length: 15 }, () => Array(20).fill(T.GRASS))
+
+  // TREE border
+  for (let r = 0; r < 15; r++)
+    for (let c = 0; c < 20; c++)
+      if (r === 0 || r === 14 || c === 0 || c === 19) map[r][c] = T.TREE
+
+  // Winding wall obstacles (corridor toward boss at row 3, col 7)
+  for (let c = 3; c < 17; c++) map[5][c] = T.TREE
+  for (let c = 3; c < 14; c++) map[10][c] = T.TREE
+  map[5][9]  = T.GRASS; map[5][10] = T.GRASS   // gap in first wall
+  map[10][14] = T.GRASS; map[10][15] = T.GRASS  // gap in second wall
+
+  // Entry/return portal: EXIT_N at row 14 (connects back to SW via BOSS.connects.N)
+  map[14][9] = T.EXIT_N; map[14][10] = T.EXIT_N
+
+  return map
+}
+
+export function generateMazeMap() {
+  const map = Array.from({ length: 15 }, () => Array(20).fill(T.TREE))
+
+  // Recursive backtracker — carves through interior odd-coordinate cells
+  function carve(r, c) {
+    const dirs = [[0, 2], [0, -2], [2, 0], [-2, 0]]
+    for (let i = dirs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [dirs[i], dirs[j]] = [dirs[j], dirs[i]]
+    }
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc
+      if (nr > 0 && nr < 14 && nc > 0 && nc < 19 && map[nr][nc] === T.TREE) {
+        map[r + Math.sign(dr)][c + Math.sign(dc)] = T.GRASS
+        map[nr][nc] = T.GRASS
+        carve(nr, nc)
+      }
+    }
+  }
+
+  map[13][1] = T.GRASS
+  carve(13, 1)
+
+  // Ensure path to exit column (row 1, col 17)
+  if (map[1][17] !== T.GRASS) map[1][17] = T.GRASS
+  if (map[1][18] !== T.GRASS) map[1][18] = T.GRASS
+
+  // Exit tiles
+  map[0][17]  = T.EXIT_N   // maze clear → go to NW
+  map[7][19]  = T.EXIT_E   // side exit → go to SE
+  map[14][1]  = T.EXIT_S   // give-up exit → go to BOSS
+
+  return map
+}
+
+// Randomly place enemies from world level pool on a regular screen slot
+export function getScreenEnemies(screenSlot, worldLevel) {
+  if (screenSlot === 'BOSS' || screenSlot === 'MAZE') return []
+  const levelConfig = WORLD_LEVELS[worldLevel ?? 0] ?? WORLD_LEVELS[0]
+  const pool = levelConfig.enemies
+  const count = 4 + Math.floor(Math.random() * 3)  // 4–6 per screen
+  return Array.from({ length: count }, () => ({
+    type: pool[Math.floor(Math.random() * pool.length)],
+    col: 2 + Math.floor(Math.random() * 16),
+    row: 2 + Math.floor(Math.random() * 11),
+  }))
 }
 
 // ─── Map registry ─────────────────────────────────────────────────────────────

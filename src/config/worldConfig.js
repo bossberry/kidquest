@@ -1,5 +1,5 @@
-// Green Meadow world config — screens, connections, themes (Phase 1)
-// 3×3 grid (Pokémon FireRed model):  TL TM TR / ML MC MR / BL BM BR
+// World config — static 3×3 legacy Green Meadow + dynamic level system
+// Dynamic layout: NW NE / SW SE / BOSS (+ MAZE replacing SW when active)
 
 export const WORLD_REGIONS = {
   'green-meadow': { label: 'ทุ่งโคลเวอร์', entryScreen: 'BM' },
@@ -16,6 +16,63 @@ export const SCREENS = {
   MR: { label: 'เนินโคลเวอร์',    region: 'green-meadow', connects: { N: 'TR', E: null, W: 'MC', S: 'BR' } },
   BL: { label: 'สระน้ำต้นหลิว',   region: 'green-meadow', connects: { N: 'ML', E: 'BM', W: null, S: null } },
   BR: { label: 'ทุ่งกษัตริย์แบร์', region: 'green-meadow', connects: { N: 'MR', E: null, W: 'BM', S: null } },
+}
+
+// ─── Dynamic world level system ───────────────────────────────────────────────
+
+export const WORLD_LEVELS = [
+  {
+    level: 0,
+    name: 'Green Meadow',
+    nameTH: 'ทุ่งหญ้าเขียว',
+    theme: 'grassland',
+    bgColors: { sky: '#4ec8f0', ground: '#5acc5a', mountain: '#a8d4a8' },
+    enemies: ['sleepy_bunny', 'bouncy_slime', 'leaf_sprite', 'mushroom_imp'],
+    bossEnemy: 'grumpy_mole',
+    bossNameTH: 'โมลราชา',
+    bossHP: 120, bossATK: 8, bossDEF: 4,
+    unlockRequirement: null,
+  },
+  {
+    level: 1,
+    name: 'Dark Forest',
+    nameTH: 'ป่ามืด',
+    theme: 'forest',
+    bgColors: { sky: '#1a2a1a', ground: '#1a3a1a', mountain: '#0a1a0a' },
+    enemies: ['fox_kit', 'baby_zombie', 'grumpy_mole', 'egg_pawn'],
+    bossEnemy: 'snake',
+    bossNameTH: 'งูราชา',
+    bossHP: 160, bossATK: 10, bossDEF: 5,
+    unlockRequirement: { battleWins: 20 },
+  },
+  {
+    level: 2,
+    name: 'Crystal Cave',
+    nameTH: 'ถ้ำคริสตัล',
+    theme: 'cave',
+    bgColors: { sky: '#0a0a2a', ground: '#2a1a3a', mountain: '#1a0a2a' },
+    enemies: ['baby_zombie', 'snake', 'egg_pawn', 'grumpy_mole'],
+    bossEnemy: 'egg_pawn',
+    bossNameTH: 'หุ่นยนต์ไข่ราชา',
+    bossHP: 200, bossATK: 12, bossDEF: 6,
+    unlockRequirement: { battleWins: 50 },
+  },
+]
+
+// Screen slot IDs for dynamic layout
+export const SCREEN_LAYOUT = ['NW', 'NE', 'SW', 'SE']
+export const BOSS_SCREEN = 'BOSS'
+export const MAZE_SCREEN = 'MAZE'
+
+// Connections for NW/NE/SW/SE/BOSS/MAZE
+// Maze routing (NW→S=MAZE, SE→W=MAZE) is applied dynamically in WorldScreen when mazeActive
+export const DYNAMIC_SCREENS = {
+  NW:   { connects: { N: null,  E: 'NE',  S: 'SW',   W: null   }, label: '' },
+  NE:   { connects: { N: null,  E: null,  S: 'SE',   W: 'NW'   }, label: '' },
+  SW:   { connects: { N: 'NW', E: 'SE',  S: 'BOSS', W: null   }, label: '' },
+  SE:   { connects: { N: 'NE', E: null,  S: 'BOSS', W: 'SW'   }, label: '' },
+  BOSS: { connects: { N: 'SW', E: null,  S: null,   W: null   }, label: 'Boss' },
+  MAZE: { connects: { N: 'NW', E: 'SE',  S: 'BOSS', W: null   }, label: '???' },
 }
 
 // Visual palette per screen for placeholder backgrounds (Phase 1)

@@ -186,6 +186,7 @@ export default function MoveSelectBattleMode({
   showReturnButton,
   onComplete,
   isWorldBattle,
+  isBossBattle,
   creatureStats,
   creatureCurrentHP,
   creatureName,
@@ -964,7 +965,7 @@ export default function MoveSelectBattleMode({
       )}
 
       {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
-      {!victoryMode && Object.keys(BATTLE_ITEMS).some(k => (state.items?.[k] || 0) > 0) && (
+      {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.items?.[k] || 0) > 0) && (
         <div style={{ display:'flex', gap:6, padding:'0 10px 4px', flexShrink:0, alignItems:'center' }}>
           {Object.keys(BATTLE_ITEMS).map(key => {
             const count = state.items?.[key] || 0

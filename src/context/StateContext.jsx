@@ -102,6 +102,10 @@ export const ACTIONS = {
   ADD_TO_PARTY:              'ADD_TO_PARTY',
   UNLOCK_PARTY_SLOT:         'UNLOCK_PARTY_SLOT',
   INCREMENT_BATTLE_WINS:     'INCREMENT_BATTLE_WINS',
+  SET_WORLD_LEVEL:           'SET_WORLD_LEVEL',
+  DEFEAT_BOSS:               'DEFEAT_BOSS',
+  ACTIVATE_MAZE:             'ACTIVATE_MAZE',
+  CLEAR_MAZE:                'CLEAR_MAZE',
 }
 
 function reducer(state, action) {
@@ -468,6 +472,28 @@ function reducer(state, action) {
 
     case ACTIONS.INCREMENT_BATTLE_WINS:
       return { ...state, battleWins: (state.battleWins ?? 0) + 1 }
+
+    case ACTIONS.SET_WORLD_LEVEL:
+      return {
+        ...state,
+        worldLevel: action.payload,
+        currentScreen: 'NW',
+        discoveredScreens: ['NW'],
+        mazeActive: false,
+        mazeCleared: false,
+      }
+
+    case ACTIONS.DEFEAT_BOSS: {
+      const curr = state.worldLevel ?? 0
+      const defeated = [...(state.bossDefeated ?? []), curr]
+      return { ...state, bossDefeated: defeated }
+    }
+
+    case ACTIONS.ACTIVATE_MAZE:
+      return { ...state, mazeActive: true }
+
+    case ACTIONS.CLEAR_MAZE:
+      return { ...state, mazeActive: false, mazeCleared: true }
 
     default:
       return state

@@ -51,6 +51,10 @@ export function defaultState() {
     partySlots: 1,
     battleCreatureId: null,
     battleWins: 0,
+    worldLevel: 0,
+    mazeActive: false,
+    mazeCleared: false,
+    bossDefeated: [],
   }
 }
 

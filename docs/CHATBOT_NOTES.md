@@ -718,3 +718,19 @@ See GPT_HANDOFF.md for full Phase 1 details.
 - Blockers/risks: none.
 - Ready to start next: Phase 4 NPC System.
 - Needs Chatbot decision first: nothing blocking.
+
+---
+
+**2026-06-14 — feat: World Progression System — multi-level worlds, dynamic maps, boss screen, secret maze:**
+- Built:
+  - `src/config/worldConfig.js` — `WORLD_LEVELS` array (3 levels: Green Meadow L0, Dark Forest L1, Crystal Cave L2), each with `name/nameTH/theme/bgColors/enemies/bossEnemy/bossHP/bossATK/bossDEF/unlockRequirement`. `DYNAMIC_SCREENS` object (NW/NE/SW/SE/BOSS/MAZE with explicit `connects`). `SCREEN_LAYOUT`, `BOSS_SCREEN`, `MAZE_SCREEN` exports.
+  - `src/lib/state.js` — 4 new fields in `defaultState()`: `worldLevel:0`, `mazeActive:false`, `mazeCleared:false`, `bossDefeated:[]`.
+  - `src/context/StateContext.jsx` — 4 new action types + reducers: `SET_WORLD_LEVEL` (sets level, resets to NW, clears maze state), `DEFEAT_BOSS` (pushes current level to bossDefeated[]), `ACTIVATE_MAZE`, `CLEAR_MAZE`.
+  - `src/lib/tileMaps.js` — `generateScreenMap(screenSlot, worldLevel)`: 20×15 TREE border, PATH rows 7-8, TALL patches per slot, EXIT tiles by slot. `generateBossMap(worldLevel)`: winding corridor, EXIT_N at row 14 (entry/return). `generateMazeMap()`: recursive backtracker from (13,1), EXIT_N at (0,17) top (clear/reward), EXIT_E side escape. `getScreenEnemies(screenSlot, worldLevel)`: 4-6 random enemies from world pool for NW/NE/SW/SE; [] for BOSS/MAZE.
+  - `src/components/WorldScreen.jsx` — Major rewrite: `initScreen` uses generators by screen type. `handleExit` uses `DYNAMIC_SCREENS` + maze routing override (NW→S or SE→W → MAZE when `mazeActive`). Enemy init useEffect: BOSS screen gets static boss at `BOSS_TILE={col:7,row:3}` with `isWorldBoss:true`; regular screens use `getScreenEnemies`; `spawnChests` now accepts `(tileMap, enemyDefs)`. Boss confirm dialog: walking into boss → `setBossConfirm(true)` → confirm dialog (หนีก่อน / สู้เลย!). `enterBossBattle` dispatches `SET_PENDING_BATTLE` with `isBossBattle:true` + boss stats from `WORLD_LEVELS[worldLevel]`. Maze timer `useEffect([worldLevel])`: random 0-20 min → `ACTIVATE_MAZE`. World unlock `useEffect([battleWins])`: checks next level requirement → `SET_WORLD_LEVEL` + 4s banner. MAZE exit via EXIT_N: `CLEAR_MAZE` + 3 random item drops. Boss '!' indicator: always red above `isWorldBoss` enemies in `renderEnemies`. `WorldHUD` mini-map updated: 2×2 grid (NW/NE/SW+MAZE-when-active/SE) + full-width BOSS tile below; colors from `WORLD_LEVELS[worldLevel].bgColors.ground`; BOSS tile red tint; MAZE tile purple tint. World name shown below mini-map.
+  - `src/games/MoveSelectBattleMode.jsx` — Item bar hidden when `isBossBattle=true`.
+  - `src/components/WorldBattle.jsx` — `isBossBattle` flag read from `enemy.isBossBattle`; `DEFEAT_BOSS` dispatched on boss victory.
+- Not finished: MAZE enemy population (maze is empty — enemies could be added from carved GRASS cells in future). Boss screen has 1 boss only (no ambient enemies). Chopin playtest needed before finalizing world unlock thresholds (20/50 wins).
+- Blockers/risks found: Old saves with `currentScreen: 'BM'` etc. default to 'NW' via `VALID_DYNAMIC.has()` guard. `SCREEN_ENEMIES` static export still in `tileMaps.js` (harmless but unused — left for backward compat with any other importer).
+- Ready to start next: Chopin playtest; then Phase 4 NPC System or Boss battle tuning.
+- Needs Chatbot decision first: (1) Should maze have enemies? (2) Is 20 battleWins for Dark Forest / 50 for Crystal Cave the right pace for Chopin?

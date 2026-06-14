@@ -51,16 +51,32 @@
 - **State**: No new fields. `ENCOUNTER_TRIGGERED` action added (no-op).
 - Phase 1 CSS art WorldScreen fully replaced.
 
-### World Map HUD (2026-06-12)
+### World Map HUD (2026-06-12, updated 2026-06-14)
 
 - **`WorldHUD` component** in `WorldScreen.jsx` (module-level, above `export default`): Semi-transparent dark strip at top of world screen (`64px + env(safe-area-inset-top)`). 4 sections divided by hairline separators:
-  - **Mini-map** (52px wide): 3×3 canvas-less grid (divs) of all 9 screens. Discovered = `SCREEN_THEMES[id].grdA` ground color. Undiscovered = very dark. Current screen = yellow outline + translucent dot overlay.
+  - **Mini-map** (52px wide): 2×2 grid (NW/NE/SW_or_MAZE/SE) + full-width BOSS tile row. Colors: regular tiles = `WORLD_LEVELS[worldLevel].bgColors.ground`; BOSS = dark red `#380000`; MAZE = dark purple `#180830`; undiscovered = `#080e08`. Current screen = yellow outline + • dot (red outline + ★ on BOSS screen). World name (`nameTH`) shown below mini-map.
   - **Creature status**: First party member (fallback: most recently hatched egg). Shows name, Lv.N, HP bar (green/yellow/red by fraction), HP numbers.
   - **XP bar** (58px): Current battle level + gold progress bar using `10 + level² × 2` threshold per level.
   - **Items** (78px): 5 `PixelItemIcon` at 13px for `scroll/thunder/gem/mirror/clover`. Count badge. Dimmed to 20% opacity when count=0.
-  - **Home button**: Compact ⌂ + "HOME" label replaces old "กลับบ้าน" pill button.
+  - **Home button**: Compact ⌂ + "HOME" label.
 - **Camera offset**: `camY = camYBase − round(HUD_CONTENT_H / 2)` shifts map viewport so player centers in visible area below HUD.
 - New exports from `WorldScreen.jsx`: `HUD_CONTENT_H = 64` (number constant).
+
+### World Progression System (2026-06-14)
+
+- **`src/config/worldConfig.js`** — `WORLD_LEVELS[3]`: Level 0 = Green Meadow (`ทุ่งหญ้าเขียว`), Level 1 = Dark Forest (`ป่ามืด`, unlock at 20 battleWins), Level 2 = Crystal Cave (`ถ้ำคริสตัล`, unlock at 50 battleWins). Each level has `bgColors`, `enemies[]` pool, `bossEnemy`, `bossHP/ATK/DEF`, `bossNameTH`, `unlockRequirement`. `DYNAMIC_SCREENS` (NW/NE/SW/SE/BOSS/MAZE) with explicit `connects`. Old `SCREENS` (9-screen 3×3) still exported for backward compat.
+- **State fields**: `worldLevel:0`, `mazeActive:false`, `mazeCleared:false`, `bossDefeated:[]` in `defaultState()`.
+- **New ACTIONS**: `SET_WORLD_LEVEL` (resets to NW, clears maze), `DEFEAT_BOSS` (records defeated level), `ACTIVATE_MAZE`, `CLEAR_MAZE`.
+- **Dynamic map generators** (`src/lib/tileMaps.js`):
+  - `generateScreenMap(slot, worldLevel)`: 20×15 TREE border, PATH rows 7-8, TALL grass patches per slot, EXIT tiles matching slot position.
+  - `generateBossMap(worldLevel)`: winding wall corridors, EXIT_N at row 14 cols 9-10 (entry + return portal).
+  - `generateMazeMap()`: recursive backtracker, 20×15 grid carved from (13,1), EXIT_N at (0,17) for clear+reward.
+  - `getScreenEnemies(slot, worldLevel)`: 4-6 random enemies from world pool (NW/NE/SW/SE); [] for BOSS/MAZE.
+- **Screen layout**: 4 regular screens (NW/NE/SW/SE in 2×2) + BOSS screen (south of SW and SE) + optional MAZE screen (replaces SW when `mazeActive`).
+- **Boss screen**: Static boss enemy at `BOSS_TILE = {col:7, row:3}` with `isWorldBoss:true`. Walking into boss → confirmation dialog (หนีก่อน / สู้เลย!). `enterBossBattle` dispatches `SET_PENDING_BATTLE` with `isBossBattle:true` + boss stats from `WORLD_LEVELS[worldLevel]`. Items disabled in boss battle (`isBossBattle` prop flows WorldBattle → MoveSelectBattleMode). Boss always shows red `!` above sprite. On boss victory: `DEFEAT_BOSS` dispatched.
+- **Secret maze**: Random 0–20 min timer per world level → `ACTIVATE_MAZE`. When active, NW→S and SE→W route to MAZE instead of SW. Notification shown: "??? ทางลับปรากฏขึ้นทางทิศใต้!". Player always starts at `{col:1, row:13}` in MAZE. Exit via EXIT_N at top → `CLEAR_MAZE` + 3 random item drops (from battle item pool).
+- **World unlock**: `useEffect([battleWins])` checks `WORLD_LEVELS[currentLevel+1].unlockRequirement.battleWins` → dispatches `SET_WORLD_LEVEL` + shows 4s world unlock banner.
+- **Backward compat**: `VALID_DYNAMIC = new Set(['NW','NE','SW','SE','BOSS','MAZE'])` — old saves with `currentScreen:'BM'` etc. default to 'NW'.
 
 ---
 

@@ -187,9 +187,11 @@ export default function WorldBattle({ navigate }) {
       atk:  scaled.atk,
       def:  scaled.def,
       type: enemy.type || 'bunny',
-      isBoss: false,
+      isBoss: !!enemy.isBossBattle,
     }
   }, [enemy, creatureLevel]) // eslint-disable-line
+
+  const isBossBattle = !!(enemy?.isBossBattle)
 
   const subject     = enemy?.subject || 'thai'
   const levelConfig = getLevelConfig(subject, enemy?.level)
@@ -293,6 +295,9 @@ export default function WorldBattle({ navigate }) {
       level: levelConfig.id, score,
       wrong: 0, dur, completed: true,
     }})
+    if (isBossBattle) {
+      dispatch({ type: ACTIONS.DEFEAT_BOSS })
+    }
     dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
     navigate('world')
   }
@@ -333,6 +338,7 @@ export default function WorldBattle({ navigate }) {
         enemyData={scaledEnemy}
         showReturnButton={true}
         isWorldBattle={true}
+        isBossBattle={isBossBattle}
         creatureStats={creatureStats}
         creatureCurrentHP={creatureCurrentHP}
         creatureName={creature?.creature?.n}

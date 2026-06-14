@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { SCREENS, SCREEN_THEMES } from '../config/worldConfig.js'
+import { WORLD_LEVELS, DYNAMIC_SCREENS } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import {
   MAP_ROWS, MAP_COLS, T,
   renderMap, renderPlayer, canMove, getCamera, getExitAt,
   EXIT_OPPOSITE, EXIT_DIR_NAME, getEntryPosition,
 } from '../lib/tileEngine.js'
-import { SCREEN_MAPS, SCREEN_ENEMIES } from '../lib/tileMaps.js'
+import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies } from '../lib/tileMaps.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
 import { ENEMY_DATA } from '../config/enemyConfig.js'
@@ -39,15 +39,13 @@ function drawChest(ctx, x, y, frame) {
 
 // ── Chest spawning ────────────────────────────────────────────────────────────
 
-function spawnChests(screenId) {
-  const mapData = SCREEN_MAPS[screenId]
-  if (!mapData) return []
-  const map = mapData.map
-  const enemyPositions = new Set((SCREEN_ENEMIES[screenId] || []).map(e => `${e.col},${e.row}`))
+function spawnChests(tileMap, enemyDefs) {
+  if (!tileMap) return []
+  const enemyPositions = new Set((enemyDefs || []).map(e => `${e.col},${e.row}`))
   const candidates = []
-  for (let r = 2; r < map.length - 2; r++) {
-    for (let c = 2; c < map[r].length - 2; c++) {
-      const raw = map[r][c]
+  for (let r = 2; r < tileMap.length - 2; r++) {
+    for (let c = 2; c < tileMap[r].length - 2; c++) {
+      const raw = tileMap[r][c]
       const tileType = typeof raw === 'object' ? raw.type : raw
       if ((tileType === T.GRASS || tileType === T.FLOWER) && !enemyPositions.has(`${c},${r}`)) {
         candidates.push({ col: c, row: r })
@@ -61,7 +59,7 @@ function spawnChests(screenId) {
   const count = 2 + Math.floor(Math.random() * 2)
   return candidates.slice(0, count).map((pos, i) => ({
     col: pos.col, row: pos.row,
-    id: `chest_${screenId}_${i}`,
+    id: `chest_${Date.now()}_${i}`,
     opened: false,
   }))
 }
@@ -123,11 +121,8 @@ const DPAD_BTN = (pos) => ({
 
 // ── World Map HUD ─────────────────────────────────────────────────────────────
 
-const SCREEN_GRID_LAYOUT = [
-  ['TL', 'TM', 'TR'],
-  ['ML', 'MC', 'MR'],
-  ['BL', 'BM', 'BR'],
-]
+const VALID_DYNAMIC = new Set(['NW', 'NE', 'SW', 'SE', 'BOSS', 'MAZE'])
+const BOSS_TILE = { col: 7, row: 3 }
 
 const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
 
@@ -149,8 +144,10 @@ const HUD_SEP = (
 
 function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
   const discovered = new Set(discoveredScreens ?? [])
-  const MINI_TILE = 12
+  const MINI_TILE = 11
   const MINI_GAP  = 1
+  const worldLevel = state.worldLevel ?? 0
+  const mazeActive = state.mazeActive ?? false
 
   const eggs     = state.hatchedEggs ?? []
   const partyId  = (state.party ?? [])[0]
@@ -167,6 +164,21 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
   const { level: xpLevel, fraction: xpFrac } = xpProgress(creature)
   const items = state.items ?? {}
 
+  // Mini-map: 2×2 regular slots + BOSS row
+  const groundColor = WORLD_LEVELS[worldLevel]?.bgColors?.ground ?? '#2a4a2a'
+  const swSlot = mazeActive ? 'MAZE' : 'SW'
+  const miniRows = [
+    ['NW', 'NE'],
+    [swSlot, 'SE'],
+  ]
+
+  function miniTileColor(id, isDisc) {
+    if (!isDisc) return '#080e08'
+    if (id === 'BOSS') return '#380000'
+    if (id === 'MAZE') return '#180830'
+    return groundColor
+  }
+
   return (
     <div style={{
       position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
@@ -179,44 +191,65 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
         display: 'flex', alignItems: 'stretch',
       }}>
 
-        {/* Mini-map */}
+        {/* Mini-map: 2×2 + BOSS */}
         <div style={{
           width: 52, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: '4px 2px', gap: 3,
+          padding: '4px 2px', gap: 2,
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: MINI_GAP }}>
-            {SCREEN_GRID_LAYOUT.map((row, ri) => (
-              <div key={ri} style={{ display: 'flex', gap: MINI_GAP }}>
-                {row.map(id => {
-                  const isCurrent = id === screenId
-                  const isDisc    = discovered.has(id)
-                  return (
-                    <div key={id} style={{
-                      width: MINI_TILE, height: MINI_TILE,
-                      background: isDisc ? (SCREEN_THEMES[id]?.grdA ?? '#2a4a2a') : '#0a120a',
-                      outline: isCurrent ? '1px solid #e0e040' : '1px solid #182018',
-                      outlineOffset: -1, position: 'relative',
-                    }}>
-                      {isCurrent && (
-                        <div style={{
-                          position: 'absolute', inset: 0, background: 'rgba(255,255,140,0.72)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 8, color: '#333',
-                        }}>•</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
+          {miniRows.map((row, ri) => (
+            <div key={ri} style={{ display: 'flex', gap: MINI_GAP }}>
+              {row.map(id => {
+                const isCurrent = id === screenId
+                const isDisc    = discovered.has(id)
+                return (
+                  <div key={id} style={{
+                    width: MINI_TILE, height: MINI_TILE,
+                    background: miniTileColor(id, isDisc),
+                    outline: isCurrent ? '1px solid #e0e040' : '1px solid #182018',
+                    outlineOffset: -1, position: 'relative',
+                  }}>
+                    {isCurrent && (
+                      <div style={{
+                        position: 'absolute', inset: 0, background: 'rgba(255,255,140,0.72)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 8, color: '#333',
+                      }}>•</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          {/* BOSS tile — single centered */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {(() => {
+              const isCurrent = screenId === 'BOSS'
+              const isDisc    = discovered.has('BOSS')
+              return (
+                <div style={{
+                  width: MINI_TILE * 2 + MINI_GAP, height: MINI_TILE,
+                  background: miniTileColor('BOSS', isDisc),
+                  outline: isCurrent ? '1px solid #ff4040' : '1px solid #182018',
+                  outlineOffset: -1, position: 'relative',
+                }}>
+                  {isCurrent && (
+                    <div style={{
+                      position: 'absolute', inset: 0, background: 'rgba(255,80,80,0.5)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 7, color: '#fff',
+                    }}>★</div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
           <div style={{
             fontFamily: 'var(--font-pixel)', fontSize: 6,
-            color: 'rgba(130,190,130,0.45)', lineHeight: 1, textAlign: 'center',
+            color: 'rgba(130,190,130,0.4)', lineHeight: 1, textAlign: 'center',
           }}>
-            {SCREENS[screenId]?.label ?? ''}
+            {WORLD_LEVELS[worldLevel]?.nameTH?.slice(0, 8) ?? 'Lv' + worldLevel}
           </div>
         </div>
 
@@ -338,7 +371,7 @@ export default function WorldScreen({ navigate }) {
   const canvasRef = useRef(null)
 
   const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
-  const [screenId, setScreenId] = useState(state.currentScreen || 'BM')
+  const [screenId, setScreenId] = useState(VALID_DYNAMIC.has(state.currentScreen) ? state.currentScreen : 'NW')
   const [transitioning, setTransitioning] = useState(false)
   const [transOverlay, setTransOverlay] = useState(0)
   const [nearNPC, setNearNPC] = useState(null)
@@ -359,6 +392,8 @@ export default function WorldScreen({ navigate }) {
   const chestsRef         = useRef([]) // treasure chest runtime state
   const triggerBattleRef  = useRef(null)
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
+  const [bossConfirm, setBossConfirm] = useState(false)
+  const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
 
   screenIdRef.current   = screenId
   transRef.current      = transitioning
@@ -383,11 +418,23 @@ export default function WorldScreen({ navigate }) {
   // ── Screen setup ────────────────────────────────────────────────────────────
 
   const initScreen = useCallback((id, fromExitType, forcedStart) => {
-    const mapData = SCREEN_MAPS[id] || SCREEN_MAPS.BM
-    const tileMap = mapData.map
-    const startPos = forcedStart || (fromExitType !== undefined
-      ? getEntryPosition(tileMap, fromExitType)
-      : mapData.start)
+    const wLevel = stateRef.current.worldLevel ?? 0
+    let tileMap, startPos
+
+    if (id === 'BOSS') {
+      tileMap = generateBossMap(wLevel)
+      startPos = forcedStart ?? (fromExitType !== undefined
+        ? getEntryPosition(tileMap, fromExitType)
+        : { col: 10, row: 13 })
+    } else if (id === 'MAZE') {
+      tileMap = generateMazeMap()
+      startPos = forcedStart ?? { col: 1, row: 13 }
+    } else {
+      tileMap = generateScreenMap(id, wLevel)
+      startPos = forcedStart ?? (fromExitType !== undefined
+        ? getEntryPosition(tileMap, fromExitType)
+        : { col: 10, row: 7 })
+    }
 
     tileMapRef.current  = tileMap
     specialsRef.current = findSpecials(tileMap)
@@ -416,7 +463,24 @@ export default function WorldScreen({ navigate }) {
   // ── Enemy initialization on screen change ────────────────────────────────────
 
   useEffect(() => {
-    const defs = SCREEN_ENEMIES[screenId] || []
+    const wLevel = stateRef.current.worldLevel ?? 0
+    const worldDef = WORLD_LEVELS[wLevel] ?? WORLD_LEVELS[0]
+
+    if (screenId === 'BOSS') {
+      enemiesRef.current = [{
+        id: 'world_boss',
+        type: worldDef.bossEnemy,
+        col: BOSS_TILE.col, row: BOSS_TILE.row,
+        dir: 'down', timer: 0, rngSeed: 42,
+        woken: false, isAggro: false, aggroTimer: 0,
+        defeated: false, respawnTimer: 0, dead: false,
+        deathTimer: 0, opacity: 1, isWorldBoss: true,
+      }]
+      chestsRef.current = []
+      return
+    }
+
+    const defs = screenId === 'MAZE' ? [] : getScreenEnemies(screenId, wLevel)
     enemiesRef.current = defs.map((def, i) => ({
       id:           `${screenId}_${i}`,
       type:         def.type,
@@ -437,7 +501,7 @@ export default function WorldScreen({ navigate }) {
       deathTimer:   0,
       opacity:      1,
     }))
-    chestsRef.current = spawnChests(screenId)
+    chestsRef.current = screenId === 'MAZE' ? [] : spawnChests(tileMapRef.current, defs)
     // Apply death animation for the enemy that was just defeated in battle
     try {
       const lb = JSON.parse(sessionStorage.getItem('kq_last_battle') || 'null')
@@ -470,18 +534,36 @@ export default function WorldScreen({ navigate }) {
     if (transRef.current) return
     const sid = screenIdRef.current
     const dirName = EXIT_DIR_NAME[exitType]
-    const targetId = SCREENS[sid]?.connects[dirName]
+    const curState = stateRef.current
+
+    // Maze exit: leaving MAZE via EXIT_N clears the maze and drops 3 items
+    if (sid === 'MAZE' && dirName === 'N') {
+      dispatch({ type: ACTIONS.CLEAR_MAZE })
+      const ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
+      for (let i = 0; i < 3; i++) {
+        dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)] } })
+      }
+    }
+
+    // Dynamic routing with maze override for NW→S and SE→W
+    let connects = { ...(DYNAMIC_SCREENS[sid]?.connects ?? {}) }
+    if (curState.mazeActive && sid === 'NW' && dirName === 'S') connects.S = 'MAZE'
+    if (curState.mazeActive && sid === 'SE' && dirName === 'W') connects.W = 'MAZE'
+
+    const targetId = connects[dirName]
     if (!targetId) return
+
+    const forcedStart = targetId === 'MAZE' ? { col: 1, row: 13 } : undefined
 
     playSFX('screen_enter')
     setTransitioning(true)
     setTransOverlay(1)
 
     transTimer.current = setTimeout(() => {
+      initScreen(targetId, exitType, forcedStart)
       setScreenId(targetId)
       dispatch({ type: ACTIONS.MOVE_SCREEN, payload: targetId })
       dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: targetId })
-      initScreen(targetId, exitType)
       setTransOverlay(0)
       transTimer.current = setTimeout(() => setTransitioning(false), 170)
     }, 160)
@@ -511,6 +593,23 @@ export default function WorldScreen({ navigate }) {
   }, [dispatch]) // eslint-disable-line
   triggerBattleRef.current = triggerBattle
 
+  const enterBossBattle = useCallback(() => {
+    setBossConfirm(false)
+    const wLevel = stateRef.current.worldLevel ?? 0
+    const worldDef = WORLD_LEVELS[wLevel]
+    if (!worldDef) return
+    const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
+    const level = getBattleLevel(subject, stateRef.current)
+    dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
+      position: { screen: 'BOSS', tileX: BOSS_TILE.col, tileY: BOSS_TILE.row },
+      enemy: {
+        type: worldDef.bossEnemy, subject, level,
+        hp: worldDef.bossHP, atk: worldDef.bossATK, def: worldDef.bossDEF,
+        nameTH: worldDef.bossNameTH, isBossBattle: true,
+      },
+    }})
+  }, [dispatch])
+
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
     if (!g || g.moving || transRef.current || dialogueRef.current) return
@@ -532,6 +631,10 @@ export default function WorldScreen({ navigate }) {
       return false
     })
     if (hitEnemy) {
+      if (hitEnemy.isWorldBoss) {
+        setBossConfirm(true)
+        return
+      }
       if (hitEnemy.type === 'sleepy_bunny' && !hitEnemy.woken) {
         // Wake the bunny — player bumped it, bunny wakes up
         enemiesRef.current = enemiesRef.current.map(e =>
@@ -825,6 +928,14 @@ export default function WorldScreen({ navigate }) {
         const py = cy - sz / 2
 
         drawEnemy(ctx, e.type, sz, px, py)
+        // Boss always shows red '!'
+        if (e.isWorldBoss) {
+          ctx.fillStyle = '#ff2020'
+          ctx.font = `bold ${TILE}px monospace`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText('!', cx, py - 2)
+        }
         // Woken bunny alert
         if (e.type === 'sleepy_bunny' && e.woken) {
           ctx.fillStyle = '#ffffff'
@@ -895,6 +1006,32 @@ export default function WorldScreen({ navigate }) {
     rafRef.current = requestAnimationFrame(loop)
     return () => { alive = false; cancelAnimationFrame(rafRef.current); respawnTimerIds.forEach(clearTimeout) }
   }, []) // stable — reads from refs only
+
+  // ── Maze timer ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (state.mazeCleared) return
+    const delay = Math.floor(Math.random() * 20 * 60 * 1000) // 0–20 min
+    const t = setTimeout(() => dispatch({ type: ACTIONS.ACTIVATE_MAZE }), delay)
+    return () => clearTimeout(t)
+  }, [state.worldLevel]) // eslint-disable-line
+
+  // ── World unlock check ───────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const wins = state.battleWins ?? 0
+    const currentLevel = state.worldLevel ?? 0
+    const nextLevel = currentLevel + 1
+    const nextDef = WORLD_LEVELS[nextLevel]
+    if (!nextDef) return
+    const req = nextDef.unlockRequirement
+    if (!req) return
+    if (wins >= (req.battleWins ?? 0)) {
+      dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: nextLevel })
+      setWorldUnlockBanner(nextDef.nameTH)
+      setTimeout(() => setWorldUnlockBanner(null), 4000)
+    }
+  }, [state.battleWins]) // eslint-disable-line
 
   // ── Go home ──────────────────────────────────────────────────────────────────
 
@@ -1015,6 +1152,90 @@ export default function WorldScreen({ navigate }) {
           onReward={handleTreasureReward}
           onClose={() => setSlotMachineOpen(false)}
         />
+      )}
+
+      {/* Boss confirm dialog */}
+      {bossConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: 'rgba(0,0,0,0.78)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20,
+        }}>
+          <div style={{
+            background: '#1a0a0a', border: '2px solid #aa2020', borderRadius: 14,
+            padding: '20px 24px', maxWidth: 280, width: '100%',
+            fontFamily: 'Mitr,sans-serif', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>⚔️</div>
+            <div style={{ color: '#ffb0b0', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+              พบบอส!
+            </div>
+            <div style={{ color: '#d0a0a0', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              {WORLD_LEVELS[state.worldLevel ?? 0]?.bossNameTH} กำลังรออยู่!<br />
+              พร้อมสู้หรือยัง?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setBossConfirm(false)}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 8,
+                  background: '#2a1010', border: '1px solid #553030',
+                  color: '#c09090', fontFamily: 'Mitr,sans-serif', fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                หนีก่อน
+              </button>
+              <button
+                onClick={enterBossBattle}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 8,
+                  background: '#8a1010', border: '1px solid #cc2020',
+                  color: '#fff', fontFamily: 'Mitr,sans-serif', fontSize: 14,
+                  fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                สู้เลย!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maze notification */}
+      {state.mazeActive && !state.mazeCleared && (
+        <div style={{
+          position: 'absolute', bottom: 200, left: 0, right: 0, zIndex: 28,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <div style={{
+            background: 'rgba(24,8,48,0.92)', border: '1px solid #6030a0',
+            borderRadius: 10, padding: '8px 16px',
+            fontFamily: 'Mitr,sans-serif', color: '#c090ff', fontSize: 13,
+          }}>
+            ??? ทางลับปรากฏขึ้นทางทิศใต้!
+          </div>
+        </div>
+      )}
+
+      {/* World unlock banner */}
+      {worldUnlockBanner && (
+        <div style={{
+          position: 'absolute', top: HUD_CONTENT_H + 12, left: 0, right: 0, zIndex: 35,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <div style={{
+            background: 'rgba(0,0,0,0.88)', border: '2px solid #e0c030',
+            borderRadius: 12, padding: '12px 20px',
+            fontFamily: 'Mitr,sans-serif', textAlign: 'center',
+          }}>
+            <div style={{ color: '#ffe060', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+              ✨ ปลดล็อคโลกใหม่!
+            </div>
+            <div style={{ color: '#d0c060', fontSize: 14 }}>{worldUnlockBanner}</div>
+          </div>
+        </div>
       )}
     </div>
   )

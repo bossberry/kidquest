@@ -1,5 +1,46 @@
 # Changelog — KidQuest
 
+## 2026-06-14 — feat: World Progression System — multi-level worlds, boss screen, secret maze
+
+### src/config/worldConfig.js
+- Added `WORLD_LEVELS[3]` array (Green Meadow / Dark Forest / Crystal Cave) with themes, enemy pools, boss configs, unlock requirements
+- Added `DYNAMIC_SCREENS` (NW/NE/SW/SE/BOSS/MAZE) with explicit connects
+- Added `SCREEN_LAYOUT`, `BOSS_SCREEN`, `MAZE_SCREEN` exports
+
+### src/lib/state.js
+- Added 4 fields to `defaultState()`: `worldLevel`, `mazeActive`, `mazeCleared`, `bossDefeated`
+
+### src/context/StateContext.jsx
+- Added `SET_WORLD_LEVEL`, `DEFEAT_BOSS`, `ACTIVATE_MAZE`, `CLEAR_MAZE` actions + reducers
+
+### src/lib/tileMaps.js
+- Added `generateScreenMap(slot, worldLevel)` — dynamic 20×15 maps per slot
+- Added `generateBossMap(worldLevel)` — winding corridor boss arena
+- Added `generateMazeMap()` — recursive backtracker maze with EXIT_N reward portal
+- Added `getScreenEnemies(slot, worldLevel)` — world-level enemy pool selection
+
+### src/components/WorldScreen.jsx
+- `initScreen` rewritten to use generators (BOSS → generateBossMap, MAZE → generateMazeMap, regular → generateScreenMap)
+- Enemy init useEffect: BOSS gets static boss at BOSS_TILE with `isWorldBoss:true`; regular screens use `getScreenEnemies`
+- `spawnChests` refactored to `(tileMap, enemyDefs)` — no longer uses SCREEN_MAPS global
+- `handleExit` rewritten: uses `DYNAMIC_SCREENS` connects + maze routing override (NW→S/SE→W → MAZE when `mazeActive`); MAZE EXIT_N → `CLEAR_MAZE` + 3 item drops
+- `tryMove`: boss collision → `setBossConfirm(true)` instead of `triggerBattle`
+- `enterBossBattle`: dispatches `SET_PENDING_BATTLE` with `isBossBattle:true` + boss stats from `WORLD_LEVELS[worldLevel]`
+- Maze timer `useEffect([worldLevel])`: random 0–20 min → `ACTIVATE_MAZE`
+- World unlock `useEffect([battleWins])`: threshold check → `SET_WORLD_LEVEL` + 4s banner
+- `renderEnemies`: boss always shows red `!` above sprite
+- `WorldHUD` mini-map: updated to 2×2 + full-width BOSS tile; colors from world level; MAZE tile shows when `mazeActive`
+- Boss confirm dialog, maze notification, world unlock banner added to JSX
+- Removed stale `SCREENS`, `SCREEN_THEMES`, `SCREEN_MAPS` imports
+
+### src/games/MoveSelectBattleMode.jsx
+- Item bar hidden when `isBossBattle=true`
+
+### src/components/WorldBattle.jsx
+- `DEFEAT_BOSS` dispatched on boss victory
+
+---
+
 ## 2026-06-12 — hotfix: replace PartySelect with simple loop-free version
 
 ### src/components/PartySelect.jsx (full rewrite)

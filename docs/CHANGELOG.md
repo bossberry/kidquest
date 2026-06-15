@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: fix baby_zombie collision infinite dispatch loop (battleDispatchedRef reset timing)
+
+### src/components/WorldScreen.jsx
+- Previous fix reset `battleDispatchedRef.current = false` unconditionally when `pendingBattle` was null — but RAF runs before React commits state, so on the tick immediately after dispatch `pendingBattle` still reads null and the guard was immediately cleared
+- Fix: only reset the guard when it is already `true` AND `pendingBattle` is null (confirmed clear); when guard is up, still call `updateEnemies()` for enemy movement but skip battle trigger
+
+---
+
 ## 2026-06-15 — hotfix: fix infinite loop when enemy AI walks into player
 
 ### src/components/WorldScreen.jsx

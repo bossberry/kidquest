@@ -1062,12 +1062,19 @@ export default function WorldScreen({ navigate }) {
 
       g.frame = (g.frame + 1) % 120
       if (g.frame % 3 === 0) {
-        // Reset dispatch guard as soon as pending battle clears (state has committed)
-        if (!stateRef.current.pendingBattle) battleDispatchedRef.current = false
-        const battleEnemy = updateEnemies(tileMap, g.frame)
-        if (battleEnemy && !stateRef.current.pendingBattle && !battleDispatchedRef.current) {
-          battleDispatchedRef.current = true
-          triggerBattleRef.current?.(battleEnemy)
+        // Only reset guard AFTER pendingBattle has been fully cleared AND confirmed by state
+        if (battleDispatchedRef.current && !stateRef.current.pendingBattle) {
+          battleDispatchedRef.current = false
+        }
+        // Never dispatch if guard is already up
+        if (!battleDispatchedRef.current) {
+          const battleEnemy = updateEnemies(tileMap, g.frame)
+          if (battleEnemy && !stateRef.current.pendingBattle) {
+            battleDispatchedRef.current = true
+            triggerBattleRef.current?.(battleEnemy)
+          }
+        } else {
+          updateEnemies(tileMap, g.frame) // still update positions, just don't trigger battle
         }
       }
 

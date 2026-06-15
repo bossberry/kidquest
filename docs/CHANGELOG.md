@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: fix infinite loop when enemy AI walks into player
+
+### src/components/WorldScreen.jsx
+- Added `battleDispatchedRef = useRef(false)` — synchronous flag set immediately when `triggerBattle` is dispatched
+- RAF loop: resets `battleDispatchedRef.current = false` when `stateRef.current.pendingBattle` is null (state committed)
+- RAF loop: checks `!battleDispatchedRef.current` before calling `triggerBattleRef` on enemy-initiated collision
+- Root cause: `stateRef` is only updated via `useLayoutEffect` after React re-renders, so the 3-frame gap between dispatch and state commit allowed repeated `triggerBattle` calls on enemy-initiated encounters
+
+---
+
 ## 2026-06-15 — feat: Map System — item bag HUD, 4-map-per-tier tracking, secret maze battle-wins trigger, boss gating
 
 ### src/config/gameConfig.js

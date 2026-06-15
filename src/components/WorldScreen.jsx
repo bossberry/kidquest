@@ -448,7 +448,8 @@ export default function WorldScreen({ navigate }) {
   const transTimer   = useRef(null)
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
-  const triggerBattleRef  = useRef(null)
+  const triggerBattleRef     = useRef(null)
+  const battleDispatchedRef  = useRef(false) // prevents re-dispatch between RAF tick and React state commit
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
@@ -1061,8 +1062,11 @@ export default function WorldScreen({ navigate }) {
 
       g.frame = (g.frame + 1) % 120
       if (g.frame % 3 === 0) {
+        // Reset dispatch guard as soon as pending battle clears (state has committed)
+        if (!stateRef.current.pendingBattle) battleDispatchedRef.current = false
         const battleEnemy = updateEnemies(tileMap, g.frame)
-        if (battleEnemy && !stateRef.current.pendingBattle) {
+        if (battleEnemy && !stateRef.current.pendingBattle && !battleDispatchedRef.current) {
+          battleDispatchedRef.current = true
           triggerBattleRef.current?.(battleEnemy)
         }
       }

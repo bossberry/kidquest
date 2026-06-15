@@ -421,6 +421,7 @@ export default function WorldScreen({ navigate }) {
   // preventing triggerBattle from dispatching SET_PENDING_BATTLE multiple times in rapid
   // succession (the "PartySelect infinite loop" bug).
   useLayoutEffect(() => { stateRef.current = state }, [state])
+  useLayoutEffect(() => { battlePendingRef.current = !!state.pendingBattle }, [state.pendingBattle])
 
   useEffect(() => {
     playBGM('world')
@@ -450,6 +451,7 @@ export default function WorldScreen({ navigate }) {
   const chestsRef         = useRef([]) // treasure chest runtime state
   const triggerBattleRef     = useRef(null)
   const battleDispatchedRef  = useRef(false) // prevents re-dispatch between RAF tick and React state commit
+  const battlePendingRef     = useRef(false) // mirrors state.pendingBattle — pauses RAF game logic
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
@@ -1049,6 +1051,9 @@ export default function WorldScreen({ navigate }) {
     function loop(now) {
       if (!alive) return
       rafRef.current = requestAnimationFrame(loop)
+
+      // Pause all game logic (enemy AI, collision, rendering) while PartySelect is showing
+      if (battlePendingRef.current) return
 
       const g = gameRef.current
       const tileMap = tileMapRef.current

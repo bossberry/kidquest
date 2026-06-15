@@ -860,3 +860,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: `mergedFromCount` stored on merged creature for audit trail. After merge, party is rebuilt to `[merged.id]` and `battleCreatureId`/`pendingBattle` cleared. Irreversible on load — one-shot.
 - Ready to start next: Phase 4 NPC System (Prof Owl already wired; add Sleepy Bunny + 2 more NPC dialogues)
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-15 — hotfix: force creature merge + fix frozen กลับ button:**
+- Built:
+  - `state.js`: `_mergeAllCreaturesIntoOne` now also sets `_creaturesMerged: true` on returned state
+  - `StateContext.jsx` initializer: uses `needsMerge = eggs.length > 1 && !_creaturesMerged` flag — merge is idempotent even if INIT fires multiple times
+  - `StateContext.jsx` `loadState().then()`: also runs merge on remote Supabase data before dispatching INIT — so even if Supabase had 43 eggs, INIT dispatches the merged 1-egg state and saveState() pushes it back to Supabase (Task 3 — cloud cleanup)
+  - `StateContext.jsx` CLOSE_HATCH reducer: now also clears `readyToHatch: false` — root cause of frozen กลับ button (hatching=false but readyToHatch stayed true → isOpen flipped back → overlay re-showed immediately)
+  - `HatchOverlay.jsx` full-collection กลับ button: uses `handleFullClose` that dispatches CLOSE_HATCH + SET_HATCHING then calls `onClose?.()` directly — skips doClose's wrong "ไข่ใบใหม่เริ่มต้นแล้ว" toast
+- Not finished: nothing
+- Blockers/risks found: CLOSE_HATCH clearing readyToHatch means if player dismisses hatch without completing, they lose the "ready" indicator until next ROUND_COMPLETE re-sets it. Acceptable — egg XP is preserved; it just re-triggers on next round.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

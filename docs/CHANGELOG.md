@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: force creature merge migration + fix frozen กลับ button
+
+### src/lib/state.js
+- `_mergeAllCreaturesIntoOne`: return value now includes `_creaturesMerged: true` flag
+
+### src/context/StateContext.jsx
+- Initializer: `needsMerge` guard uses `_creaturesMerged` flag — idempotent even after INIT re-fires
+- `loadState().then()`: runs merge on remote Supabase data before dispatching INIT — ensures 43-egg cloud state is merged to 1 egg before INIT, then saveState() pushes merged state back to Supabase
+- CLOSE_HATCH reducer: now also sets `readyToHatch: false` — was the root cause of the frozen กลับ button (CLOSE_HATCH cleared `hatching` but left `readyToHatch: true`, so `isOpen` immediately flipped back and re-showed the overlay)
+
+### src/components/HatchOverlay.jsx
+- Full-collection กลับ button: replaced `doClose` with `handleFullClose` — dispatches CLOSE_HATCH + SET_HATCHING then calls `onClose?.()` directly, skipping the "ไข่ใบใหม่เริ่มต้นแล้ว" toast that was wrong for this case
+
+---
+
 ## 2026-06-15 — fix: suppress hatch during battle + one-time creature merge migration
 
 ### src/App.jsx

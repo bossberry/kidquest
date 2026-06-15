@@ -286,7 +286,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.CLOSE_HATCH:
-      return { ...state, hatching: false }
+      return { ...state, hatching: false, readyToHatch: false }
 
     case ACTIONS.USE_ITEM: {
       const { key } = action.payload
@@ -677,7 +677,8 @@ export function StateProvider({ children }) {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
       const migrated = _migrateBattleStats(raw)
-      const merged = migrated.hatchedEggs?.length > 1 ? _mergeAllCreaturesIntoOne(migrated) : migrated
+      const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 && !migrated._creaturesMerged
+      const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated
       // Always clear transient battle state — these can be stale if app was closed mid-battle.
       // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
       return { ...merged, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
@@ -714,10 +715,13 @@ export function StateProvider({ children }) {
     loadState().then(remote => {
       if (!remote) return
       const cur = stateRef.current
-      if ((remote.rounds || 0) >= (cur.rounds || 0)) {
-        dispatch({ type: ACTIONS.INIT, payload: remote })
+      // Run merge on remote data so Supabase state gets cleaned up too
+      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1 && !remote._creaturesMerged
+      const remoteFinal = remoteNeedsMerge ? { ..._mergeAllCreaturesIntoOne(remote), _creaturesMerged: true } : remote
+      if ((remoteFinal.rounds || 0) >= (cur.rounds || 0)) {
+        dispatch({ type: ACTIONS.INIT, payload: remoteFinal })
       } else {
-        console.log('[KQ:load] remote behind local (remote rounds:', remote.rounds, 'local:', cur.rounds, ') — keeping local, pushing to cloud')
+        console.log('[KQ:load] remote behind local (remote rounds:', remoteFinal.rounds, 'local:', cur.rounds, ') — keeping local, pushing to cloud')
         syncToSupabase(cur)
       }
     })

@@ -191,6 +191,7 @@ export function _mergeAllCreaturesIntoOne(state) {
     party: [merged.id],
     battleCreatureId: null,
     pendingBattle: null,
+    _creaturesMerged: true,
   }
 }
 

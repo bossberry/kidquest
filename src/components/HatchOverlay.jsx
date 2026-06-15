@@ -115,6 +115,11 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   // 6-creature hard limit: show a friendly blocking screen if collection is full
   const creatureCount = (state.hatchedEggs || []).length
   if (creatureCount >= 6 && phase === 'tapping') {
+    const handleFullClose = () => {
+      dispatch({ type: ACTIONS.CLOSE_HATCH })
+      dispatch({ type: ACTIONS.SET_HATCHING, payload: false })
+      onClose?.()
+    }
     return createPortal(
       <div className="hatch-overlay show">
         <div style={{ fontSize:60, marginBottom:16 }}>🥚</div>
@@ -122,7 +127,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
         <div style={{ fontFamily:'Mitr,sans-serif', fontSize:14, color:'rgba(255,255,255,0.8)', textAlign:'center', marginBottom:20, lineHeight:1.6 }}>
           มีสัตว์ {creatureCount} ตัวแล้ว<br/>นำบางตัวออกก่อนนะ
         </div>
-        <button className="hatch-close show" onClick={doClose}>กลับ</button>
+        <button className="hatch-close show" onClick={handleFullClose}>กลับ</button>
       </div>,
       document.body
     )

@@ -421,7 +421,10 @@ export default function WorldScreen({ navigate }) {
   // preventing triggerBattle from dispatching SET_PENDING_BATTLE multiple times in rapid
   // succession (the "PartySelect infinite loop" bug).
   useLayoutEffect(() => { stateRef.current = state }, [state])
-  useLayoutEffect(() => { battlePendingRef.current = !!state.pendingBattle }, [state.pendingBattle])
+  useLayoutEffect(() => {
+    battlePendingRef.current = !!state.pendingBattle
+    if (!state.pendingBattle) battleDispatchedRef.current = false
+  }, [state.pendingBattle])
 
   useEffect(() => {
     playBGM('world')
@@ -1068,10 +1071,7 @@ export default function WorldScreen({ navigate }) {
 
       g.frame = (g.frame + 1) % 120
       if (g.frame % 3 === 0) {
-        // Only reset guard AFTER pendingBattle has been fully cleared AND confirmed by state
-        if (battleDispatchedRef.current && !stateRef.current.pendingBattle) {
-          battleDispatchedRef.current = false
-        }
+        // battleDispatchedRef reset is handled by useLayoutEffect on pendingBattle — not here
         // Never dispatch if guard is already up
         if (!battleDispatchedRef.current) {
           const battleEnemy = updateEnemies(tileMap, g.frame)

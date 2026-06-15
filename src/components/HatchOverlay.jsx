@@ -22,7 +22,8 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const [bioDNA, setBioDNA]       = useState(null)
   const [bioCreature, setBioCreature] = useState(null)
   const [newEggId, setNewEggId]   = useState(null)
-  const isOpen = state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched)
+  const hasCreature = (state.hatchedEggs?.length ?? 0) >= 1
+  const isOpen = !hasCreature && (state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched))
 
   useEffect(() => {
     if (isOpen) {

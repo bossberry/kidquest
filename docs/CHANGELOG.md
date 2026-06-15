@@ -1,5 +1,25 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: lock to single creature, disable new egg creation and auto-hatch
+
+### src/context/StateContext.jsx
+- ADD_XP: `readyToHatch` only true when `hatchedEggs.length === 0` — no egg pressure once creature exists
+- HATCH_COMPLETE: early return `state` when `hatchedEggs.length >= 1` — blocks new egg creation
+
+### src/components/HatchOverlay.jsx
+- `isOpen` guarded by `!hasCreature` — overlay never opens (auto or manual) when creature exists
+
+### src/components/Home.jsx
+- Added `activeCreature` memo (party[0] → hatchedEggs[0] fallback)
+- `readyToHatch` local: also guards `eggsHatched === 0`
+- `handlePetEgg`: does not dispatch SET_HATCHING when creature exists
+- Header: stage name → creature name when creature exists; element hint + "พร้อมฟัก!" badge hidden
+- Egg zone (title + egg canvas + hatch CTA): wrapped in `{eggsHatched === 0 && (...)}`
+- Creature stats panel added: name, Lv.X, 2×2 ATK/DEF/SPD/HP grid — shown when creature exists
+- "ลูบไข่" button label: "ลูบ!" when creature exists
+
+---
+
 ## 2026-06-15 — feat: scale enemy stats with player battle level
 
 ### src/components/WorldScreen.jsx

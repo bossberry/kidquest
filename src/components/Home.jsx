@@ -84,7 +84,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     if (!dna) { try { dna = buildLegacyPreviewDNA(egg, 0) } catch (_) { return null } }
     try { return buildVoiceProfile(dna) } catch (_) { return null }
   }, [state.party, state.hatchedEggs]) // eslint-disable-line
-  const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1
+  const activeCreature = useMemo(() => {
+    const activeId = state.party?.[0]
+    return activeId
+      ? (state.hatchedEggs || []).find(e => e.id === activeId)
+      : state.hatchedEggs?.[0]
+  }, [state.party, state.hatchedEggs]) // eslint-disable-line
+  const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1 && eggsHatched === 0
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
   useEffect(() => {
@@ -333,7 +339,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   }
 
   const handlePetEgg = () => {
-    if (readyToHatch) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }
+    if (readyToHatch && eggsHatched === 0) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }
     const sm = smRef.current
     sm.comboCount += 1
     const n = sm.comboCount
@@ -534,10 +540,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           color: 'var(--px-light)',
           fontWeight: stage >= 6 ? 700 : 400,
         }}>
-          {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
+          {eggsHatched === 0
+            ? (EGG_STAGE_NAMES[stage] || 'ไข่น้อย')
+            : (activeCreature?.creatureName || activeCreature?.creature?.n || 'เพื่อนของ' + state.name)}
         </div>
-        {/* Element hint — shown from Stage 2 onward as a subtle color badge */}
-        {(() => {
+        {/* Element hint — only when no creature yet */}
+        {eggsHatched === 0 && (() => {
           const hint = getEggElementHint(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak, stage)
           if (!hint) return null
           return (
@@ -551,7 +559,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           )
         })()}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {readyToHatch && (
+          {eggsHatched === 0 && readyToHatch && (
             <div className="px-badge" style={{
               background:'var(--px-yellow)', color:'var(--px-black)',
               animation:'challenger-pulse 1s ease-in-out infinite',
@@ -572,6 +580,39 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         position:'relative', paddingBottom:50,
       }}>
 
+        {/* Creature stats — shown when creature exists (TASK 4) */}
+        {eggsHatched > 0 && activeCreature && (
+          <div style={{ textAlign:'center', zIndex:5, display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:8 }}>
+            <div style={{
+              fontFamily:'var(--font-thai)', fontSize:17, fontWeight:700,
+              color:'var(--px-yellow)', textShadow:'2px 2px 0 var(--px-darkest)', lineHeight:1.2,
+            }}>
+              {activeCreature.creatureName || activeCreature.creature?.n || ('เพื่อนของ' + state.name)}
+            </div>
+            <div style={{ fontFamily:'var(--font-pixel)', fontSize:10, color:'rgba(255,255,255,0.5)' }}>
+              Lv.{activeCreature.battleLevel ?? 1}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, width:200 }}>
+              {[
+                { label:'ATK', value: activeCreature.stats?.ATK ?? 0, color:'#ff6655' },
+                { label:'DEF', value: activeCreature.stats?.DEF ?? 0, color:'#55aaff' },
+                { label:'SPD', value: activeCreature.stats?.SPD ?? 0, color:'#aaff55' },
+                { label:'HP',  value: activeCreature.stats?.HP  ?? 0, color:'#ff88aa' },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{
+                  background:'rgba(0,0,0,0.3)', border:`1px solid ${color}44`,
+                  padding:'6px 10px', textAlign:'left',
+                }}>
+                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color, marginBottom:2 }}>{label}</div>
+                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:18, color:'#fff' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Egg zone — only shown when no creature yet (TASK 3) */}
+        {eggsHatched === 0 && (<>
         {/* Title + mood indicator above egg */}
         <div style={{ textAlign:'center', marginBottom:6, zIndex:5 }}>
           <div style={{
@@ -662,6 +703,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             แตะเพื่อฟักไข่!
           </button>
         )}
+        </>)}
 
         {/* Creature companion */}
         <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:80, overflow:'visible' }}>
@@ -856,7 +898,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           className="px-btn px-btn-dark"
           style={{ flex:1, height:48, fontFamily:'var(--font-thai)', fontSize:13 }}
         >
-          ลูบไข่
+          {eggsHatched === 0 ? 'ลูบไข่' : 'ลูบ!'}
         </button>
         <button
           onClick={() => { playTone('tap'); navigate('collection') }}

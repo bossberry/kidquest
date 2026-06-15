@@ -136,7 +136,7 @@ function reducer(state, action) {
       const newTotal = (state.xpThai || 0) + (state.xpEng || 0) + (state.xpMath || 0) + earned
       const eggsHatched = (state.hatchedEggs || []).length
       const hatchRequired = Math.min(800, 120 + eggsHatched * 60)
-      const readyToHatch = newTotal >= hatchRequired && !state.hatched
+      const readyToHatch = newTotal >= hatchRequired && !state.hatched && (state.hatchedEggs?.length ?? 0) === 0
       // Distribute creature XP: active = 100%, bench party members = 50%
       const partyIds = state.party || []
       const activeId = partyIds[0]
@@ -208,6 +208,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.HATCH_COMPLETE: {
+      if ((state.hatchedEggs?.length ?? 0) >= 1) return state  // already have a creature, no new eggs
       const { creature, eggStats, snapXpThai, snapXpEng, snapXpMath } = action.payload
       const tier = state.grade || 0
       const eggSnap = {

@@ -896,3 +896,19 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: boss battle (`enterBossBattle`) has its own separate dispatch — not scaled by this change. Flag if boss should also scale.
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-15 — feat: lock to single creature, disable new egg creation and auto-hatch:**
+- Built:
+  - `StateContext.jsx` ADD_XP: `readyToHatch` now only sets to true when `hatchedEggs.length === 0` — no new egg pressure when creature already exists
+  - `StateContext.jsx` HATCH_COMPLETE: guard `if (hatchedEggs.length >= 1) return state` — HATCH_COMPLETE action is a no-op when creature exists
+  - `HatchOverlay.jsx` `isOpen`: `hasCreature` guard — overlay never opens (auto or manual) when `hatchedEggs.length >= 1`
+  - `Home.jsx`: added `activeCreature` memo (party slot 0 → hatchedEggs[0] fallback); `readyToHatch` local var also guards `eggsHatched === 0`; `handlePetEgg` no longer triggers SET_HATCHING when creature exists
+  - `Home.jsx` header: stage name label shows creature name when creature exists; element hint and "พร้อมฟัก!" badge hidden when creature exists
+  - `Home.jsx` egg zone: title+mood+egg canvas+hatch CTA wrapped in `{eggsHatched === 0 && ...}` (TASK 3); creature stats panel (name, Lv.X, ATK/DEF/SPD/HP 2×2 grid) shown when `eggsHatched > 0 && activeCreature` (TASK 4)
+  - `Home.jsx` "ลูบไข่" button: label changes to "ลูบ!" when creature exists (still calls handlePetEgg for state machine)
+- Not finished: creature companion at bottom of egg zone still shows for petting — kept intentionally
+- Blockers/risks found: none. Collection screen still shows multiple creatures if Supabase had old data — but merge migration collapses them to 1 on load
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

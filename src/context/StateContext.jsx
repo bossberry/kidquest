@@ -775,16 +775,16 @@ export function StateProvider({ children }) {
     return () => { sub?.unsubscribe() }
   }, []) // eslint-disable-line
 
-  // Challenger trigger: every 15 battle rounds → pick a random opponent
-  useEffect(() => {
-    if ((state.dailyBattleRounds || 0) >= 15 && !state.pendingChallenger) {
-      const g = state.grade || 0
-      const tier = g === 0 ? 0 : g <= 2 ? 1 : g <= 4 ? 2 : 3
-      const tierData = AI_OPPONENTS[tier] || AI_OPPONENTS[0]
-      const opp = tierData.normal[Math.floor(Math.random() * tierData.normal.length)]
-      dispatch({ type: ACTIONS.SET_CHALLENGER, payload: { ...opp, challengerTier: tier } })
-    }
-  }, [state.dailyBattleRounds]) // eslint-disable-line
+  // DISABLED — ChallengerOverlay system removed; re-enable when redesigned
+  // useEffect(() => {
+  //   if ((state.dailyBattleRounds || 0) >= 15 && !state.pendingChallenger) {
+  //     const g = state.grade || 0
+  //     const tier = g === 0 ? 0 : g <= 2 ? 1 : g <= 4 ? 2 : 3
+  //     const tierData = AI_OPPONENTS[tier] || AI_OPPONENTS[0]
+  //     const opp = tierData.normal[Math.floor(Math.random() * tierData.normal.length)]
+  //     dispatch({ type: ACTIONS.SET_CHALLENGER, payload: { ...opp, challengerTier: tier } })
+  //   }
+  // }, [state.dailyBattleRounds])
 
   const derived = useMemo(() => {
     const sp = scaledEggProgress(state)

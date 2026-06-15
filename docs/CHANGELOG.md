@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: disable challenger useEffect — root cause of PartySelect freeze
+
+### src/context/StateContext.jsx
+- Commented out the `dailyBattleRounds` useEffect: every world battle incremented `dailyBattleRounds` → useEffect fired → `SET_CHALLENGER` dispatched → `pendingChallenger` set → `dailyBattleRounds` reset to 0 → useEffect fired again; loop set `pendingChallenger` on every single battle encounter, breaking PartySelect condition
+- `SET_CHALLENGER` / `CLEAR_CHALLENGER` reducers left intact for future re-enable
+
+---
+
 ## 2026-06-15 — hotfix: atomic battle dispatch fixes PartySelect loop + remove ChallengerOverlay
 
 ### src/context/StateContext.jsx

@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Creature System Phase 5 — birth sequence (CreatureCanvas reveal)
+
+### src/components/HatchOverlay.jsx
+- Replaced `{creature?.e || '🐣'}` emoji with `CreatureCanvas` (150px) in 'done' and 'naming' phases
+- `buildCreatureDNA(buildEggStats(state))` called synchronously inside `doReveal` setTimeout — DNA ready at the same tick as `setPhase('done')`
+- `idleMode='celebrate'` during 'done' phase; switches to `'idle'` during naming
+- Element-color `drop-shadow` filter wraps CreatureCanvas (strong glow for 'done', subtle for 'naming')
+- `playCreatureSound(buildVoiceProfile(dna), 'celebrate')` fires at creature reveal
+- `creatureDNA` state cleared in `doClose` + on overlay re-open
+- New imports: `CreatureCanvas`, `buildCreatureDNA`, `buildVoiceProfile`, `playCreatureSound`
+
+### src/styles.css
+- Added `@keyframes creature-birth` (scale 0.15→1.14→1.0 spring pop)
+- Added `.hatch-creature-enter` class applying the 0.60s cubic-bezier spring animation
+
 ## 2026-06-15 — feat: Creature System Phase 4 — voice layer + name suggestion tap targets
 
 ### src/lib/creatureSystem.js

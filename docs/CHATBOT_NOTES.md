@@ -814,3 +814,10 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: none; build ✅ zero errors
 - Ready to start next: Phase 5 Birth sequence (HatchOverlay — egg glow → CreatureCanvas reveal, first blink/look/chirp instead of emoji placeholder)
 - Needs Chatbot decision first: nothing blocking
+
+**2026-06-15 — feat: Creature System Step 4 — Phase 5 birth sequence (CreatureCanvas at hatch reveal):**
+- Built: `buildCreatureDNA(buildEggStats(state))` called synchronously at reveal time — DNA set before `setPhase('done')` fires; `CreatureCanvas` (150px, `idleMode='celebrate'`) replaces `{creature?.e || '🐣'}` emoji; element-color `drop-shadow` filter (strong during 'done', subtle during 'naming'); `playCreatureSound(buildVoiceProfile(dna), 'celebrate')` fires at creature reveal; `@keyframes creature-birth` + `.hatch-creature-enter` spring-pop animation (scale 0.15→1.14→1.0, 0.60s cubic-bezier); `creatureDNA` state cleared in `doClose` + on overlay re-open
+- Not finished: nothing — Phase 5 fully complete
+- Blockers/risks found: none; build ✅ zero errors
+- Ready to start next: Phase 4 NPC System (5 NPCs: Prof Owl already wired; Sleepy Bunny, Sign, and 2 more NPC dialogues to add per green-meadow.md spec)
+- Needs Chatbot decision first: nothing blocking for NPC System; GM-Q10 (Post Bird scope) still open but not required for Prof Owl or Bunny NPCs

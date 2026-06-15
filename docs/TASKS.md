@@ -15,7 +15,7 @@
 - [x] **Phase 3: Animation layer** — Blink state machine (open/closing/closed/opening), sleep Z-particles, CSS personality body animations (`ci-*` keyframes). `CreatureCanvas` props: `personality`, `animationEnabled`, `idleMode`. Commit `658d25c`. 2026-06-10.
 - [x] **Robust Egg Interaction State Machine** — Formal FSM in `Home.jsx`: states `idle/pet/happy/excited/eating/sleep/relax/reunion`. `enterState` cancels in-flight RAF (generation counter), `extendState` resets exit timer without CSS flicker. Tap combo: 1-3=pet, 4-7=happy, 8+=excited. 5s watchdog force-returns to idle after 6s stuck. Unmount cleans up all RAF+timers. Item use resets combo. `petStreak` state removed. Build ✅ 2026-06-10.
 - [x] **Phase 4: Voice layer** — `playCreatureSound(voiceProfile, moment)` in `audio.js`. Wired to Home.jsx creature companion tap/reunion/celebrate/wave/sleep. Pitch-shifted per creature body type + personality. Build ✅ 2026-06-15.
-- [ ] **Phase 5: Birth sequence** — HatchOverlay full reveal (egg glow → creature aura, first blink/look/chirp, name selection).
+- [x] **Phase 5: Birth sequence** — HatchOverlay full reveal (egg glow → creature aura, first blink/look/chirp, name selection). `CreatureCanvas` replaces emoji at 150px; `creature-birth` spring pop animation; element-color glow; `playCreatureSound(celebrate)` fires on reveal. 2026-06-15.
 
 ---
 

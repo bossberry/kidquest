@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
+import CreatureCanvas from './CreatureCanvas.jsx'
 import { getCreatureForHatch } from '../context/creatureHelpers.js'
 import { buildEggStats } from '../lib/eggAlgorithm.js'
-import { playTone, playTapCrackSound, playHatchSound } from '../lib/audio.js'
+import { buildCreatureDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
+import { playTone, playTapCrackSound, playHatchSound, playCreatureSound } from '../lib/audio.js'
 import { showToast, spawnConfetti } from './Toasts.jsx'
 import { determineElement, CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH, CREATURE_NAME_SUGGESTIONS } from '../lib/creatureSystem.js'
 
@@ -16,6 +18,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const [phase, setPhase]         = useState('tapping') // 'tapping' | 'revealing' | 'done' | 'naming'
   const [creature, setCreature]   = useState(null)
   const [savedEggStats, setSavedEggStats] = useState(null)
+  const [creatureDNA, setCreatureDNA] = useState(null)
   const [newEggId, setNewEggId]   = useState(null)
   const isOpen = state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched)
 
@@ -23,6 +26,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
     if (isOpen) {
       setSavedEggStats(buildEggStats(state))
       setCreature(getCreatureForHatch(state))
+      setCreatureDNA(null)
       setTapCount(0)
       setPhase('tapping')
       setNewEggId(null)
@@ -45,15 +49,20 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const doReveal = () => {
     playHatchSound()
     setTimeout(() => {
+      // Build DNA synchronously so CreatureCanvas renders immediately with 'done' phase
+      const eggSt = buildEggStats(state)
+      const dna = buildCreatureDNA(eggSt)
+      setCreatureDNA(dna)
+
       setPhase('done')
       playTone('reveal')
+      try { playCreatureSound(buildVoiceProfile(dna), 'celebrate') } catch (_) {}
       setTimeout(() => playTone('fanfare'), 350)
       spawnConfetti(50)
-      // Save hatch — collect the new egg id from the dispatch result via a temp id
-      const tempId = `egg_${Date.now()}_tmp`
+      // Save hatch
       const snaps = { xpThai: state.xpThai, xpEng: state.xpEng, xpMath: state.xpMath }
       const fullEggStats = {
-        ...buildEggStats(state),
+        ...eggSt,
         xpThai: snaps.xpThai, xpEng: snaps.xpEng, xpMath: snaps.xpMath,
       }
       dispatch({
@@ -78,6 +87,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   }
 
   const doClose = () => {
+    setCreatureDNA(null)
     setPhase('tapping')
     dispatch({ type: ACTIONS.CLOSE_HATCH })
     dispatch({ type: ACTIONS.SET_HATCHING, payload: false })
@@ -119,8 +129,22 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
             onClick={handleTap}
           />
         )}
-        {(phase === 'done' || phase === 'naming') && (
-          <div style={{ fontSize:80 }} className="hatch-reveal-glow">{creature?.e || '🐣'}</div>
+        {(phase === 'done' || phase === 'naming') && creatureDNA && (
+          <div
+            className={phase === 'done' ? 'hatch-creature-enter' : ''}
+            style={{
+              filter: phase === 'done'
+                ? `drop-shadow(0 0 20px ${elColor}cc) drop-shadow(0 0 40px ${elColor}55)`
+                : `drop-shadow(0 0 8px ${elColor}66)`,
+            }}
+          >
+            <CreatureCanvas
+              dna={creatureDNA}
+              size={150}
+              animationEnabled={true}
+              idleMode={phase === 'done' ? 'celebrate' : 'idle'}
+            />
+          </div>
         )}
       </div>
 

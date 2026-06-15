@@ -111,6 +111,7 @@ export const ACTIONS = {
   SET_CREATURE_NAME:         'SET_CREATURE_NAME',
   ADD_CREATURE_BOND:         'ADD_CREATURE_BOND',
   CREATURE_EVOLVE:           'CREATURE_EVOLVE',
+  SET_ACTIVE_CREATURE:       'SET_ACTIVE_CREATURE',
 }
 
 function reducer(state, action) {
@@ -508,6 +509,13 @@ function reducer(state, action) {
         e.id === cid ? { ...e, inParty: true } : e
       )
       return { ...state, party: [...(state.party || []), cid], hatchedEggs }
+    }
+
+    case ACTIONS.SET_ACTIVE_CREATURE: {
+      const { creatureId: activeId } = action.payload
+      const party = state.party || []
+      if (!party.includes(activeId) || party[0] === activeId) return state
+      return { ...state, party: [activeId, ...party.filter(id => id !== activeId)] }
     }
 
     case ACTIONS.UNLOCK_PARTY_SLOT:

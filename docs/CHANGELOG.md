@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Collection "Set Active" button + creature custom name display
+
+### src/context/StateContext.jsx
+- New action `SET_ACTIVE_CREATURE` — moves creature to `party[0]` (swaps with current active; no-op if already active or not in party)
+
+### src/components/Collection.jsx
+- `creatureName(egg)` helper — returns `egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'` (custom name takes priority everywhere)
+- PartyGrid: active creature (party[0]) shows "★ ตัวหลัก" gold badge; bench members show "★ ตั้งเป็นตัวหลัก" button (dispatches `SET_ACTIVE_CREATURE`)
+- PartyGrid: element color dot next to creature name when `egg.element` is set
+- All creature name displays (PartyGrid, VaultGrid, HatchedGrid/CreatureCard) now show custom name if set
+- Import `CREATURE_ELEMENT_COLORS` from `creatureSystem.js`
+
+---
+
 ## 2026-06-15 — feat: Creature System — element, bond meter, evolution, hatch naming
 
 ### src/lib/creatureSystem.js (NEW)

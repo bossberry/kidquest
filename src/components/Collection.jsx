@@ -6,6 +6,9 @@ import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '..
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
+import { CREATURE_ELEMENT_COLORS } from '../lib/creatureSystem.js'
+
+const creatureName = (egg) => egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'
 
 export default function Collection() {
   const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
@@ -40,6 +43,7 @@ export default function Collection() {
             partyCreatures={partyCreatures}
             partySlots={state.partySlots ?? 1}
             onSelect={handleSelect}
+            onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
         )}
         {tab === 'vault' && (
@@ -92,14 +96,14 @@ function CreatureCard({ egg, index, onSelect }) {
           style={{ margin:'0 auto 8px' }}
         />
       </div>
-      <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
+      <div className="catalog-item-name">{creatureName(egg)}</div>
       <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>
       <div className="catalog-item-rarity" style={{ background:rarityBg[rar], color:rarityColors[rar] }}>{egg.creature?.rarityLabel||'Common'}</div>
     </div>
   )
 }
 
-function PartyGrid({ partyCreatures, partySlots, onSelect }) {
+function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
   if (partyCreatures.length === 0) return (
     <div className="catalog-empty">ยังไม่มี creature ในทีม<br/><span style={{ fontSize:12, color:'var(--muted)' }}>ฟักไข่แล้วเพิ่มในทีม!</span></div>
   )
@@ -112,10 +116,21 @@ function PartyGrid({ partyCreatures, partySlots, onSelect }) {
           const maxHP = egg.stats?.HP ?? 10
           const curHP = egg.currentHP ?? maxHP
           const pct   = Math.max(0, (curHP / maxHP) * 100)
+          const elColor = egg.element ? CREATURE_ELEMENT_COLORS[egg.element] : null
+          const isActive = i === 0
           return (
             <div key={egg.id || i} className="catalog-item catalog-item-lg" onClick={() => onSelect(egg, dna)}>
+              {isActive && (
+                <div style={{
+                  fontFamily:'var(--font-pixel)', fontSize:7, color:'#FFD700',
+                  marginBottom:2, letterSpacing:1,
+                }}>★ ตัวหลัก</div>
+              )}
               <CreatureCanvas dna={dna} size={90} animationEnabled personality={dna?.personality} style={{ margin:'0 auto 4px' }} />
-              <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
+              <div className="catalog-item-name" style={{ display:'flex', alignItems:'center', gap:4, justifyContent:'center' }}>
+                {elColor && <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
+                {creatureName(egg)}
+              </div>
               <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.5)', marginBottom:4 }}>
                 Lv.{egg.battleLevel ?? 1}
               </div>
@@ -125,9 +140,22 @@ function PartyGrid({ partyCreatures, partySlots, onSelect }) {
                   background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
                 }} />
               </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.4)' }}>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.4)', marginBottom:6 }}>
                 HP {curHP}/{maxHP}
               </div>
+              {!isActive && (
+                <button
+                  onClick={e => { e.stopPropagation(); onSetActive?.(egg.id) }}
+                  style={{
+                    padding:'3px 8px',
+                    background:'#B8860B', border:'none', borderRadius:0,
+                    color:'#fff', fontSize:10, fontFamily:'var(--font-thai)',
+                    cursor:'pointer', boxShadow:'2px 2px 0 #000',
+                  }}
+                >
+                  ★ ตั้งเป็นตัวหลัก
+                </button>
+              )}
             </div>
           )
         })}
@@ -153,7 +181,7 @@ function VaultGrid({ vaultCreatures, partySlots, partyCount, onSelect, onAddToPa
               onClick={() => onSelect(egg, dna)}
             >
               <CreatureCanvas dna={dna} size={90} animationEnabled={false} personality={dna?.personality} style={{ margin:'0 auto 4px' }} />
-              <div className="catalog-item-name">{egg.creature?.n || 'สัตว์ลึกลับ'}</div>
+              <div className="catalog-item-name">{creatureName(egg)}</div>
               <div className="catalog-item-sub">Lv.{egg.battleLevel ?? 1}</div>
               {canAddMore && (
                 <button

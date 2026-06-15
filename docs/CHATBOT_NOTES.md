@@ -766,3 +766,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
   - XP distribution to bench in ADD_XP runs `calcBattleLevel` quadratic formula; spec's `xpPerLevel:80` is a different system. Added CREATURE_LEVELS to gameConfig for UI display but actual leveling still uses quadratic calcBattleLevel.
 - Ready to start next: Bond unlock combat effects (25%/50%/75%/100% thresholds) OR Collection "Set Active" button
 - Needs Chatbot decision first: (1) Should evolution trigger a visible animation/fanfare? (2) Should the 6-creature hard limit gate new egg spawn, or just warn? (3) Bond unlock effects — implement as stat modifiers in WorldBattle, or passive overlays?
+
+---
+
+**2026-06-15 — Creature System Phase 2 — Collection Set Active:**
+- Built:
+  - `StateContext.jsx`: new action `SET_ACTIVE_CREATURE` — reorders `party[]` so chosen creature becomes `party[0]`; reducer is a no-op if creature not in party or already active
+  - `Collection.jsx`: `creatureName(egg)` helper (custom name > species name); PartyGrid shows "★ ตัวหลัก" gold badge on party[0], "★ ตั้งเป็นตัวหลัก" button on bench members; element color dot next to name; all name displays updated to show custom name
+- Not finished:
+  - Evolution animation/fanfare (evoStage updates silently — no visual reaction)
+  - 6-creature hard limit guard (hatch still possible with 6+ creatures — no gate or warning)
+  - Bond unlock combat effects (25/50/75/100% milestones exist in state but not wired to WorldBattle)
+- Blockers/risks found: None new
+- Ready to start next: Bond unlock combat effects (implement as flat stat bonuses in WorldBattle when active creature bondMeter crosses thresholds)
+- Needs Chatbot decision first: (1) Evolution animation — simple toast flash or full overlay? (2) 6-creature limit — hard gate (block new egg) or soft warn (let hatch but show message)? (3) Bond effects — stat modifiers in `scaleMonsterStats()` vs separate overlay? Confirm approach before coding.

@@ -76,6 +76,45 @@ export function playTone(type) {
   } catch(e) {}
 }
 
+export function playCreatureSound(voiceProfile, moment) {
+  if (!_soundOn) return
+  try {
+    const ctx = getACtx()
+    const { pitchBase = 1.0, pitchVariance = 0.10, soundFamily = 'chirp', soundSpeed = 1.0 } = voiceProfile || {}
+    const pitch = pitchBase * (1 + (Math.random() * 2 - 1) * pitchVariance)
+    const t = (f, d, v, dur, tp = 'sine') => {
+      const o = ctx.createOscillator(), g = ctx.createGain()
+      o.connect(g); g.connect(ctx.destination)
+      o.type = tp
+      o.frequency.value = Math.round(f * pitch)
+      const st = ctx.currentTime + d / soundSpeed
+      g.gain.setValueAtTime(0, st)
+      g.gain.linearRampToValueAtTime(v, st + .02)
+      g.gain.exponentialRampToValueAtTime(.001, st + dur)
+      o.start(st); o.stop(st + dur + .02)
+    }
+    if (moment === 'pet' || moment === 'ambient') {
+      if (soundFamily === 'peep')   { t(1320, 0, .09, .06); t(1120, .09, .07, .05) }
+      else if (soundFamily === 'trill') { [880, 1100, 1320, 1100].forEach((f, i) => t(f, i * .06, .09, .06)) }
+      else if (soundFamily === 'hum')   { t(440, 0, .07, .22); t(494, .12, .06, .18) }
+      else if (soundFamily === 'squeak') { t(1568, 0, .10, .05); t(1760, .07, .08, .04) }
+      else { t(880, 0, .11, .07); t(1100, .07, .09, .06); t(1320, .13, .08, .05) }
+    } else if (moment === 'food') {
+      t(330, 0, .06, .22); t(370, .08, .05, .20)
+      t(880, .28, .09, .07); t(1100, .34, .07, .06)
+    } else if (moment === 'reunion') {
+      [0, .20, .38, .54].forEach((d, i) => {
+        t(880 + i * 60, d, .10, .08)
+        t(1100 + i * 40, d + .10, .08, .06)
+      })
+    } else if (moment === 'celebrate') {
+      [660, 784, 880, 988, 1100, 1320].forEach((f, i) => t(f, i * .07, .10, .09, 'triangle'))
+    } else if (moment === 'sleep') {
+      t(220, 0, .05, .52); t(196, .34, .04, .48); t(165, .68, .03, .44)
+    }
+  } catch (e) {}
+}
+
 export function speakTh(text) {
   if (!_soundOn || !window.speechSynthesis) return
   window.speechSynthesis.cancel()

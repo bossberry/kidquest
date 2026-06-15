@@ -3,9 +3,9 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
 import CreatureCanvas from './CreatureCanvas.jsx'
-import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
+import { buildLegacyPreviewDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
-import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
+import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 
 const ITEM_DEFS = [
@@ -71,6 +71,18 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     if (egg.dna) return egg.dna
     try { return buildLegacyPreviewDNA(egg, 0) } catch (_) { return null }
   }, [state.hatchedEggs])
+
+  // Voice profile for the active party creature — used to generate creature-specific sounds
+  const voiceProfile = useMemo(() => {
+    const activeId = state.party?.[0]
+    const egg = activeId
+      ? (state.hatchedEggs || []).find(e => e.id === activeId)
+      : state.hatchedEggs?.[0]
+    if (!egg) return null
+    let dna = egg.dna
+    if (!dna) { try { dna = buildLegacyPreviewDNA(egg, 0) } catch (_) { return null } }
+    try { return buildVoiceProfile(dna) } catch (_) { return null }
+  }, [state.party, state.hatchedEggs]) // eslint-disable-line
   const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
@@ -115,8 +127,11 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       enterState('reunion')
       spawnParticles('hearts', 10)
       spawnParticles('sparkle', 8)
-      playTone('chirp')
-      setTimeout(() => playTone('chirp'), 360)
+      // Creature voice for reunion moment (falls back to chirp if no voice profile yet)
+      setTimeout(() => {
+        if (voiceProfile) playCreatureSound(voiceProfile, 'reunion')
+        else { playTone('chirp'); setTimeout(() => playTone('chirp'), 360) }
+      }, 200)
     }
   }, []) // eslint-disable-line
 
@@ -178,10 +193,14 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           setCreatureState(b)
           creatureModeRef.current = b
           if (b === 'celebrate') {
-            playTone('celebrate')
+            if (voiceProfile) playCreatureSound(voiceProfile, 'celebrate')
+            else playTone('celebrate')
             spawnParticles('sparkle', 4)
           } else if (b === 'wave') {
-            playTone('chirp')
+            if (voiceProfile) playCreatureSound(voiceProfile, 'pet')
+            else playTone('chirp')
+          } else if (b === 'sleep') {
+            if (voiceProfile) playCreatureSound(voiceProfile, 'sleep')
           } else if (b === 'gift') {
             playTone('jingle')
           }
@@ -624,7 +643,8 @@ export default function Home({ navigate, soundOn, toggleSound }) {
               style={{ position:'absolute', bottom:4, left:creature.x, cursor:'pointer', userSelect:'none' }}
               onClick={() => {
                 setCreatureTapped(true)
-                playTone('chirp')
+                if (voiceProfile) playCreatureSound(voiceProfile, 'pet')
+                else playTone('chirp')
                 setTimeout(() => setCreatureTapped(false), 500)
               }}
             >

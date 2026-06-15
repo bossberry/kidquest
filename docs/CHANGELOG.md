@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Creature System Phase 4 — voice layer + name suggestion tap targets
+
+### src/lib/creatureSystem.js
+- Added `CREATURE_NAME_SUGGESTIONS` — 5 Thai name options per element (fire/water/thunder/nature/shadow/light)
+
+### src/components/HatchOverlay.jsx
+- Naming phase rewritten: replaced text input with 5 large tap-target buttons from `CREATURE_NAME_SUGGESTIONS[element]`
+- Removed `nameInput` state + `handleConfirmName`; added `handlePickName(name)` that dispatches `SET_CREATURE_NAME` + `doClose`
+- Child taps a name → immediately confirmed; "ข้ามการตั้งชื่อ" still available
+
+### src/lib/audio.js
+- Added `playCreatureSound(voiceProfile, moment)` — pitch-shifted creature voice using `pitchBase × (1 ± pitchVariance)`
+- 5 moments: `pet/ambient` (chirp/peep/trill/hum/squeak by soundFamily), `food` (hum+chirp), `reunion` (4 ascending note pairs), `celebrate` (6-note rapid ascent), `sleep` (3 descending low hums)
+
+### src/components/Home.jsx
+- Imports `buildVoiceProfile` from `creatureGenerator.js` + `playCreatureSound` from `audio.js`
+- New `voiceProfile` useMemo — derived from active party creature's DNA (falls back to hatchedEggs[0])
+- Creature companion tap: `playCreatureSound(vp, 'pet')` replaces `playTone('chirp')`
+- Reunion visit (>4h): `playCreatureSound(vp, 'reunion')` replaces double `playTone('chirp')`
+- Companion celebrate/wave/sleep personality behaviors wired to `celebrate/pet/sleep` moments
+- All creature sounds fall back to `playTone('chirp')` when no voice profile available
+
+---
+
 ## 2026-06-15 — feat: Creature System Phase 3 — bond combat effects, 6-creature limit, evo toast
 
 ### src/lib/state.js

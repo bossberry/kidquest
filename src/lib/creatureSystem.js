@@ -76,3 +76,13 @@ export const EVO_STAGE_LABELS_TH = {
   teen:  'โต',
   final: 'สุดยอด',
 }
+
+// 5 name suggestions per element — shown as large tap targets in HatchOverlay (no typing)
+export const CREATURE_NAME_SUGGESTIONS = {
+  fire:    ['ไฟน้อย', 'อาคา', 'โรโร', 'ลิ้น', 'แสบ'],
+  water:   ['น้ำใส', 'มาริน', 'ฮาน่า', 'อาควา', 'คิโระ'],
+  thunder: ['ฟ้า',   'โบลต์', 'ปิก้า', 'ซาปา', 'วาว'],
+  nature:  ['ใบไม้', 'ลีฟ',  'สปรา', 'ไอวี่', 'คลอวา'],
+  shadow:  ['เงา',   'ลูน่า', 'มิสตี้', 'นอคซ์', 'ชาดี'],
+  light:   ['แสง',  'ดาว',  'ลูมิ', 'ออร่า', 'ชายน์'],
+}

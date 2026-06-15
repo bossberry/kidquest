@@ -807,3 +807,10 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: None. Build ✅ zero errors
 - Ready to start next: Phase 4 NPC System; OR bond/evo effects playtest with Chopin
 - Needs Chatbot decision first: nothing blocking
+
+**2026-06-15 — feat: Creature System Step 3 — voice layer + name suggestion tap targets:**
+- Built: `playCreatureSound(voiceProfile, moment)` in audio.js (pitch-shifted creature voices for pet/ambient/food/reunion/celebrate/sleep moments); `CREATURE_NAME_SUGGESTIONS` export in creatureSystem.js (5 Thai name tap targets per element); HatchOverlay naming phase replaced text input with 5 large tap-target buttons using element-appropriate names; Home.jsx `voiceProfile` useMemo (active party creature → buildVoiceProfile → null fallback); wired voice to all creature companion interactions (reunion, celebrate/wave/sleep/gift, tap)
+- Not finished: nothing — Step 3 fully complete
+- Blockers/risks found: none; build ✅ zero errors
+- Ready to start next: Phase 5 Birth sequence (HatchOverlay — egg glow → CreatureCanvas reveal, first blink/look/chirp instead of emoji placeholder)
+- Needs Chatbot decision first: nothing blocking

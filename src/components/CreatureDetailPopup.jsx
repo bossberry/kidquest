@@ -2,6 +2,16 @@ import React, { useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import CreatureCanvas from './CreatureCanvas.jsx'
 import { drawEgg } from '../lib/eggAlgorithm.js'
+import { CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH } from '../lib/creatureSystem.js'
+
+const FAMILY_LABELS_TH = {
+  puff:'พัฟฟ์', fluff:'ฟลัฟฟ์', bear:'หมี', cat:'แมว', fox:'สุนัขจิ้งจอก',
+  bunny:'กระต่าย', bird:'นก', dragon:'มังกร', leaf:'ใบไม้', star:'ดาว',
+  moon:'จันทรา', cloud:'เมฆ', crystal:'คริสตัล', ocean:'มหาสมุทร',
+  flower:'ดอกไม้', dream:'ความฝัน',
+}
+const FAVSUBJ_TH = { thai:'ภาษาไทย', eng:'English', math:'คณิต' }
+const FAVSUBJ_COLOR = { thai:'var(--green)', eng:'var(--blue)', math:'var(--purple)' }
 
 // dna is passed in from Collection — exact same object the grid card used.
 // No re-computation, no duplicate logic, guaranteed identical character.
@@ -22,6 +32,21 @@ export default function CreatureDetailPopup({ egg, dna, onClose }) {
   const s    = egg.eggStats || {}
   const tSum = xpT + xpE + xpM || 1
 
+  // Friendship data
+  const displayName = egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'
+  const bornDate = egg.bornDate || egg.date || null
+  const daysTogether = bornDate ? Math.max(0, Math.floor((Date.now() - new Date(bornDate).getTime()) / 86400000)) : null
+  const favSubj = xpT >= xpE && xpT >= xpM ? 'thai' : xpE >= xpM ? 'eng' : 'math'
+  const adventuresWith = egg.adventuresWith || 0
+  const questionsAnswered = egg.questionsAnswered || 0
+
+  // Family + element from DNA
+  const family = dna?.family || null
+  const familyLabel = family ? FAMILY_LABELS_TH[family] : null
+  const isMoonborn = family === 'moon'
+  const elColor = egg.element ? CREATURE_ELEMENT_COLORS[egg.element] : null
+  const elNameTH = egg.element ? CREATURE_ELEMENT_NAMES_TH[egg.element] : null
+
   const abils = []
   if      (xpT / tSum >= xpE / tSum && xpT / tSum >= xpM / tSum) abils.push('เชี่ยวชาญภาษาไทย')
   else if (xpE / tSum >= xpM / tSum)                              abils.push('พูดภาษาอังกฤษได้')
@@ -34,17 +59,27 @@ export default function CreatureDetailPopup({ egg, dna, onClose }) {
     <div className="creature-detail-overlay show" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="creature-detail-card">
 
-        {/* Header — rarity badge + close */}
+        {/* Header — rarity badge + (Moonborn) + close */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-          <div style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:10, background:rarityBg[rar], color:rarityColors[rar] }}>
-            {egg.creature?.rarityLabel||'Common'}
+          <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+            <div style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:10, background:rarityBg[rar], color:rarityColors[rar] }}>
+              {egg.creature?.rarityLabel||'Common'}
+            </div>
+            {isMoonborn && (
+              <div style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:10, background:'#1a1a3a', color:'#b8aff8' }}>
+                Moonborn
+              </div>
+            )}
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--muted)' }}>✕</button>
         </div>
 
-        {/* Creature — large, centered */}
+        {/* Creature — large, centered, with element glow */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:12 }}>
-          <div style={{ position:'relative', display:'inline-block' }}>
+          <div style={{
+            position:'relative', display:'inline-block',
+            filter: elColor ? `drop-shadow(0 0 10px ${elColor}88)` : undefined,
+          }}>
             <CreatureCanvas
               dna={dna}
               size={196}
@@ -54,15 +89,52 @@ export default function CreatureDetailPopup({ egg, dna, onClose }) {
           </div>
         </div>
 
-        {/* Name + category */}
-        <div style={{ textAlign:'center', marginBottom:14 }}>
-          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'var(--text)', marginBottom:4 }}>
-            {egg.creature?.n || 'สัตว์ลึกลับ'}
+        {/* Name + family badge + element badge */}
+        <div style={{ textAlign:'center', marginBottom:12 }}>
+          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, color:'var(--text)', marginBottom:6 }}>
+            {displayName}
           </div>
-          <div style={{ fontSize:12, color:'var(--muted)' }}>
-            {egg.creature?.cat || ''}{egg.creature?.f ? ' · ' + egg.creature.f : ''}
+          <div style={{ display:'flex', justifyContent:'center', gap:6, flexWrap:'wrap', marginBottom:4 }}>
+            {familyLabel && (
+              <div style={{ fontSize:10, padding:'2px 8px', borderRadius:8, background:'rgba(255,255,255,0.08)', color:'var(--muted)', border:'1px solid rgba(255,255,255,0.15)' }}>
+                ตระกูล{familyLabel}
+              </div>
+            )}
+            {elColor && elNameTH && (
+              <div style={{ fontSize:10, padding:'2px 8px', borderRadius:8, background:`${elColor}22`, color:elColor, border:`1px solid ${elColor}66`, fontWeight:600 }}>
+                ธาตุ{elNameTH}
+              </div>
+            )}
           </div>
           <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{egg.date||'?'}</div>
+        </div>
+
+        {/* Friendship stats */}
+        <div style={{ display:'flex', justifyContent:'center', gap:16, marginBottom:14, padding:'8px 0', borderTop:'1px solid rgba(255,255,255,0.08)', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+          {daysTogether !== null && (
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)' }}>{daysTogether}</div>
+              <div style={{ fontSize:10, color:'var(--muted)', fontFamily:'Mitr,sans-serif' }}>วันด้วยกัน</div>
+            </div>
+          )}
+          {adventuresWith > 0 && (
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)' }}>{adventuresWith}</div>
+              <div style={{ fontSize:10, color:'var(--muted)', fontFamily:'Mitr,sans-serif' }}>ผจญภัย</div>
+            </div>
+          )}
+          {questionsAnswered > 0 && (
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)' }}>{questionsAnswered}</div>
+              <div style={{ fontSize:10, color:'var(--muted)', fontFamily:'Mitr,sans-serif' }}>ข้อ</div>
+            </div>
+          )}
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:11, padding:'2px 8px', borderRadius:6, background:FAVSUBJ_COLOR[favSubj], color:'#fff', fontFamily:'Mitr,sans-serif', fontWeight:600 }}>
+              {FAVSUBJ_TH[favSubj]}
+            </div>
+            <div style={{ fontSize:10, color:'var(--muted)', fontFamily:'Mitr,sans-serif', marginTop:2 }}>วิชาโปรด</div>
+          </div>
         </div>
 
         {/* Egg mini + XP bars */}

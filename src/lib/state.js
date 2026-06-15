@@ -111,6 +111,11 @@ export function _migrateBattleStats(s) {
       }
       dirty = true
     }
+    // Backfill ECA relationship fields (adventuresWith, questionsAnswered, eggStartDate)
+    if (e.adventuresWith === undefined) {
+      e = { ...e, adventuresWith: 0, questionsAnswered: 0, eggStartDate: e.bornDate || e.date || '' }
+      dirty = true
+    }
 
     // Time-based HP recovery: 1 HP per 30 seconds since last update
     if (e.hpUpdatedAt && e.hpUpdatedAt < now) {

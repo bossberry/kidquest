@@ -821,3 +821,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: none; build ✅ zero errors
 - Ready to start next: Phase 4 NPC System (5 NPCs: Prof Owl already wired; Sleepy Bunny, Sign, and 2 more NPC dialogues to add per green-meadow.md spec)
 - Needs Chatbot decision first: nothing blocking for NPC System; GM-Q10 (Post Bird scope) still open but not required for Prof Owl or Bunny NPCs
+
+---
+
+**2026-06-15 — feat: Creature System Steps 5–10 — family labels, companion resize, friendship data, ECA fields, bio phase, egg growth message:**
+- Built:
+  - Step 5+7 — `CreatureDetailPopup.jsx`: `FAMILY_LABELS_TH` (16 families), `FAVSUBJ_TH/COLOR`. Header: rarity badge + Moonborn badge (family==='moon'). Creature canvas wrapped in element glow (`drop-shadow`). Name section: displayName (`creatureName` priority) + family badge + element badge. Friendship stats row: days together, adventuresWith, questionsAnswered, favorite subject badge (color-coded by subject)
+  - Step 6 — `Home.jsx`: companion zone height 52→80px; CreatureCanvas size 22→46px
+  - Step 8 (ECA-MVP-3) — `state.js`: backfill `adventuresWith:0, questionsAnswered:0, eggStartDate` for legacy creatures in `_migrateBattleStats`. `StateContext.jsx`: HATCH_COMPLETE adds these 3 fields; ADD_XP increments `questionsAnswered` for active party; ROUND_COMPLETE increments `adventuresWith` for active party (refactored to always map when activeEgg exists)
+  - Step 9 (ECA-4) — `HatchOverlay.jsx`: `bioDNA`/`bioCreature` state; mount useEffect checks active creature `adventuresWith>0` → `setPhase('bio')`; 'bio' phase renders as separate `createPortal` return with CreatureCanvas (100px celebrate), name, adventure count, question count, "ฟักไข่ต่อ!" button → `setPhase('tapping')`, "ยังไม่ฟักตอนนี้" → doClose
+  - Step 10 (ECA-3) — `Home.jsx`: `growthBanner` state; mount useEffect checks `state.sessionXP>0` → shows "ไข่ของเราโตขึ้นนะ!" (or "อีกนิดเดียวก็ฟักแล้ว!" at stage≥5) after 900ms, auto-hides at 3s; dispatches `SET_SESSION_XP:0` to reset; styled banner with yellow border
+- Not finished: nothing — Steps 5–10 all complete
+- Blockers/risks found: none; build ✅ zero errors
+- Ready to start next: Phase 4 NPC System (Prof Owl already wired; add Sleepy Bunny, Sign, 2 more NPC dialogues)
+- Needs Chatbot decision first: nothing blocking

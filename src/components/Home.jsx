@@ -46,6 +46,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [stageUp, setStageUp]             = useState(null)  // null | {stage, id}
   const [healFloat, setHealFloat]         = useState(null)  // null | id
+  const [growthBanner, setGrowthBanner]   = useState(null)  // null | string
 
   const particleIdRef   = useRef(0)
   const animTimerRef    = useRef(null)
@@ -133,6 +134,18 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         else { playTone('chirp'); setTimeout(() => playTone('chirp'), 360) }
       }, 200)
     }
+  }, []) // eslint-disable-line
+
+  // Post-session egg growth banner — fires once on mount if XP was earned this session
+  useEffect(() => {
+    if ((state.sessionXP || 0) <= 0) return
+    const msg = stage >= 5 ? 'อีกนิดเดียวก็ฟักแล้ว!' : 'ไข่ของเราโตขึ้นนะ!'
+    setTimeout(() => {
+      setGrowthBanner(msg)
+      playTone('stageUp')
+      setTimeout(() => setGrowthBanner(null), 3000)
+    }, 900)
+    dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
   }, []) // eslint-disable-line
 
   // Random idle micro-animations — egg feels alive on its own
@@ -494,6 +507,20 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         </div>
       )}
 
+      {/* Post-session egg growth message */}
+      {growthBanner && (
+        <div style={{
+          position:'fixed', top:'18%', left:'50%', transform:'translateX(-50%)',
+          background:'rgba(20,12,40,0.92)', border:'2px solid rgba(255,220,80,0.7)',
+          padding:'10px 22px', zIndex:700, pointerEvents:'none',
+          animation:'stage-up-pop 3s ease forwards',
+        }}>
+          <div style={{ fontFamily:'Mitr,sans-serif', fontSize:15, color:'#ffe066', textAlign:'center', whiteSpace:'nowrap' }}>
+            {growthBanner}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         width:'100%', maxWidth:480, padding:'14px 20px 8px',
@@ -637,7 +664,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         )}
 
         {/* Creature companion */}
-        <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:52, overflow:'visible' }}>
+        <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:80, overflow:'visible' }}>
           {eggsHatched > 0 ? (
             <div
               style={{ position:'absolute', bottom:4, left:creature.x, cursor:'pointer', userSelect:'none' }}
@@ -664,7 +691,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                     transition:'transform 0.35s, opacity 0.5s',
                   }}
                 >
-                  <CreatureCanvas dna={lastCreatureDNA} size={26} animationEnabled={false} style={{ borderRadius:4 }} />
+                  <CreatureCanvas dna={lastCreatureDNA} size={46} animationEnabled={false} style={{ borderRadius:4 }} />
                 </div>
 
                 {/* Behavior overlays — shown inline next to creature */}

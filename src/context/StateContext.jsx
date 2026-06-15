@@ -147,7 +147,9 @@ function reducer(state, action) {
             if (newEvo !== (e.evoStage ?? 'baby') && !evoNotice) {
               evoNotice = { creatureId: e.id, newStage: newEvo, creatureName: e.creatureName || e.creature?.n }
             }
-            return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo }
+            // ECA: increment questionsAnswered for active creature only
+            const qDelta = e.id === activeId ? 1 : 0
+            return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo, questionsAnswered: (e.questionsAnswered ?? 0) + qDelta }
           })
       return {
         ...state,
@@ -173,15 +175,16 @@ function reducer(state, action) {
       const activeId = (state.party || [])[0]
       const activeEgg = activeId ? (state.hatchedEggs || []).find(e => e.id === activeId) : null
       let evoNoticeRC = state.pendingEvoNotice ?? null
-      const eggsAfterBond = (activeEgg && (activeEgg.bondMeter ?? 0) < 100)
+      const eggsAfterBond = activeEgg
         ? (state.hatchedEggs || []).map(e => {
             if (e.id !== activeId) return e
-            const bond = Math.min(100, (e.bondMeter ?? 0) + 2)
+            const bond = (activeEgg.bondMeter ?? 0) < 100 ? Math.min(100, (e.bondMeter ?? 0) + 2) : (e.bondMeter ?? 0)
             const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
             if (newEvo !== (e.evoStage ?? 'baby') && !evoNoticeRC) {
               evoNoticeRC = { creatureId: e.id, newStage: newEvo, creatureName: e.creatureName || e.creature?.n }
             }
-            return { ...e, bondMeter: bond, evoStage: newEvo }
+            // ECA: increment adventuresWith on each study round
+            return { ...e, bondMeter: bond, evoStage: newEvo, adventuresWith: (e.adventuresWith ?? 0) + 1 }
           })
         : (state.hatchedEggs || [])
       return {
@@ -249,6 +252,10 @@ function reducer(state, action) {
         bornDate:    new Date().toISOString().slice(0, 10),
         bornTier:    tier,
         creatureName: null,
+        // ECA relationship data
+        adventuresWith:   0,
+        questionsAnswered: 0,
+        eggStartDate:     new Date().toISOString().slice(0, 10),
       }
       // Auto-add to party if party is empty (first creature always joins)
       const newEggInParty = (state.party || []).length === 0

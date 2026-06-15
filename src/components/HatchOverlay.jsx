@@ -15,10 +15,12 @@ const TAPS_NEEDED = 5
 export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const [tapCount, setTapCount]   = useState(0)
-  const [phase, setPhase]         = useState('tapping') // 'tapping' | 'revealing' | 'done' | 'naming'
+  const [phase, setPhase]         = useState('tapping') // 'bio' | 'tapping' | 'revealing' | 'done' | 'naming'
   const [creature, setCreature]   = useState(null)
   const [savedEggStats, setSavedEggStats] = useState(null)
   const [creatureDNA, setCreatureDNA] = useState(null)
+  const [bioDNA, setBioDNA]       = useState(null)
+  const [bioCreature, setBioCreature] = useState(null)
   const [newEggId, setNewEggId]   = useState(null)
   const isOpen = state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched)
 
@@ -28,9 +30,22 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
       setCreature(getCreatureForHatch(state))
       setCreatureDNA(null)
       setTapCount(0)
-      setPhase('tapping')
       setNewEggId(null)
       playTone('click')
+      // Bio phase: if active party creature has adventures, show farewell screen first
+      const activeId = (state.party || [])[0]
+      const activeEgg = activeId ? (state.hatchedEggs || []).find(e => e.id === activeId) : null
+      if (activeEgg && (activeEgg.adventuresWith ?? 0) > 0) {
+        setBioCreature(activeEgg)
+        let d = activeEgg.dna
+        if (!d) { try { d = buildCreatureDNA(buildEggStats({ ...activeEgg, xpThai: activeEgg.xpThai ?? 0, xpEng: activeEgg.xpEng ?? 0, xpMath: activeEgg.xpMath ?? 0 })) } catch (_) { d = null } }
+        setBioDNA(d)
+        setPhase('bio')
+      } else {
+        setBioCreature(null)
+        setBioDNA(null)
+        setPhase('tapping')
+      }
     }
   }, [isOpen]) // eslint-disable-line
 
@@ -117,6 +132,39 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const snapshotEl = determineElement(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak)
   const elColor  = CREATURE_ELEMENT_COLORS[snapshotEl]
   const elNameTH = CREATURE_ELEMENT_NAMES_TH[snapshotEl]
+
+  // Biography phase — farewell to active creature before hatching new egg
+  if (phase === 'bio' && bioCreature) {
+    const bioName = bioCreature.creatureName || bioCreature.creature?.n || 'เพื่อน'
+    const adventures = bioCreature.adventuresWith ?? 0
+    const questions  = bioCreature.questionsAnswered ?? 0
+    return createPortal(
+      <div className="hatch-overlay show">
+        {bioDNA && (
+          <div style={{ marginBottom:12, filter:'drop-shadow(0 0 12px rgba(255,255,200,0.4))' }}>
+            <CreatureCanvas dna={bioDNA} size={100} animationEnabled={true} idleMode="celebrate" />
+          </div>
+        )}
+        <div className="hatch-title show" style={{ fontSize:16 }}>ก่อนฟักไข่ใบใหม่...</div>
+        <div style={{ fontFamily:'Mitr,sans-serif', fontSize:15, color:'rgba(255,255,255,0.9)', textAlign:'center', marginBottom:6, lineHeight:1.7 }}>
+          {bioName}
+        </div>
+        <div style={{ display:'flex', gap:18, justifyContent:'center', marginBottom:18 }}>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'#ffe066' }}>{adventures}</div>
+            <div style={{ fontFamily:'Mitr,sans-serif', fontSize:11, color:'rgba(255,255,255,0.65)' }}>ผจญภัย</div>
+          </div>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:'#ffe066' }}>{questions}</div>
+            <div style={{ fontFamily:'Mitr,sans-serif', fontSize:11, color:'rgba(255,255,255,0.65)' }}>ข้อ</div>
+          </div>
+        </div>
+        <button className="hatch-close show" onClick={() => setPhase('tapping')}>ฟักไข่ต่อ!</button>
+        <button className="hatch-close show" style={{ marginTop:6, background:'rgba(255,255,255,0.10)', fontSize:12 }} onClick={doClose}>ยังไม่ฟักตอนนี้</button>
+      </div>,
+      document.body
+    )
+  }
 
   return createPortal(
     <div className="hatch-overlay show">

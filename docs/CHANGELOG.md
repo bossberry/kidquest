@@ -1,5 +1,30 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Creature System Steps 5–10 — family labels, companion zone, friendship data, ECA fields, bio phase, egg growth message
+
+### src/components/CreatureDetailPopup.jsx
+- Added `FAMILY_LABELS_TH` (16 family archetypes → Thai label), `FAVSUBJ_TH`, `FAVSUBJ_COLOR`
+- Header: Moonborn badge when `family === 'moon'`
+- Creature canvas wrapped in element `drop-shadow` glow filter
+- Name section: `creatureName` priority + family badge + element badge
+- Friendship stats row: days together, `adventuresWith`, `questionsAnswered`, favorite subject badge (green/blue/purple)
+
+### src/components/Home.jsx
+- Companion zone height 52→80px; CreatureCanvas size 22→46px
+- `growthBanner` state: on mount, if `sessionXP>0` → show "ไข่ของเราโตขึ้นนะ!" / "อีกนิดเดียวก็ฟักแล้ว!" (stage≥5) after 900ms, auto-hide 3s, dispatch `SET_SESSION_XP:0`
+
+### src/lib/state.js
+- `_migrateBattleStats`: backfills `adventuresWith:0`, `questionsAnswered:0`, `eggStartDate` for legacy creatures
+
+### src/context/StateContext.jsx
+- `HATCH_COMPLETE`: adds `adventuresWith:0`, `questionsAnswered:0`, `eggStartDate` to new eggs
+- `ADD_XP`: increments `questionsAnswered+1` for active party creature on correct answer
+- `ROUND_COMPLETE`: increments `adventuresWith+1` for active party creature each round (always maps when activeEgg exists)
+
+### src/components/HatchOverlay.jsx
+- `bioDNA`/`bioCreature` state; mount useEffect sets `phase='bio'` when active creature has `adventuresWith>0`
+- New 'bio' phase portal: `CreatureCanvas` (100px celebrate), name, adventure/question counts, "ฟักไข่ต่อ!" button, cancel button
+
 ## 2026-06-15 — feat: Creature System Phase 5 — birth sequence (CreatureCanvas reveal)
 
 ### src/components/HatchOverlay.jsx

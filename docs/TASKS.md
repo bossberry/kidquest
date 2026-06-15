@@ -123,9 +123,9 @@ _Spec: `docs/research/gameplay/egg-companion-adventure.md`. Implement only after
 - [x] **ECA-MVP-1: DefenseMode egg replacement** — EggCanvas replaces `babyEmoji` in `DefenseMode.jsx`. Egg bounces (`eggBounce`) on shield-block, shakes (`eggShake`) when shield is hit. Sparkle `item` tone 200ms after correct. Build ✅ 2026-06-04.
 - [x] **ECA-MVP-2: BattleMode egg companion** — EggCanvas replaces `🦸` player in `BattleMode.jsx`. Egg jumps + golden glow + `✨` sparkle float on correct; shakes on enemy counter-attack; continuous `egg-near-hatch` pulse/glow when stage ≥ 5. Egg growth progress bar shows below battle log with stage name + %. Sparkle `item` tone 200ms after every correct answer. Build ✅ 2026-06-04.
 - [x] **ChaseMode egg companion** — EggCanvas replaces `🦸` runner in `ChaseMode.jsx`. Egg dashes (`adv-dash`) on correct. Sparkle tone. Build ✅ 2026-06-04.
-- [ ] **ECA-MVP-3: Relationship data fields** — Add `adventuresWith`, `questionsAnswered`, `eggStartDate` to egg object in `defaultState()`. Increment in `ADD_XP` reducer. Non-breaking (defaults 0/null). No migration needed.
-- [ ] **ECA-3: Post-session egg moment** — Show egg portrait + growth text on session result screens when XP was added. "ไข่ของเราโตขึ้นนะ!" / "อีกนิดเดียวก็ฟักแล้ว!" (stage 5–6). Requires ECA-MVP-3.
-- [ ] **ECA-4: Hatch biography summary** — Show relationship data on hatch overlay: "ผจญภัยด้วยกัน N ครั้ง, ตอบคำถาม N ข้อ". Requires ECA-MVP-3. Add as second phase in HatchOverlay before creature reveal.
+- [x] **ECA-MVP-3: Relationship data fields** — `adventuresWith`, `questionsAnswered`, `eggStartDate` added at hatch + backfilled in migration. ADD_XP increments questionsAnswered for active. ROUND_COMPLETE increments adventuresWith for active. Build ✅ 2026-06-15.
+- [x] **ECA-3: Post-session egg moment** — `Home.jsx` growth banner on mount when `sessionXP>0`: "ไข่ของเราโตขึ้นนะ!" or "อีกนิดเดียวก็ฟักแล้ว!" (stage≥5). Auto-hides 3s, resets sessionXP. Build ✅ 2026-06-15.
+- [x] **ECA-4: Hatch biography summary** — `HatchOverlay.jsx` 'bio' phase: shows active creature canvas + adventuresWith + questionsAnswered + "ฟักไข่ต่อ!" button. Appears before tapping phase when active creature has adventures. Build ✅ 2026-06-15.
 - [ ] **ECA-5: Shop + Mission egg presence** — Small egg canvas in corner of GameShop.jsx and future missions. Low priority after adventure modes.
 
 ### Phase E — Shop Stretch (after play validation with Chopin)

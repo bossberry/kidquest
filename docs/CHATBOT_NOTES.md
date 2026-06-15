@@ -874,3 +874,15 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: CLOSE_HATCH clearing readyToHatch means if player dismisses hatch without completing, they lose the "ready" indicator until next ROUND_COMPLETE re-sets it. Acceptable — egg XP is preserved; it just re-triggers on next round.
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-15 — fix: use average stats for creature merge instead of sum:**
+- Built:
+  - `state.js` `_mergeAllCreaturesIntoOne`: fresh-merge path now uses AVERAGE (÷ count) for ATK/DEF/SPD/HP/battleXP/bondMeter; added re-averaging path for already-merged 1-egg state (divides summed stats by `mergedFromCount`); returns `_statAveraged: true`
+  - `StateContext.jsx` initializer: `needsMerge` condition extended to also trigger when `_creaturesMerged && hatchedEggs.length === 1 && !_statAveraged` — one-time re-run to correct the previously summed stats
+  - `StateContext.jsx` `loadState().then()`: same `remoteNeedsMerge` condition so Supabase data is also corrected and pushed back
+- Not finished: nothing
+- Blockers/risks found: re-averaging divides by `mergedFromCount` stored on the merged egg. If `mergedFromCount` is missing (shouldn't happen — set by fresh merge), defaults to 1 so no division error.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

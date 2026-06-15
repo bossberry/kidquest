@@ -677,7 +677,7 @@ export function StateProvider({ children }) {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
       const migrated = _migrateBattleStats(raw)
-      const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 && !migrated._creaturesMerged
+      const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
       const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated
       // Always clear transient battle state — these can be stale if app was closed mid-battle.
       // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
@@ -716,7 +716,7 @@ export function StateProvider({ children }) {
       if (!remote) return
       const cur = stateRef.current
       // Run merge on remote data so Supabase state gets cleaned up too
-      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1 && !remote._creaturesMerged
+      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1 || (remote._creaturesMerged && remote.hatchedEggs?.length === 1 && !remote._statAveraged)
       const remoteFinal = remoteNeedsMerge ? { ..._mergeAllCreaturesIntoOne(remote), _creaturesMerged: true } : remote
       if ((remoteFinal.rounds || 0) >= (cur.rounds || 0)) {
         dispatch({ type: ACTIONS.INIT, payload: remoteFinal })

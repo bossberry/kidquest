@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — fix: use average stats for creature merge instead of sum
+
+### src/lib/state.js
+- `_mergeAllCreaturesIntoOne`: fresh-merge path now computes AVERAGE stats (÷ eggs.length) for ATK/DEF/SPD/HP/battleXP/bondMeter instead of sum
+- Added re-averaging path: if `eggs.length === 1 && mergedFromCount > 1 && !_statAveraged`, divides the previously-summed stats by `mergedFromCount` to correct them
+- Return value now includes `_statAveraged: true`
+
+### src/context/StateContext.jsx
+- Initializer `needsMerge`: extended condition triggers re-run when `_creaturesMerged && hatchedEggs.length === 1 && !_statAveraged`
+- `loadState().then()` `remoteNeedsMerge`: same extended condition so Supabase state is also corrected on load
+
+---
+
 ## 2026-06-15 — hotfix: force creature merge migration + fix frozen กลับ button
 
 ### src/lib/state.js

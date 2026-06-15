@@ -156,14 +156,47 @@ export function _migrateBattleStats(s) {
 
 export function _mergeAllCreaturesIntoOne(state) {
   const eggs = state.hatchedEggs || []
-  if (eggs.length <= 1) return state
 
-  const totalATK = eggs.reduce((sum, e) => sum + (e.stats?.ATK || 0), 0)
-  const totalDEF = eggs.reduce((sum, e) => sum + (e.stats?.DEF || 0), 0)
-  const totalSPD = eggs.reduce((sum, e) => sum + (e.stats?.SPD || 0), 0)
-  const totalHP  = eggs.reduce((sum, e) => sum + (e.stats?.HP  || 0), 0)
-  const totalBattleXP = eggs.reduce((sum, e) => sum + (e.battleXP || 0), 0)
-  const totalBond = Math.min(100, eggs.reduce((sum, e) => sum + (e.bondMeter || 0), 0))
+  // Re-averaging path: already merged to 1 egg with summed stats — divide by original count
+  if (eggs.length === 1) {
+    const egg = eggs[0]
+    const count = egg.mergedFromCount || 1
+    if (count <= 1 || state._statAveraged) return state
+    const avgHP = Math.round((egg.stats?.HP || 0) / count)
+    const averaged = {
+      ...egg,
+      stats: {
+        ...(egg.stats || {}),
+        ATK: Math.round((egg.stats?.ATK || 0) / count),
+        DEF: Math.round((egg.stats?.DEF || 0) / count),
+        SPD: Math.round((egg.stats?.SPD || 0) / count),
+        HP:  avgHP,
+      },
+      battleXP:   Math.round((egg.battleXP  || 0) / count),
+      bondMeter:  Math.min(100, Math.round((egg.bondMeter || 0) / count)),
+      currentHP:  avgHP,
+    }
+    return {
+      ...state,
+      hatchedEggs: [averaged],
+      party: [averaged.id],
+      battleCreatureId: null,
+      pendingBattle: null,
+      _creaturesMerged: true,
+      _statAveraged: true,
+    }
+  }
+
+  if (eggs.length < 2) return state
+
+  // Fresh merge path: multiple eggs → compute averages
+  const count = eggs.length
+  const avgATK = Math.round(eggs.reduce((sum, e) => sum + (e.stats?.ATK || 0), 0) / count)
+  const avgDEF = Math.round(eggs.reduce((sum, e) => sum + (e.stats?.DEF || 0), 0) / count)
+  const avgSPD = Math.round(eggs.reduce((sum, e) => sum + (e.stats?.SPD || 0), 0) / count)
+  const avgHP  = Math.round(eggs.reduce((sum, e) => sum + (e.stats?.HP  || 0), 0) / count)
+  const avgBattleXP = Math.round(eggs.reduce((sum, e) => sum + (e.battleXP || 0), 0) / count)
+  const avgBond = Math.min(100, Math.round(eggs.reduce((sum, e) => sum + (e.bondMeter || 0), 0) / count))
   const maxLevel = Math.max(...eggs.map(e => e.battleLevel || 1))
 
   const base = [...eggs].sort((a, b) => (b.hatched_at || 0) - (a.hatched_at || 0))[0]
@@ -172,17 +205,17 @@ export function _mergeAllCreaturesIntoOne(state) {
     ...base,
     stats: {
       ...(base.stats || {}),
-      ATK: totalATK,
-      DEF: totalDEF,
-      SPD: totalSPD,
-      HP:  totalHP,
+      ATK: avgATK,
+      DEF: avgDEF,
+      SPD: avgSPD,
+      HP:  avgHP,
     },
-    battleXP: totalBattleXP,
+    battleXP: avgBattleXP,
     battleLevel: maxLevel,
-    bondMeter: totalBond,
-    currentHP: totalHP,
+    bondMeter: avgBond,
+    currentHP: avgHP,
     inParty: true,
-    mergedFromCount: eggs.length,
+    mergedFromCount: count,
   }
 
   return {
@@ -192,6 +225,7 @@ export function _mergeAllCreaturesIntoOne(state) {
     battleCreatureId: null,
     pendingBattle: null,
     _creaturesMerged: true,
+    _statAveraged: true,
   }
 }
 

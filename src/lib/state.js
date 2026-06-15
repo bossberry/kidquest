@@ -154,6 +154,46 @@ export function _migrateBattleStats(s) {
   }
 }
 
+export function _mergeAllCreaturesIntoOne(state) {
+  const eggs = state.hatchedEggs || []
+  if (eggs.length <= 1) return state
+
+  const totalATK = eggs.reduce((sum, e) => sum + (e.stats?.ATK || 0), 0)
+  const totalDEF = eggs.reduce((sum, e) => sum + (e.stats?.DEF || 0), 0)
+  const totalSPD = eggs.reduce((sum, e) => sum + (e.stats?.SPD || 0), 0)
+  const totalHP  = eggs.reduce((sum, e) => sum + (e.stats?.HP  || 0), 0)
+  const totalBattleXP = eggs.reduce((sum, e) => sum + (e.battleXP || 0), 0)
+  const totalBond = Math.min(100, eggs.reduce((sum, e) => sum + (e.bondMeter || 0), 0))
+  const maxLevel = Math.max(...eggs.map(e => e.battleLevel || 1))
+
+  const base = [...eggs].sort((a, b) => (b.hatched_at || 0) - (a.hatched_at || 0))[0]
+
+  const merged = {
+    ...base,
+    stats: {
+      ...(base.stats || {}),
+      ATK: totalATK,
+      DEF: totalDEF,
+      SPD: totalSPD,
+      HP:  totalHP,
+    },
+    battleXP: totalBattleXP,
+    battleLevel: maxLevel,
+    bondMeter: totalBond,
+    currentHP: totalHP,
+    inParty: true,
+    mergedFromCount: eggs.length,
+  }
+
+  return {
+    ...state,
+    hatchedEggs: [merged],
+    party: [merged.id],
+    battleCreatureId: null,
+    pendingBattle: null,
+  }
+}
+
 function _migrateEggs(s) {
   if (!Array.isArray(s.hatchedEggs) || !s.hatchedEggs.length) return s
   let dirty = false

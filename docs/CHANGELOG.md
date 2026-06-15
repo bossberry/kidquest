@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — fix: suppress hatch during battle + one-time creature merge migration
+
+### src/App.jsx
+- `HatchOverlay suppressAutoOpen` extended: now also suppresses when `screen === 'world-battle'`, `!!state.pendingBattle`, or `!!state.battleCreatureId` — prevents hatch sequence from interrupting mid-battle
+
+### src/lib/state.js
+- Added `_mergeAllCreaturesIntoOne(state)`: sums stats (ATK/DEF/SPD/HP/battleXP/bondMeter) across all hatched eggs, uses most-recently-hatched as base, returns state with `hatchedEggs: [merged]`, `party: [merged.id]`, battle state cleared. Guard: no-op if `eggs.length <= 1`. `mergedFromCount` stored on result for audit trail.
+
+### src/context/StateContext.jsx
+- Imports `_mergeAllCreaturesIntoOne`; initializer now calls it after `_migrateBattleStats` when `hatchedEggs.length > 1` — one-time migration collapses Chopin's multiple creatures into one combined creature on first load
+
+---
+
 ## 2026-06-15 — hotfix: disable challenger useEffect — root cause of PartySelect freeze
 
 ### src/context/StateContext.jsx

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
-import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats } from '../lib/state.js'
+import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
@@ -677,9 +677,10 @@ export function StateProvider({ children }) {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
       const migrated = _migrateBattleStats(raw)
+      const merged = migrated.hatchedEggs?.length > 1 ? _mergeAllCreaturesIntoOne(migrated) : migrated
       // Always clear transient battle state — these can be stale if app was closed mid-battle.
       // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
-      return { ...migrated, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
+      return { ...merged, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
     }
     catch { return defaultState() }
   })

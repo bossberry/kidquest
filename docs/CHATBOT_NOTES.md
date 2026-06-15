@@ -848,3 +848,15 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: Boss tier advance replaces battleWins-based unlock. Old saves with `worldLevel > 0` will stay at their current tier until boss is defeated — this may confuse returning players. Also: `bossDefeatedThisTier` can trigger the cutscene loop if `SET_WORLD_LEVEL` fails (e.g. at max tier) — guarded with `dispatch(SET_WORLD_LEVEL(wl))` (same level) so it still resets the flag.
 - Ready to start next: Phase 4 NPC System (Prof Owl existing + Sleepy Bunny + 2 more NPC dialogues per green-meadow.md)
 - Needs Chatbot decision first: (1) Should monster scaling change per map theme (NW=weak, NE=fire-heavy, etc.)? Currently all screens use same world-level pool. (2) Map "cleared" currently means "exited" — should it instead require defeating at least 1 enemy first?
+
+---
+
+**2026-06-15 — fix: suppress hatch overlay during battle + one-time creature merge migration:**
+- Built:
+  - `App.jsx`: `HatchOverlay suppressAutoOpen` now also suppresses during `world-battle` screen and when `pendingBattle` or `battleCreatureId` is set — prevents hatch sequence from interrupting an in-progress battle
+  - `state.js`: `_mergeAllCreaturesIntoOne(state)` exported — sums ATK/DEF/SPD/HP/battleXP/bondMeter across all eggs, picks most-recently-hatched as base, merges into single creature with `mergedFromCount` field; runs once (guard: `eggs.length <= 1`)
+  - `StateContext.jsx`: imports `_mergeAllCreaturesIntoOne`; initializer calls it after `_migrateBattleStats` when `hatchedEggs.length > 1` — Chopin's multiple hatched creatures collapsed to one combined creature on first app load
+- Not finished: nothing
+- Blockers/risks found: `mergedFromCount` stored on merged creature for audit trail. After merge, party is rebuilt to `[merged.id]` and `battleCreatureId`/`pendingBattle` cleared. Irreversible on load — one-shot.
+- Ready to start next: Phase 4 NPC System (Prof Owl already wired; add Sleepy Bunny + 2 more NPC dialogues)
+- Needs Chatbot decision first: nothing blocking

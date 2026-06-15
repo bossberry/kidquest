@@ -90,6 +90,22 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
 
   if (!isOpen && phase === 'tapping') return null
 
+  // 6-creature hard limit: show a friendly blocking screen if collection is full
+  const creatureCount = (state.hatchedEggs || []).length
+  if (creatureCount >= 6 && phase === 'tapping') {
+    return createPortal(
+      <div className="hatch-overlay show">
+        <div style={{ fontSize:60, marginBottom:16 }}>🥚</div>
+        <div className="hatch-title show" style={{ fontSize:18 }}>คลังเต็มแล้ว!</div>
+        <div style={{ fontFamily:'Mitr,sans-serif', fontSize:14, color:'rgba(255,255,255,0.8)', textAlign:'center', marginBottom:20, lineHeight:1.6 }}>
+          มีสัตว์ {creatureCount} ตัวแล้ว<br/>นำบางตัวออกก่อนนะ
+        </div>
+        <button className="hatch-close show" onClick={doClose}>กลับ</button>
+      </div>,
+      document.body
+    )
+  }
+
   // Element derived from current XP snapshot (matches what HATCH_COMPLETE will compute)
   const snapshotEl = determineElement(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak)
   const elColor  = CREATURE_ELEMENT_COLORS[snapshotEl]

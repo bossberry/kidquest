@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Creature System Phase 3 — bond combat effects, 6-creature limit, evo toast
+
+### src/lib/state.js
+- Added `pendingEvoNotice: null` to `defaultState()`
+
+### src/context/StateContext.jsx
+- New action `CLEAR_EVO_NOTICE` — clears `state.pendingEvoNotice`
+- `ADD_XP`: detects evoStage change during creature XP map → sets `pendingEvoNotice` (first change wins)
+- `ROUND_COMPLETE`: same evo detection on bond +2 map
+- `INCREMENT_BATTLE_WINS`: same evo detection on bond +1 map
+
+### src/components/WorldBattle.jsx
+- `creatureStats` useMemo now applies bond bonuses: bond≥25 → ATK×1.05; bond≥100 → ATK×1.5; bond≥50 → SPD+30
+- `onCorrect()` dispatches `CREATURE_HEAL({creatureId, amount:1})` when active creature bond≥75 (passive heal)
+
+### src/components/HatchOverlay.jsx
+- 6-creature hard limit: if `hatchedEggs.length >= 6` during tapping phase, shows "คลังเต็มแล้ว!" blocking panel instead of the egg
+
+### src/App.jsx
+- `useEffect` watches `state.pendingEvoNotice` → calls `showToast("★ [name] วิวัฒนาการแล้ว! → [stage]")` + `CLEAR_EVO_NOTICE`
+- Imports `showToast` from Toasts.jsx and `EVO_STAGE_LABELS_TH` from creatureSystem.js
+
+---
+
 ## 2026-06-15 — hotfix: world map encounter freeze (browser hang on PartySelect)
 
 ### src/components/WorldScreen.jsx

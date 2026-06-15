@@ -164,12 +164,16 @@ export default function WorldBattle({ navigate }) {
   const creatureStats = React.useMemo(() => {
     const base = creature?.stats ?? {}
     const lvBonus = creatureLevel - 1
+    const bond = creature?.bondMeter ?? 0
+    // Bond unlock combat bonuses
+    const atkMult = bond >= 100 ? 1.5 : bond >= 25 ? 1.05 : 1.0  // 25%→+5%, 100%→+50%
+    const spdBonus = bond >= 50 ? 30 : 0                            // 50%→+15% dodge
     return {
       ...base,
       HP:  Math.max(15, Math.round((base.HP  ?? 100) * WB_HP_SCALE)  + lvBonus),
-      ATK: Math.max(3,  Math.round((base.ATK ?? 50)  * WB_STAT_SCALE) + Math.floor(lvBonus * 0.5)),
+      ATK: Math.max(3,  Math.round(Math.round((base.ATK ?? 50)  * WB_STAT_SCALE) * atkMult) + Math.floor(lvBonus * 0.5)),
       DEF: Math.max(0,  Math.round((base.DEF ?? 50)  * WB_STAT_SCALE)),
-      SPD: base.SPD ?? 40,
+      SPD: (base.SPD ?? 40) + spdBonus,
     }
   }, [creature, creatureLevel]) // eslint-disable-line
 
@@ -243,6 +247,10 @@ export default function WorldBattle({ navigate }) {
     scoreRef.current++
     streakRef.current++
     dispatch({ type: ACTIONS.ADD_XP, payload: { world: subject, amount: earned } })
+    // Bond 75%+: passive heal +1 HP per correct answer
+    if (creatureId && (creature?.bondMeter ?? 0) >= 75) {
+      dispatch({ type: ACTIONS.CREATURE_HEAL, payload: { creatureId, amount: 1 } })
+    }
     return { earned, isCrit }
   }
 

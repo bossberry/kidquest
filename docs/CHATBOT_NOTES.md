@@ -793,3 +793,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Not finished: None from this session
 - Blockers/risks found: Root cause was two compounding issues: (1) RAF loop's `return` when encountering enemy froze the canvas/audio on every 3rd frame while PartySelect was visible; (2) ADD_XP/ROUND_COMPLETE/INCREMENT_BATTLE_WINS created new `hatchedEggs` arrays on every call, causing `derived` useMemo to recompute on every XP gain → extra re-renders for all consumers
 - Ready to start next: Chopin playtest of world encounter flow — verify freeze is gone, creature select appears and battle starts cleanly
+
+---
+
+**2026-06-15 — feat: Creature System Phase 3 — bond combat effects, 6-creature limit, evo toast:**
+- Built:
+  - `state.js`: `pendingEvoNotice: null` added to `defaultState()`
+  - `StateContext.jsx`: `CLEAR_EVO_NOTICE` action. ADD_XP / ROUND_COMPLETE / INCREMENT_BATTLE_WINS each detect evoStage change → set `state.pendingEvoNotice = { creatureId, newStage, creatureName }` (first change per reducer wins)
+  - `WorldBattle.jsx` `creatureStats` useMemo: bond combat bonuses — bond≥25 → ATK×1.05; bond≥100 → ATK×1.5 (supersedes 1.05); bond≥50 → SPD+30 (dodge ≈+15%). `onCorrect()`: dispatches `CREATURE_HEAL(+1)` when active creature bond≥75 (passive heal per correct answer)
+  - `HatchOverlay.jsx`: 6-creature hard gate — if `hatchedEggs.length >= 6` during 'tapping' phase, renders "คลังเต็มแล้ว!" blocking panel with count + back button; egg never shown
+  - `App.jsx`: `useEffect([state.pendingEvoNotice])` → `showToast("★ [name] วิวัฒนาการแล้ว! → [stage]")` + `CLEAR_EVO_NOTICE`. Imports `showToast` + `EVO_STAGE_LABELS_TH`
+- Not finished: None
+- Blockers/risks found: None. Build ✅ zero errors
+- Ready to start next: Phase 4 NPC System; OR bond/evo effects playtest with Chopin
+- Needs Chatbot decision first: nothing blocking

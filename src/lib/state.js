@@ -57,6 +57,7 @@ export function defaultState() {
     mazeCleared: false,
     bossDefeated: [],
     bossDefeatedThisTier: false,
+    pendingEvoNotice: null,
   }
 }
 

@@ -112,6 +112,7 @@ export const ACTIONS = {
   ADD_CREATURE_BOND:         'ADD_CREATURE_BOND',
   CREATURE_EVOLVE:           'CREATURE_EVOLVE',
   SET_ACTIVE_CREATURE:       'SET_ACTIVE_CREATURE',
+  CLEAR_EVO_NOTICE:          'CLEAR_EVO_NOTICE',
 }
 
 function reducer(state, action) {
@@ -133,6 +134,7 @@ function reducer(state, action) {
       // Distribute creature XP: active = 100%, bench party members = 50%
       const partyIds = state.party || []
       const activeId = partyIds[0]
+      let evoNotice = state.pendingEvoNotice ?? null
       const hatchedEggsWithXP = (partyIds.length === 0 || !earned)
         ? (state.hatchedEggs || [])
         : (state.hatchedEggs || []).map(e => {
@@ -142,12 +144,16 @@ function reducer(state, action) {
             const newBXP = (e.battleXP ?? 0) + gain
             const newBLv = calcBattleLevel(newBXP)
             const newEvo = calcEvoStage(newBLv, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
+            if (newEvo !== (e.evoStage ?? 'baby') && !evoNotice) {
+              evoNotice = { creatureId: e.id, newStage: newEvo, creatureName: e.creatureName || e.creature?.n }
+            }
             return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo }
           })
       return {
         ...state,
         [key]: newXp,
         hatchedEggs: hatchedEggsWithXP,
+        pendingEvoNotice: evoNotice,
         sessionXP: (state.sessionXP || 0) + earned,
         correctAnswers: (state.correctAnswers || 0) + 1,
         mins: (state.mins || 0) + 0.25,
@@ -166,17 +172,22 @@ function reducer(state, action) {
       // +2 bond to active creature on study round
       const activeId = (state.party || [])[0]
       const activeEgg = activeId ? (state.hatchedEggs || []).find(e => e.id === activeId) : null
+      let evoNoticeRC = state.pendingEvoNotice ?? null
       const eggsAfterBond = (activeEgg && (activeEgg.bondMeter ?? 0) < 100)
         ? (state.hatchedEggs || []).map(e => {
             if (e.id !== activeId) return e
             const bond = Math.min(100, (e.bondMeter ?? 0) + 2)
             const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
+            if (newEvo !== (e.evoStage ?? 'baby') && !evoNoticeRC) {
+              evoNoticeRC = { creatureId: e.id, newStage: newEvo, creatureName: e.creatureName || e.creature?.n }
+            }
             return { ...e, bondMeter: bond, evoStage: newEvo }
           })
         : (state.hatchedEggs || [])
       return {
         ...state,
         hatchedEggs: eggsAfterBond,
+        pendingEvoNotice: evoNoticeRC,
         streak: Math.max(state.streak || 0, streak || 0),
         rounds: (state.rounds || 0) + 1,
         dailyRounds: (dailyReset ? 0 : (state.dailyRounds || 0)) + 1,
@@ -528,15 +539,19 @@ function reducer(state, action) {
       // +1 bond to active creature on battle win
       const activeIdW = (state.party || [])[0]
       const activeEggW = activeIdW ? (state.hatchedEggs || []).find(e => e.id === activeIdW) : null
+      let evoNoticeW = state.pendingEvoNotice ?? null
       const eggsAfterWin = (activeEggW && (activeEggW.bondMeter ?? 0) < 100)
         ? (state.hatchedEggs || []).map(e => {
             if (e.id !== activeIdW) return e
             const bond = Math.min(100, (e.bondMeter ?? 0) + 1)
             const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
+            if (newEvo !== (e.evoStage ?? 'baby') && !evoNoticeW) {
+              evoNoticeW = { creatureId: e.id, newStage: newEvo, creatureName: e.creatureName || e.creature?.n }
+            }
             return { ...e, bondMeter: bond, evoStage: newEvo }
           })
         : (state.hatchedEggs || [])
-      return { ...state, battleWins: (state.battleWins ?? 0) + 1, hatchedEggs: eggsAfterWin }
+      return { ...state, battleWins: (state.battleWins ?? 0) + 1, hatchedEggs: eggsAfterWin, pendingEvoNotice: evoNoticeW }
     }
 
     case ACTIONS.SET_WORLD_LEVEL:
@@ -589,6 +604,9 @@ function reducer(state, action) {
       })
       return { ...state, hatchedEggs }
     }
+
+    case ACTIONS.CLEAR_EVO_NOTICE:
+      return { ...state, pendingEvoNotice: null }
 
     default:
       return state

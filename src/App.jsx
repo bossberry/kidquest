@@ -14,8 +14,9 @@ import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
-import { XPToast, ItemToast, ConfettiLayer } from './components/Toasts.jsx'
+import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
 import ChallengerOverlay from './components/ChallengerOverlay.jsx'
+import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -31,6 +32,14 @@ export default function App() {
   useEffect(() => {
     if (state.pendingChallenger) setChallengerOpen(true)
   }, [state.pendingChallenger])
+
+  useEffect(() => {
+    if (!state.pendingEvoNotice) return
+    const { newStage, creatureName } = state.pendingEvoNotice
+    const stageTH = EVO_STAGE_LABELS_TH[newStage] ?? newStage
+    showToast(`★ ${creatureName || 'สัตว์'} วิวัฒนาการแล้ว! → ${stageTH}`)
+    dispatch({ type: ACTIONS.CLEAR_EVO_NOTICE })
+  }, [state.pendingEvoNotice]) // eslint-disable-line
 
   useEffect(() => { initVoices() }, [])
   useEffect(() => { setSoundOn(soundOn) }, [soundOn])

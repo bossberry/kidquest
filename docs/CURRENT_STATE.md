@@ -51,13 +51,14 @@
 - **State**: No new fields. `ENCOUNTER_TRIGGERED` action added (no-op).
 - Phase 1 CSS art WorldScreen fully replaced.
 
-### World Map HUD (2026-06-12, updated 2026-06-14)
+### World Map HUD (2026-06-12, updated 2026-06-15)
 
-- **`WorldHUD` component** in `WorldScreen.jsx` (module-level, above `export default`): Semi-transparent dark strip at top of world screen (`64px + env(safe-area-inset-top)`). 4 sections divided by hairline separators:
-  - **Mini-map** (52px wide): 2×2 grid (NW/NE/SW_or_MAZE/SE) + full-width BOSS tile row. Colors: regular tiles = `WORLD_LEVELS[worldLevel].bgColors.ground`; BOSS = dark red `#380000`; MAZE = dark purple `#180830`; undiscovered = `#080e08`. Current screen = yellow outline + • dot (red outline + ★ on BOSS screen). World name (`nameTH`) shown below mini-map.
+- **`WorldHUD` component** in `WorldScreen.jsx` (module-level, above `export default`): Semi-transparent dark strip at top of world screen (`64px + env(safe-area-inset-top)`). 5 sections divided by hairline separators:
+  - **Mini-map** (52px wide): 2×2 grid (NW/NE/SW_or_MAZE/SE) + full-width BOSS tile row. Colors: regular tiles = `WORLD_LEVELS[worldLevel].bgColors.ground`; BOSS = dark red (if unlocked) or dark grey (locked); MAZE = dark purple `#180830`; undiscovered = `#080e08`. Current screen = yellow outline + • dot (red outline + ★ on BOSS screen). Cleared maps show ✓ green checkmark. MAZE slot shows ? when active. Below mini-map: "N/4 [world]" progress label (cleared count / 4 maps). BOSS tile shows ! red indicator when `bossMapUnlocked`. Props: `bossMapUnlocked`.
   - **Creature status**: First party member (fallback: most recently hatched egg). Shows name, Lv.N, HP bar (green/yellow/red by fraction), HP numbers.
   - **XP bar** (58px): Current battle level + gold progress bar using `10 + level² × 2` threshold per level.
   - **Items** (78px): 5 `PixelItemIcon` at 13px for `scroll/thunder/gem/mirror/clover`. Count badge. Dimmed to 20% opacity when count=0.
+  - **Item bag button** (38px): 🎒 opens `itemBagOpen` popup for HOME items. Red badge shows total home item count.
   - **Home button**: Compact ⌂ + "HOME" label.
 - **Camera offset**: `camY = camYBase − round(HUD_CONTENT_H / 2)` shifts map viewport so player centers in visible area below HUD.
 - New exports from `WorldScreen.jsx`: `HUD_CONTENT_H = 64` (number constant).
@@ -75,10 +76,22 @@
 - **Screen layout**: 4 regular screens (NW/NE/SW/SE in 2×2) + BOSS screen (south of SW and SE) + optional MAZE screen (replaces SW when `mazeActive`).
 - **Boss screen**: Static boss enemy at `BOSS_TILE = {col:7, row:3}` with `isWorldBoss:true`. Walking into boss → confirmation dialog (หนีก่อน / สู้เลย!). `enterBossBattle` dispatches `SET_PENDING_BATTLE` with `isBossBattle:true` + boss stats from `WORLD_LEVELS[worldLevel]`. Items disabled in boss battle (`isBossBattle` prop flows WorldBattle → MoveSelectBattleMode). Boss always shows red `!` above sprite. On boss victory: `DEFEAT_BOSS` dispatched.
 - **Secret maze**: Random 0–20 min timer per world level → `ACTIVATE_MAZE`. When active, NW→S and SE→W route to MAZE instead of SW. Notification shown: "??? ทางลับปรากฏขึ้นทางทิศใต้!". Player always starts at `{col:1, row:13}` in MAZE. Exit via EXIT_N at top → `CLEAR_MAZE` + 3 random item drops (from battle item pool).
-- **World unlock**: `useEffect([battleWins])` checks `WORLD_LEVELS[currentLevel+1].unlockRequirement.battleWins` → dispatches `SET_WORLD_LEVEL` + shows 4s world unlock banner.
+- **World unlock**: Replaced by boss-defeat flow (see Map System 2026-06-15 below). `useEffect([battleWins])` removed.
 - **Backward compat**: `VALID_DYNAMIC = new Set(['NW','NE','SW','SE','BOSS','MAZE'])` — old saves with `currentScreen:'BM'` etc. default to 'NW'.
 
 ---
+
+### Map System (2026-06-15)
+
+- **`MAP_THEMES`** in `gameConfig.js`: `{ NW:{name:'ป่า',element:'nature',...}, NE:{ภูเขาไฟ/fire}, SW:{ใต้น้ำ/water}, SE:{ทะเลทราย/thunder} }`. `BOSS_XP_THRESHOLD = 300`.
+- **State fields added**: `clearedMaps: []`, `secretMapExpiry: null` in `defaultState()`.
+- **New ACTIONS**: `MAP_CLEARED` (push NW/NE/SW/SE to `clearedMaps` if not there), `SECRET_MAP_SPAWN` (set `mazeActive:true + secretMapExpiry: timestamp`), `SECRET_MAP_EXPIRE` (clear maze + expiry). `SET_WORLD_LEVEL` now also resets `clearedMaps/secretMapExpiry/bossDefeatedThisTier`. `DEFEAT_BOSS` now also clears `clearedMaps/secretMapExpiry`.
+- **4 maps per tier**: `handleExit` dispatches `MAP_CLEARED` when player leaves any of NW/NE/SW/SE. Minimap shows ✓ on cleared tiles, "N/4 [world]" progress label below.
+- **Boss unlock gating**: `bossMapUnlocked = allMapsCleared && totalXP >= 300`. BOSS entry blocked in `handleExit` when not unlocked. Minimap BOSS tile grayed. Hint banner on BOSS screen shows (N/4 maps · N/300 XP). WorldHUD props: `bossMapUnlocked`.
+- **Secret maze (battle-wins trigger)**: `INCREMENT_BATTLE_WINS` auto-spawns maze when `battleWins % 10 === 0 && !mazeActive && !mazeCleared` → sets `mazeActive:true + secretMapExpiry`. Old random-timer useEffect removed. `useEffect([secretMapExpiry])` sets timeout to dispatch `SECRET_MAP_EXPIRE` on expiry. `setInterval(setMazeTimerTick)` drives countdown re-renders. Notification: "🌀 แมพลับปรากฏทางทิศใต้ · MM:SS".
+- **Boss dialog**: Added "⚠️ ใช้ไอเทมไม่ได้ในการสู้ครั้งนี้" warning panel. Title changed to "พบบอส Final!". Button text "สู้เลย! ⚔️".
+- **Boss defeat → tier advance**: `useEffect([bossDefeatedThisTier])` in WorldScreen → shows `bossCutscene` overlay 3.5s ("โชแปงพิชิต [world]!") → dispatches `SET_WORLD_LEVEL(wl+1)` + worldUnlockBanner. Tier advance no longer tied to battleWins.
+- **Item bag (HUD)**: 🎒 button (38px) with red count badge in WorldHUD. `itemBagOpen` state → popup overlay with 2×2 grid of home items (food/star/ribbon/potion). Label + effect + count per item. Tap → `USE_ITEM` dispatch. `HOME_ITEM_LABELS/EFFECTS/KEYS` constants module-level in WorldScreen.
 
 ### Green Meadow Phase 3 — World Battle + Pokémon Party System (2026-06-12)
 

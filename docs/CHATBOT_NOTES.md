@@ -835,3 +835,16 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: none; build ✅ zero errors
 - Ready to start next: Phase 4 NPC System (Prof Owl already wired; add Sleepy Bunny, Sign, 2 more NPC dialogues)
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-15 — feat: Map System — item bag, 4 maps/tier, secret maze trigger, boss gating:**
+- Built:
+  - `gameConfig.js`: `MAP_THEMES` (NW=ป่า/nature, NE=ภูเขาไฟ/fire, SW=ใต้น้ำ/water, SE=ทะเลทราย/thunder) + `BOSS_XP_THRESHOLD = 300`
+  - `state.js`: `clearedMaps: []`, `secretMapExpiry: null` added to `defaultState()`
+  - `StateContext.jsx`: 3 new ACTIONS (`MAP_CLEARED`, `SECRET_MAP_SPAWN`, `SECRET_MAP_EXPIRE`). `INCREMENT_BATTLE_WINS` auto-spawns maze when `battleWins % 10 === 0 && !mazeActive && !mazeCleared` (sets secretMapExpiry = now+30min). `SET_WORLD_LEVEL` now resets `clearedMaps/secretMapExpiry/bossDefeatedThisTier`. `DEFEAT_BOSS` resets `clearedMaps/secretMapExpiry`.
+  - `WorldScreen.jsx`: WorldHUD — added 🎒 item bag button (red count badge); minimap shows ✓ on cleared maps, "N/4 [world]" label, boss tile grayed when locked, ! when unlocked, ? on MAZE tile. Boss map unlock computed (`bossMapUnlocked = allMapsCleared && totalXP >= 300`). `handleExit` dispatches `MAP_CLEARED` when leaving NW/NE/SW/SE; blocks BOSS entry when not unlocked. Old random-timer maze useEffect removed; replaced with `useEffect([secretMapExpiry])` for countdown expiry + `setInterval` tick for display. Boss defeat useEffect shows 3.5s cutscene overlay ("โชแปงพิชิต [world]!") then `SET_WORLD_LEVEL` + worldUnlockBanner. Item bag popup (2×2 grid, food/star/ribbon/potion, USE_ITEM dispatch). Boss dialog updated: "พบบอส Final!" + "⚠️ ใช้ไอเทมไม่ได้" warning panel. Maze notification: "🌀 แมพลับปรากฏทางทิศใต้ · MM:SS" countdown.
+- Not finished: nothing in core spec. Skipped: 7×7 maze map generation spec (chatbot wanted 7×7 grid but existing generateMazeMap() uses recursive 20×15 backtracker — kept existing, did not rebuild). Monster stat scaling per map theme not implemented (skipped — out of scope for MVP).
+- Blockers/risks found: Boss tier advance replaces battleWins-based unlock. Old saves with `worldLevel > 0` will stay at their current tier until boss is defeated — this may confuse returning players. Also: `bossDefeatedThisTier` can trigger the cutscene loop if `SET_WORLD_LEVEL` fails (e.g. at max tier) — guarded with `dispatch(SET_WORLD_LEVEL(wl))` (same level) so it still resets the flag.
+- Ready to start next: Phase 4 NPC System (Prof Owl existing + Sleepy Bunny + 2 more NPC dialogues per green-meadow.md)
+- Needs Chatbot decision first: (1) Should monster scaling change per map theme (NW=weak, NE=fire-heavy, etc.)? Currently all screens use same world-level pool. (2) Map "cleared" currently means "exited" — should it instead require defeating at least 1 enemy first?

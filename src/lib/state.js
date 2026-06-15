@@ -58,6 +58,8 @@ export function defaultState() {
     bossDefeated: [],
     bossDefeatedThisTier: false,
     pendingEvoNotice: null,
+    clearedMaps: [],
+    secretMapExpiry: null,
   }
 }
 

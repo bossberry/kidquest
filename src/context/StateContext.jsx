@@ -113,6 +113,10 @@ export const ACTIONS = {
   CREATURE_EVOLVE:           'CREATURE_EVOLVE',
   SET_ACTIVE_CREATURE:       'SET_ACTIVE_CREATURE',
   CLEAR_EVO_NOTICE:          'CLEAR_EVO_NOTICE',
+  // Map system
+  MAP_CLEARED:               'MAP_CLEARED',
+  SECRET_MAP_SPAWN:          'SECRET_MAP_SPAWN',
+  SECRET_MAP_EXPIRE:         'SECRET_MAP_EXPIRE',
 }
 
 function reducer(state, action) {
@@ -558,7 +562,19 @@ function reducer(state, action) {
             return { ...e, bondMeter: bond, evoStage: newEvo }
           })
         : (state.hatchedEggs || [])
-      return { ...state, battleWins: (state.battleWins ?? 0) + 1, hatchedEggs: eggsAfterWin, pendingEvoNotice: evoNoticeW }
+      const newBattleWins = (state.battleWins ?? 0) + 1
+      const shouldSpawnMaze = newBattleWins % 10 === 0 && !state.mazeActive && !state.mazeCleared
+      return {
+        ...state,
+        battleWins: newBattleWins,
+        hatchedEggs: eggsAfterWin,
+        pendingEvoNotice: evoNoticeW,
+        ...(shouldSpawnMaze ? {
+          mazeActive: true,
+          mazeCleared: false,
+          secretMapExpiry: Date.now() + 30 * 60 * 1000,
+        } : {}),
+      }
     }
 
     case ACTIONS.SET_WORLD_LEVEL:
@@ -569,12 +585,21 @@ function reducer(state, action) {
         discoveredScreens: ['NW'],
         mazeActive: false,
         mazeCleared: false,
+        clearedMaps: [],
+        secretMapExpiry: null,
+        bossDefeatedThisTier: false,
       }
 
     case ACTIONS.DEFEAT_BOSS: {
       const curr = state.worldLevel ?? 0
       const defeated = [...(state.bossDefeated ?? []), curr]
-      return { ...state, bossDefeated: defeated, bossDefeatedThisTier: true }
+      return {
+        ...state,
+        bossDefeated: defeated,
+        bossDefeatedThisTier: true,
+        clearedMaps: [],
+        secretMapExpiry: null,
+      }
     }
 
     case ACTIONS.ACTIVATE_MAZE:
@@ -614,6 +639,19 @@ function reducer(state, action) {
 
     case ACTIONS.CLEAR_EVO_NOTICE:
       return { ...state, pendingEvoNotice: null }
+
+    case ACTIONS.MAP_CLEARED: {
+      const sid = action.payload
+      const cleared = state.clearedMaps || []
+      if (!['NW','NE','SW','SE'].includes(sid) || cleared.includes(sid)) return state
+      return { ...state, clearedMaps: [...cleared, sid] }
+    }
+
+    case ACTIONS.SECRET_MAP_SPAWN:
+      return { ...state, mazeActive: true, mazeCleared: false, secretMapExpiry: action.payload }
+
+    case ACTIONS.SECRET_MAP_EXPIRE:
+      return { ...state, mazeActive: false, secretMapExpiry: null }
 
     default:
       return state

@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { WORLD_LEVELS, DYNAMIC_SCREENS } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
+import { MAP_THEMES, BOSS_XP_THRESHOLD } from '../config/gameConfig.js'
 import {
   MAP_ROWS, MAP_COLS, T,
   renderMap, renderPlayer, canMove, getCamera, getExitAt,
@@ -142,12 +143,17 @@ const HUD_SEP = (
   <div style={{ width: 1, background: 'rgba(60,120,60,0.25)', alignSelf: 'stretch' }} />
 )
 
-function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
+const HOME_ITEM_LABELS = { food: 'อาหาร', star: 'ดาว', ribbon: 'ริบบิ้น', potion: 'ยา' }
+const HOME_ITEM_EFFECTS = { food: 'ฟื้นความสุข', star: 'บูสต์ XP', ribbon: '+Bond', potion: 'ฟื้น HP' }
+const HOME_ITEM_KEYS = ['food', 'star', 'ribbon', 'potion']
+
+function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapUnlocked }) {
   const discovered = new Set(discoveredScreens ?? [])
   const MINI_TILE = 11
   const MINI_GAP  = 1
   const worldLevel = state.worldLevel ?? 0
   const mazeActive = state.mazeActive ?? false
+  const clearedMaps = state.clearedMaps ?? []
 
   const eggs     = state.hatchedEggs ?? []
   const partyId  = (state.party ?? [])[0]
@@ -174,10 +180,12 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
 
   function miniTileColor(id, isDisc) {
     if (!isDisc) return '#080e08'
-    if (id === 'BOSS') return '#380000'
+    if (id === 'BOSS') return bossMapUnlocked ? '#380000' : '#1a1a1a'
     if (id === 'MAZE') return '#180830'
     return groundColor
   }
+
+  const homeItemCount = HOME_ITEM_KEYS.reduce((n, k) => n + (items[k] ?? 0), 0)
 
   return (
     <div style={{
@@ -201,10 +209,13 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
           {miniRows.map((row, ri) => (
             <div key={ri} style={{ display: 'flex', gap: MINI_GAP }}>
               {row.map(id => {
+                const realId = id === 'MAZE' ? 'SW' : id
                 const isCurrent = id === screenId
                 const isDisc    = discovered.has(id)
+                const isCleared = clearedMaps.includes(realId)
+                const theme     = MAP_THEMES[realId]
                 return (
-                  <div key={id} style={{
+                  <div key={id} title={theme?.name} style={{
                     width: MINI_TILE, height: MINI_TILE,
                     background: miniTileColor(id, isDisc),
                     outline: isCurrent ? '1px solid #e0e040' : '1px solid #182018',
@@ -216,6 +227,20 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 8, color: '#333',
                       }}>•</div>
+                    )}
+                    {!isCurrent && isCleared && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 7, color: '#80ff80',
+                      }}>✓</div>
+                    )}
+                    {!isCurrent && id === 'MAZE' && mazeActive && (
+                      <div style={{
+                        position: 'absolute', inset: 0, background: 'rgba(120,40,200,0.4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 7, color: '#d090ff',
+                      }}>?</div>
                     )}
                   </div>
                 )
@@ -231,7 +256,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
                 <div style={{
                   width: MINI_TILE * 2 + MINI_GAP, height: MINI_TILE,
                   background: miniTileColor('BOSS', isDisc),
-                  outline: isCurrent ? '1px solid #ff4040' : '1px solid #182018',
+                  outline: isCurrent ? '1px solid #ff4040' : (bossMapUnlocked ? '1px solid #aa1010' : '1px solid #182018'),
                   outlineOffset: -1, position: 'relative',
                 }}>
                   {isCurrent && (
@@ -241,6 +266,13 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
                       fontSize: 7, color: '#fff',
                     }}>★</div>
                   )}
+                  {!isCurrent && bossMapUnlocked && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 7, color: '#ff8080',
+                    }}>!</div>
+                  )}
                 </div>
               )
             })()}
@@ -249,7 +281,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
             fontFamily: 'var(--font-pixel)', fontSize: 6,
             color: 'rgba(130,190,130,0.4)', lineHeight: 1, textAlign: 'center',
           }}>
-            {WORLD_LEVELS[worldLevel]?.nameTH?.slice(0, 8) ?? 'Lv' + worldLevel}
+            {clearedMaps.length}/4 {WORLD_LEVELS[worldLevel]?.nameTH?.slice(0, 5) ?? ''}
           </div>
         </div>
 
@@ -330,6 +362,32 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome }) {
           </div>
         </div>
 
+        {/* Item bag button */}
+        <button onClick={onOpenItemBag} style={{
+          width: 38, flexShrink: 0, alignSelf: 'stretch',
+          background: 'transparent',
+          border: 'none', borderLeft: '1px solid rgba(50,110,50,0.25)',
+          cursor: 'pointer',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 1,
+          WebkitTapHighlightColor: 'transparent', padding: 0,
+          position: 'relative',
+        }}>
+          <div style={{ fontFamily: 'Mitr,sans-serif', fontSize: 14, lineHeight: 1, color: 'rgba(200,220,180,0.7)' }}>
+            🎒
+          </div>
+          {homeItemCount > 0 && (
+            <div style={{
+              position: 'absolute', top: 4, right: 5,
+              background: '#e04020', color: '#fff',
+              fontFamily: 'var(--font-pixel)', fontSize: 6,
+              borderRadius: 4, padding: '0 2px', lineHeight: '10px',
+            }}>
+              {homeItemCount > 9 ? '9+' : homeItemCount}
+            </div>
+          )}
+        </button>
+
         {/* Home button */}
         <button onClick={onGoHome} style={{
           width: 42, flexShrink: 0, alignSelf: 'stretch',
@@ -394,6 +452,9 @@ export default function WorldScreen({ navigate }) {
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
+  const [itemBagOpen, setItemBagOpen] = useState(false)
+  const [bossCutscene, setBossCutscene] = useState(null) // null | string (world name)
+  const [mazeTimerTick, setMazeTimerTick] = useState(0)
 
   screenIdRef.current   = screenId
   transRef.current      = transitioning
@@ -402,6 +463,11 @@ export default function WorldScreen({ navigate }) {
   const eggColor = STAGE_COLORS[eggStatsData?.stage ?? 0] || STAGE_COLORS[0]
   const eggColorRef = useRef(eggColor)
   eggColorRef.current = eggColor
+
+  const clearedMaps = state.clearedMaps ?? []
+  const allMapsCleared = ['NW', 'NE', 'SW', 'SE'].every(s => clearedMaps.includes(s))
+  const totalXP = (state.xpThai ?? 0) + (state.xpMath ?? 0) + (state.xpEng ?? 0)
+  const bossMapUnlocked = allMapsCleared && totalXP >= BOSS_XP_THRESHOLD
 
   // ── Viewport resize ──────────────────────────────────────────────────────────
 
@@ -545,6 +611,11 @@ export default function WorldScreen({ navigate }) {
       }
     }
 
+    // Mark regular map as cleared when exiting for the first time
+    if (['NW', 'NE', 'SW', 'SE'].includes(sid)) {
+      dispatch({ type: ACTIONS.MAP_CLEARED, payload: sid })
+    }
+
     // Dynamic routing with maze override for NW→S and SE→W
     let connects = { ...(DYNAMIC_SCREENS[sid]?.connects ?? {}) }
     if (curState.mazeActive && sid === 'NW' && dirName === 'S') connects.S = 'MAZE'
@@ -552,6 +623,14 @@ export default function WorldScreen({ navigate }) {
 
     const targetId = connects[dirName]
     if (!targetId) return
+
+    // Block BOSS entry if unlock conditions not met
+    if (targetId === 'BOSS') {
+      const cleared = curState.clearedMaps ?? []
+      const xp = (curState.xpThai ?? 0) + (curState.xpMath ?? 0) + (curState.xpEng ?? 0)
+      const allCleared = ['NW', 'NE', 'SW', 'SE'].every(s => cleared.includes(s))
+      if (!allCleared || xp < BOSS_XP_THRESHOLD) return
+    }
 
     const forcedStart = targetId === 'MAZE' ? { col: 1, row: 13 } : undefined
 
@@ -1007,31 +1086,48 @@ export default function WorldScreen({ navigate }) {
     return () => { alive = false; cancelAnimationFrame(rafRef.current); respawnTimerIds.forEach(clearTimeout) }
   }, []) // stable — reads from refs only
 
-  // ── Maze timer ───────────────────────────────────────────────────────────────
+  // ── Secret maze: countdown expiry ────────────────────────────────────────────
 
   useEffect(() => {
-    if (state.mazeCleared) return
-    const delay = Math.floor(Math.random() * 20 * 60 * 1000) // 0–20 min
-    const t = setTimeout(() => dispatch({ type: ACTIONS.ACTIVATE_MAZE }), delay)
-    return () => clearTimeout(t)
-  }, [state.worldLevel]) // eslint-disable-line
-
-  // ── World unlock check ───────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const wins = state.battleWins ?? 0
-    const currentLevel = state.worldLevel ?? 0
-    const nextLevel = currentLevel + 1
-    const nextDef = WORLD_LEVELS[nextLevel]
-    if (!nextDef) return
-    const req = nextDef.unlockRequirement
-    if (!req) return
-    if (wins >= (req.battleWins ?? 0)) {
-      dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: nextLevel })
-      setWorldUnlockBanner(nextDef.nameTH)
-      setTimeout(() => setWorldUnlockBanner(null), 4000)
+    if (!state.secretMapExpiry || !state.mazeActive) return
+    const remaining = state.secretMapExpiry - Date.now()
+    if (remaining <= 0) {
+      dispatch({ type: ACTIONS.SECRET_MAP_EXPIRE })
+      return
     }
-  }, [state.battleWins]) // eslint-disable-line
+    const t = setTimeout(() => dispatch({ type: ACTIONS.SECRET_MAP_EXPIRE }), remaining)
+    return () => clearTimeout(t)
+  }, [state.secretMapExpiry, state.mazeActive]) // eslint-disable-line
+
+  // ── Secret maze: countdown display tick ──────────────────────────────────────
+
+  useEffect(() => {
+    if (!state.mazeActive || !state.secretMapExpiry) return
+    const id = setInterval(() => setMazeTimerTick(n => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [state.mazeActive, state.secretMapExpiry])
+
+  // ── Boss defeat → tier advance ────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!state.bossDefeatedThisTier) return
+    const wl = state.worldLevel ?? 0
+    const nextLevel = wl + 1
+    const nextDef = WORLD_LEVELS[nextLevel]
+    const currentName = WORLD_LEVELS[wl]?.nameTH ?? `Tier ${wl}`
+    setBossCutscene(currentName)
+    const t1 = setTimeout(() => {
+      setBossCutscene(null)
+      if (nextDef) {
+        dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: nextLevel })
+        setWorldUnlockBanner(nextDef.nameTH)
+        setTimeout(() => setWorldUnlockBanner(null), 4000)
+      } else {
+        dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: wl })
+      }
+    }, 3500)
+    return () => clearTimeout(t1)
+  }, [state.bossDefeatedThisTier]) // eslint-disable-line
 
   // ── Go home ──────────────────────────────────────────────────────────────────
 
@@ -1081,6 +1177,8 @@ export default function WorldScreen({ navigate }) {
         discoveredScreens={state.discoveredScreens}
         state={state}
         onGoHome={goHome}
+        onOpenItemBag={() => setItemBagOpen(true)}
+        bossMapUnlocked={bossMapUnlocked}
       />
 
       {/* NPC talk button */}
@@ -1169,11 +1267,18 @@ export default function WorldScreen({ navigate }) {
           }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>⚔️</div>
             <div style={{ color: '#ffb0b0', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-              พบบอส!
+              พบบอส Final!
             </div>
-            <div style={{ color: '#d0a0a0', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+            <div style={{ color: '#d0a0a0', fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>
               {WORLD_LEVELS[state.worldLevel ?? 0]?.bossNameTH} กำลังรออยู่!<br />
               พร้อมสู้หรือยัง?
+            </div>
+            <div style={{
+              background: 'rgba(180,40,20,0.18)', border: '1px solid #aa3020',
+              borderRadius: 8, padding: '7px 12px', marginBottom: 18,
+              color: '#ffaa80', fontSize: 12, lineHeight: 1.5,
+            }}>
+              ⚠️ ใช้ไอเทมไม่ได้ในการสู้ครั้งนี้
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -1196,7 +1301,7 @@ export default function WorldScreen({ navigate }) {
                   fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                สู้เลย!
+                สู้เลย! ⚔️
               </button>
             </div>
           </div>
@@ -1204,20 +1309,27 @@ export default function WorldScreen({ navigate }) {
       )}
 
       {/* Maze notification */}
-      {state.mazeActive && !state.mazeCleared && (
-        <div style={{
-          position: 'absolute', bottom: 200, left: 0, right: 0, zIndex: 28,
-          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
-        }}>
+      {state.mazeActive && !state.mazeCleared && (() => {
+        const expiry = state.secretMapExpiry
+        const msLeft = expiry ? Math.max(0, expiry - Date.now() + mazeTimerTick * 0) : 0
+        const mins   = Math.floor(msLeft / 60000)
+        const secs   = Math.floor((msLeft % 60000) / 1000)
+        const countdown = expiry ? ` · ${mins}:${String(secs).padStart(2, '0')}` : ''
+        return (
           <div style={{
-            background: 'rgba(24,8,48,0.92)', border: '1px solid #6030a0',
-            borderRadius: 10, padding: '8px 16px',
-            fontFamily: 'Mitr,sans-serif', color: '#c090ff', fontSize: 13,
+            position: 'absolute', bottom: 200, left: 0, right: 0, zIndex: 28,
+            display: 'flex', justifyContent: 'center', pointerEvents: 'none',
           }}>
-            ??? ทางลับปรากฏขึ้นทางทิศใต้!
+            <div style={{
+              background: 'rgba(24,8,48,0.92)', border: '1px solid #6030a0',
+              borderRadius: 10, padding: '8px 16px',
+              fontFamily: 'Mitr,sans-serif', color: '#c090ff', fontSize: 13,
+            }}>
+              🌀 แมพลับปรากฏทางทิศใต้{countdown}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* World unlock banner */}
       {worldUnlockBanner && (
@@ -1234,6 +1346,116 @@ export default function WorldScreen({ navigate }) {
               ✨ ปลดล็อคโลกใหม่!
             </div>
             <div style={{ color: '#d0c060', fontSize: 14 }}>{worldUnlockBanner}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Boss cutscene banner */}
+      {bossCutscene && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 60,
+          background: 'rgba(0,0,0,0.92)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: 32, fontFamily: 'Mitr,sans-serif', textAlign: 'center',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+          <div style={{ color: '#ffe060', fontSize: 22, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
+            โชแปงพิชิต
+          </div>
+          <div style={{ color: '#ffcc00', fontSize: 28, fontWeight: 900, marginBottom: 16 }}>
+            {bossCutscene}!
+          </div>
+          <div style={{ color: '#c0b080', fontSize: 15, lineHeight: 1.7 }}>
+            กำลังย้ายไปโลกใหม่...
+          </div>
+        </div>
+      )}
+
+      {/* Item bag popup */}
+      {itemBagOpen && (
+        <div
+          onClick={() => setItemBagOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 55,
+            background: 'rgba(0,0,0,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#0e1a0e', border: '2px solid #3a6a3a',
+              borderRadius: 14, padding: '18px 20px', maxWidth: 280, width: '88%',
+              fontFamily: 'Mitr,sans-serif',
+            }}
+          >
+            <div style={{ color: '#a0d0a0', fontSize: 15, fontWeight: 700, marginBottom: 14, textAlign: 'center' }}>
+              🎒 ไอเทมสนาม
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {HOME_ITEM_KEYS.map(key => {
+                const count = (state.items ?? {})[key] ?? 0
+                return (
+                  <button
+                    key={key}
+                    disabled={count === 0}
+                    onClick={() => {
+                      if (count === 0) return
+                      dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
+                    }}
+                    style={{
+                      padding: '10px 8px', borderRadius: 10,
+                      background: count > 0 ? 'rgba(40,80,40,0.6)' : 'rgba(20,30,20,0.4)',
+                      border: count > 0 ? '1px solid #3a6a3a' : '1px solid #1a2a1a',
+                      color: count > 0 ? '#c0e0c0' : '#405040',
+                      cursor: count > 0 ? 'pointer' : 'default',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: 14, marginBottom: 2 }}>{HOME_ITEM_LABELS[key]}</div>
+                    <div style={{ fontSize: 11, color: count > 0 ? '#80c080' : '#304030', marginBottom: 4 }}>
+                      {HOME_ITEM_EFFECTS[key]}
+                    </div>
+                    <div style={{
+                      fontFamily: 'var(--font-pixel)', fontSize: 11,
+                      color: count > 0 ? '#a8d060' : '#304030',
+                    }}>
+                      ×{count}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              onClick={() => setItemBagOpen(false)}
+              style={{
+                marginTop: 14, width: '100%', padding: '8px 0', borderRadius: 8,
+                background: 'rgba(30,50,30,0.5)', border: '1px solid #2a4a2a',
+                color: '#608060', fontFamily: 'Mitr,sans-serif', fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Boss unlock hint */}
+      {screenId === 'BOSS' && !bossMapUnlocked && (
+        <div style={{
+          position: 'absolute', top: HUD_CONTENT_H + 12, left: 0, right: 0, zIndex: 28,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <div style={{
+            background: 'rgba(20,10,30,0.92)', border: '1px solid #604060',
+            borderRadius: 10, padding: '8px 16px',
+            fontFamily: 'Mitr,sans-serif', color: '#c080c0', fontSize: 12, textAlign: 'center',
+          }}>
+            🔒 เคลียร์ครบ 4 แมพ + XP {BOSS_XP_THRESHOLD} เพื่อต่อสู้บอส<br />
+            ({clearedMaps.length}/4 แมพ · {totalXP}/{BOSS_XP_THRESHOLD} XP)
           </div>
         </div>
       )}

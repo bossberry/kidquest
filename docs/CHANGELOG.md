@@ -1,5 +1,35 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Map System — item bag HUD, 4-map-per-tier tracking, secret maze battle-wins trigger, boss gating
+
+### src/config/gameConfig.js
+- Added `MAP_THEMES` (NW/NE/SW/SE → name/element/mapIndex) and `BOSS_XP_THRESHOLD = 300`
+
+### src/lib/state.js
+- Added `clearedMaps: []` and `secretMapExpiry: null` to `defaultState()`
+
+### src/context/StateContext.jsx
+- 3 new ACTIONS: `MAP_CLEARED`, `SECRET_MAP_SPAWN`, `SECRET_MAP_EXPIRE`
+- `INCREMENT_BATTLE_WINS`: auto-spawns maze when `battleWins % 10 === 0 && !mazeActive` (sets `secretMapExpiry = Date.now() + 30min`)
+- `SET_WORLD_LEVEL`: now also resets `clearedMaps`, `secretMapExpiry`, `bossDefeatedThisTier`
+- `DEFEAT_BOSS`: now also resets `clearedMaps`, `secretMapExpiry`
+
+### src/components/WorldScreen.jsx
+- `WorldHUD`: added 🎒 item bag button (38px, red count badge); minimap shows ✓ on cleared maps, "N/4 [world]" label, boss tile grayed/locked vs red/!, MAZE ? indicator; `bossMapUnlocked` prop
+- `bossMapUnlocked` computed: `allMapsCleared && totalXP >= 300`
+- `handleExit`: dispatches `MAP_CLEARED` on leaving NW/NE/SW/SE; blocks BOSS entry if not unlocked
+- Removed old random-timer maze useEffect and battleWins-based world unlock useEffect
+- Added `useEffect([secretMapExpiry])`: sets timeout to dispatch `SECRET_MAP_EXPIRE` on expiry
+- Added `useEffect([mazeActive, secretMapExpiry])`: `setInterval` for countdown display tick
+- Added `useEffect([bossDefeatedThisTier])`: shows 3.5s `bossCutscene` overlay → `SET_WORLD_LEVEL(wl+1)` + worldUnlockBanner
+- Boss confirm dialog: "พบบอส Final!" + "⚠️ ใช้ไอเทมไม่ได้" warning + "สู้เลย! ⚔️"
+- Maze notification: "🌀 แมพลับปรากฏทางทิศใต้ · MM:SS" countdown
+- Added item bag popup: 2×2 grid (food/star/ribbon/potion), USE_ITEM dispatch on tap
+- Added boss cutscene banner: "โชแปงพิชิต [world]!" overlay 3.5s before tier advance
+- Added boss unlock hint banner on BOSS screen when not yet unlocked (shows N/4 maps · N/300 XP)
+
+---
+
 ## 2026-06-15 — feat: Creature System Steps 5–10 — family labels, companion zone, friendship data, ECA fields, bio phase, egg growth message
 
 ### src/components/CreatureDetailPopup.jsx

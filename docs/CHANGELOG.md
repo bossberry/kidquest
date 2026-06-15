@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: atomic battle dispatch fixes PartySelect loop + remove ChallengerOverlay
+
+### src/context/StateContext.jsx
+- Added `SELECT_CREATURE_AND_ENTER_BATTLE` action + atomic reducer: sets `battleCreatureId`, `worldPosition`, `worldBattleEnemy`, and clears `pendingBattle` in a single state update — eliminates intermediate render where `battleCreatureId` was set but `pendingBattle` still non-null
+
+### src/App.jsx
+- `PartySelect.onSelect`: replaced 2 dispatches (`SET_BATTLE_CREATURE` + `ENTER_BATTLE_FROM_WORLD`) with single `SELECT_CREATURE_AND_ENTER_BATTLE` dispatch
+- Removed `ChallengerOverlay` import, `challengerOpen` state, `pendingChallenger` useEffect, `<ChallengerOverlay>` JSX, and `onOpenChallenger` prop
+
+---
+
 ## 2026-06-15 — hotfix: fix baby_zombie collision infinite dispatch loop (battleDispatchedRef reset timing)
 
 ### src/components/WorldScreen.jsx

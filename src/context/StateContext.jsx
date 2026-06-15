@@ -117,6 +117,8 @@ export const ACTIONS = {
   MAP_CLEARED:               'MAP_CLEARED',
   SECRET_MAP_SPAWN:          'SECRET_MAP_SPAWN',
   SECRET_MAP_EXPIRE:         'SECRET_MAP_EXPIRE',
+  // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
+  SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
 }
 
 function reducer(state, action) {
@@ -493,6 +495,18 @@ function reducer(state, action) {
 
     case ACTIONS.SET_BATTLE_CREATURE:
       return { ...state, battleCreatureId: action.payload }
+
+    case ACTIONS.SELECT_CREATURE_AND_ENTER_BATTLE: {
+      const { creatureId, battle } = action.payload
+      const { position, enemy } = battle ?? {}
+      return {
+        ...state,
+        battleCreatureId: creatureId,
+        worldPosition: position ?? state.worldPosition,
+        worldBattleEnemy: enemy ?? state.worldBattleEnemy,
+        pendingBattle: null,
+      }
+    }
 
     case ACTIONS.CREATURE_TAKE_DAMAGE: {
       const { creatureId, damage } = action.payload

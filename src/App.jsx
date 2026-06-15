@@ -15,7 +15,6 @@ import HatchOverlay from './components/HatchOverlay.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
-import ChallengerOverlay from './components/ChallengerOverlay.jsx'
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
 
 export default function App() {
@@ -26,12 +25,7 @@ export default function App() {
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [challengerOpen, setChallengerOpen] = useState(false)
   const { state, dispatch } = useAppState()
-
-  useEffect(() => {
-    if (state.pendingChallenger) setChallengerOpen(true)
-  }, [state.pendingChallenger])
 
   useEffect(() => {
     if (!state.pendingEvoNotice) return
@@ -60,7 +54,6 @@ export default function App() {
       <HatchOverlay onClose={() => navigate('home')} suppressAutoOpen={screen === 'game'} />
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <ChallengerOverlay open={challengerOpen} onClose={() => setChallengerOpen(false)} />
 
       {/* Screens */}
       {screen === 'home' && (
@@ -75,7 +68,6 @@ export default function App() {
           onOpenEggPopup={() => setEggPopupOpen(true)}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
-          onOpenChallenger={() => setChallengerOpen(true)}
         />
       )}
       {screen === 'collection' && <Collection />}
@@ -98,8 +90,10 @@ export default function App() {
       {state.pendingBattle && !state.battleCreatureId && (
         <PartySelect
           onSelect={(creatureId) => {
-            dispatch({ type: ACTIONS.SET_BATTLE_CREATURE, payload: creatureId })
-            dispatch({ type: ACTIONS.ENTER_BATTLE_FROM_WORLD, payload: state.pendingBattle })
+            dispatch({
+              type: ACTIONS.SELECT_CREATURE_AND_ENTER_BATTLE,
+              payload: { creatureId, battle: state.pendingBattle },
+            })
             navigate('world-battle')
           }}
           onFlee={() => dispatch({ type: ACTIONS.CLEAR_PENDING_BATTLE })}

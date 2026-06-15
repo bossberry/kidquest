@@ -6,6 +6,7 @@ import CreatureCanvas from './CreatureCanvas.jsx'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
+import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 
 const ITEM_DEFS = [
   { key:'food',   label:'อาหาร' },
@@ -489,6 +490,20 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         }}>
           {EGG_STAGE_NAMES[stage] || 'ไข่น้อย'}
         </div>
+        {/* Element hint — shown from Stage 2 onward as a subtle color badge */}
+        {(() => {
+          const hint = getEggElementHint(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak, stage)
+          if (!hint) return null
+          return (
+            <div style={{
+              display:'inline-block', padding:'1px 8px', marginTop:2,
+              background: hint.color + '33', border: `1px solid ${hint.color}88`,
+              fontFamily:'Mitr,sans-serif', fontSize:10, color: hint.color,
+            }}>
+              ธาตุ{hint.nameTH}?
+            </div>
+          )
+        })()}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {readyToHatch && (
             <div className="px-badge" style={{
@@ -688,27 +703,52 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             const curHP = c.currentHP ?? maxHP
             const pct   = Math.max(0, (curHP / maxHP) * 100)
             const dna   = c.dna ?? (() => { try { return buildLegacyPreviewDNA(c, 0) } catch { return null } })()
+            const elColor = c.element ? CREATURE_ELEMENT_COLORS[c.element] : null
+            const bondPct = Math.min(100, c.bondMeter ?? 0)
+            const isActive = id === (state.party || [])[0]
             return (
-              <div key={id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:48 }}>
-                {dna ? (
-                  <CreatureCanvas dna={dna} size={22} animationEnabled={false} />
-                ) : (
-                  <div style={{ fontSize:16 }}>🥚</div>
-                )}
+              <div key={id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:52 }}>
+                <div style={{ position:'relative' }}>
+                  {dna ? (
+                    <CreatureCanvas dna={dna} size={22} animationEnabled={false} />
+                  ) : (
+                    <div style={{ fontSize:16 }}>🥚</div>
+                  )}
+                  {/* Element color dot */}
+                  {elColor && (
+                    <div style={{
+                      position:'absolute', bottom:-1, right:-1,
+                      width:6, height:6,
+                      background: elColor,
+                      boxShadow:`0 0 4px ${elColor}`,
+                    }} />
+                  )}
+                </div>
                 <div style={{
                   fontFamily:'var(--font-thai)', fontSize:7,
                   color:'rgba(255,255,255,0.5)',
-                  maxWidth:44, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                  maxWidth:48, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>
-                  {c.creature?.n || '?'}
+                  {c.creatureName || c.creature?.n || '?'}
                 </div>
-                <div style={{ width:44, background:'#000', border:'1px solid #333', height:4 }}>
+                {/* HP bar */}
+                <div style={{ width:46, background:'#000', border:'1px solid #333', height:4 }}>
                   <div style={{
                     width:`${pct}%`, height:'100%',
                     background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
                     transition:'width 300ms steps(8)',
                   }} />
                 </div>
+                {/* Bond meter — only for active creature */}
+                {isActive && (
+                  <div style={{ width:46, background:'#111', border:'1px solid #222', height:3 }} title={`Bond: ${bondPct}%`}>
+                    <div style={{
+                      width:`${bondPct}%`, height:'100%',
+                      background:'#d4a017',
+                      transition:'width 300ms steps(8)',
+                    }} />
+                  </div>
+                )}
                 <div style={{
                   fontFamily:'var(--font-pixel)', fontSize:6,
                   color:'rgba(255,255,255,0.35)',

@@ -5,6 +5,7 @@ import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
 import { buildCreatureDNA } from '../lib/creatureGenerator.js'
+import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 
 export const StateContext = createContext(null)
 
@@ -106,6 +107,10 @@ export const ACTIONS = {
   DEFEAT_BOSS:               'DEFEAT_BOSS',
   ACTIVATE_MAZE:             'ACTIVATE_MAZE',
   CLEAR_MAZE:                'CLEAR_MAZE',
+  // Creature system
+  SET_CREATURE_NAME:         'SET_CREATURE_NAME',
+  ADD_CREATURE_BOND:         'ADD_CREATURE_BOND',
+  CREATURE_EVOLVE:           'CREATURE_EVOLVE',
 }
 
 function reducer(state, action) {
@@ -124,9 +129,22 @@ function reducer(state, action) {
       const eggsHatched = (state.hatchedEggs || []).length
       const hatchRequired = Math.min(800, 120 + eggsHatched * 60)
       const readyToHatch = newTotal >= hatchRequired && !state.hatched
+      // Distribute creature XP: active = 100%, bench party members = 50%
+      const partyIds = state.party || []
+      const activeId = partyIds[0]
+      const hatchedEggsWithXP = (state.hatchedEggs || []).map(e => {
+        if (!partyIds.includes(e.id)) return e
+        const gain = e.id === activeId ? earned : Math.floor(earned * 0.5)
+        if (!gain) return e
+        const newBXP = (e.battleXP ?? 0) + gain
+        const newBLv = calcBattleLevel(newBXP)
+        const newEvo = calcEvoStage(newBLv, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
+        return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo }
+      })
       return {
         ...state,
         [key]: newXp,
+        hatchedEggs: hatchedEggsWithXP,
         sessionXP: (state.sessionXP || 0) + earned,
         correctAnswers: (state.correctAnswers || 0) + 1,
         mins: (state.mins || 0) + 0.25,
@@ -142,8 +160,19 @@ function reducer(state, action) {
       const { streak, score } = action.payload
       const today = todayStr()
       const dailyReset = (state.lastPlayDate || '') !== today
+      // +2 bond to active creature on study round
+      const activeId = (state.party || [])[0]
+      const eggsAfterBond = activeId
+        ? (state.hatchedEggs || []).map(e => {
+            if (e.id !== activeId) return e
+            const bond = Math.min(100, (e.bondMeter ?? 0) + 2)
+            const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
+            return { ...e, bondMeter: bond, evoStage: newEvo }
+          })
+        : (state.hatchedEggs || [])
       return {
         ...state,
+        hatchedEggs: eggsAfterBond,
         streak: Math.max(state.streak || 0, streak || 0),
         rounds: (state.rounds || 0) + 1,
         dailyRounds: (dailyReset ? 0 : (state.dailyRounds || 0)) + 1,
@@ -170,6 +199,9 @@ function reducer(state, action) {
       let dna = null
       try { dna = buildCreatureDNA(eggStats) } catch (_) { /* silent — emoji fallback */ }
       const eggStats2 = calcCreatureStats(eggSnap)
+      const hatchAcc = state.acc || 70
+      const hatchStreak = state.streak || 0
+      const element = determineElement(snapXpThai, snapXpMath, snapXpEng, hatchAcc, hatchStreak)
       const newEgg = {
         id:      `egg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         creature,
@@ -179,8 +211,8 @@ function reducer(state, action) {
         xpMath: snapXpMath,
         grade: GRADE_LABELS[tier],
         tier,
-        streak: state.streak || 0,
-        acc:    state.acc    || 70,
+        streak: hatchStreak,
+        acc:    hatchAcc,
         stats:  eggStats2,
         date: new Date().toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'2-digit' }),
         hatched_at: Date.now(),
@@ -191,6 +223,17 @@ function reducer(state, action) {
         currentHP:   eggStats2.HP,
         inParty:     false,
         archived:    false,
+        // Creature system fields (locked at hatch)
+        element,
+        evoStage:    'baby',
+        bondMeter:   0,
+        bornAtk:     snapXpThai,
+        bornDef:     snapXpMath,
+        bornSpd:     snapXpEng,
+        bornCrit:    hatchAcc,
+        bornDate:    new Date().toISOString().slice(0, 10),
+        bornTier:    tier,
+        creatureName: null,
       }
       // Auto-add to party if party is empty (first creature always joins)
       const newEggInParty = (state.party || []).length === 0
@@ -470,8 +513,19 @@ function reducer(state, action) {
     case ACTIONS.UNLOCK_PARTY_SLOT:
       return { ...state, partySlots: Math.min(6, (state.partySlots || 1) + 1) }
 
-    case ACTIONS.INCREMENT_BATTLE_WINS:
-      return { ...state, battleWins: (state.battleWins ?? 0) + 1 }
+    case ACTIONS.INCREMENT_BATTLE_WINS: {
+      // +1 bond to active creature on battle win
+      const activeIdW = (state.party || [])[0]
+      const eggsAfterWin = activeIdW
+        ? (state.hatchedEggs || []).map(e => {
+            if (e.id !== activeIdW) return e
+            const bond = Math.min(100, (e.bondMeter ?? 0) + 1)
+            const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
+            return { ...e, bondMeter: bond, evoStage: newEvo }
+          })
+        : (state.hatchedEggs || [])
+      return { ...state, battleWins: (state.battleWins ?? 0) + 1, hatchedEggs: eggsAfterWin }
+    }
 
     case ACTIONS.SET_WORLD_LEVEL:
       return {
@@ -486,7 +540,7 @@ function reducer(state, action) {
     case ACTIONS.DEFEAT_BOSS: {
       const curr = state.worldLevel ?? 0
       const defeated = [...(state.bossDefeated ?? []), curr]
-      return { ...state, bossDefeated: defeated }
+      return { ...state, bossDefeated: defeated, bossDefeatedThisTier: true }
     }
 
     case ACTIONS.ACTIVATE_MAZE:
@@ -494,6 +548,35 @@ function reducer(state, action) {
 
     case ACTIONS.CLEAR_MAZE:
       return { ...state, mazeActive: false, mazeCleared: true }
+
+    case ACTIONS.SET_CREATURE_NAME: {
+      const { creatureId, name } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e =>
+        e.id === creatureId ? { ...e, creatureName: name } : e
+      )
+      return { ...state, hatchedEggs }
+    }
+
+    case ACTIONS.ADD_CREATURE_BOND: {
+      const { creatureId, amount } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e => {
+        if (e.id !== creatureId) return e
+        const bond = Math.min(100, (e.bondMeter ?? 0) + amount)
+        const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
+        return { ...e, bondMeter: bond, evoStage: newEvo }
+      })
+      return { ...state, hatchedEggs }
+    }
+
+    case ACTIONS.CREATURE_EVOLVE: {
+      const { creatureId } = action.payload
+      const hatchedEggs = (state.hatchedEggs || []).map(e => {
+        if (e.id !== creatureId) return e
+        const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
+        return { ...e, evoStage: newEvo }
+      })
+      return { ...state, hatchedEggs }
+    }
 
     default:
       return state

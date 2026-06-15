@@ -745,3 +745,24 @@ See GPT_HANDOFF.md for full Phase 1 details.
 
 **2026-06-14 — hotfix: question display for math count/pattern questions:**
 Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has its own self-contained generators. The real issue: `isCount`/`isPattern` questions skipped Zone 2 (comment said "HintBar handles these") but HintBar also returns null for them — leaving genuinely blank Zone 2. For a new player (xpMath=0), ALL math battles are level 0 (count), so every math battle showed no question text. Fix: Zone 2 now shows `q.objects.join(' ') + ' = ?'` for count, `q.seq.join(' ') + ' ?'` for pattern. Build ✅.
+
+---
+
+**2026-06-15 — feat: Creature System Phase 1 — element, bond meter, evolution, hatch naming:**
+- Built:
+  - `src/lib/creatureSystem.js` (NEW) — `determineElement()`, `calcEvoStage()`, `getEggElementHint()`, `CREATURE_ELEMENT_COLORS`, `CREATURE_ELEMENT_NAMES_TH`, `EVO_STAGE_LABELS_TH`
+  - `src/config/gameConfig.js` — `CREATURE_LEVELS` export (xpPerLevel:80, maxLevel:50, evo thresholds)
+  - `src/lib/state.js` — `bossDefeatedThisTier: false` in defaultState; migration backfills element/evoStage/bondMeter/bornAtk-Def-Spd-Crit/bornDate/bornTier/creatureName on all existing creatures
+  - `src/context/StateContext.jsx` — new ACTIONS: SET_CREATURE_NAME, ADD_CREATURE_BOND, CREATURE_EVOLVE. HATCH_COMPLETE: records element, evoStage:'baby', bondMeter:0, born stats. ADD_XP: distributes creature battleXP (active 100%, bench 50%) + checks evolution. ROUND_COMPLETE: +2 bond active. INCREMENT_BATTLE_WINS: +1 bond active. DEFEAT_BOSS: sets bossDefeatedThisTier:true.
+  - `src/components/HatchOverlay.jsx` — 'naming' phase after reveal: element badge + name input + SET_CREATURE_NAME dispatch. Skip button available.
+  - `src/components/Home.jsx` — element color dot on party HP bar, bond meter bar (gold, active only), creatureName shown. Element hint badge at Stage 2+ in header.
+- Not finished:
+  - Collection screen "Set Active" button (collection already shows all creatures but no switch-active UI)
+  - Evolution animation/notification (evoStage updates silently in state — no flash/reveal yet)
+  - "Team full (6 creatures)" guard on hatch — spec says show message; not yet gated
+  - Bond unlock effects (25%→ATK+5%, 50%→dodge, 75%→passive heal, 100%→special move) — tracked in state but no combat effect yet
+- Blockers/risks found:
+  - `_migrateBattleStats` now imports from `creatureSystem.js` — circular risk if creatureSystem ever imports from state.js (currently safe)
+  - XP distribution to bench in ADD_XP runs `calcBattleLevel` quadratic formula; spec's `xpPerLevel:80` is a different system. Added CREATURE_LEVELS to gameConfig for UI display but actual leveling still uses quadratic calcBattleLevel.
+- Ready to start next: Bond unlock combat effects (25%/50%/75%/100% thresholds) OR Collection "Set Active" button
+- Needs Chatbot decision first: (1) Should evolution trigger a visible animation/fanfare? (2) Should the 6-creature hard limit gate new egg spawn, or just warn? (3) Bond unlock effects — implement as stat modifiers in WorldBattle, or passive overlays?

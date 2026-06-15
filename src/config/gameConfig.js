@@ -319,6 +319,15 @@ export const CATCH_ITEMS = [
 
 export const TOWER_COLORS = ['#7F77DD','#1D9E75','#EF9F27','#378ADD','#E24B4A','#9C27B0']
 
+export const CREATURE_LEVELS = {
+  xpPerLevel: 80,
+  maxLevel: 50,
+  evoThresholds: {
+    teen:  { minLevel: 11, minTier: 2 },
+    final: { minLevel: 26, minTier: 5, minBond: 60 },
+  },
+}
+
 export const TIERS = {
   0: { name: 'อนุบาล', baseStat: 100,  maxXP: 350  },
   1: { name: 'ป.1-2',  baseStat: 150,  maxXP: 500  },

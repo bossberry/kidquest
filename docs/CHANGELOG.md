@@ -1,5 +1,38 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: Creature System — element, bond meter, evolution, hatch naming
+
+### src/lib/creatureSystem.js (NEW)
+- `determineElement(xpThai, xpMath, xpEng, accuracy, streak)` — maps dominant subject to fire/water/thunder; rare: nature (acc≥85%), shadow (streak≥7+low XP), light (acc≥90%+streak≥14)
+- `CREATURE_ELEMENT_COLORS`, `CREATURE_ELEMENT_NAMES_TH`, `EVO_STAGE_LABELS_TH`
+- `getEggElementHint(...)` — returns element hint for stage 2+ (returns null before)
+- `calcEvoStage(battleLevel, playerTier, bondMeter, currentEvoStage)` — baby→teen→final
+
+### src/config/gameConfig.js
+- Added `CREATURE_LEVELS` export (xpPerLevel:80, maxLevel:50, evo thresholds)
+
+### src/lib/state.js
+- Added `bossDefeatedThisTier: false` to `defaultState()`
+- Migration in `_migrateBattleStats`: backfills `element`, `evoStage`, `bondMeter:0`, `bornAtk/Def/Spd/Crit`, `bornDate`, `bornTier`, `creatureName:null` on all existing creatures
+
+### src/context/StateContext.jsx
+- New ACTIONS: `SET_CREATURE_NAME`, `ADD_CREATURE_BOND`, `CREATURE_EVOLVE`
+- `HATCH_COMPLETE`: stores element, evoStage, bondMeter, born stats, creatureName on newEgg
+- `ADD_XP`: distributes creature battleXP — active 100%, bench 50%; checks evolution
+- `ROUND_COMPLETE`: +2 bond to active creature; checks evolution
+- `INCREMENT_BATTLE_WINS`: +1 bond to active creature; checks evolution
+- `DEFEAT_BOSS`: sets `bossDefeatedThisTier: true`
+- New reducers: `SET_CREATURE_NAME`, `ADD_CREATURE_BOND`, `CREATURE_EVOLVE`
+
+### src/components/HatchOverlay.jsx
+- After reveal: element badge (colored pill), "ตั้งชื่อ ✏️" → naming phase with text input
+- Naming phase dispatches `SET_CREATURE_NAME` for newest hatchedEgg on confirm
+- "ข้ามการตั้งชื่อ" skip button in both done and naming phases
+
+### src/components/Home.jsx
+- Party HP bar: element color dot on creature portrait, bond meter (gold bar, active only), `creatureName` shown if set
+- Header: element hint badge at Stage 2+ ("ธาตุน้ำ?" in element color)
+
 ## 2026-06-14 — feat: World Progression System — multi-level worlds, boss screen, secret maze
 
 ### src/config/worldConfig.js

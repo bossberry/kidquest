@@ -6,15 +6,18 @@ import { getCreatureForHatch } from '../context/creatureHelpers.js'
 import { buildEggStats } from '../lib/eggAlgorithm.js'
 import { playTone, playTapCrackSound, playHatchSound } from '../lib/audio.js'
 import { showToast, spawnConfetti } from './Toasts.jsx'
+import { determineElement, CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH } from '../lib/creatureSystem.js'
 
 const TAPS_NEEDED = 5
 
 export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
   const { state, dispatch, eggStatsData } = useAppState()
-  const [tapCount, setTapCount] = useState(0)
-  const [phase, setPhase] = useState('tapping') // 'tapping' | 'revealing' | 'done'
-  const [creature, setCreature] = useState(null)
+  const [tapCount, setTapCount]   = useState(0)
+  const [phase, setPhase]         = useState('tapping') // 'tapping' | 'revealing' | 'done' | 'naming'
+  const [creature, setCreature]   = useState(null)
   const [savedEggStats, setSavedEggStats] = useState(null)
+  const [newEggId, setNewEggId]   = useState(null)
+  const [nameInput, setNameInput] = useState('')
   const isOpen = state.hatching || (!suppressAutoOpen && state.readyToHatch && !state.hatched)
 
   useEffect(() => {
@@ -23,6 +26,8 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
       setCreature(getCreatureForHatch(state))
       setTapCount(0)
       setPhase('tapping')
+      setNameInput('')
+      setNewEggId(null)
       playTone('click')
     }
   }, [isOpen]) // eslint-disable-line
@@ -46,9 +51,9 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
       playTone('reveal')
       setTimeout(() => playTone('fanfare'), 350)
       spawnConfetti(50)
-      // Save hatch
+      // Save hatch — collect the new egg id from the dispatch result via a temp id
+      const tempId = `egg_${Date.now()}_tmp`
       const snaps = { xpThai: state.xpThai, xpEng: state.xpEng, xpMath: state.xpMath }
-      const tSum = snaps.xpThai + snaps.xpEng + snaps.xpMath || 1
       const fullEggStats = {
         ...buildEggStats(state),
         xpThai: snaps.xpThai, xpEng: snaps.xpEng, xpMath: snaps.xpMath,
@@ -66,8 +71,17 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
     }, 1800)
   }
 
-  const handleClose = () => {
-    setPhase('tapping') // reset phase first — makes !isOpen && phase==='tapping' true → overlay unmounts
+  const handleConfirmName = () => {
+    // Find the newest hatched egg (first in array after HATCH_COMPLETE prepends it)
+    const newest = (state.hatchedEggs || [])[0]
+    if (newest && nameInput.trim()) {
+      dispatch({ type: ACTIONS.SET_CREATURE_NAME, payload: { creatureId: newest.id, name: nameInput.trim() } })
+    }
+    doClose()
+  }
+
+  const doClose = () => {
+    setPhase('tapping')
     dispatch({ type: ACTIONS.CLOSE_HATCH })
     dispatch({ type: ACTIONS.SET_HATCHING, payload: false })
     showToast('ไข่ใบใหม่เริ่มต้นแล้ว!')
@@ -76,10 +90,15 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
 
   if (!isOpen && phase === 'tapping') return null
 
+  // Element derived from current XP snapshot (matches what HATCH_COMPLETE will compute)
+  const snapshotEl = determineElement(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak)
+  const elColor  = CREATURE_ELEMENT_COLORS[snapshotEl]
+  const elNameTH = CREATURE_ELEMENT_NAMES_TH[snapshotEl]
+
   return createPortal(
     <div className="hatch-overlay show">
       <div className="hatch-canvas-wrap">
-        {phase !== 'done' && savedEggStats && (
+        {phase !== 'done' && phase !== 'naming' && savedEggStats && (
           <EggCanvas
             stats={savedEggStats}
             width={200} height={240}
@@ -87,7 +106,7 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
             onClick={handleTap}
           />
         )}
-        {phase === 'done' && (
+        {(phase === 'done' || phase === 'naming') && (
           <div style={{ fontSize:80 }} className="hatch-reveal-glow">{creature?.e || '🐣'}</div>
         )}
       </div>
@@ -114,7 +133,68 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
           <div className="hatch-title show">🎉 ฟักสำเร็จ!</div>
           <div className="hatch-name show">{creature.n}</div>
           <div className="hatch-feature show">{creature.f}</div>
-          <button className="hatch-close show" onClick={handleClose}>ยินดีด้วย! 🎉</button>
+          {/* Element badge */}
+          <div style={{
+            display:'inline-block', marginTop:8, padding:'3px 12px',
+            background: elColor, borderRadius:4,
+            fontFamily:'Mitr,sans-serif', fontSize:13, color:'#fff', fontWeight:600,
+            boxShadow:`0 0 12px ${elColor}88`,
+          }}>
+            ธาตุ{elNameTH}
+          </div>
+          <button
+            className="hatch-close show"
+            style={{ marginTop:14 }}
+            onClick={() => setPhase('naming')}
+          >
+            ตั้งชื่อ ✏️
+          </button>
+          <button
+            className="hatch-close show"
+            style={{ marginTop:6, background:'rgba(255,255,255,0.12)', fontSize:12 }}
+            onClick={doClose}
+          >
+            ข้ามการตั้งชื่อ
+          </button>
+        </>
+      )}
+
+      {phase === 'naming' && creature && (
+        <>
+          <div className="hatch-title show" style={{ fontSize:16 }}>ตั้งชื่อให้เพื่อนคุณ!</div>
+          <div style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginBottom:10, fontFamily:'Mitr,sans-serif' }}>
+            {creature.n}
+          </div>
+          <input
+            type="text"
+            value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && nameInput.trim() && handleConfirmName()}
+            maxLength={16}
+            placeholder="ชื่อ..."
+            style={{
+              fontFamily:'Mitr,sans-serif', fontSize:20, textAlign:'center',
+              background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.4)',
+              borderRadius:8, color:'#fff', padding:'8px 16px', width:200,
+              outline:'none',
+            }}
+            autoFocus
+          />
+          <button
+            className="hatch-close show"
+            style={{ marginTop:12 }}
+            onClick={handleConfirmName}
+            disabled={!nameInput.trim()}
+          >
+            ยืนยัน ✅
+          </button>
+          <button
+            className="hatch-close show"
+            style={{ marginTop:6, background:'rgba(255,255,255,0.12)', fontSize:12 }}
+            onClick={doClose}
+          >
+            ข้ามการตั้งชื่อ
+          </button>
         </>
       )}
     </div>,

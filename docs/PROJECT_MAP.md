@@ -51,6 +51,7 @@ src/
 │   ├── supabase.js         — createClient (URL + publishable key)
 │   ├── eggAlgorithm.js     — LOCKED: drawEgg(), hash(), prng(), eggProgress(), buildEggStats()
 │   ├── creatureAlgorithm.js — drawCreature(), getCreatureSeed()
+│   ├── creatureSystem.js   — NEW: determineElement(), calcEvoStage(), getEggElementHint(), CREATURE_ELEMENT_COLORS
 │   ├── audio.js            — playTone(), speakTh(), speakEn(), playPhonicsSound()
 │   ├── tileEngine.js       — NEW: T constants, renderMap/Player/canMove/getCamera/getExitAt/getEntryPosition
 │   └── tileMaps.js         — NEW: BM_MAP (20×15) + 8 minimal screen maps + SCREEN_MAPS registry

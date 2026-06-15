@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { calcCreatureStats, GRADE_LABELS } from '../config/gameConfig.js'
+import { determineElement, calcEvoStage } from './creatureSystem.js'
 
 export const KEY = 'kq_state'
 
@@ -55,6 +56,7 @@ export function defaultState() {
     mazeActive: false,
     mazeCleared: false,
     bossDefeated: [],
+    bossDefeatedThisTier: false,
   }
 }
 
@@ -89,6 +91,26 @@ export function _migrateBattleStats(s) {
       }
       dirty = true
     }
+    // Backfill creature system fields (element, evoStage, bondMeter, born stats)
+    if (e.element === undefined) {
+      const el = determineElement(e.xpThai, e.xpMath, e.xpEng, e.acc, e.streak)
+      const evo = calcEvoStage(e.battleLevel ?? 1, e.tier ?? 0, 0, 'baby')
+      e = {
+        ...e,
+        element:    el,
+        evoStage:   evo,
+        bondMeter:  0,
+        bornAtk:    e.xpThai    ?? 0,
+        bornDef:    e.xpMath    ?? 0,
+        bornSpd:    e.xpEng     ?? 0,
+        bornCrit:   e.acc       ?? 70,
+        bornDate:   e.date      ?? '',
+        bornTier:   e.tier      ?? 0,
+        creatureName: null,
+      }
+      dirty = true
+    }
+
     // Time-based HP recovery: 1 HP per 30 seconds since last update
     if (e.hpUpdatedAt && e.hpUpdatedAt < now) {
       const stats = e.stats ?? calcCreatureStats({ ...e, tier: e.tier || 0 })

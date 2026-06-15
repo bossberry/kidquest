@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — feat: scale enemy stats with player battle level
+
+### src/components/WorldScreen.jsx
+- `triggerBattle`: looks up active party creature `battleLevel`, computes `scaleFactor = 1 + (playerLevel - 1) * 0.4`, applies `Math.round(base * scaleFactor)` to hp/atk/def before dispatching SET_PENDING_BATTLE
+- Level 1 = base stats unchanged; level 10 = 4.6× base; linear 40% increase per level
+
+---
+
 ## 2026-06-15 — fix: use average stats for creature merge instead of sum
 
 ### src/lib/state.js

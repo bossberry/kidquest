@@ -886,3 +886,13 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: re-averaging divides by `mergedFromCount` stored on the merged egg. If `mergedFromCount` is missing (shouldn't happen — set by fresh merge), defaults to 1 so no division error.
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-15 — feat: scale enemy stats with player battle level:**
+- Built:
+  - `WorldScreen.jsx` `triggerBattle`: looks up active party creature's `battleLevel`, computes `scaleFactor = 1 + (playerLevel - 1) * 0.4`, applies to hp/atk/def before dispatching SET_PENDING_BATTLE. Level 1 = base stats, level 10 = 4.6× stronger.
+- Not finished: nothing
+- Blockers/risks found: boss battle (`enterBossBattle`) has its own separate dispatch — not scaled by this change. Flag if boss should also scale.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

@@ -671,9 +671,18 @@ export default function WorldScreen({ navigate }) {
     setEncounterFlash(true)
     setTimeout(() => setEncounterFlash(false), 80)
     const eData = ENEMY_DATA[enemy.type] || { hp: 24, atk: 4, nameTH: 'ศัตรู' }
+    const activeEgg = (stateRef.current.hatchedEggs || []).find(e => e.id === stateRef.current.party?.[0]) || (stateRef.current.hatchedEggs || [])[0]
+    const playerLevel = activeEgg?.battleLevel ?? 1
+    const scaleFactor = 1 + (playerLevel - 1) * 0.4
     dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
       position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
-      enemy:    { type: enemy.type, subject, level, hp: eData.hp ?? 24, atk: eData.atk ?? 4, def: eData.def ?? 0, nameTH: eData.nameTH ?? '?' },
+      enemy: {
+        type: enemy.type, subject, level,
+        hp:  Math.round((eData.hp  ?? 24) * scaleFactor),
+        atk: Math.round((eData.atk ??  4) * scaleFactor),
+        def: Math.round((eData.def ??  0) * scaleFactor),
+        nameTH: eData.nameTH ?? '?',
+      },
     }})
   }, [dispatch]) // eslint-disable-line
   triggerBattleRef.current = triggerBattle

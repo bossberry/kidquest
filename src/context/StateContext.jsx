@@ -133,15 +133,17 @@ function reducer(state, action) {
       // Distribute creature XP: active = 100%, bench party members = 50%
       const partyIds = state.party || []
       const activeId = partyIds[0]
-      const hatchedEggsWithXP = (state.hatchedEggs || []).map(e => {
-        if (!partyIds.includes(e.id)) return e
-        const gain = e.id === activeId ? earned : Math.floor(earned * 0.5)
-        if (!gain) return e
-        const newBXP = (e.battleXP ?? 0) + gain
-        const newBLv = calcBattleLevel(newBXP)
-        const newEvo = calcEvoStage(newBLv, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
-        return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo }
-      })
+      const hatchedEggsWithXP = (partyIds.length === 0 || !earned)
+        ? (state.hatchedEggs || [])
+        : (state.hatchedEggs || []).map(e => {
+            if (!partyIds.includes(e.id)) return e
+            const gain = e.id === activeId ? earned : Math.floor(earned * 0.5)
+            if (!gain) return e
+            const newBXP = (e.battleXP ?? 0) + gain
+            const newBLv = calcBattleLevel(newBXP)
+            const newEvo = calcEvoStage(newBLv, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
+            return { ...e, battleXP: newBXP, battleLevel: newBLv, evoStage: newEvo }
+          })
       return {
         ...state,
         [key]: newXp,
@@ -163,7 +165,8 @@ function reducer(state, action) {
       const dailyReset = (state.lastPlayDate || '') !== today
       // +2 bond to active creature on study round
       const activeId = (state.party || [])[0]
-      const eggsAfterBond = activeId
+      const activeEgg = activeId ? (state.hatchedEggs || []).find(e => e.id === activeId) : null
+      const eggsAfterBond = (activeEgg && (activeEgg.bondMeter ?? 0) < 100)
         ? (state.hatchedEggs || []).map(e => {
             if (e.id !== activeId) return e
             const bond = Math.min(100, (e.bondMeter ?? 0) + 2)
@@ -524,7 +527,8 @@ function reducer(state, action) {
     case ACTIONS.INCREMENT_BATTLE_WINS: {
       // +1 bond to active creature on battle win
       const activeIdW = (state.party || [])[0]
-      const eggsAfterWin = activeIdW
+      const activeEggW = activeIdW ? (state.hatchedEggs || []).find(e => e.id === activeIdW) : null
+      const eggsAfterWin = (activeEggW && (activeEggW.bondMeter ?? 0) < 100)
         ? (state.hatchedEggs || []).map(e => {
             if (e.id !== activeIdW) return e
             const bond = Math.min(100, (e.bondMeter ?? 0) + 1)

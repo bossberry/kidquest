@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-15 — hotfix: world map encounter freeze (browser hang on PartySelect)
+
+### src/components/WorldScreen.jsx
+- RAF loop: removed `return` after `triggerBattle` call — canvas now keeps rendering while PartySelect is shown, preventing the canvas/audio freeze
+- RAF loop: added `!stateRef.current.pendingBattle` guard before calling `triggerBattle` in loop (redundant safety on top of the guard already inside `triggerBattle`)
+- `tryMove`: added `stateRef.current.pendingBattle` early-return guard — blocks player movement (and re-trigger) while PartySelect overlay is open
+
+### src/context/StateContext.jsx
+- `ADD_XP`: skip `hatchedEggs.map()` entirely when `party` is empty or `earned === 0` — returns same array reference so `derived` useMemo doesn't recompute
+- `ROUND_COMPLETE`: skip `hatchedEggs.map()` when no active creature OR active creature's bond is already at 100 — same stable-ref optimization
+- `INCREMENT_BATTLE_WINS`: same stable-ref optimization — skip map when no active creature or bond maxed
+
+---
+
 ## 2026-06-15 — feat: Collection "Set Active" button + creature custom name display
 
 ### src/context/StateContext.jsx

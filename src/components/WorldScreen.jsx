@@ -613,6 +613,7 @@ export default function WorldScreen({ navigate }) {
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
     if (!g || g.moving || transRef.current || dialogueRef.current) return
+    if (stateRef.current.pendingBattle) return
 
     const tileMap = tileMapRef.current
     if (!tileMap) return
@@ -982,9 +983,8 @@ export default function WorldScreen({ navigate }) {
       g.frame = (g.frame + 1) % 120
       if (g.frame % 3 === 0) {
         const battleEnemy = updateEnemies(tileMap, g.frame)
-        if (battleEnemy) {
+        if (battleEnemy && !stateRef.current.pendingBattle) {
           triggerBattleRef.current?.(battleEnemy)
-          return
         }
       }
 

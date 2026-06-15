@@ -780,3 +780,16 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: None new
 - Ready to start next: Bond unlock combat effects (implement as flat stat bonuses in WorldBattle when active creature bondMeter crosses thresholds)
 - Needs Chatbot decision first: (1) Evolution animation — simple toast flash or full overlay? (2) 6-creature limit — hard gate (block new egg) or soft warn (let hatch but show message)? (3) Bond effects — stat modifiers in `scaleMonsterStats()` vs separate overlay? Confirm approach before coding.
+
+---
+
+**2026-06-15 — hotfix: world map encounter freeze (browser hang on PartySelect):**
+- Built:
+  - `WorldScreen.jsx` RAF loop: replaced `triggerBattle(battleEnemy); return` with a guarded call `if (battleEnemy && !stateRef.current.pendingBattle) triggerBattle(battleEnemy)` — canvas now keeps rendering every frame while PartySelect is visible instead of returning early and freezing
+  - `WorldScreen.jsx` tryMove: added `if (stateRef.current.pendingBattle) return` guard — blocks D-pad input while PartySelect is open, preventing re-triggering encounters
+  - `StateContext.jsx` ADD_XP: skip `hatchedEggs.map()` when party is empty or XP gain is 0 — returns same array ref so `derived` useMemo doesn't recompute unnecessarily
+  - `StateContext.jsx` ROUND_COMPLETE: skip `hatchedEggs.map()` if no active creature or bond already at 100
+  - `StateContext.jsx` INCREMENT_BATTLE_WINS: same stable-ref optimization
+- Not finished: None from this session
+- Blockers/risks found: Root cause was two compounding issues: (1) RAF loop's `return` when encountering enemy froze the canvas/audio on every 3rd frame while PartySelect was visible; (2) ADD_XP/ROUND_COMPLETE/INCREMENT_BATTLE_WINS created new `hatchedEggs` arrays on every call, causing `derived` useMemo to recompute on every XP gain → extra re-renders for all consumers
+- Ready to start next: Chopin playtest of world encounter flow — verify freeze is gone, creature select appears and battle starts cleanly

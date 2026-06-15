@@ -930,6 +930,7 @@ export default function WorldScreen({ navigate }) {
               if (gc2) {
                 const dxZ = gc2.col - ne.col
                 const dyZ = gc2.row - ne.row
+                if (dxZ === 0 && dyZ === 0) break  // already on player tile — stop moving until battle resolves
                 let nc, nr
                 if (Math.abs(dxZ) >= Math.abs(dyZ)) {
                   nc = ne.col + Math.sign(dxZ); nr = ne.row
@@ -985,7 +986,7 @@ export default function WorldScreen({ navigate }) {
         // Enemies that ran into the player trigger battle
         const isChaser = ne.type === 'snake' || ne.type === 'baby_zombie' ||
                          (ne.type === 'sleepy_bunny' && ne.woken)
-        if (!pendingBattle && isChaser) {
+        if (!pendingBattle && isChaser && !battleDispatchedRef.current) {
           const gc = gameRef.current
           if (gc && ne.col === gc.col && ne.row === gc.row) {
             pendingBattle = ne

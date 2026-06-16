@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — feat: report subject level/grade section
+
+### src/components/Report.jsx
+- Added SUBJECT_LEVEL_MAP (Thai 5 levels, Math 9 levels, Eng 4 levels) with Thai grade labels
+- Added SubjectLevelCard: collapsible row showing current level name + grade badge; expands to full table with ✓/►/· status per level
+- New LEVEL · GRADE section inserted as Section 3 (response speed/parent report shifted to 4/5/6)
+
+---
+
 ## 2026-06-16 — feat: new home items — shoes + rainbow star + saiyan aura
 
 ### src/config/itemConfig.js

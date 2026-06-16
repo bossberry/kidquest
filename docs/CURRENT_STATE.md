@@ -79,9 +79,11 @@ _Last updated: 2026-06-16_
 - Pixel art dark theme (matches Home/Collection)
 - Section 1: Overview stats — mins played, rounds passed, accuracy %, streak
 - Section 2: Subject XP bars (Thai/Math/Eng) with readiness label from `computeReadiness()`
-- Section 3: Response speed per subject — avg seconds + trend arrow (only when ≥5 logs)
-- Section 4: Parent Report — natural Thai sentences generated from real data
-- Section 5: "ควรเล่นอะไรต่อ" — actionable suggestion based on weakest subject + streak
+- Section 3: LEVEL · GRADE — `SubjectLevelCard` per subject; header shows current level name + grade badge; tap expands full level table with ✓/►/· status icons per level
+- Section 4: Response speed per subject — avg seconds + trend arrow (only when ≥5 logs)
+- Section 5: Parent Report — natural Thai sentences generated from real data
+- Section 6: "ควรเล่นอะไรต่อ" — actionable suggestion based on weakest subject + streak
+- `SUBJECT_LEVEL_MAP` in Report.jsx: 5 Thai levels, 9 Math levels, 4 Eng levels each with Thai grade label (อนุบาล/ป.1/ป.2)
 
 ### Item System
 - `state.homeItems`: food/ribbon/shoes/rainbow_star — used on Home screen; affect HP/activeBoosts

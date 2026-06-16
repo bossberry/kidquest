@@ -70,7 +70,7 @@ _Last updated: 2026-06-16_
 
 ### Collection Screen (`Collection.jsx`)
 - 2 tabs: ทีม (party with HP bars + level + ★ ตัวหลัก badge) + กระเป๋า (ItemBag)
-- ItemBag: 4×2 grid of 8 item types (food/ribbon/potion/star/thunder/shield/bone/coin) via `drawItem` canvas; count badge; dimmed 0.4 opacity when count=0; shows effect text per item
+- ItemBag: two sections — "ไอเทมดูแลครีเอเจอร์" (homeItems: food/ribbon/potion/star) + "ไอเทมในการสู้" (battleItems: scroll/thunder/gem/mirror/clover); divider between sections; `drawItem` canvas per slot; count badge; dimmed when count=0
 - Pixel art header: "COLLECTION" in font-pixel yellow; dark background matching Home screen
 - Creature cards: 90×90 pixel art `drawCreature` canvas per creature
 - `CreatureDetailPopup.jsx`: 120×120 pixel art canvas + element glow, Level + evo stage, ATK/DEF/SPD/HP grid, bond meter bar, born-stats XP bars
@@ -84,9 +84,10 @@ _Last updated: 2026-06-16_
 - Section 5: "ควรเล่นอะไรต่อ" — actionable suggestion based on weakest subject + streak
 
 ### Item System
-- Home items: food/ribbon/star/potion — drop from minigames, affect egg state
-- Battle items: scroll/thunder/gem/mirror/clover — drop 10% on battle victory, 55% from treasure chests
-- `DROP_ITEM`, `USE_ITEM` actions; `USE_BATTLE_ITEM` in battle flow
+- `state.homeItems`: food/ribbon/potion/star — used on Home screen; affect creature HP/XP/temp buffs
+- `state.battleItems`: scroll/thunder/gem/mirror/clover — used in battle; drop 10% on victory, 55% from treasure chests
+- ACTIONS: USE_HOME_ITEM, USE_BATTLE_ITEM, DROP_HOME_ITEM, DROP_BATTLE_ITEM (backward-compat USE_ITEM/DROP_ITEM aliases remain)
+- localStorage migration: old `items{}` auto-migrated to `homeItems{}` + `battleItems{}` on load
 
 ### Audio
 - BGM: `playBGM(track)` / `stopBGM()` — 4 tracks (home/world/battle/victory) via Web Audio API

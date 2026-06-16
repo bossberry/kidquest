@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — refactor: separate homeItems and battleItems — clean up item system
+
+### src/lib/state.js
+- Split `items{}` into `homeItems: { food, ribbon, potion, star }` + `battleItems: { scroll, thunder, gem, mirror, clover }`
+
+### src/context/StateContext.jsx
+- Added ACTIONS: USE_HOME_ITEM, USE_BATTLE_ITEM, DROP_HOME_ITEM, DROP_BATTLE_ITEM
+- Replaced USE_ITEM/DROP_ITEM reducer cases; kept backward-compat aliases
+- Fixed RECORD_BATTLE to use `battleItems` not `items`
+- Added localStorage migration: `items{}` → `homeItems{}` + `battleItems{}` on load
+
+### src/components/Home.jsx
+- Item tray reads from `state.homeItems`, dispatches USE_HOME_ITEM
+- ITEM_DEFS: 4 home items (food/ribbon/potion/star) with effect/desc text
+
+### src/games/MoveSelectBattleMode.jsx
+- All item reads from `state.battleItems`; dispatches USE_BATTLE_ITEM / DROP_BATTLE_ITEM
+
+### src/components/Collection.jsx
+- ItemBag rewritten: two sections (ไอเทมดูแลครีเอเจอร์ / ไอเทมในการสู้) with divider
+- Removed non-existent items: shield, bone, coin
+
+---
+
 ## 2026-06-16 — fix: flat 20% dodge cap + temporary item boosts with cooldown timer
 
 ### src/games/MoveSelectBattleMode.jsx

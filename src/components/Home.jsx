@@ -10,6 +10,7 @@ import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from 
 import { drawItem } from '../lib/itemArt.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
+import { supabase } from '../lib/supabase.js'
 
 const ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100' },
@@ -32,7 +33,7 @@ const STATE_CSS = { idle:'float', pet:'pet', happy:'happy-spin', excited:'excite
 const STATE_DUR = { pet:500, happy:700, excited:1200, eating:900, sleep:2000, relax:1500, reunion:1200 }
 const comboToState = n => n >= 8 ? 'excited' : n >= 4 ? 'happy' : 'pet'
 
-export default function Home({ navigate, soundOn, toggleSound }) {
+export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
 
   const [eggAnim, setEggAnim]             = useState('float')
@@ -43,6 +44,13 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [eggGlow, setEggGlow]             = useState(null)
   const hasRibbon    = (state.activeBoosts?.ribbon?.endsAt ?? 0) > Date.now()
   const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  useEffect(() => {
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setIsLoggedIn(!!data?.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setIsLoggedIn(!!session))
+    return () => subscription.unsubscribe()
+  }, [])
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // emoji shown above large canvas
@@ -544,6 +552,31 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             }}>
               พร้อมฟัก!
             </div>
+          )}
+          {!isLoggedIn ? (
+            <button
+              onClick={() => onOpenLogin?.()}
+              style={{
+                background:'var(--px-purple,#7c4dff)', color:'#fff',
+                border:'none', padding:'5px 12px',
+                fontFamily:'var(--font-thai)', fontSize:11,
+                cursor:'pointer', boxShadow:'2px 2px 0 #000',
+              }}
+            >
+              เข้าสู่ระบบ
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenProfile?.()}
+              style={{
+                background:'transparent', color:'var(--px-light)',
+                border:'1px solid var(--px-border)', padding:'5px 12px',
+                fontFamily:'var(--font-thai)', fontSize:11,
+                cursor:'pointer',
+              }}
+            >
+              {state.name || 'โปรไฟล์'}
+            </button>
           )}
           <button onClick={toggleSound} style={{ background:'none', border:'none', fontSize:10, cursor:'pointer', opacity:0.5, padding:4, fontFamily:'var(--font-thai)', color:'var(--px-light)' }}>
             {soundOn ? 'เสียง' : 'ปิด'}

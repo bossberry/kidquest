@@ -853,6 +853,27 @@ export function StateProvider({ children }) {
       }
     })
 
+    // Startup guard: if user is logged in but local hatchedEggs is empty, force pull from cloud
+    if (supabase) {
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) return
+        const cur = stateRef.current
+        if ((cur.hatchedEggs?.length ?? 0) === 0) {
+          console.log('[KQ:startup] logged in but no local creatures — auto-restoring from cloud')
+          try {
+            const { data: row } = await supabase.from('eggs').select('state_json').eq('user_id', user.id).single()
+            if ((row?.state_json?.hatchedEggs?.length ?? 0) > 0) {
+              console.log('[KQ:startup] cloud has creatures → dispatch INIT')
+              localStorage.setItem(KEY, JSON.stringify(row.state_json))
+              dispatch({ type: ACTIONS.INIT, payload: row.state_json })
+            }
+          } catch (e) {
+            console.log('[KQ:startup] auto-restore failed:', e.message)
+          }
+        }
+      })
+    }
+
     // Auth listener
     let sub = null
     if (supabase) {
@@ -873,9 +894,13 @@ export function StateProvider({ children }) {
             if (row?.state_json) {
               const remote = row.state_json
               const cur = stateRef.current
-              if ((remote.rounds || 0) >= (cur.rounds || 0)) {
-                // Cloud is at least as recent → accept cloud state
-                console.log('[KQ:auth] cloud has data (remote rounds:', remote.rounds, ') → dispatch INIT')
+              const hasLocalCreatures = (cur.hatchedEggs?.length ?? 0) > 0
+              const hasCloudCreatures = (remote.hatchedEggs?.length ?? 0) > 0
+              // Always restore from cloud if local is empty but cloud has data
+              const cloudWins = hasCloudCreatures && !hasLocalCreatures
+                || (remote.rounds || 0) >= (cur.rounds || 0)
+              if (cloudWins) {
+                console.log('[KQ:auth] cloud wins (remote rounds:', remote.rounds, ', hasCreatures:', hasCloudCreatures, ') → dispatch INIT')
                 localStorage.setItem(KEY, JSON.stringify(remote))
                 dispatch({ type: ACTIONS.INIT, payload: remote })
               } else {

@@ -4,7 +4,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
 import { buildLegacyPreviewDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
-import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
+import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 import { drawItem } from '../lib/itemArt.js'
@@ -85,7 +85,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       : state.hatchedEggs?.[0]
   }, [state.party, state.hatchedEggs]) // eslint-disable-line
   const activeEgg = (state.hatchedEggs ?? []).find(e => e.id === state.party?.[0]) ?? state.hatchedEggs?.[0]
-  const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1 && eggsHatched === 0
+  const readyToHatch      = state.readyToHatch && (state.hatchedEggs?.length ?? 0) === 0
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
   useEffect(() => {

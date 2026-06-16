@@ -1,5 +1,19 @@
 export const BOSS_XP_THRESHOLD = 300
 
+export const PROGRESSION_MAP = {
+  tiers: [
+    { tier: 0, name: 'อนุบาล',   minSubjectLevel: 1, eggUnlock: 'first',  mapTheme: 'morning'     },
+    { tier: 1, name: 'ป.1 ต้น',  minSubjectLevel: 2, eggUnlock: 'tier1',  mapTheme: 'afternoon'   },
+    { tier: 2, name: 'ป.1 ปลาย', minSubjectLevel: 3, eggUnlock: 'tier2',  mapTheme: 'sunset'      },
+    { tier: 3, name: 'ป.2',      minSubjectLevel: 4, eggUnlock: 'tier3',  mapTheme: 'dark_forest' },
+    { tier: 4, name: 'ป.3+',     minSubjectLevel: 5, eggUnlock: 'tier4',  mapTheme: 'night'       },
+  ],
+  evoRequirements: {
+    teen:  { minBattleLevel: 11, minTier: 1 },
+    final: { minBattleLevel: 26, minTier: 3, minBond: 60 },
+  },
+}
+
 export const AI_OPPONENTS = {
   0: {
     normal: [

@@ -64,6 +64,11 @@ _Last updated: 2026-06-16_
   - Level up dispatches `SET_PENDING_LEVEL_UP` → `LevelUpCutscene.jsx` global overlay shows
   - `LevelUpCutscene.jsx`: flash→reveal→celebrate→done phases; canvas star rain; tap to continue → navigate('world')
   - Map sky tint shifts by subject level: L1=dawn, L2=golden, L3=sunset, L4+=dark (CSS rgba overlay, 3s transition)
+- **PROGRESSION_MAP** (2026-06-16) — `battleConfig.js` — unified tier/evo/egg system:
+  - 5 tiers: อนุบาล (L1) → ป.1ต้น (L2) → ป.1ปลาย (L3) → ป.2 (L4) → ป.3+ (L5)
+  - Tier advance triggers when ALL 3 subjects reach next tier's `minSubjectLevel`; auto-increments `state.grade`; sets `readyToHatch` for new egg (< 6 creatures)
+  - readyToHatch no longer XP-driven; driven by tier advance
+  - `calcEvoStage()` reads PROGRESSION_MAP evo thresholds: teen (Lv≥11, Tier≥1); final (Lv≥26, Tier≥3, Bond≥60)
 - `subjectReadiness.js` shared utility: 4 states (Strong/Comfortable/Exploring/Not Ready)
 
 ### Home Screen (`Home.jsx`, ~969 lines)
@@ -75,6 +80,7 @@ _Last updated: 2026-06-16_
 - Creature companion tap: `handleCreatureTap` (+1 bond + bounce + emoji reaction); 3 swipes = +3 bond + 💖
 
 ### Collection Screen (`Collection.jsx`)
+- CreatureJourney: evolution roadmap shown under each party creature card; ○/⚡/✅ per step (teen/final); shows Lv, Tier, Bond requirements; BABY→TEEN→FINAL stage bar
 - 2 tabs: ทีม (party with HP bars + level + ★ ตัวหลัก badge) + กระเป๋า (ItemBag)
 - ItemBag: two sections — "ไอเทมดูแลครีเอเจอร์" (homeItems: food/ribbon/shoes/rainbow_star) + "ไอเทมในการสู้" (battleItems: scroll/thunder/gem/mirror/clover); divider between sections; `drawItem` canvas per slot; count badge; dimmed when count=0
 - Pixel art header: "COLLECTION" in font-pixel yellow; dark background matching Home screen

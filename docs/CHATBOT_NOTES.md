@@ -65,6 +65,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split; or playtest battle balance
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Creature/egg/tier connection audit (6 tasks):**
+- Built: PROGRESSION_MAP in battleConfig.js (5 tiers + evoRequirements); calcEvoStage now reads PROGRESSION_MAP thresholds (teen: Lv11+Tier1, final: Lv26+Tier3+Bond60); readyToHatch removed from ADD_XP and moved to SET_SUBJECT_LEVEL (tier advance when all subjects ≥ next minSubjectLevel, hatchedEggs < 6); state.grade auto-increments on tier advance; Home.jsx readyToHatch guard cleaned (removed stale stage check); Collection.jsx CreatureJourney component (evo roadmap ○/⚡/✅ with lv/tier/bond hints, stage bar); Report.jsx tier progression line in parent report
+- Not finished: HatchOverlay still only supports first egg (hasCreature = length >= 1); subsequent egg hatch UI needs new flow (out of scope)
+- Blockers/risks found: creatureSystem.js now imports gameConfig.js — check for circular deps if battleConfig.js ever imports creatureSystem.js (currently no issue)
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: subsequent egg hatch UX (2nd+ egg when tier advances with existing creature)
+
 **2026-06-16 — Adaptive difficulty system (6 tasks):**
 - Built: state fields (subjectSessionStreak/subjectLevelFloor/pendingLevelUp); 4 new ACTIONS + reducers; WorldBattle.jsx onComplete adaptive check (≥0.80 streak → level up after 3; <0.50 → silent level down); WorldScreen.jsx triggerBattle + enterBossBattle now use subjectLevels?.[subject] ?? 1 (replaced getBattleLevel); LevelUpCutscene.jsx (flash→reveal→celebrate→done, canvas star rain, tap to continue); App.jsx pendingLevelUp overlay; WorldScreen sky tint overlay (4 time-of-day tints by subject level); CSS keyframes blink/levelup-pulse/scale-pop/arrow-slide
 - Not finished: nothing — all 6 tasks complete

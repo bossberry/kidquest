@@ -6,6 +6,7 @@ import { drawItem } from '../lib/itemArt.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
 import { CREATURE_ELEMENT_COLORS } from '../lib/creatureSystem.js'
+import { PROGRESSION_MAP } from '../config/gameConfig.js'
 
 const creatureName = (egg) => egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'
 
@@ -33,6 +34,7 @@ export default function Collection() {
           <PartyGrid
             partyCreatures={partyCreatures}
             partySlots={state.partySlots ?? 1}
+            currentTier={state.grade ?? 0}
             onSelect={handleSelect}
             onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
@@ -50,7 +52,7 @@ export default function Collection() {
   )
 }
 
-function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
+function PartyGrid({ partyCreatures, partySlots, currentTier, onSelect, onSetActive }) {
   if (partyCreatures.length === 0) return (
     <div className="catalog-empty">ยังไม่มี creature ในทีม<br/><span style={{ fontSize:12, color:'var(--muted)' }}>ฟักไข่แล้วเพิ่มในทีม!</span></div>
   )
@@ -108,11 +110,81 @@ function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
                   ★ ตั้งเป็นตัวหลัก
                 </button>
               )}
+              <CreatureJourney egg={egg} currentTier={currentTier ?? 0} />
             </div>
           )
         })}
       </div>
     </>
+  )
+}
+
+function CreatureJourney({ egg, currentTier }) {
+  const evo   = egg.evoStage ?? 'baby'
+  const level = egg.battleLevel ?? 1
+  const bond  = egg.bondMeter ?? 0
+  const req   = PROGRESSION_MAP.evoRequirements
+  const EVO_ORDER = { baby: 0, teen: 1, final: 2 }
+
+  const steps = [
+    {
+      id: 'teen',
+      label: 'วิวัฒนาการ → Teen',
+      done: EVO_ORDER[evo] >= 1,
+      ready: level >= req.teen.minBattleLevel && currentTier >= req.teen.minTier,
+      needs: [
+        level < req.teen.minBattleLevel && `Lv ${level}/${req.teen.minBattleLevel}`,
+        currentTier < req.teen.minTier  && `Tier ${currentTier}/${req.teen.minTier}`,
+      ].filter(Boolean),
+    },
+    {
+      id: 'final',
+      label: 'วิวัฒนาการ → Final',
+      done: evo === 'final',
+      ready: level >= req.final.minBattleLevel && currentTier >= req.final.minTier && bond >= req.final.minBond,
+      needs: [
+        level < req.final.minBattleLevel && `Lv ${level}/${req.final.minBattleLevel}`,
+        currentTier < req.final.minTier  && `Tier ${currentTier}/${req.final.minTier}`,
+        bond < req.final.minBond         && `Bond ${bond}/${req.final.minBond}`,
+      ].filter(Boolean),
+    },
+  ]
+
+  return (
+    <div style={{ marginTop:8, padding:'8px 10px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', marginBottom:6, letterSpacing:1 }}>
+        JOURNEY
+      </div>
+      {steps.map(step => (
+        <div key={step.id} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+          <div style={{ fontSize:11 }}>{step.done ? '✅' : step.ready ? '⚡' : '○'}</div>
+          <div style={{
+            flex:1, fontFamily:'var(--font-thai)', fontSize:10,
+            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.45)',
+          }}>
+            {step.label}
+          </div>
+          {!step.done && step.needs.length > 0 && (
+            <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', textAlign:'right' }}>
+              {step.needs.join(' · ')}
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{ marginTop:6, display:'flex', gap:6, alignItems:'center' }}>
+        <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)' }}>STAGE</div>
+        {['baby','teen','final'].map(s => (
+          <div key={s} style={{
+            fontFamily:'var(--font-pixel)', fontSize:7,
+            color: evo === s ? '#EF9F27' : EVO_ORDER[evo] > EVO_ORDER[s] ? '#44ee44' : 'rgba(255,255,255,0.2)',
+            borderBottom: evo === s ? '1px solid #EF9F27' : 'none',
+            paddingBottom:1,
+          }}>
+            {s.toUpperCase()}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

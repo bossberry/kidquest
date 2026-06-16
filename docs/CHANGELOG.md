@@ -1,5 +1,36 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — feat: connect creature/egg/tier/level systems — unified progression via PROGRESSION_MAP
+
+### src/config/battleConfig.js
+- Added PROGRESSION_MAP: 5 tiers (tier 0–4 / อนุบาล→ป.3+), each with minSubjectLevel, eggUnlock, mapTheme
+- Added evoRequirements (teen: Lv11+Tier1, final: Lv26+Tier3+Bond60) — single source of truth for evo thresholds
+
+### src/lib/creatureSystem.js
+- calcEvoStage() now reads PROGRESSION_MAP.evoRequirements instead of hard-coded numbers
+- Changed thresholds: teen was (lv≥11, tier≥2) → now (lv≥11, tier≥1); final was (lv≥26, tier≥5, bond≥60) → now (lv≥26, tier≥3, bond≥60)
+- Added import for PROGRESSION_MAP from gameConfig.js
+
+### src/context/StateContext.jsx
+- Added PROGRESSION_MAP import from gameConfig.js
+- ADD_XP case: removed XP-based readyToHatch computation (3 lines removed)
+- SET_SUBJECT_LEVEL case: now detects tier advance when ALL subjects reach next tier's minSubjectLevel; auto-increments state.grade; sets readyToHatch when hatchedEggs < 6
+
+### src/components/Home.jsx
+- readyToHatch local var: removed stage >= EGG_STAGES-1 check (tier-advance is now the trigger); kept (hatchedEggs === 0) guard against ghost messages
+- Removed unused EGG_STAGES import
+
+### src/components/Collection.jsx
+- Added PROGRESSION_MAP import
+- Added CreatureJourney component: shows evolution roadmap (○/⚡/✅) with level/tier/bond requirements; BABY→TEEN→FINAL stage tracker
+- PartyGrid: added currentTier prop; renders <CreatureJourney /> below each creature card
+
+### src/components/Report.jsx
+- Added PROGRESSION_MAP import
+- Parent report section: appended tier progression line (current tier name + sessions until next tier unlock)
+
+---
+
 ## 2026-06-16 — feat: adaptive difficulty — auto level up/down + level-up cutscene + map sky tint
 
 ### src/lib/state.js

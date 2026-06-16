@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import { computeReadiness } from '../lib/subjectReadiness.js'
+import { PROGRESSION_MAP } from '../config/gameConfig.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -293,6 +294,22 @@ export default function Report() {
 
     if (weak[1] < dom[1] * 0.5 && dom[1] > 0) {
       lines.push(`แนะนำ: ลอง${weak[0]}เพิ่มขึ้นบ้าง เพื่อให้พัฒนารอบด้าน`)
+    }
+
+    const currentTier  = state.grade ?? 0
+    const tierInfo     = PROGRESSION_MAP.tiers[currentTier]
+    const nextTier     = PROGRESSION_MAP.tiers[currentTier + 1]
+    const subjectLevels = state.subjectLevels ?? { thai:1, math:1, eng:1 }
+    const minSubjectLevel = Math.min(...Object.values(subjectLevels))
+    if (nextTier) {
+      const needed = nextTier.minSubjectLevel - minSubjectLevel
+      if (needed > 0) {
+        lines.push(`ตอนนี้อยู่ระดับ "${tierInfo?.name ?? '—'}" · อีก ${needed} เลเวลในทุกวิชา → ไข่ใบใหม่ + โลกใหม่`)
+      } else {
+        lines.push(`พร้อมขึ้นระดับ "${nextTier.name}" แล้ว! เดินหน้าต่อได้เลย 🚀`)
+      }
+    } else {
+      lines.push(`${name}ผ่านทุกระดับแล้ว! เก่งมากที่สุด!`)
     }
 
     return lines

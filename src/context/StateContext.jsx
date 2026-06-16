@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer, useEffect, useMemo, useCa
 import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
-import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
+import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
 import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator.js'
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
@@ -148,9 +148,6 @@ function reducer(state, action) {
       const key = 'xp' + world.charAt(0).toUpperCase() + world.slice(1)
       const newXp = (state[key] || 0) + earned
       const newTotal = (state.xpThai || 0) + (state.xpEng || 0) + (state.xpMath || 0) + earned
-      const eggsHatched = (state.hatchedEggs || []).length
-      const hatchRequired = Math.min(800, 120 + eggsHatched * 60)
-      const readyToHatch = newTotal >= hatchRequired && !state.hatched && (state.hatchedEggs?.length ?? 0) === 0
       // Distribute creature XP: active = 100%, bench party members = 50%
       const partyIds = state.party || []
       const activeId = partyIds[0]
@@ -183,7 +180,6 @@ function reducer(state, action) {
         acc: accDelta !== undefined ? Math.round((state.acc || 70) * 0.95 + accDelta * 0.05) : state.acc,
         speed: speedDelta !== undefined ? Math.round((state.speed || 50) * 0.9 + speedDelta * 0.1) : state.speed,
         firstSubject: state.firstSubject === -1 ? ['thai','eng','math'].indexOf(world) : state.firstSubject,
-        readyToHatch,
       }
     }
 
@@ -751,10 +747,20 @@ function reducer(state, action) {
 
     case ACTIONS.SET_SUBJECT_LEVEL: {
       const { subject, level } = action.payload
+      const newSubjectLevels = { ...(state.subjectLevels || { thai:1, math:1, eng:1 }), [subject]: level }
+      const levels = Object.values(newSubjectLevels)
+      const minLevel = levels.length > 0 ? Math.min(...levels) : 1
+      const currentTier = state.grade ?? 0
+      const nextTierReq = PROGRESSION_MAP.tiers[currentTier + 1]?.minSubjectLevel
+      const tierAdvance = !!nextTierReq && minLevel >= nextTierReq
       return {
         ...state,
-        subjectLevels:     { ...(state.subjectLevels     || {}), [subject]: level },
+        subjectLevels:     newSubjectLevels,
         subjectLevelFloor: { ...(state.subjectLevelFloor || {}), [subject]: level },
+        grade: tierAdvance ? currentTier + 1 : state.grade,
+        readyToHatch: (tierAdvance && (state.hatchedEggs?.length ?? 0) < 6)
+          ? true
+          : state.readyToHatch,
       }
     }
 

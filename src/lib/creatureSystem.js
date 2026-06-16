@@ -1,4 +1,5 @@
 // Creature element + evolution logic. eggAlgorithm.js is NOT touched here.
+import { PROGRESSION_MAP } from '../config/gameConfig.js'
 
 export const CREATURE_ELEMENT_COLORS = {
   fire:    '#E24B4A',
@@ -57,18 +58,21 @@ export function getEggElementHint(xpThai, xpMath, xpEng, accuracy, streak, eggSt
 
 /**
  * Compute evolution stage from creature data.
- * Uses existing battleLevel (from calcBattleLevel) as the level proxy.
+ * Uses PROGRESSION_MAP.evoRequirements for thresholds.
  */
 export function calcEvoStage(battleLevel, playerTier, bondMeter, currentEvoStage) {
   if (currentEvoStage === 'final') return 'final'
   const lv   = battleLevel ?? 1
   const tier = playerTier  ?? 0
   const bond = bondMeter   ?? 0
+  const req  = PROGRESSION_MAP.evoRequirements
   if (currentEvoStage === 'teen') {
-    return (lv >= 26 && tier >= 5 && bond >= 60) ? 'final' : 'teen'
+    return (lv >= req.final.minBattleLevel && tier >= req.final.minTier && bond >= req.final.minBond)
+      ? 'final'
+      : 'teen'
   }
   // baby
-  return (lv >= 11 && tier >= 2) ? 'teen' : 'baby'
+  return (lv >= req.teen.minBattleLevel && tier >= req.teen.minTier) ? 'teen' : 'baby'
 }
 
 export const EVO_STAGE_LABELS_TH = {

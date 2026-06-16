@@ -925,3 +925,18 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: creatures without DNA (legacy emoji eggs, fallback path) get generic name from puff pool — acceptable
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — feat: implement 6-element pixel art creatures with 3 stages + auto names:**
+- Built:
+  - `creatureAlgorithm.js` fully rewritten — old HSL procedural circles/ellipses/bezier replaced with pixel-rect renderer; 6 elements × 3 stages (baby/teen/final); draws on 12×12 grid × P px (P = floor(min(W,H)/12), centered) using `ctx.fillRect`; dark `#0a0a12` background
+  - Element determined from stats: streak≥7→shadow, acc≥85→nature, dominance: thai→fire, math→water, eng→thunder, balanced (<45%)→light
+  - Stage from `stats.evoStage` field ('baby'/'teen'/'final'), defaults to 'baby'
+  - `getCreatureName(element, evoStage)` exported — returns Thai names: fire(ฟุระ/เปลวไฟ/ราชันเพลิง), water(อาควา/กระแส/ไทดัน), thunder(ซาปิ/สายฟ้า/โวลเทน), nature(ลีฟู/ป่าลึก/ซิลวาน), shadow(นิกซ์/เงามืด/อัมบรา), light(ลูมิ/แสงทอง/ออโรร่า)
+  - `getCreatureSeed(egg)` unchanged — backward-compat for all callers (BattleScreen, ChallengerOverlay, EggMemory)
+  - `prng` import removed (no longer needed)
+- Not finished: callers (BattleScreen/ChallengerOverlay/EggMemory) still pass `egg.eggStats` which lacks `evoStage` — teen/final stages won't render until callers merge `{ ...egg.eggStats, evoStage: egg.evoStage }`
+- Blockers/risks found: If canvas size is not a multiple of 12, the grid is centered with px offset — very small canvases (<36px) will have P=2 and look cramped but won't crash
+- Ready to start next: Update BattleScreen/ChallengerOverlay to pass `evoStage` in stats so teen/final stages render; OR Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

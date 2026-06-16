@@ -1562,3 +1562,25 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 - `WorldScreen.jsx`: New `WorldHUD` component replaces plain top bar. Sections: 3×3 mini-map (screen colors from SCREEN_THEMES, discovered/undiscovered/current states), creature status (name + level + HP bar + HP numbers), XP bar (Lv.N + gold progress), battle items (5 PixelItemIcon at 13px with count badges). Home button replaced with compact ⌂ symbol.
 - Camera `camY` offset adjusted by `−HUD_CONTENT_H/2` so the player avatar centers in the visible play area below the HUD.
 - Added `SCREEN_THEMES` and `PixelItemIcon` imports; removed unused `screenLabel` const.
+
+## 2026-06-16 — feat: 6-element pixel art creatures + auto creature names
+
+### Pixel Art Creature Renderer (`creatureAlgorithm.js`)
+- Old procedural HSL renderer (circles/ellipses/bezier curves) replaced with pixel-art grid renderer
+- 12×12 grid at P = `floor(min(canvas.width, canvas.height) / 12)` px per unit, centered in canvas
+- Dark `#0a0a12` background behind all sprites
+- 6 elements with distinct palettes and pixel patterns:
+  - **fire** (ฟุระ/เปลวไฟ/ราชันเพลิง): red/orange, mane sides, flame tail, blush cheeks
+  - **water** (อาควา/กระแส/ไทดัน): blue, flat fin ears, fin sides, droplet tail
+  - **thunder** (ซาปิ/สายฟ้า/โวลเทน): yellow/gold, spike ears, spark sides, zigzag tail
+  - **nature** (ลีฟู/ป่าลึก/ซิลวาน): green, tall leaf ears, vine sides, leaf tail
+  - **shadow** (นิกซ์/เงามืด/อัมบรา): purple, long wispy ears, dark aura sides, shadow tail
+  - **light** (ลูมิ/แสงทอง/ออโรร่า): warm gold, halo ears, glow sides, star tail
+- 3 stages:
+  - **baby**: 6-unit-wide head/body, element-specific ears/sides/tail
+  - **teen**: 8-unit-wide body, shoulder pads in accent, taller ears, element accessories
+  - **final**: wide head + full-width armored body, crown/helmet, glowing eyes (shadow/fire), large tail
+
+### Auto Creature Names
+- `getCreatureName(element, evoStage)` exported from `creatureAlgorithm.js` — Thai species names per element × stage
+- `getCreatureSeed(egg)` unchanged — backward-compatible with all existing callers

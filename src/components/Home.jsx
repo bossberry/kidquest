@@ -41,9 +41,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [flyingItem, setFlyingItem]       = useState(null)
   const [eggGlow, setEggGlow]             = useState(null)
   const [hasRibbon, setHasRibbon]         = useState(false)
-  const [creature, setCreature]           = useState({ x: 30, dir: 1 })
-  const [creatureTapped, setCreatureTapped] = useState(false)
-  const [creatureState, setCreatureState] = useState('walk') // walk|wave|sit|celebrate|gift|look|sleep
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // emoji shown above large canvas
@@ -56,8 +53,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const animTimerRef    = useRef(null)
   const glowTimerRef    = useRef(null)
   const idleTimerRef    = useRef(null)
-  const creatureRef     = useRef({ x: 30, dir: 1 })
-  const creatureModeRef = useRef('walk')
   const initVisitRef    = useRef(state.lastHomeVisit)
   const stageRef        = useRef(0)
   const eggAnimRef      = useRef('float')
@@ -181,57 +176,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     schedule()
     return () => clearTimeout(idleTimerRef.current)
   }, []) // eslint-disable-line
-
-  // Creature patrol — pauses during personality moments
-  useEffect(() => {
-    if (eggsHatched === 0) return
-    const MAX_X = 230
-    const id = setInterval(() => {
-      if (creatureModeRef.current !== 'walk') return
-      const s = creatureRef.current
-      let x = s.x + s.dir * 0.5, dir = s.dir
-      if (x >= MAX_X) { x = MAX_X; dir = -1 }
-      if (x <= 10)    { x = 10;    dir =  1 }
-      creatureRef.current = { x, dir }
-      setCreature({ x, dir })
-    }, 40)
-    return () => clearInterval(id)
-  }, [eggsHatched]) // eslint-disable-line
-
-  // Creature personality behaviors — occasional moments of life
-  useEffect(() => {
-    if (eggsHatched === 0) return
-    const BEHAVIORS = ['walk','walk','walk','walk','wave','sit','celebrate','gift','look','sleep']
-    let timer
-    const doSchedule = () => {
-      timer = setTimeout(() => {
-        const b = BEHAVIORS[Math.floor(Math.random() * BEHAVIORS.length)]
-        if (b !== 'walk') {
-          setCreatureState(b)
-          creatureModeRef.current = b
-          if (b === 'celebrate') {
-            if (voiceProfile) playCreatureSound(voiceProfile, 'celebrate')
-            else playTone('celebrate')
-            spawnParticles('sparkle', 4)
-          } else if (b === 'wave') {
-            if (voiceProfile) playCreatureSound(voiceProfile, 'pet')
-            else playTone('chirp')
-          } else if (b === 'sleep') {
-            if (voiceProfile) playCreatureSound(voiceProfile, 'sleep')
-          } else if (b === 'gift') {
-            playTone('jingle')
-          }
-          setTimeout(() => {
-            setCreatureState('walk')
-            creatureModeRef.current = 'walk'
-          }, 3500 + Math.random() * 2000)
-        }
-        doSchedule()
-      }, 20000 + Math.random() * 25000)
-    }
-    doSchedule()
-    return () => clearTimeout(timer)
-  }, [eggsHatched]) // eslint-disable-line
 
   // Ambient events — rare visual delights: butterfly, falling leaf, shooting star
   useEffect(() => {
@@ -415,6 +359,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       spawnParticles('sparkle', 6)
       setGlow('pink', 1200)
       enterState('happy', 800)
+      const activeCreatureId = state.party?.[0]
+      if (activeCreatureId) {
+        dispatch({ type: ACTIONS.CREATURE_STAT_BOOST, payload: { creatureId: activeCreatureId, stat: 'SPD', amount: 10 } })
+        setBondReaction('⚡ SPD+10')
+        setTimeout(() => setBondReaction(null), 1200)
+      }
 
     } else if (key === 'potion') {
       playTone('slurp')
@@ -666,6 +616,24 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                 </div>
               ))}
             </div>
+            {/* HP bar */}
+            {(() => {
+              const maxHP = activeEgg.stats?.HP ?? 100
+              const currentHP = activeEgg.currentHP ?? maxHP
+              const hpPct = Math.max(0, Math.min(100, (currentHP / maxHP) * 100))
+              const hpColor = hpPct > 60 ? '#44ee44' : hpPct > 25 ? '#eeee44' : '#ee4444'
+              return (
+                <div style={{ width:160, margin:'4px auto 0' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
+                    <span style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.5)' }}>HP</span>
+                    <span style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:hpColor }}>{currentHP}/{maxHP}</span>
+                  </div>
+                  <div style={{ height:6, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.15)' }}>
+                    <div style={{ width:`${hpPct}%`, height:'100%', background:hpColor, transition:'width 0.3s' }} />
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
 
@@ -763,69 +731,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         )}
         </>)}
 
-        {/* Creature companion */}
-        <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:80, overflow:'visible' }}>
-          {eggsHatched > 0 ? (
-            <div
-              style={{ position:'absolute', bottom:4, left:creature.x, cursor:'pointer', userSelect:'none' }}
-              onClick={() => {
-                setCreatureTapped(true)
-                if (voiceProfile) playCreatureSound(voiceProfile, 'pet')
-                else playTone('chirp')
-                setTimeout(() => setCreatureTapped(false), 500)
-              }}
-            >
-              {/* Directional flip — separate from animation so they don't fight */}
-              <div style={{ transform:`scaleX(${creature.dir < 0 ? -1 : 1})`, display:'inline-flex', alignItems:'flex-end', gap:2 }}>
-                {/* Creature canvas + behavior animation */}
-                <div
-                  className={
-                    creatureState === 'wave'      ? 'creature-wave' :
-                    creatureState === 'celebrate' ? 'creature-celebrate' :
-                    creatureTapped                ? 'egg-anim-pet' : ''
-                  }
-                  style={{
-                    display:'inline-block',
-                    transform: creatureState === 'sit' ? 'rotate(14deg) translateY(4px)' : undefined,
-                    opacity: creatureState === 'sleep' ? 0.48 : 1,
-                    transition:'transform 0.35s, opacity 0.5s',
-                  }}
-                >
-                  <canvas
-                    key={activeEgg?.id}
-                    ref={r => { if (r && activeEgg) drawCreature(r, getCreatureSeed(activeEgg), activeEgg.eggStats ?? {}) }}
-                    width={46} height={46}
-                    style={{ imageRendering:'pixelated', display:'block', borderRadius:4, background:'transparent' }}
-                  />
-                </div>
-
-                {/* Behavior overlays — shown inline next to creature */}
-                {creatureState === 'wave' && (
-                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#aaffaa',
-                    animation:'creature-overlay-bob .45s ease-in-out infinite alternate',
-                    display:'inline-block',
-                  }}>ทัก!</span>
-                )}
-                {creatureState === 'gift' && (
-                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#ffaa88', display:'inline-block' }}>ของ</span>
-                )}
-                {creatureState === 'celebrate' && (
-                  <span style={{ fontSize:9, lineHeight:1, fontFamily:'var(--font-thai)', color:'#ffff88', display:'inline-block' }}>สนุก!</span>
-                )}
-                {creatureState === 'sleep' && (
-                  <span style={{ fontSize:9, lineHeight:1, color:'#aaaaff', opacity:0.7, display:'inline-block' }}>zz</span>
-                )}
-                {creatureState === 'look' && (
-                  <span style={{ fontSize:9, lineHeight:1, color:'#aaaaaa', display:'inline-block' }}>...</span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ position:'absolute', bottom:8, left:20, fontSize:11, color:'rgba(90,58,139,0.36)', fontFamily:'Mitr,sans-serif' }}>
-              ฟักไข่เพื่อพบเพื่อนใหม่!
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Party bar — portrait cards, horizontal scroll, tap to switch active */}

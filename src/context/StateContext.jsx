@@ -123,6 +123,7 @@ export const ACTIONS = {
   LOG_BATTLE_ANSWER:         'LOG_BATTLE_ANSWER',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
+  CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
 }
 
 function reducer(state, action) {
@@ -698,6 +699,18 @@ function reducer(state, action) {
 
     case ACTIONS.SECRET_MAP_EXPIRE:
       return { ...state, mazeActive: false, secretMapExpiry: null }
+
+    case ACTIONS.CREATURE_STAT_BOOST: {
+      const { creatureId, stat, amount } = action.payload
+      return {
+        ...state,
+        hatchedEggs: state.hatchedEggs.map(e =>
+          e.id === creatureId
+            ? { ...e, stats: { ...(e.stats ?? {}), [stat]: (e.stats?.[stat] ?? 0) + amount } }
+            : e
+        )
+      }
+    }
 
     default:
       return state

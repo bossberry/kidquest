@@ -1029,3 +1029,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: World map player sprite is 16×16 tiles; creature renders very small but visible. Walk animation no longer has leg frames — player blit is static (same creature each frame). A walk-frame bounce offset could be added later.
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — fix: CreatureDetailPopup rewritten — pixel art creature + battle stats + bond meter:**
+- Built:
+  - `src/components/CreatureDetailPopup.jsx` (FULL REWRITE) — removed `CreatureCanvas` + `drawEgg` imports entirely; added `drawCreature + getCreatureSeed` from `creatureAlgorithm.js`; removed `eggRef` + `useEffect` calling drawEgg
+  - New creature display: 120×120 `<canvas>` with `drawCreature(r, getCreatureSeed(egg), {...(egg.eggStats ?? egg.stats ?? {}), evoStage})` + element color `drop-shadow` glow from `CREATURE_ELEMENT_COLORS`
+  - New content layout: rarity/Moonborn badges → 120px creature canvas → name + element badge → Level + evo stage row → friendship stats → ATK/DEF/SPD/HP 4-column grid → bond meter bar → born-stats XP origin bars (section renamed ต้นกำเนิด)
+  - Removed: 196px `<CreatureCanvas>`, 48×58 egg mini canvas, old streak/accuracy/minutes stats, abilities section
+  - `CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH, EVO_STAGE_LABELS_TH` all confirmed in `creatureSystem.js` ✅
+- Not finished: `CreatureCanvas` (DNA system) still used by `HatchOverlay` only — separate cleanup task
+- Blockers/risks found: none. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

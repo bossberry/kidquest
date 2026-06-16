@@ -8,7 +8,7 @@
 - **MoveSelectBattleMode.jsx**: in world battle, shows 96×96px creature canvas; adventure modes still show EggCanvas (intentional)
 - **WorldScreen.jsx**: world map player sprite replaced — `renderPlayer()` in tileEngine.js now blits a 16×16 creature via `window.__kq_activeCreatureSeed/Stats` globals set in WorldScreen render
 - **Collection.jsx**: all creature grid cards (CreatureCard, PartyGrid, VaultGrid) now show 90×90 pixel art canvases; `CreatureCanvas` import removed from Collection
-- **EggCanvas** (wraps LOCKED `drawEgg`) still used for unhatched egg display; **CreatureCanvas** (DNA-based) still used in CreatureDetailPopup + HatchOverlay
+- **EggCanvas** (wraps LOCKED `drawEgg`) still used for unhatched egg display; **CreatureCanvas** (DNA-based) still used in HatchOverlay only — `CreatureDetailPopup` now uses `creatureAlgorithm.js`
 
 ### Response Time Analytics (2026-06-16)
 - **`MoveSelectBattleMode.jsx`**: timer starts (`questionStartTime.current = Date.now()`) when each question appears; player tap captures elapsed ms in `responseTimeRef.current`; `fireHit`/`fireMiss` dispatch `LOG_BATTLE_ANSWER { subject, question, correct, responseTimeMs, timestamp }`

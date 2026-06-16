@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: CreatureDetailPopup — pixel art creature canvas, battle stats, bond meter
+
+### src/components/CreatureDetailPopup.jsx
+- FULL REWRITE: removed `CreatureCanvas` + `drawEgg` imports; added `drawCreature + getCreatureSeed` from `creatureAlgorithm.js`
+- Creature display: 120×120 `<canvas>` using pixel art renderer with element color glow (`drop-shadow` via `CREATURE_ELEMENT_COLORS`)
+- Added: Level + evo stage row below name/badge section
+- Added: ATK/DEF/SPD/HP 4-column grid (from `egg.stats`) replacing old streak/accuracy/minutes
+- Added: bond meter bar (from `egg.bondMeter`) with gold fill
+- Removed: 196px `<CreatureCanvas dna={...}>` + 48×58 egg mini canvas + abilities section
+- Born stats: XP origin bars kept, section renamed "ต้นกำเนิด", egg canvas removed from this section
+- Imports `CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH, EVO_STAGE_LABELS_TH` from `creatureSystem.js`
+
+---
+
 ## 2026-06-16 — fix: home background walking character uses active creature design
 
 ### src/components/HomeBackground.jsx

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react'
+import { drawCreature } from '../lib/creatureAlgorithm.js'
 
 const P = {
   skyD1:'#4ec8f0', skyD2:'#87ddff', skyD3:'#d4f7c0',
@@ -20,12 +21,23 @@ const P = {
   white:'#e8e8f8',
 }
 
-export default function HomeBackground({ hour }) {
+export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
 
   const canvasRef = useRef(null)
-  const rafRef = useRef(null)
+  const rafRef    = useRef(null)
+  const offRef    = useRef(null)
+
+  // Redraw offscreen creature canvas whenever the active creature changes
+  useEffect(() => {
+    if (creatureSeed == null) return
+    const off = document.createElement('canvas')
+    off.width  = 32
+    off.height = 32
+    drawCreature(off, creatureSeed, creatureStats ?? {})
+    offRef.current = off
+  }, [creatureSeed, creatureStats]) // eslint-disable-line
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -211,6 +223,10 @@ export default function HomeBackground({ hour }) {
     }
 
     // ── Animation state ────────────────────────────────────────────────
+    const CHAR_SIZE = 10 * S
+    const CHAR_MIN_X = W * 0.33
+    const CHAR_MAX_X = W * 0.67
+
     const anim = {
       t: 0,
       clouds: [
@@ -229,6 +245,7 @@ export default function HomeBackground({ hour }) {
         { x: W * 0.44, baseY: H * 0.52, phase: Math.PI },
         { x: W * 0.80, baseY: H * 0.48, phase: Math.PI * 1.5 },
       ],
+      char: { x: W * 0.50, dir: 1 },
     }
 
     function frame() {
@@ -262,6 +279,24 @@ export default function HomeBackground({ hour }) {
           const fy = f.baseY + Math.sin(anim.t * 0.03 + f.phase) * 8 * S
           drawFirefly(Math.floor(fx), Math.floor(fy), anim.t, f.phase)
         })
+      }
+
+      // ── Walking creature on the path ──────────────────────────────
+      anim.char.x += anim.char.dir * 0.8
+      if (anim.char.x > CHAR_MAX_X) anim.char.dir = -1
+      if (anim.char.x < CHAR_MIN_X) anim.char.dir =  1
+      if (offRef.current) {
+        const cx = Math.floor(anim.char.x - CHAR_SIZE / 2)
+        const cy = GY - CHAR_SIZE
+        if (anim.char.dir < 0) {
+          ctx.save()
+          ctx.translate(Math.floor(anim.char.x), 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(offRef.current, -CHAR_SIZE / 2, cy, CHAR_SIZE, CHAR_SIZE)
+          ctx.restore()
+        } else {
+          ctx.drawImage(offRef.current, cx, cy, CHAR_SIZE, CHAR_SIZE)
+        }
       }
 
       rafRef.current = requestAnimationFrame(frame)

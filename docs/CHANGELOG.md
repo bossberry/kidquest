@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: home background walking character uses active creature design
+
+### src/components/HomeBackground.jsx
+- Added `import { drawCreature } from '../lib/creatureAlgorithm.js'`
+- Added `creatureSeed` + `creatureStats` props to component signature
+- Added `offRef = useRef(null)` to cache 32×32 offscreen canvas across frames
+- Added `useEffect([creatureSeed, creatureStats])` that calls `drawCreature(off, creatureSeed, creatureStats)` when seed changes
+- Added walking creature animation in rAF loop: draws from `offRef.current` at ground level, `ctx.save/translate/scale(-1,1)` flip when walking left, bounces between 33–67% canvas width at 0.8 px/frame
+
+### src/components/Home.jsx
+- Updated `<HomeBackground>` to pass `creatureSeed` + `creatureStats` from `activeEgg`
+- Replaced 46×46 `<CreatureCanvas>` creature companion with `<canvas ref={r => drawCreature(r, getCreatureSeed(activeEgg), activeEgg.eggStats ?? {})}>` using `creatureAlgorithm.js`
+- Removed dead `lastCreatureDNA` useMemo block (was only consumed by the now-replaced CreatureCanvas companion)
+
+---
+
 ## 2026-06-16 — fix: creature drawing on world map player sprite and Collection screen
 
 ### src/lib/tileEngine.js

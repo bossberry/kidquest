@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
-import CreatureCanvas from './CreatureCanvas.jsx'
 import { buildLegacyPreviewDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
@@ -68,13 +67,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
-  const lastCreatureDNA = useMemo(() => {
-    const egg = state.hatchedEggs?.[0]
-    if (!egg) return null
-    if (egg.dna) return egg.dna
-    try { return buildLegacyPreviewDNA(egg, 0) } catch (_) { return null }
-  }, [state.hatchedEggs])
-
   // Voice profile for the active party creature — used to generate creature-specific sounds
   const voiceProfile = useMemo(() => {
     const activeId = state.party?.[0]
@@ -466,7 +458,11 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
     }}>
 
-      <HomeBackground hour={hour} />
+      <HomeBackground
+        hour={hour}
+        creatureSeed={activeEgg ? getCreatureSeed(activeEgg) : null}
+        creatureStats={activeEgg?.eggStats ?? activeEgg?.stats ?? {}}
+      />
 
       {/* Flying food overlay */}
       {flyingItem && (
@@ -748,7 +744,12 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                     transition:'transform 0.35s, opacity 0.5s',
                   }}
                 >
-                  <CreatureCanvas dna={lastCreatureDNA} size={46} animationEnabled={false} style={{ borderRadius:4 }} />
+                  <canvas
+                    key={activeEgg?.id}
+                    ref={r => { if (r && activeEgg) drawCreature(r, getCreatureSeed(activeEgg), activeEgg.eggStats ?? {}) }}
+                    width={46} height={46}
+                    style={{ imageRendering:'pixelated', display:'block', borderRadius:4, background:'transparent' }}
+                  />
                 </div>
 
                 {/* Behavior overlays — shown inline next to creature */}

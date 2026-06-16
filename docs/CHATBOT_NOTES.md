@@ -1009,6 +1009,17 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 
 ---
 
+**2026-06-16 — fix: home background walking character uses active creature design:**
+- Built:
+  - `HomeBackground.jsx`: added `import { drawCreature } from '../lib/creatureAlgorithm.js'`; new props `creatureSeed`/`creatureStats`; `offRef = useRef(null)` caches 32×32 offscreen canvas; `useEffect([creatureSeed, creatureStats])` redraws offscreen when seed changes; rAF loop draws walking creature at ground level (`GY - CHAR_SIZE`), flipped left with `ctx.save/translate/scale(-1,1)` when dir<0; `CHAR_SIZE = 10*S`, `CHAR_MIN_X = W*0.33`, `CHAR_MAX_X = W*0.67`, speed 0.8px/frame
+  - `Home.jsx`: updated `<HomeBackground>` to pass `creatureSeed={activeEgg ? getCreatureSeed(activeEgg) : null}` + `creatureStats={activeEgg?.eggStats ?? activeEgg?.stats ?? {}}`; replaced the 46×46 creature companion (`<CreatureCanvas>`) at bottom of egg zone with `<canvas ref={r => drawCreature(r, getCreatureSeed(activeEgg), activeEgg.eggStats ?? {})}>` using `creatureAlgorithm.js`; removed now-dead `lastCreatureDNA` useMemo block (lines 70–75)
+- Not finished: `CreatureCanvas` (DNA system) is still used by CreatureDetailPopup and HatchOverlay — separate Phase 2 cleanup
+- Blockers/risks found: none. Build ✅ zero errors.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking
+
+---
+
 **2026-06-16 — fix: creature drawing on world map player sprite and Collection screen:**
 - Built:
   - `tileEngine.js`: added `import { drawCreature } from './creatureAlgorithm.js'`; module-level `_playerOff` offscreen canvas (lazy-init, reused every frame); replaced old fillRect humanoid in `renderPlayer()` with `drawCreature(off, window.__kq_activeCreatureSeed ?? 0, window.__kq_activeCreatureStats ?? {})` + `ctx.drawImage(off, px, py, TILE, TILE)`

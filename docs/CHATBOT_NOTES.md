@@ -99,3 +99,10 @@ _(Claude Code appends here after each session)_
 - Blockers/risks found: none
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
+
+**2026-06-16 — Emergency debug: Supabase state restore for Chopin:**
+- Built: debugSupabaseState() in App.jsx — called once on load, logs full Supabase row + hatchedEggs count to console. Restore button rendered when state.hatchedEggs is empty — fetches state_json from Supabase eggs table (first row), writes to kq_state, reloads. Button is styled red "🔄 กู้คืนข้อมูล", fixed bottom-center, zIndex 9999.
+- Not finished: nothing
+- Blockers/risks found: debugSupabaseState + restore button are intentionally temporary. Remove when Chopin's data is confirmed restored (or when issue root cause is fixed).
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none

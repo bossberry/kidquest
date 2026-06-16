@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — debug: Supabase state restore for emergency recovery
+
+### src/App.jsx
+- Added `debugSupabaseState()` — logs full Supabase eggs row + hatchedEggs count to console on every load (temporary)
+- Added emergency restore button (🔄 กู้คืนข้อมูล) — fixed bottom-center, visible only when hatchedEggs is empty; fetches state_json from Supabase and writes to kq_state, then reloads
+
+---
+
 ## 2026-06-16 — fix: restore login button + auto-restore from Supabase when local state is empty
 
 ### src/components/Home.jsx

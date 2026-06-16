@@ -148,7 +148,7 @@ const HOME_ITEM_LABELS = { food: 'อาหาร', star: 'ดาว', ribbon: '
 const HOME_ITEM_EFFECTS = { food: 'ฟื้นความสุข', star: 'บูสต์ XP', ribbon: '+Bond', potion: 'ฟื้น HP' }
 const HOME_ITEM_KEYS = ['food', 'star', 'ribbon', 'potion']
 
-function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapUnlocked }) {
+function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
   const discovered = new Set(discoveredScreens ?? [])
   const MINI_TILE = 11
   const MINI_GAP  = 1
@@ -181,7 +181,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
 
   function miniTileColor(id, isDisc) {
     if (!isDisc) return '#080e08'
-    if (id === 'BOSS') return bossMapUnlocked ? '#380000' : '#1a1a1a'
+    if (id === 'BOSS') return bossMapActive ? '#380000' : '#1a1a1a'
     if (id === 'MAZE') return '#180830'
     return groundColor
   }
@@ -257,7 +257,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
                 <div style={{
                   width: MINI_TILE * 2 + MINI_GAP, height: MINI_TILE,
                   background: miniTileColor('BOSS', isDisc),
-                  outline: isCurrent ? '1px solid #ff4040' : (bossMapUnlocked ? '1px solid #aa1010' : '1px solid #182018'),
+                  outline: isCurrent ? '1px solid #ff4040' : (bossMapActive ? '1px solid #aa1010' : '1px solid #182018'),
                   outlineOffset: -1, position: 'relative',
                 }}>
                   {isCurrent && (
@@ -267,7 +267,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
                       fontSize: 7, color: '#fff',
                     }}>★</div>
                   )}
-                  {!isCurrent && bossMapUnlocked && (
+                  {!isCurrent && bossMapActive && (
                     <div style={{
                       position: 'absolute', inset: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -474,7 +474,7 @@ export default function WorldScreen({ navigate }) {
   const clearedMaps = state.clearedMaps ?? []
   const allMapsCleared = ['NW', 'NE', 'SW', 'SE'].every(s => clearedMaps.includes(s))
   const totalXP = (state.xpThai ?? 0) + (state.xpMath ?? 0) + (state.xpEng ?? 0)
-  const bossMapUnlocked = allMapsCleared && totalXP >= BOSS_XP_THRESHOLD
+  const bossMapActive = !state.bossEnemyDefeated && allMapsCleared && totalXP >= BOSS_XP_THRESHOLD
 
   // ── Viewport resize ──────────────────────────────────────────────────────────
 
@@ -540,6 +540,12 @@ export default function WorldScreen({ navigate }) {
     const worldDef = WORLD_LEVELS[wLevel] ?? WORLD_LEVELS[0]
 
     if (screenId === 'BOSS') {
+      // Don't spawn boss if already defeated this tier
+      if (stateRef.current.bossEnemyDefeated) {
+        enemiesRef.current = []
+        chestsRef.current = []
+        return
+      }
       enemiesRef.current = [{
         id: 'world_boss',
         type: worldDef.bossEnemy,
@@ -590,7 +596,35 @@ export default function WorldScreen({ navigate }) {
         })
       }
     } catch {}
+    // Roaming boss: after defeating boss, it respawns as a rare encounter on normal maps
+    const bossRoamingScreen = stateRef.current.bossRoamingScreen
+    if (bossRoamingScreen && bossRoamingScreen === screenId && stateRef.current.bossEnemyDefeated) {
+      enemiesRef.current = [
+        ...enemiesRef.current,
+        {
+          id: 'roaming_boss',
+          type: worldDef.bossEnemy,
+          col: 5, row: 5,
+          dir: 'down', timer: 0, rngSeed: 99,
+          woken: false, isAggro: false, aggroTimer: 0,
+          defeated: false, respawnTimer: 0, dead: false,
+          deathTimer: 0, opacity: 1, isWorldBoss: true,
+        }
+      ]
+    }
   }, [screenId]) // eslint-disable-line
+
+  // ── Boss respawn trigger: after 10 battle wins, boss roams on a normal map ──
+
+  useEffect(() => {
+    const s = stateRef.current
+    if (!s.bossEnemyDefeated) return
+    const wins = state.battleWins ?? 0
+    const winsSince = wins - (s.bossWinsAtDefeat ?? 0)
+    if (winsSince > 0 && winsSince % 10 === 0) {
+      dispatch({ type: ACTIONS.RESPAWN_BOSS_ON_NORMAL_MAP })
+    }
+  }, [state.battleWins]) // eslint-disable-line
 
   // ── Proximity detection ─────────────────────────────────────────────────────
 
@@ -631,8 +665,9 @@ export default function WorldScreen({ navigate }) {
     const targetId = connects[dirName]
     if (!targetId) return
 
-    // Block BOSS entry if unlock conditions not met
+    // Block BOSS entry if boss already defeated or unlock conditions not met
     if (targetId === 'BOSS') {
+      if (curState.bossEnemyDefeated) return
       const cleared = curState.clearedMaps ?? []
       const xp = (curState.xpThai ?? 0) + (curState.xpMath ?? 0) + (curState.xpEng ?? 0)
       const allCleared = ['NW', 'NE', 'SW', 'SE'].every(s => cleared.includes(s))
@@ -1212,7 +1247,7 @@ export default function WorldScreen({ navigate }) {
         state={state}
         onGoHome={goHome}
         onOpenItemBag={() => setItemBagOpen(true)}
-        bossMapUnlocked={bossMapUnlocked}
+        bossMapActive={bossMapActive}
       />
 
       {/* NPC talk button */}
@@ -1479,7 +1514,7 @@ export default function WorldScreen({ navigate }) {
       )}
 
       {/* Boss unlock hint */}
-      {screenId === 'BOSS' && !bossMapUnlocked && (
+      {screenId === 'BOSS' && !bossMapActive && (
         <div style={{
           position: 'absolute', top: HUD_CONTENT_H + 12, left: 0, right: 0, zIndex: 28,
           display: 'flex', justifyContent: 'center', pointerEvents: 'none',

@@ -105,6 +105,7 @@ export const ACTIONS = {
   INCREMENT_BATTLE_WINS:     'INCREMENT_BATTLE_WINS',
   SET_WORLD_LEVEL:           'SET_WORLD_LEVEL',
   DEFEAT_BOSS:               'DEFEAT_BOSS',
+  RESPAWN_BOSS_ON_NORMAL_MAP:'RESPAWN_BOSS_ON_NORMAL_MAP',
   ACTIVATE_MAZE:             'ACTIVATE_MAZE',
   CLEAR_MAZE:                'CLEAR_MAZE',
   // Creature system
@@ -603,6 +604,9 @@ function reducer(state, action) {
         clearedMaps: [],
         secretMapExpiry: null,
         bossDefeatedThisTier: false,
+        bossEnemyDefeated: false,
+        bossRoamingScreen: null,
+        bossWinsAtDefeat: 0,
       }
 
     case ACTIONS.DEFEAT_BOSS: {
@@ -612,9 +616,19 @@ function reducer(state, action) {
         ...state,
         bossDefeated: defeated,
         bossDefeatedThisTier: true,
+        bossEnemyDefeated: true,
+        bossWinsAtDefeat: state.battleWins ?? 0,
         clearedMaps: [],
         secretMapExpiry: null,
+        currentScreen: 'NW',     // return player to normal map on remount
+        worldPosition: null,     // don't restore boss tile position
       }
+    }
+
+    case ACTIONS.RESPAWN_BOSS_ON_NORMAL_MAP: {
+      const screens = ['NW', 'NE', 'SW', 'SE']
+      const bossRoamingScreen = screens[(state.battleWins ?? 0) % 4]
+      return { ...state, bossRoamingScreen }
     }
 
     case ACTIONS.ACTIVATE_MAZE:

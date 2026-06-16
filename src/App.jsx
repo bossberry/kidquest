@@ -2,6 +2,21 @@ import React, { useState, useEffect } from 'react'
 import { useAppState, ACTIONS } from './context/StateContext.jsx'
 import { setSoundOn } from './lib/audio.js'
 import { initVoices } from './lib/audio.js'
+import { supabase } from './lib/supabase.js'
+
+// ── TEMPORARY DEBUG: log full Supabase state on load ──────────────────────────
+async function debugSupabaseState() {
+  if (!supabase) { console.log('SUPABASE: no client'); return }
+  const { data, error } = await supabase.from('eggs').select('*').limit(1)
+  console.log('SUPABASE ROW:', JSON.stringify(data?.[0], null, 2))
+  console.log('SUPABASE ERROR:', error)
+  if (data?.[0]?.state_json) {
+    const s = data[0].state_json
+    console.log('hatchedEggs:', s.hatchedEggs?.length ?? 0, '| xpThai:', s.xpThai, '| rounds:', s.rounds)
+  }
+}
+debugSupabaseState()
+// ─────────────────────────────────────────────────────────────────────────────
 import Home from './components/Home.jsx'
 import Collection from './components/Collection.jsx'
 import Report from './components/Report.jsx'
@@ -105,6 +120,29 @@ export default function App() {
           }}
           onFlee={() => dispatch({ type: ACTIONS.CLEAR_PENDING_BATTLE })}
         />
+      )}
+
+      {/* Emergency restore button — visible only when creature list is empty */}
+      {!state.hatchedEggs?.length && supabase && (
+        <button
+          onClick={async () => {
+            const { data } = await supabase.from('eggs').select('*').limit(1)
+            if (data?.[0]?.state_json) {
+              localStorage.setItem('kq_state', JSON.stringify(data[0].state_json))
+              window.location.reload()
+            } else {
+              alert('ไม่พบข้อมูลในคลาวด์')
+            }
+          }}
+          style={{
+            position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+            background: '#E24B4A', color: '#fff', border: 'none',
+            padding: '12px 24px', fontFamily: 'var(--font-thai)', fontSize: 14,
+            cursor: 'pointer', zIndex: 9999, borderRadius: 8,
+          }}
+        >
+          🔄 กู้คืนข้อมูล
+        </button>
       )}
 
       {/* Bottom nav (hidden during game, world, and world battle) */}

@@ -1006,3 +1006,15 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: Two `drawCreature` functions exist with different signatures — `creatureAlgorithm.js` uses `(canvas, seed, stats)` pixel art system; `drawCreature.js` uses `(canvas, dna, anim)` DNA system. This PR uses `creatureAlgorithm.js` for all new canvases, consistent with Home.jsx and BattleScreen.jsx.
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — fix: creature drawing on world map player sprite and Collection screen:**
+- Built:
+  - `tileEngine.js`: added `import { drawCreature } from './creatureAlgorithm.js'`; module-level `_playerOff` offscreen canvas (lazy-init, reused every frame); replaced old fillRect humanoid in `renderPlayer()` with `drawCreature(off, window.__kq_activeCreatureSeed ?? 0, window.__kq_activeCreatureStats ?? {})` + `ctx.drawImage(off, px, py, TILE, TILE)`
+  - `WorldScreen.jsx`: added `import { getCreatureSeed } from '../lib/creatureAlgorithm.js'`; sets `window.__kq_activeCreatureSeed` and `window.__kq_activeCreatureStats` in render body (re-evaluated every render) from the already-derived `creature` object
+  - `Collection.jsx`: removed `import CreatureCanvas from './CreatureCanvas.jsx'`; added `import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'`; replaced all 3 `<CreatureCanvas dna={...}>` usages in CreatureCard/PartyGrid/VaultGrid with `<canvas ref={r => drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {})} width={90} height={90}>` — `buildLegacyPreviewDNA` kept because `dna` is still passed to CreatureDetailPopup; `CurrentEgg` EggCanvas left unchanged (draws the unhatched egg)
+- Not finished: `CreatureCanvas` (DNA system) is still used by CreatureDetailPopup and HatchOverlay — separate cleanup task
+- Blockers/risks found: World map player sprite is 16×16 tiles; creature renders very small but visible. Walk animation no longer has leg frames — player blit is static (same creature each frame). A walk-frame bounce offset could be added later.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

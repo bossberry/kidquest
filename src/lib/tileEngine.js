@@ -1,5 +1,19 @@
 // Tile engine — GB-palette canvas renderer for Green Meadow
 
+import { drawCreature } from './creatureAlgorithm.js'
+
+// Cached offscreen canvas — reused every frame to avoid per-frame GC pressure
+let _playerOff = null
+function getPlayerOff() {
+  if (typeof document === 'undefined') return null
+  if (!_playerOff) {
+    _playerOff = document.createElement('canvas')
+    _playerOff.width = 16
+    _playerOff.height = 16
+  }
+  return _playerOff
+}
+
 export const TILE = 16
 export const CANVAS_W = 320
 export const CANVAS_H = 240
@@ -218,44 +232,11 @@ const DIR_FRAMES = { down: 0, left: 1, right: 2, up: 3 }
 export function renderPlayer(ctx, playerX, playerY, direction, walkFrame, eggColor, camX, camY) {
   const px = Math.round(playerX * TILE - camX)
   const py = Math.round(playerY * TILE - camY)
-  const color = eggColor || '#6abf69'
-  const frame = walkFrame % 2
 
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'
-  ctx.fillRect(px + 2, py + 11, 12, 3)
-
-  // Legs (alternate per walk frame)
-  ctx.fillStyle = '#3a3a5a'
-  if (frame === 0) {
-    ctx.fillRect(px + 4, py + 9, 3, 4)
-    ctx.fillRect(px + 9, py + 9, 3, 4)
-  } else {
-    ctx.fillRect(px + 4, py + 7, 3, 6)
-    ctx.fillRect(px + 9, py + 11, 3, 2)
-  }
-
-  // Body
-  ctx.fillStyle = color
-  ctx.fillRect(px + 3, py + 4, 10, 6)
-
-  // Head
-  ctx.fillStyle = '#ffe0a0'
-  ctx.fillRect(px + 4, py + 1, 8, 6)
-
-  // Eyes (direction-based)
-  ctx.fillStyle = '#2a2a2a'
-  const dir = direction || 'down'
-  if (dir === 'down') {
-    ctx.fillRect(px + 5, py + 3, 2, 2)
-    ctx.fillRect(px + 9, py + 3, 2, 2)
-  } else if (dir === 'up') {
-    ctx.fillRect(px + 5, py + 2, 2, 2)
-    ctx.fillRect(px + 9, py + 2, 2, 2)
-  } else if (dir === 'left') {
-    ctx.fillRect(px + 5, py + 3, 2, 2)
-  } else {
-    ctx.fillRect(px + 9, py + 3, 2, 2)
+  const off = getPlayerOff()
+  if (off) {
+    drawCreature(off, window.__kq_activeCreatureSeed ?? 0, window.__kq_activeCreatureStats ?? {})
+    ctx.drawImage(off, px, py, TILE, TILE)
   }
 }
 

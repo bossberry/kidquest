@@ -3,10 +3,12 @@
 ## Implemented Features
 
 ### Unified Creature Drawing (2026-06-16)
-- **Single source of truth**: `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — used by Home.jsx (large display + party bar), BattleScreen.jsx, EggMemory.jsx, PartySelect.jsx, MoveSelectBattleMode.jsx (world battle mode)
+- **Single source of truth**: `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — used by Home.jsx (large display + party bar), BattleScreen.jsx, EggMemory.jsx, PartySelect.jsx, MoveSelectBattleMode.jsx (world battle), WorldScreen.jsx map sprite, Collection.jsx cards
 - **PartySelect.jsx**: shows 56×56px creature canvas per party member (was 🥚 emoji)
-- **MoveSelectBattleMode.jsx**: in world battle, shows 96×96px creature canvas for the player's active creature; adventure modes still show EggCanvas (intentional — egg is the companion)
-- **EggCanvas** (wraps LOCKED `drawEgg`) and **CreatureCanvas** (DNA-based beauty layer) still exist for their specific contexts (hatching, Collection, walking companion)
+- **MoveSelectBattleMode.jsx**: in world battle, shows 96×96px creature canvas; adventure modes still show EggCanvas (intentional)
+- **WorldScreen.jsx**: world map player sprite replaced — `renderPlayer()` in tileEngine.js now blits a 16×16 creature via `window.__kq_activeCreatureSeed/Stats` globals set in WorldScreen render
+- **Collection.jsx**: all creature grid cards (CreatureCard, PartyGrid, VaultGrid) now show 90×90 pixel art canvases; `CreatureCanvas` import removed from Collection
+- **EggCanvas** (wraps LOCKED `drawEgg`) still used for unhatched egg display; **CreatureCanvas** (DNA-based) still used in CreatureDetailPopup + HatchOverlay
 
 ### Response Time Analytics (2026-06-16)
 - **`MoveSelectBattleMode.jsx`**: timer starts (`questionStartTime.current = Date.now()`) when each question appears; player tap captures elapsed ms in `responseTimeRef.current`; `fireHit`/`fireMiss` dispatch `LOG_BATTLE_ANSWER { subject, question, correct, responseTimeMs, timestamp }`

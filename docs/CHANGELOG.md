@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: creature drawing on world map player sprite and Collection screen
+
+### src/lib/tileEngine.js
+- Added `import { drawCreature } from './creatureAlgorithm.js'`
+- Added module-level `_playerOff` lazy-init offscreen canvas (reused every frame, no per-frame GC)
+- Replaced old fillRect humanoid in `renderPlayer()` with `drawCreature` + `ctx.drawImage` blit at TILE×TILE size
+
+### src/components/WorldScreen.jsx
+- Added `import { getCreatureSeed } from '../lib/creatureAlgorithm.js'`
+- Sets `window.__kq_activeCreatureSeed` and `window.__kq_activeCreatureStats` in render body from active creature
+
+### src/components/Collection.jsx
+- Removed `import CreatureCanvas` (no longer used for grid cards)
+- Added `import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'`
+- Replaced all 3 `<CreatureCanvas dna={...}>` usages (CreatureCard, PartyGrid, VaultGrid) with `<canvas ref={...} width={90} height={90}>` using pixel art system
+- `CurrentEgg` EggCanvas left unchanged (draws unhatched egg)
+
+---
+
 ## 2026-06-16 — fix: unify creature drawing across all screens — single drawCreature system
 
 ### src/components/PartySelect.jsx

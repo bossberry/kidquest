@@ -13,6 +13,7 @@ import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies }
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
 import { ENEMY_DATA } from '../config/enemyConfig.js'
+import { getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import TreasureSlot from './TreasureSlot.jsx'
 import PixelItemIcon from './PixelItemIcon.jsx'
 import { drawItem } from '../lib/itemArt.js'
@@ -162,6 +163,10 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
   const creature = (partyId ? eggs.find(e => e.id === partyId) : null)
     ?? [...eggs].sort((a, b) => (b.hatched_at ?? 0) - (a.hatched_at ?? 0))[0]
     ?? null
+
+  // Expose active creature to renderPlayer (canvas rAF loop can't receive React props directly)
+  window.__kq_activeCreatureSeed  = creature ? getCreatureSeed(creature) : 0
+  window.__kq_activeCreatureStats = creature?.eggStats ?? creature?.stats ?? {}
 
   const lvBonus = Math.max(0, (creature?.battleLevel ?? 1) - 1)
   const maxHP   = (creature?.stats?.HP ?? 10) + lvBonus

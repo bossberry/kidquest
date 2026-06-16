@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
-import CreatureCanvas from './CreatureCanvas.jsx'
 import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
+import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
@@ -88,12 +88,11 @@ function CreatureCard({ egg, index, onSelect }) {
   return (
     <div className="catalog-item catalog-item-lg" onClick={() => { playTone('cardOpen'); onSelect(egg, dna) }}>
       <div style={{ position:'relative', display:'inline-block' }}>
-        <CreatureCanvas
-          dna={dna}
-          size={120}
-          personality={dna?.personality}
-          animationEnabled
-          style={{ margin:'0 auto 8px' }}
+        <canvas
+          key={egg.id}
+          ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
+          width={90} height={90}
+          style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px', background:'#0a0a12', borderRadius:4 }}
         />
       </div>
       <div className="catalog-item-name">{creatureName(egg)}</div>
@@ -126,7 +125,12 @@ function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
                   marginBottom:2, letterSpacing:1,
                 }}>★ ตัวหลัก</div>
               )}
-              <CreatureCanvas dna={dna} size={90} animationEnabled personality={dna?.personality} style={{ margin:'0 auto 4px' }} />
+              <canvas
+                key={egg.id}
+                ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
+                width={90} height={90}
+                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', background:'#0a0a12', borderRadius:4 }}
+              />
               <div className="catalog-item-name" style={{ display:'flex', alignItems:'center', gap:4, justifyContent:'center' }}>
                 {elColor && <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
                 {creatureName(egg)}
@@ -180,7 +184,12 @@ function VaultGrid({ vaultCreatures, partySlots, partyCount, onSelect, onAddToPa
               style={{ opacity: egg.archived ? 0.55 : 1 }}
               onClick={() => onSelect(egg, dna)}
             >
-              <CreatureCanvas dna={dna} size={90} animationEnabled={false} personality={dna?.personality} style={{ margin:'0 auto 4px' }} />
+              <canvas
+                key={egg.id}
+                ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
+                width={90} height={90}
+                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', background:'#0a0a12', borderRadius:4 }}
+              />
               <div className="catalog-item-name">{creatureName(egg)}</div>
               <div className="catalog-item-sub">Lv.{egg.battleLevel ?? 1}</div>
               {canAddMore && (

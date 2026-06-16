@@ -4,6 +4,7 @@ import { playTone, speakTh, speakEn, playSFX, playElementSFX } from '../lib/audi
 import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
+import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { drawEnemy, drawEnemyHurt } from '../lib/drawEnemy.js'
 import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
 import { ELEMENTS, getElementTier } from '../config/elementConfig.js'
@@ -188,6 +189,7 @@ export default function MoveSelectBattleMode({
   onComplete,
   isWorldBattle,
   isBossBattle,
+  creature,
   creatureStats,
   creatureCurrentHP,
   creatureName,
@@ -875,7 +877,18 @@ export default function MoveSelectBattleMode({
           <div style={{ animation: eggAnim, position:'relative' }}>
             <div style={{ transform: `translateX(${eggAnimClass === 'lunge' ? 22 : 0}px)`, transition:'transform 150ms ease' }}>
               <div ref={eggDivRef}>
-                {eggStats ? (
+                {isWorldBattle && creature ? (
+                  <canvas
+                    key={creature.id}
+                    ref={r => { if (r) drawCreature(r, getCreatureSeed(creature), creature.eggStats ?? {}) }}
+                    width={96} height={96}
+                    style={{
+                      imageRendering:'pixelated', display:'block', background:'#0a0a12',
+                      filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
+                      transition:'filter .2s',
+                    }}
+                  />
+                ) : eggStats ? (
                   <EggCanvas stats={eggStats} width={96} height={112} style={{
                     display:'block',
                     filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,

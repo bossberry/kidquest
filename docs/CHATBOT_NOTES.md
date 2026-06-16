@@ -994,3 +994,15 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: none — build confirmed clean
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — fix: unify creature drawing — single drawCreature system across all screens:**
+- Built:
+  - `PartySelect.jsx`: replaced 🥚 emoji placeholder with `<canvas ref={r => drawCreature(r, getCreatureSeed(c), c.eggStats ?? {})} width={56} height={56}>` — actual creature now shows in party selection screen; imports `drawCreature, getCreatureSeed` from `creatureAlgorithm.js`
+  - `MoveSelectBattleMode.jsx`: added `creature` prop; when `isWorldBattle && creature`, shows `<canvas>` with `drawCreature(r, getCreatureSeed(creature), creature.eggStats ?? {})` at 96×96px instead of EggCanvas; non-world battles (adventure modes) still show EggCanvas as before; imports `drawCreature, getCreatureSeed` from `creatureAlgorithm.js`
+  - `WorldBattle.jsx`: passes `creature={creature}` to MoveSelectBattleMode (creature is already derived as the hatched egg object)
+- Not finished: `EggCanvas` (draws actual egg, wraps LOCKED eggAlgorithm — intentional) and `CreatureCanvas` (DNA-based beauty layer, used by Collection/HatchOverlay/Home walking companion) are still in use for their specific contexts. Cleanup is a separate Phase 2 task.
+- Blockers/risks found: Two `drawCreature` functions exist with different signatures — `creatureAlgorithm.js` uses `(canvas, seed, stats)` pixel art system; `drawCreature.js` uses `(canvas, dna, anim)` DNA system. This PR uses `creatureAlgorithm.js` for all new canvases, consistent with Home.jsx and BattleScreen.jsx.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

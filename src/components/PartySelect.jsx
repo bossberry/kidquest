@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
+import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 
 export default function PartySelect({ onSelect, onFlee }) {
   const { state } = useAppState()
@@ -95,8 +96,11 @@ export default function PartySelect({ onSelect, onFlee }) {
                 boxShadow: fainted ? 'none' : '3px 3px 0 #000',
               }}
             >
-              {/* Egg placeholder — CreatureCanvas removed to eliminate RAF loop risk */}
-              <div style={{ fontSize: 40, lineHeight: 1 }}>🥚</div>
+              <canvas
+                ref={r => { if (r) drawCreature(r, getCreatureSeed(c), c.eggStats ?? {}) }}
+                width={56} height={56}
+                style={{ imageRendering:'pixelated', borderRadius:8, background:'#0a0a12', display:'block' }}
+              />
 
               <div style={{
                 fontFamily: 'var(--font-thai)', fontSize: 12,

@@ -2,6 +2,12 @@
 
 ## Implemented Features
 
+### Unified Creature Drawing (2026-06-16)
+- **Single source of truth**: `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — used by Home.jsx (large display + party bar), BattleScreen.jsx, EggMemory.jsx, PartySelect.jsx, MoveSelectBattleMode.jsx (world battle mode)
+- **PartySelect.jsx**: shows 56×56px creature canvas per party member (was 🥚 emoji)
+- **MoveSelectBattleMode.jsx**: in world battle, shows 96×96px creature canvas for the player's active creature; adventure modes still show EggCanvas (intentional — egg is the companion)
+- **EggCanvas** (wraps LOCKED `drawEgg`) and **CreatureCanvas** (DNA-based beauty layer) still exist for their specific contexts (hatching, Collection, walking companion)
+
 ### Response Time Analytics (2026-06-16)
 - **`MoveSelectBattleMode.jsx`**: timer starts (`questionStartTime.current = Date.now()`) when each question appears; player tap captures elapsed ms in `responseTimeRef.current`; `fireHit`/`fireMiss` dispatch `LOG_BATTLE_ANSWER { subject, question, correct, responseTimeMs, timestamp }`
 - **`StateContext.jsx`**: `LOG_BATTLE_ANSWER` reducer maintains rolling 50-entry array per subject in `state.responseTimeLogs.{thai,math,eng}` — each `{ timeMs, correct, timestamp }`

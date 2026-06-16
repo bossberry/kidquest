@@ -206,6 +206,7 @@ Production URL: check `vercel.json` or Vercel dashboard for the live URL.
 - [x] Battle system (Pokémon-style animation + turn log)
 - [x] Challenger system (every 15 battle rounds) + ChallengerOverlay (overlay deleted 2026-06-16 — confirmed dead code)
 - [x] **Phase 1 Refactor (2026-06-16)** — split `gameConfig.js` into `creatureConfig.js`/`battleConfig.js`/`mapConfig.js` barrel; file headers on 5 largest files; zero behavior change
+- [x] **Unified creature drawing (2026-06-16)** — PartySelect shows creature canvas; MoveSelectBattleMode shows creature in world battles; all use `drawCreature+getCreatureSeed` from `creatureAlgorithm.js`
 - [x] AI_OPPONENTS tiers 0 and 1 (with normal/mini-boss/boss entries)
 - [x] Thai: 5 levels; English: 4 levels
 - [x] Math: 9 levels (L0 Foundation, L1–L5 add/sub/mixed, L6 word, L7 comparison, L8 pattern)

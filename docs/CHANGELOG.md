@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: unify creature drawing across all screens — single drawCreature system
+
+### src/components/PartySelect.jsx
+- Removed 🥚 emoji placeholder; added `<canvas>` with `drawCreature(r, getCreatureSeed(c), c.eggStats ?? {})` at 56×56px
+- Imports `drawCreature, getCreatureSeed` from `creatureAlgorithm.js`
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `creature` prop to component signature
+- When `isWorldBattle && creature`: shows creature canvas (96×96) instead of EggCanvas — inherits same hit-flash filter
+- Non-world battles (adventure modes): unchanged, still shows EggCanvas
+- Imports `drawCreature, getCreatureSeed` from `creatureAlgorithm.js`
+
+### src/components/WorldBattle.jsx
+- Passes `creature={creature}` to `MoveSelectBattleMode` (creature object was already available)
+
+---
+
 ## 2026-06-16 — refactor(phase1): delete dead files, split gameConfig, add file headers
 
 ### Deleted

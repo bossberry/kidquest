@@ -347,6 +347,7 @@ export default function WorldBattle({ navigate }) {
         showReturnButton={true}
         isWorldBattle={true}
         isBossBattle={isBossBattle}
+        creature={creature}
         creatureStats={creatureStats}
         creatureCurrentHP={creatureCurrentHP}
         creatureName={creature?.creature?.n}

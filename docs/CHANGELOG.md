@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: remove duplicate walking creature, add HP bar, fix ribbon stat boost
+
+### src/components/Home.jsx
+- Removed duplicate creature companion system (state: creature/creatureTapped/creatureState; refs: creatureRef/creatureModeRef; patrol setInterval effect; personality setTimeout effect; companion div ~60 lines) — `HomeBackground.jsx` walking system is the canonical one
+- Added HP bar below stat row in creature zone: color-coded green (>60%), yellow (>25%), red (≤25%), shows `currentHP/maxHP` in pixel font
+- Ribbon item now dispatches `CREATURE_STAT_BOOST` (+10 SPD) to active party creature and shows `⚡ SPD+10` bond reaction overlay
+
+### src/context/StateContext.jsx
+- Added `CREATURE_STAT_BOOST: 'CREATURE_STAT_BOOST'` to ACTIONS enum
+- Added reducer case: patches `stats[stat]` in-place on target egg by `creatureId`
+
+---
+
 ## 2026-06-16 — fix: CreatureDetailPopup — pixel art creature canvas, battle stats, bond meter
 
 ### src/components/CreatureDetailPopup.jsx

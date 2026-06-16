@@ -687,6 +687,13 @@ export default function WorldScreen({ navigate }) {
   }, [dispatch]) // eslint-disable-line
   triggerBattleRef.current = triggerBattle
 
+  useLayoutEffect(() => {
+    battlePendingRef.current = !!state.pendingBattle
+    if (!state.pendingBattle) {
+      battleDispatchedRef.current = false
+    }
+  }, [state.pendingBattle])
+
   const enterBossBattle = useCallback(() => {
     setBossConfirm(false)
     const wLevel = stateRef.current.worldLevel ?? 0

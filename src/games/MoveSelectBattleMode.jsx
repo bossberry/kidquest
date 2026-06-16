@@ -883,7 +883,7 @@ export default function MoveSelectBattleMode({
                     ref={r => { if (r) drawCreature(r, getCreatureSeed(creature), creature.eggStats ?? {}) }}
                     width={96} height={96}
                     style={{
-                      imageRendering:'pixelated', display:'block', background:'#0a0a12',
+                      imageRendering:'pixelated', display:'block',
                       filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
                       transition:'filter .2s',
                     }}

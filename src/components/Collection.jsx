@@ -92,7 +92,7 @@ function CreatureCard({ egg, index, onSelect }) {
           key={egg.id}
           ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
           width={90} height={90}
-          style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px', background:'#0a0a12', borderRadius:4 }}
+          style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px', borderRadius:4 }}
         />
       </div>
       <div className="catalog-item-name">{creatureName(egg)}</div>
@@ -129,7 +129,7 @@ function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
                 key={egg.id}
                 ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
                 width={90} height={90}
-                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', background:'#0a0a12', borderRadius:4 }}
+                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', borderRadius:4 }}
               />
               <div className="catalog-item-name" style={{ display:'flex', alignItems:'center', gap:4, justifyContent:'center' }}>
                 {elColor && <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
@@ -188,7 +188,7 @@ function VaultGrid({ vaultCreatures, partySlots, partyCount, onSelect, onAddToPa
                 key={egg.id}
                 ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
                 width={90} height={90}
-                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', background:'#0a0a12', borderRadius:4 }}
+                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', borderRadius:4 }}
               />
               <div className="catalog-item-name">{creatureName(egg)}</div>
               <div className="catalog-item-sub">Lv.{egg.battleLevel ?? 1}</div>

@@ -99,7 +99,7 @@ export default function PartySelect({ onSelect, onFlee }) {
               <canvas
                 ref={r => { if (r) drawCreature(r, getCreatureSeed(c), c.eggStats ?? {}) }}
                 width={56} height={56}
-                style={{ imageRendering:'pixelated', borderRadius:8, background:'#0a0a12', display:'block' }}
+                style={{ imageRendering:'pixelated', borderRadius:8, display:'block' }}
               />
 
               <div style={{

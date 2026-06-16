@@ -217,10 +217,6 @@ export function drawCreature(canvas, seed, stats) {
 
   ctx.clearRect(0, 0, W, H)
 
-  // Dark background
-  ctx.fillStyle = '#0a0a12'
-  ctx.fillRect(0, 0, W, H)
-
   const S  = stats || {}
   const el = getElement(S)
   const stage = S.evoStage ?? 'baby'

@@ -23,6 +23,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Enemy ATK source + dodge cap:**
+- Built: fireMiss() reads enemyData?.atk (has combat stats) not enemy.atk (local useState, name/emoji/type only). Dodge capped at 30% (was 80% at SPD=160 with old SPD/200 formula).
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: playtest battle balance; Phase 2 WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-16 — HP scale unification (home↔battle):**
 - Built: removed WB_HP_SCALE from creatureStats.HP; creatureCurrentHP now raw (no scaling); handleCreatureTakeDamage dispatches raw damage; MoveSelectBattleMode localCreatureHP heals +1 on correct answer when bond≥75.
 - Not finished: nothing

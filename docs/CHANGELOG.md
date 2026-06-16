@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: enemy ATK from correct source + cap dodge chance at 30%
+
+### src/games/MoveSelectBattleMode.jsx
+- `fireMiss()`: damage now reads `enemyData?.atk` (scaled world-battle prop) not `enemy.atk` (local useState with no combat stats)
+- `fireMiss()`: dodge chance = `min(0.30, SPD/500)` — capped at 30%; old `SPD/200` gave 80% dodge at SPD=160
+
+---
+
 ## 2026-06-16 — fix: unified HP scale between home and battle, localCreatureHP tracks damage in-battle
 
 ### src/components/WorldBattle.jsx

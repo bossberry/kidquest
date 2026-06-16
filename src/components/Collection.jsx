@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import EggCanvas from './EggCanvas.jsx'
-import { buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
+import { drawItem } from '../lib/itemArt.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
 import { CREATURE_ELEMENT_COLORS } from '../lib/creatureSystem.js'
@@ -11,31 +10,23 @@ import { CREATURE_ELEMENT_COLORS } from '../lib/creatureSystem.js'
 const creatureName = (egg) => egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'
 
 export default function Collection() {
-  const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
+  const { state, dispatch } = useAppState()
   const [tab, setTab]         = useState('team')
-  const [archiveTab, setArchiveTab] = useState('team')
-  // selectedEgg holds { egg, dna } so the popup gets the exact same DNA the grid card used.
   const [selectedEgg, setSelectedEgg] = useState(null)
   const handleSelect = (egg, dna) => setSelectedEgg({ egg, dna })
 
-  const partyCreatures   = useMemo(() =>
+  const partyCreatures = useMemo(() =>
     (state.party || []).map(id => (state.hatchedEggs||[]).find(e => e.id === id)).filter(Boolean),
   [state.party, state.hatchedEggs])
 
-  const vaultCreatures   = useMemo(() =>
-    (state.hatchedEggs||[]).filter(e => !e.inParty),
-  [state.hatchedEggs])
-
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--bg)', paddingBottom:80 }}>
-      <div className="page-header">
-        <div className="page-title">คอลเลกชัน</div>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--px-darkest, #0a0a12)', paddingBottom:80 }}>
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:11, color:'var(--px-yellow)', letterSpacing:2, padding:'14px 20px 8px', borderBottom:'2px solid var(--px-border)', width:'100%', boxSizing:'border-box' }}>
+        COLLECTION
       </div>
       <div className="coll-tabs" style={{ width:'100%', maxWidth:480 }}>
         <div className={`coll-tab${tab==='team'?' active':''}`} onClick={() => setTab('team')}>ทีม</div>
-        <div className={`coll-tab${tab==='vault'?' active':''}`} onClick={() => setTab('vault')}>คลังสะสม</div>
-        <div className={`coll-tab${tab==='hatched'?' active':''}`} onClick={() => setTab('hatched')}>ทั้งหมด</div>
-        <div className={`coll-tab${tab==='current'?' active':''}`} onClick={() => setTab('current')}>กำลังฟัก</div>
+        <div className={`coll-tab${tab==='items'?' active':''}`} onClick={() => setTab('items')}>กระเป๋า</div>
       </div>
       <div className="egg-catalog">
         {tab === 'team' && (
@@ -46,21 +37,7 @@ export default function Collection() {
             onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
         )}
-        {tab === 'vault' && (
-          <VaultGrid
-            vaultCreatures={vaultCreatures}
-            partySlots={state.partySlots ?? 1}
-            partyCount={partyCreatures.length}
-            onSelect={handleSelect}
-            onAddToParty={(id) => { playTone('tap'); dispatch({ type: ACTIONS.ADD_TO_PARTY, payload: { creatureId: id } }) }}
-          />
-        )}
-        {tab === 'hatched' && (
-          <HatchedGrid hatched={state.hatchedEggs||[]} onSelect={handleSelect} />
-        )}
-        {tab === 'current' && (
-          <CurrentEgg state={state} eggStats={eggStatsData} progress={eggProgressData} />
-        )}
+        {tab === 'items' && <ItemBag items={state.items} />}
       </div>
       {selectedEgg && (
         <CreatureDetailPopup
@@ -69,35 +46,6 @@ export default function Collection() {
           onClose={() => { playTone('click'); setSelectedEgg(null) }}
         />
       )}
-    </div>
-  )
-}
-
-function CreatureCard({ egg, index, onSelect }) {
-  // Deterministic preview DNA: real DNA if hatched post-Phase-2, generated preview for legacy.
-  // Never persisted — memo recomputes only when [egg, index] identity changes.
-  const dna = useMemo(() => {
-    if (egg.dna) return egg.dna
-    try { return buildLegacyPreviewDNA(egg, index) } catch (_) { return null }
-  }, [egg, index])
-
-  const rarityColors = { common:'#085041', uncommon:'#0C447C', rare:'#3C3489', epic:'#633806', legendary:'#C8C0F8' }
-  const rarityBg    = { common:'#E1F5EE', uncommon:'#E6F1FB', rare:'#EEEDFE', epic:'#FAEEDA', legendary:'#1E1B3A' }
-  const rar = egg.creature?.rarity || 'common'
-
-  return (
-    <div className="catalog-item catalog-item-lg" onClick={() => { playTone('cardOpen'); onSelect(egg, dna) }}>
-      <div style={{ position:'relative', display:'inline-block' }}>
-        <canvas
-          key={egg.id}
-          ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
-          width={90} height={90}
-          style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px', borderRadius:4 }}
-        />
-      </div>
-      <div className="catalog-item-name">{creatureName(egg)}</div>
-      <div className="catalog-item-sub">{egg.grade||'อนุบาล'} · {egg.date||'?'}</div>
-      <div className="catalog-item-rarity" style={{ background:rarityBg[rar], color:rarityColors[rar] }}>{egg.creature?.rarityLabel||'Common'}</div>
     </div>
   )
 }
@@ -168,85 +116,60 @@ function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
   )
 }
 
-function VaultGrid({ vaultCreatures, partySlots, partyCount, onSelect, onAddToParty }) {
-  if (vaultCreatures.length === 0) return (
-    <div className="catalog-empty">คลังว่างเปล่า<br/><span style={{ fontSize:12, color:'var(--muted)' }}>creature ทุกตัวอยู่ในทีมแล้ว!</span></div>
-  )
-  const canAddMore = partyCount < partySlots
+const ITEM_DEFS = [
+  { key:'food',    label:'น่องไก่',   effect:'HP+100',  color:'#8B4513' },
+  { key:'ribbon',  label:'ริบบิ้น',   effect:'SPD+10',  color:'#FF1493' },
+  { key:'potion',  label:'น้ำมนต์',   effect:'HP เต็ม', color:'#1D9E75' },
+  { key:'star',    label:'ดาวทอง',    effect:'XP+50',   color:'#DAA520' },
+  { key:'thunder', label:'พลังฟ้า',   effect:'ATK+20',  color:'#EF9F27' },
+  { key:'shield',  label:'โล่',       effect:'DEF+15',  color:'#4169E1' },
+  { key:'bone',    label:'กระดูก',    effect:'CRIT+10', color:'#F5F5F5' },
+  { key:'coin',    label:'เหรียญ',    effect:'สะสม',    color:'#DAA520' },
+]
+
+function ItemBag({ items }) {
+  const total = Object.values(items ?? {}).reduce((s, v) => s + (v || 0), 0)
   return (
-    <>
-      <div className="catalog-section-title">คลังสะสม ({vaultCreatures.length} ตัว)</div>
-      <div className="catalog-grid catalog-grid-lg">
-        {vaultCreatures.map((egg, i) => {
-          const dna = egg.dna ?? (() => { try { return buildLegacyPreviewDNA(egg, i) } catch { return null } })()
+    <div style={{ padding:'12px 16px' }}>
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:9, color:'rgba(255,255,255,0.5)', marginBottom:12, letterSpacing:1 }}>
+        ITEMS — {total} ชิ้น
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
+        {ITEM_DEFS.map(({ key, label, effect, color }) => {
+          const count = items?.[key] ?? 0
           return (
-            <div key={egg.id || i} className="catalog-item catalog-item-lg"
-              style={{ opacity: egg.archived ? 0.55 : 1 }}
-              onClick={() => onSelect(egg, dna)}
-            >
+            <div key={key} style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+              padding:8,
+              background: count > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.3)',
+              border: `1px solid ${count > 0 ? color + '44' : 'rgba(255,255,255,0.08)'}`,
+              opacity: count > 0 ? 1 : 0.4,
+              position:'relative',
+            }}>
               <canvas
-                key={egg.id}
-                ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
-                width={90} height={90}
-                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', borderRadius:4 }}
+                ref={r => r && drawItem(r, key)}
+                width={40} height={40}
+                style={{ imageRendering:'pixelated' }}
               />
-              <div className="catalog-item-name">{creatureName(egg)}</div>
-              <div className="catalog-item-sub">Lv.{egg.battleLevel ?? 1}</div>
-              {canAddMore && (
-                <button
-                  onClick={e => { e.stopPropagation(); onAddToParty(egg.id) }}
-                  style={{
-                    marginTop:6, padding:'4px 10px',
-                    background:'var(--px-purple, #6644aa)',
-                    border:'none', borderRadius:0,
-                    color:'#fff', fontSize:10, fontFamily:'var(--font-thai)',
-                    cursor:'pointer', boxShadow:'2px 2px 0 #000',
-                  }}
-                >
-                  เพิ่มในทีม
-                </button>
+              {count > 0 && (
+                <div style={{
+                  position:'absolute', top:2, right:4,
+                  fontFamily:'var(--font-pixel)', fontSize:8,
+                  color:'#fff', background:'rgba(0,0,0,0.7)',
+                  padding:'0 3px',
+                }}>
+                  ×{count}
+                </div>
               )}
+              <div style={{ fontFamily:'var(--font-thai)', fontSize:9, color: count > 0 ? '#fff' : 'rgba(255,255,255,0.3)', textAlign:'center' }}>
+                {label}
+              </div>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color: color + 'aa', textAlign:'center' }}>
+                {effect}
+              </div>
             </div>
           )
         })}
-      </div>
-    </>
-  )
-}
-
-function HatchedGrid({ hatched, onSelect }) {
-  if (!hatched.length) return (
-    <div className="catalog-empty">ยังไม่มีไข่ที่ฟักแล้ว<br/><span style={{ fontSize:12, color:'var(--muted)' }}>เล่นเกมเพื่อฟักไข่ใบแรก!</span></div>
-  )
-  return (
-    <>
-      <div className="catalog-section-title">ไข่ที่ฟักแล้ว {hatched.length} ใบ</div>
-      <div className="catalog-grid catalog-grid-lg">
-        {hatched.map((egg, i) => <CreatureCard key={i} egg={egg} index={i} onSelect={onSelect} />)}
-      </div>
-    </>
-  )
-}
-
-function CurrentEgg({ state, eggStats, progress }) {
-  const { stage, stageXP, pct } = progress
-  const readyToHatch = stage >= 6
-  return (
-    <div>
-      <div className="catalog-section-title">ไข่ที่กำลังฟักอยู่</div>
-      <div style={{ background:'var(--card)', border:'0.5px solid var(--border)', borderRadius:16, padding:20, display:'flex', flexDirection:'column', alignItems:'center', marginBottom:16 }}>
-        <EggCanvas stats={eggStats} width={140} height={168} style={{ borderRadius:12, marginBottom:12, cursor:'pointer', animation: readyToHatch ? 'eggShake .6s ease infinite' : 'eggHeartbeat 2s ease-in-out infinite' }} />
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'var(--text)', marginBottom:4 }}>{EGG_STAGE_NAMES[stage]}</div>
-        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:10 }}>Stage {stage+1} / 7</div>
-        <div style={{ width:'100%', background:'var(--border)', borderRadius:20, height:8, overflow:'hidden', marginBottom:6 }}>
-          <div style={{ height:8, background:'var(--purple)', borderRadius:20, width:`${pct}%`, transition:'width .6s' }} />
-        </div>
-        <div style={{ fontSize:11, color:'var(--muted)' }}>{stage >= 6 ? 'พร้อมฟักแล้ว!' : `${stageXP} / ${STAGE_XP_NEEDED} XP ถึง Stage ถัดไป`}</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, width:'100%', marginTop:14 }}>
-          <div className="eds" style={{ background:'var(--green-l)' }}><div className="eds-val" style={{ color:'var(--green-d)' }}>{state.xpThai||0}</div><div className="eds-lbl">XP ไทย</div></div>
-          <div className="eds" style={{ background:'var(--blue-l)' }}><div className="eds-val" style={{ color:'var(--blue-d)' }}>{state.xpEng||0}</div><div className="eds-lbl">XP EN</div></div>
-          <div className="eds" style={{ background:'var(--purple-l)' }}><div className="eds-val" style={{ color:'var(--purple-d)' }}>{state.xpMath||0}</div><div className="eds-lbl">XP Math</div></div>
-        </div>
       </div>
     </div>
   )

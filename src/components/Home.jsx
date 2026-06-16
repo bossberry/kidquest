@@ -851,13 +851,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
           {eggsHatched === 0 ? 'ลูบไข่' : 'ลูบ!'}
         </button>
         <button
-          onClick={() => { playTone('tap'); navigate('collection') }}
-          className="px-btn px-btn-dark"
-          style={{ flex:1, height:48, fontFamily:'var(--font-thai)', fontSize:13 }}
-        >
-          คอลเลกชัน
-        </button>
-        <button
           onClick={() => {
             playTone('start')
             dispatch({ type: ACTIONS.ENTER_WORLD, payload: { region: 'green-meadow', screen: 'BM' } })

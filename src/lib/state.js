@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js'
 import { calcCreatureStats, GRADE_LABELS } from '../config/gameConfig.js'
 import { determineElement, calcEvoStage } from './creatureSystem.js'
+import { generateCreatureName } from './creatureGenerator.js'
 
 export const KEY = 'kq_state'
 
@@ -116,6 +117,12 @@ export function _migrateBattleStats(s) {
     // Backfill ECA relationship fields (adventuresWith, questionsAnswered, eggStartDate)
     if (e.adventuresWith === undefined) {
       e = { ...e, adventuresWith: 0, questionsAnswered: 0, eggStartDate: e.bornDate || e.date || '' }
+      dirty = true
+    }
+    // Backfill auto-generated name for hatched eggs without a creatureName
+    if (!e.creatureName && e.hatched_at) {
+      const fallbackDna = e.dna ?? { family: 'puff', seed: (e.id?.length ?? 0), h1: 140 }
+      e = { ...e, creatureName: generateCreatureName(fallbackDna) }
       dirty = true
     }
 

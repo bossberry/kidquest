@@ -912,3 +912,16 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: none. Collection screen still shows multiple creatures if Supabase had old data — but merge migration collapses them to 1 on load
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — feat: auto-generate creature names from DNA — remove manual naming UI:**
+- Built:
+  - `creatureGenerator.js`: `generateCreatureName(dna)` exported — picks name from `FAMILY_NAMES[dna.family]` using deterministic hash `(seed + h1*31) | 0`; 30% chance appends a stat modifier (hp/atk/spd/def) — same DNA always produces same name
+  - `StateContext.jsx`: imports `generateCreatureName`; in HATCH_COMPLETE sets `creatureName: dna ? generateCreatureName(dna) : null` instead of `null`
+  - `state.js`: imports `generateCreatureName`; `_migrateBattleStats` backfills `creatureName` for any hatched egg (`hatched_at` set) without one — uses `e.dna` or fallback `{ family:'puff', seed: id.length, h1:140 }`
+  - `HatchOverlay.jsx`: removed `handlePickName`, removed `naming` phase JSX, removed `CREATURE_NAME_SUGGESTIONS` import; `done` phase now has single "ดำเนินการต่อ!" button → doClose
+- Not finished: `SET_CREATURE_NAME` action still exists in the reducer — kept for potential future admin/debug use but no UI triggers it
+- Blockers/risks found: creatures without DNA (legacy emoji eggs, fallback path) get generic name from puff pool — acceptable
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

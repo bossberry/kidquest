@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS } from '../config/gameConfig.js'
 import { getCreatureForHatch } from './creatureHelpers.js'
-import { buildCreatureDNA } from '../lib/creatureGenerator.js'
+import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator.js'
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 
 export const StateContext = createContext(null)
@@ -258,7 +258,7 @@ function reducer(state, action) {
         bornCrit:    hatchAcc,
         bornDate:    new Date().toISOString().slice(0, 10),
         bornTier:    tier,
-        creatureName: null,
+        creatureName: dna ? generateCreatureName(dna) : null,
         // ECA relationship data
         adventuresWith:   0,
         questionsAnswered: 0,

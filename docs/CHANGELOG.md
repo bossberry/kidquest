@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — feat: auto-generate creature names from DNA — remove manual naming UI
+
+### src/lib/creatureGenerator.js
+- Added `generateCreatureName(dna)`: deterministic family-based name picker with optional stat modifier suffix. 17 family pools × 5 names, 4 stat modifiers × 4 words.
+
+### src/context/StateContext.jsx
+- Imports `generateCreatureName`; HATCH_COMPLETE sets `creatureName: dna ? generateCreatureName(dna) : null` (was `null`)
+
+### src/lib/state.js
+- Imports `generateCreatureName`; `_migrateBattleStats` backfills `creatureName` for any hatched egg missing one
+
+### src/components/HatchOverlay.jsx
+- Removed `handlePickName` function and `CREATURE_NAME_SUGGESTIONS` import
+- Removed `naming` phase JSX block entirely
+- `done` phase: replaced "ตั้งชื่อ ✏️" + "ข้ามการตั้งชื่อ" buttons with single "ดำเนินการต่อ!" button
+
+---
+
 ## 2026-06-15 — feat: lock to single creature, disable new egg creation and auto-hatch
 
 ### src/context/StateContext.jsx

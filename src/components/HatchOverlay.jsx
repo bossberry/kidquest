@@ -8,7 +8,7 @@ import { buildEggStats } from '../lib/eggAlgorithm.js'
 import { buildCreatureDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
 import { playTone, playTapCrackSound, playHatchSound, playCreatureSound } from '../lib/audio.js'
 import { showToast, spawnConfetti } from './Toasts.jsx'
-import { determineElement, CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH, CREATURE_NAME_SUGGESTIONS } from '../lib/creatureSystem.js'
+import { determineElement, CREATURE_ELEMENT_COLORS, CREATURE_ELEMENT_NAMES_TH } from '../lib/creatureSystem.js'
 
 const TAPS_NEEDED = 5
 
@@ -92,14 +92,6 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
         }
       })
     }, 1800)
-  }
-
-  const handlePickName = (name) => {
-    const newest = (state.hatchedEggs || [])[0]
-    if (newest && name) {
-      dispatch({ type: ACTIONS.SET_CREATURE_NAME, payload: { creatureId: newest.id, name } })
-    }
-    doClose()
   }
 
   const doClose = () => {
@@ -236,44 +228,9 @@ export default function HatchOverlay({ onClose, suppressAutoOpen = false }) {
           <button
             className="hatch-close show"
             style={{ marginTop:14 }}
-            onClick={() => setPhase('naming')}
-          >
-            ตั้งชื่อ ✏️
-          </button>
-          <button
-            className="hatch-close show"
-            style={{ marginTop:6, background:'rgba(255,255,255,0.12)', fontSize:12 }}
             onClick={doClose}
           >
-            ข้ามการตั้งชื่อ
-          </button>
-        </>
-      )}
-
-      {phase === 'naming' && creature && (
-        <>
-          <div className="hatch-title show" style={{ fontSize:16 }}>ตั้งชื่อให้เพื่อนคุณ!</div>
-          <div style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginBottom:12, fontFamily:'Mitr,sans-serif' }}>
-            แตะชื่อที่ชอบ
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8, width:220 }}>
-            {(CREATURE_NAME_SUGGESTIONS[snapshotEl] || CREATURE_NAME_SUGGESTIONS.fire).map(name => (
-              <button
-                key={name}
-                className="hatch-close show"
-                style={{ fontSize:20, fontFamily:'Mitr,sans-serif', padding:'10px 0', letterSpacing:1 }}
-                onClick={() => handlePickName(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          <button
-            className="hatch-close show"
-            style={{ marginTop:10, background:'rgba(255,255,255,0.10)', fontSize:12 }}
-            onClick={doClose}
-          >
-            ข้ามการตั้งชื่อ
+            ดำเนินการต่อ!
           </button>
         </>
       )}

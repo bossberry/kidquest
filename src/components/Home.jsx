@@ -45,11 +45,14 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [creatureTapped, setCreatureTapped] = useState(false)
   const [creatureState, setCreatureState] = useState('walk') // walk|wave|sit|celebrate|gift|look|sleep
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
+  const [creatureBounce, setCreatureBounce] = useState(false)
+  const [bondReaction, setBondReaction]     = useState(null) // emoji shown above large canvas
   const [stageUp, setStageUp]             = useState(null)  // null | {stage, id}
   const [healFloat, setHealFloat]         = useState(null)  // null | id
   const [growthBanner, setGrowthBanner]   = useState(null)  // null | string
 
   const particleIdRef   = useRef(0)
+  const swipeCountRef   = useRef(0)
   const animTimerRef    = useRef(null)
   const glowTimerRef    = useRef(null)
   const idleTimerRef    = useRef(null)
@@ -430,6 +433,32 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
   const handleEggTap = () => activeItem ? handleTapItem(activeItem) : handlePetEgg()
 
+  // Tap the large creature canvas — plays reaction, adds bond, triggers bounce
+  const handleCreatureTap = (e) => {
+    if (e?.preventDefault) e.preventDefault()
+    handlePetEgg()
+    if (!activeEgg) return
+    dispatch({ type: ACTIONS.ADD_CREATURE_BOND, payload: { creatureId: activeEgg.id, amount: 1 } })
+    setCreatureBounce(true)
+    setTimeout(() => setCreatureBounce(false), 320)
+    const reactions = ['😊','⭐','💕','✨','💪']
+    const r = reactions[Math.floor(Math.random() * reactions.length)]
+    setBondReaction(r)
+    setTimeout(() => setBondReaction(null), 750)
+  }
+
+  // Swipe across the large canvas — after 3 swipes, reward +3 bond
+  const handleCreatureSwipe = () => {
+    swipeCountRef.current++
+    if (swipeCountRef.current >= 3) {
+      swipeCountRef.current = 0
+      if (activeEgg) dispatch({ type: ACTIONS.ADD_CREATURE_BOND, payload: { creatureId: activeEgg.id, amount: 3 } })
+      playTone('chirp')
+      setBondReaction('💖')
+      setTimeout(() => setBondReaction(null), 1000)
+    }
+  }
+
   const idleBaseClass = stage >= 7 ? 'egg-anim-excited' : 'egg-anim-float'
   const eggClass = eggAnim !== 'float'
     ? `egg-anim-${eggAnim}`
@@ -597,13 +626,32 @@ export default function Home({ navigate, soundOn, toggleSound }) {
             }}>
               Lv.{activeEgg.battleLevel ?? 1}
             </div>
-            {/* Large creature canvas */}
-            <canvas
-              key={activeEgg.id}
-              ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
-              width={160} height={160}
-              style={{ imageRendering:'pixelated', display:'block', margin:'0 auto' }}
-            />
+            {/* Large creature canvas — tappable + swipeable */}
+            <div style={{ position:'relative', display:'inline-block' }}>
+              {bondReaction && (
+                <div style={{
+                  position:'absolute', top:-34, left:'50%', transform:'translateX(-50%)',
+                  fontSize:22, pointerEvents:'none', zIndex:20,
+                  animation:'dmg-float 0.75s ease-out forwards',
+                }}>
+                  {bondReaction}
+                </div>
+              )}
+              <canvas
+                key={activeEgg.id}
+                ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
+                width={160} height={160}
+                onClick={handleCreatureTap}
+                onTouchStart={handleCreatureTap}
+                onTouchMove={handleCreatureSwipe}
+                style={{
+                  imageRendering:'pixelated', display:'block', margin:'0 auto',
+                  cursor:'pointer',
+                  transform: creatureBounce ? 'scale(1.15)' : 'scale(1)',
+                  transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
+                }}
+              />
+            </div>
             {/* Compact single-line stat row */}
             <div style={{ display:'flex', gap:14, justifyContent:'center', marginTop:2 }}>
               {[
@@ -810,7 +858,11 @@ export default function Home({ navigate, soundOn, toggleSound }) {
               return (
                 <div
                   key={egg.id}
-                  onClick={() => dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: egg.id } })}
+                  onClick={() => {
+                    dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: egg.id } })
+                    setCreatureBounce(true)
+                    setTimeout(() => setCreatureBounce(false), 400)
+                  }}
                   style={{
                     display:'flex', flexDirection:'column', alignItems:'center', gap:3,
                     cursor:'pointer', padding:4,
@@ -887,7 +939,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         borderTop: '2px solid var(--px-border)',
       }}>
         <button
-          onClick={handlePetEgg}
+          onClick={eggsHatched > 0 ? handleCreatureTap : handlePetEgg}
           className="px-btn px-btn-dark"
           style={{ flex:1, height:48, fontFamily:'var(--font-thai)', fontSize:13 }}
         >

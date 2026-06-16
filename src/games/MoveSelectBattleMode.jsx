@@ -1,3 +1,4 @@
+// MoveSelectBattleMode.jsx — Pokémon-style battle engine: question delivery, move selection, hit/miss animation, and XP dispatch.
 import React, { useState, useEffect, useRef } from 'react'
 import { playTone, speakTh, speakEn, playSFX, playElementSFX } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'

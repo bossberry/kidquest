@@ -1,5 +1,31 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — refactor(phase1): delete dead files, split gameConfig, add file headers
+
+### Deleted
+- `src/components/ChallengerOverlay.jsx` — confirmed no active imports; dead code
+
+### src/config/creatureConfig.js (NEW)
+- Extracted from `gameConfig.js`: `HATCH_CREATURES`, `GRADE_LABELS`, `CREATURE_LEVELS`, `TIERS`, `calcCreatureStats()`
+
+### src/config/battleConfig.js (NEW)
+- Extracted from `gameConfig.js`: `BOSS_XP_THRESHOLD`, `AI_OPPONENTS`
+
+### src/config/mapConfig.js (NEW)
+- Extracted from `gameConfig.js`: `MAP_THEMES`
+
+### src/config/gameConfig.js
+- Removed the 6 exports above; added barrel re-exports (`export * from './creatureConfig.js'` etc.) — all existing import sites unchanged
+
+### File headers added (1-line comment at top)
+- `src/components/WorldScreen.jsx`
+- `src/games/MoveSelectBattleMode.jsx`
+- `src/components/Home.jsx`
+- `src/context/StateContext.jsx`
+- `src/lib/drawCreature.js`
+
+---
+
 ## 2026-06-16 — feat: auto-generate creature names from DNA — remove manual naming UI
 
 ### src/lib/creatureGenerator.js

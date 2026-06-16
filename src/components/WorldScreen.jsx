@@ -1,3 +1,4 @@
+// WorldScreen.jsx — world map, node progression, and zone unlock for Green Meadow (and future worlds).
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { WORLD_LEVELS, DYNAMIC_SCREENS } from '../config/worldConfig.js'

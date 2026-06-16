@@ -1,4 +1,4 @@
-// Phase 2: Procedural creature canvas renderer.
+// drawCreature.js — DNA-based procedural creature canvas renderer. Deterministic: same dna → identical output every time.
 // Deterministic: same dna object → identical canvas output, every time.
 // Mirrors drawEgg() architecture — layers drawn back-to-front.
 

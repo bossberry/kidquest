@@ -5,15 +5,6 @@ export const ITEMS = {
   potion: { emoji:'💧', name:'น้ำมนต์', desc:'ฟักเร็วขึ้น +20 XP',       rarity:0.08 },
 }
 
-export const HATCH_CREATURES = {
-  thai:  [{e:'🐘',n:'ช้างน้ำเงิน',f:'+ความอดทน',rarity:'common',rarityLabel:'Common'},{e:'🐍',n:'นาคทอง',f:'+พลังน้ำ',rarity:'rare',rarityLabel:'Rare'},{e:'🦅',n:'ครุฑไฟ',f:'+ปีกไฟ',rarity:'epic',rarityLabel:'Epic'}],
-  eng:   [{e:'🐉',n:'มังกรน้ำ',f:'+พลังน้ำ',rarity:'common',rarityLabel:'Common'},{e:'🦊',n:'จิ้งจอกน้ำแข็ง',f:'+พลังน้ำแข็ง',rarity:'uncommon',rarityLabel:'Uncommon'},{e:'🦄',n:'ยูนิคอร์นฟ้า',f:'+เขาเวทมนตร์',rarity:'legendary',rarityLabel:'Legendary'}],
-  math:  [{e:'🤖',n:'หุ่นโกเลม',f:'+กำปั้นเหล็ก',rarity:'common',rarityLabel:'Common'},{e:'💎',n:'คริสตัลเบิร์ด',f:'+คริสตัลบิน',rarity:'rare',rarityLabel:'Rare'},{e:'⚡',n:'สายฟ้าเสือ',f:'+สายฟ้า',rarity:'epic',rarityLabel:'Epic'}],
-  hybrid:[{e:'🌈🦄',n:'ยูนิคอร์นรุ้ง',f:'+รุ้งสวรรค์',rarity:'legendary',rarityLabel:'Legendary'},{e:'🐉',n:'มังกรทอง',f:'+ออร่าทอง',rarity:'legendary',rarityLabel:'Legendary'},{e:'☀️🦁',n:'สิงห์สุริยา',f:'+แสงสุริยา',rarity:'epic',rarityLabel:'Epic'}],
-}
-
-export const GRADE_LABELS = ['อนุบาล','ป.1','ป.2','ป.3','ป.4','ป.5','ป.6']
-
 export const TH_ALPHA = [
   {char:'ก',word:'ไก่',meaning:'Chicken',emoji:'🐔'},{char:'ข',word:'ไข่',meaning:'Egg',emoji:'🥚'},
   {char:'ค',word:'ควาย',meaning:'Buffalo',emoji:'🐃'},{char:'ง',word:'งู',meaning:'Snake',emoji:'🐍'},
@@ -319,139 +310,9 @@ export const CATCH_ITEMS = [
 
 export const TOWER_COLORS = ['#7F77DD','#1D9E75','#EF9F27','#378ADD','#E24B4A','#9C27B0']
 
-export const MAP_THEMES = {
-  NW: { name: 'ป่า',       element: 'nature',  mapIndex: 1 },
-  NE: { name: 'ภูเขาไฟ',  element: 'fire',    mapIndex: 2 },
-  SW: { name: 'ใต้น้ำ',   element: 'water',   mapIndex: 3 },
-  SE: { name: 'ทะเลทราย', element: 'thunder', mapIndex: 4 },
-}
-export const BOSS_XP_THRESHOLD = 300
-
-export const CREATURE_LEVELS = {
-  xpPerLevel: 80,
-  maxLevel: 50,
-  evoThresholds: {
-    teen:  { minLevel: 11, minTier: 2 },
-    final: { minLevel: 26, minTier: 5, minBond: 60 },
-  },
-}
-
-export const TIERS = {
-  0: { name: 'อนุบาล', baseStat: 100,  maxXP: 350  },
-  1: { name: 'ป.1-2',  baseStat: 150,  maxXP: 500  },
-  2: { name: 'ป.3-4',  baseStat: 220,  maxXP: 700  },
-  3: { name: 'ป.5-6',  baseStat: 300,  maxXP: 900  },
-  4: { name: 'ม.ต้น',  baseStat: 400,  maxXP: 1200 },
-  5: { name: 'ม.ปลาย', baseStat: 500, maxXP: 1500 },
-}
-
-export function calcCreatureStats(egg) {
-  const tier = TIERS[egg.tier || 0]
-  const base = tier.baseStat
-  const xpT = egg.xpThai || 0
-  const xpM = egg.xpMath || 0
-  const xpE = egg.xpEng  || 0
-  const total = xpT + xpM + xpE || 1
-
-  // Normalized subject shares (each 0–1, sum = 1)
-  const tShare = xpT / total
-  const mShare = xpM / total
-  const eShare = xpE / total
-
-  const streakBonus = 1 + Math.floor((egg.streak || 0) / 7) * 0.1
-  const critRate    = Math.min(0.5, (egg.acc || 70) / 200)
-
-  // Deterministic ±5% personality variation per stat, stable per egg
-  const seed = (xpT * 7 + xpM * 13 + xpE * 17) >>> 0
-  const vary = (offset) => 0.95 + ((seed + offset * 97) % 100) / 100 * 0.10
-
-  // Weighted formula: 40% base guarantee + 60% subject-weighted contribution
-  // Every stat gets a base floor — no stat reaches 0 regardless of learning profile
-  // HP: Thai builds resilience; ATK: Math drives power; DEF: Thai builds guard; SPD: English agility
-  const HP  = base * (1.50 + 0.30 * tShare + 0.10 * mShare + 0.10 * eShare)
-  const ATK = base * (0.40 + 0.30 * mShare + 0.20 * eShare + 0.10 * tShare)
-  const DEF = base * (0.40 + 0.30 * tShare + 0.20 * mShare + 0.10 * eShare)
-  const SPD = base * (0.40 + 0.30 * eShare + 0.20 * mShare + 0.10 * tShare)
-
-  return {
-    HP:      Math.round(HP  * streakBonus * vary(1)),
-    ATK:     Math.round(ATK * streakBonus * vary(2)),
-    DEF:     Math.round(DEF * streakBonus * vary(3)),
-    SPD:     Math.round(SPD * streakBonus * vary(4)),
-    CRIT:    critRate,
-    tier:    egg.tier || 0,
-    tierName: tier.name,
-  }
-}
-
-export const AI_OPPONENTS = {
-  0: {
-    normal: [
-      { name: 'Motobug',    emoji: '🤖', HP: 320, ATK: 20, DEF: 5,  SPD: 6  },
-      { name: 'Buzzbomber', emoji: '🦟', HP: 280, ATK: 25, DEF: 4,  SPD: 9  },
-      { name: 'Crabmeat',   emoji: '🦀', HP: 360, ATK: 18, DEF: 8,  SPD: 5  },
-    ],
-    miniBoss: { name: 'Egg Pawn',     emoji: '⚔️🤖', HP: 460, ATK: 35, DEF: 12, SPD: 8  },
-    boss:     { name: 'Dr. Eggman I', emoji: '😈',   HP: 700, ATK: 45, DEF: 15, SPD: 10,
-                reward: 'unlock_tier_1',
-                dialogue: 'ฮ่าฮ่า! เจ็บไหม? กลับไปเรียนให้เก่งกว่านี้ก่อน!' },
-  },
-  1: {
-    normal: [
-      { name: 'Caterkiller', emoji: '🐛', HP: 480, ATK: 30, DEF: 8,  SPD: 7  },
-      { name: 'Burrobot',    emoji: '🔩', HP: 520, ATK: 28, DEF: 12, SPD: 6  },
-      { name: 'Chopper',     emoji: '🐟', HP: 440, ATK: 35, DEF: 7,  SPD: 10 },
-    ],
-    miniBoss: { name: 'Egg Gunner',    emoji: '🔫🤖', HP: 700, ATK: 50, DEF: 18, SPD: 12 },
-    boss:     { name: 'Dr. Eggman II', emoji: '😈🚀', HP: 1050, ATK: 63, DEF: 22, SPD: 15,
-                reward: 'unlock_tier_2',
-                dialogue: 'ไม่เป็นไร! เครื่องจักรรุ่นต่อไปจะทำลายเจ้าแน่!' },
-  },
-  2: {
-    normal: [
-      { name: 'Coconuts', emoji: '🥥',   HP: 700,  ATK: 45, DEF: 14, SPD: 12 },
-      { name: 'Octus',    emoji: '🐙',   HP: 640,  ATK: 50, DEF: 10, SPD: 16 },
-      { name: 'Rexon',    emoji: '🦕',   HP: 760,  ATK: 40, DEF: 18, SPD: 10 },
-    ],
-    miniBoss: { name: 'Egg Robo',        emoji: '🤖💥', HP: 1050, ATK: 70, DEF: 24, SPD: 18 },
-    boss:     { name: 'Dr. Eggman III',  emoji: '😈🔥', HP: 1600, ATK: 90, DEF: 30, SPD: 22,
-                reward: 'unlock_tier_3',
-                dialogue: 'เจ้าจะได้รับโทษ! เครื่องยนต์ใหม่ของข้าจะบดขยี้เจ้า!' },
-  },
-  3: {
-    normal: [
-      { name: 'Rhino-Bot', emoji: '🦏',  HP: 1040, ATK: 70,  DEF: 22, SPD: 15 },
-      { name: 'Slicer',    emoji: '🦂',  HP: 960,  ATK: 80,  DEF: 16, SPD: 20 },
-      { name: 'Jawz',      emoji: '🦈',  HP: 1120, ATK: 63,  DEF: 26, SPD: 18 },
-    ],
-    miniBoss: { name: 'Heavy Gunner',    emoji: '⚙️🔫', HP: 1600, ATK: 110, DEF: 38, SPD: 26 },
-    boss:     { name: 'Dr. Eggman IV',   emoji: '😈⚙️', HP: 2400, ATK: 140, DEF: 48, SPD: 34,
-                reward: 'unlock_tier_4',
-                dialogue: 'ความฉลาดของเจ้าน่าเกรงขาม แต่ข้าจะชนะเสมอ!' },
-  },
-  4: {
-    normal: [
-      { name: 'GUN Mech',   emoji: '🤖⚡', HP: 1520, ATK: 100, DEF: 32, SPD: 24 },
-      { name: 'E-101 Beta', emoji: '🔮🤖', HP: 1440, ATK: 110, DEF: 26, SPD: 30 },
-      { name: 'Dark Chao',  emoji: '😈💜', HP: 1600, ATK: 90,  DEF: 38, SPD: 22 },
-    ],
-    miniBoss: { name: 'Egg Emperor',     emoji: '👑🤖', HP: 2300, ATK: 150, DEF: 54, SPD: 40 },
-    boss:     { name: 'Dr. Eggman V',    emoji: '😈💎', HP: 3500, ATK: 200, DEF: 70, SPD: 52,
-                reward: 'unlock_tier_5',
-                dialogue: 'เจ้าเป็นนักเรียนที่เก่งมาก แต่ Eggman Empire จะพิชิตโลกนี้!' },
-  },
-  5: {
-    normal: [
-      { name: 'Metal Sonic',      emoji: '⚡🤖', HP: 2240, ATK: 150, DEF: 48, SPD: 36 },
-      { name: 'Shadow Android',   emoji: '🖤⚡', HP: 2160, ATK: 165, DEF: 40, SPD: 44 },
-      { name: 'Silver Gladiator', emoji: '🌟⚔️', HP: 2320, ATK: 140, DEF: 56, SPD: 35 },
-    ],
-    miniBoss: { name: 'Mephiles',        emoji: '🌑😈', HP: 3400, ATK: 225, DEF:  80, SPD: 60 },
-    boss:     { name: 'PERFECT CHAOS',   emoji: '🌊💀', HP: 5250, ATK: 300, DEF: 110, SPD: 80,
-                reward: 'world_champion',
-                dialogue: 'เจ้าคือจุดสูงสุดแห่งปัญญา ข้ายอมรับความพ่ายแพ้!' },
-  },
-}
+export * from './creatureConfig.js'
+export * from './battleConfig.js'
+export * from './mapConfig.js'
 
 export function shuffle(arr) {
   const a = [...arr]

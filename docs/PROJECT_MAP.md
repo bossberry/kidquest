@@ -38,7 +38,10 @@ src/
 │   └── creatureHelpers.js  — getCreatureForHatch()
 │
 ├── config/
-│   └── gameConfig.js       — ALL game content + config (346 lines — edit here for content)
+│   ├── gameConfig.js       — barrel re-exporter + remaining content (ITEMS, LEVELS, TEACH_CONTENT, etc.)
+│   ├── creatureConfig.js   — HATCH_CREATURES, CREATURE_LEVELS, TIERS, calcCreatureStats, GRADE_LABELS
+│   ├── battleConfig.js     — BOSS_XP_THRESHOLD, AI_OPPONENTS
+│   └── mapConfig.js        — MAP_THEMES
 │       ├── TH_ALPHA(44) SPELL_L1(24) TH_L2(20) TH_L3(14) TH_L5(9)
 │       ├── EN_ALPHA(26) CVC_WORDS(24) SIGHT_DATA(16) ENG_SENTS(12)
 │       ├── MATH_WORDS(16)

@@ -277,6 +277,19 @@
 
 ---
 
+## Config Architecture (2026-06-16 refactor)
+
+`src/config/gameConfig.js` is now a barrel — it re-exports everything from three focused files plus its own remaining exports. All existing `import { X } from '../config/gameConfig.js'` statements continue to work unchanged.
+
+| File | What it holds |
+|------|---------------|
+| `creatureConfig.js` | `HATCH_CREATURES`, `GRADE_LABELS`, `CREATURE_LEVELS`, `TIERS`, `calcCreatureStats()` |
+| `battleConfig.js` | `BOSS_XP_THRESHOLD`, `AI_OPPONENTS` |
+| `mapConfig.js` | `MAP_THEMES` |
+| `gameConfig.js` | everything else (ITEMS, TH_ALPHA, SPELL_L1, LEVELS, TEACH_CONTENT, etc.) + barrel re-exports |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |

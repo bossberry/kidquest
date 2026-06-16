@@ -979,3 +979,18 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: `responseTimeLogs` is included in `state_json` upserted to Supabase automatically (no extra code needed — TASK 5 is free)
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — refactor(phase1): delete dead files, split gameConfig, add file headers:**
+- Built:
+  - `ChallengerOverlay.jsx`: deleted (confirmed no active imports)
+  - `src/config/creatureConfig.js` (NEW): `HATCH_CREATURES`, `GRADE_LABELS`, `CREATURE_LEVELS`, `TIERS`, `calcCreatureStats()`
+  - `src/config/battleConfig.js` (NEW): `BOSS_XP_THRESHOLD`, `AI_OPPONENTS`
+  - `src/config/mapConfig.js` (NEW): `MAP_THEMES`
+  - `src/config/gameConfig.js`: removed the 6 exports above; added `export * from './creatureConfig.js'`, `export * from './battleConfig.js'`, `export * from './mapConfig.js'` barrel re-exports — all existing imports unchanged
+  - File headers added (1-line comment) to: `WorldScreen.jsx`, `MoveSelectBattleMode.jsx`, `Home.jsx`, `StateContext.jsx`, `drawCreature.js`
+- Not finished: nothing
+- Blockers/risks found: none — build confirmed clean
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

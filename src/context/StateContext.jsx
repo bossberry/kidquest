@@ -1,3 +1,4 @@
+// StateContext.jsx — global state store (useReducer + Context). Single source of truth for all game state; persists to localStorage and Supabase.
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
 import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'

@@ -1595,3 +1595,20 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 - Removed "Enemy name announce on mount" useEffect (was `speakTh(enemy.name + ' ปรากฏตัว')` at 700ms)
 - Removed `isFirstQuestionRef` and the 1800ms first-question delay (flat 500ms now)
 - Question TTS (`speakTh`/`speakEn` for thai/eng/math) is unchanged
+
+## 2026-06-16 — Home screen: large creature display + party bar
+
+### Home.jsx
+- Replaced 2×2 stat grid (ATK 169 / DEF 178 / SPD 160 / HP 504) with full creature display:
+  - Creature name (large pixel font, gold)
+  - Level badge (Lv.X)
+  - 160×160 pixel-art canvas using `drawCreature` from `creatureAlgorithm.js`
+  - Compact single-line stat row (ATK · DEF · SPD · HP, color-coded)
+  - Canvas keyed by `activeEgg.id` so it remounts on party switch
+- Replaced Party HP bars section with scrollable party portrait bar:
+  - 56×56 pixel-art canvas per creature
+  - Name + level label underneath each card
+  - Active creature = gold `#EF9F27` border + glow
+  - 1 creature → centered; multiple → horizontal scroll
+  - Tap any card → `SET_ACTIVE_CREATURE` → switches large display
+- `evoStage` merged into stats for both large canvas and party cards (teen/final stages now render)

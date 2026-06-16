@@ -951,3 +951,18 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: BGM won't play until after first user gesture — correct iOS behavior, but means home screen is silent until tap. If Chatbot wants ambient sound on home screen, we'd need a visible "tap to start" overlay that both resumes audio and plays BGM
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: whether silent home screen is acceptable or needs a "tap to start" overlay
+
+---
+
+**2026-06-16 — feat: home screen large creature display + party bar:**
+- Built:
+  - `Home.jsx`: imported `drawCreature`/`getCreatureSeed` from `creatureAlgorithm.js`; added `activeEgg` variable (same logic as existing `activeCreature`, used for large display)
+  - Replaced 2×2 stat grid with: creature name (large yellow) → Lv.X badge → 160×160 pixel-art canvas (`drawCreature` with `eggStats` + `evoStage`) → compact single-line stat row (ATK · DEF · SPD · HP smaller font, color-coded)
+  - Large canvas has `key={activeEgg.id}` so React remounts it when active creature changes
+  - Replaced Party HP bars section with party portrait bar: horizontal scroll row, 56×56 canvas per creature, name + Lv underneath; active card = gold `#EF9F27` border + glow; tap dispatches `SET_ACTIVE_CREATURE` (existing action, payload `{ creatureId: id }`)
+  - Party bar centered when 1 creature, scrollable when multiple
+  - `evoStage` merged into stats for both large and portrait canvases so teen/final stages render correctly
+- Not finished: nothing
+- Blockers/risks found: `CREATURE_ELEMENT_COLORS` import left in Home.jsx from old code — still used by voice profile logic; no issue. Walking creature companion at bottom of egg zone still appears alongside large canvas — could look redundant; ask Chatbot if companion should be hidden when large display exists
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: should the walking creature companion be hidden now that there's a large display? Or keep both?

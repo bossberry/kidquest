@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: creature HP decreases in battle, HP numbers shown, name badge visible, shake on hit
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `localCreatureHP` state (init from `creatureCurrentHP` prop); `fireMiss()` now decrements this local state instead of reading the stale prop snapshot — creature HP actually decreases each hit
+- GBHPBar: added `current`/`max` props; both HP bars now show e.g. `17/20` to the right of the fill bar
+- Name badges: added `color:#fff` + `rgba(0,0,0,0.6)` background inline on both enemy and player badges — text was invisible on dark bg
+- `fireMiss()`: added `setEggAnimClass('shake')` → `translateX(-8px)` on creature canvas for visible hit feedback, clears after 400ms
+- `_displayPlayerHP` now uses `localCreatureHP` so the bar reflects local state, not stale prop
+
+### src/components/WorldBattle.jsx
+- `creatureCurrentHP` now scales stored `creature.currentHP` by `WB_HP_SCALE` to match the scaled `creatureStats.HP` unit; defaults to `creatureStats.HP` when no HP stored yet
+
+### src/styles.css
+- `.px-name-badge`: added `color:#fff` to base rule
+
+---
+
 ## 2026-06-16 — refactor: simplify collection to team+items tabs, pixel art style, remove duplicate nav button
 
 ### src/components/Collection.jsx

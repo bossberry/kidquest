@@ -22,3 +22,10 @@ _(Claude Code appends here after each session)_
 - Blockers/risks found: none
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
+
+**2026-06-16 — Battle HP + animation fixes (5 issues):**
+- Built: localCreatureHP state so HP decreases mid-battle; GBHPBar shows numeric HP; name badge color fixed; creature shake animation on hit; WorldBattle creatureCurrentHP scaling fixed to match creatureStats.HP unit.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none

@@ -66,7 +66,7 @@ const ITEM_DESCRIPTIONS = {
 
 // ─── GB-style HP Bar ──────────────────────────────────────────────────────────
 
-function GBHPBar({ pct, isPlayer }) {
+function GBHPBar({ pct, isPlayer, current, max }) {
   const color = isPlayer
     ? (pct > 50 ? 'var(--px-green)' : pct > 25 ? 'var(--px-yellow)' : 'var(--px-red)')
     : (pct > 50 ? 'var(--px-red)' : pct > 25 ? 'var(--px-orange)' : '#f66')
@@ -76,6 +76,11 @@ function GBHPBar({ pct, isPlayer }) {
       <div className="px-hp-bar-outer" style={{ flex:1 }}>
         <div className="px-hp-bar-inner" style={{ width:`${Math.max(0, pct)}%`, background:color }} />
       </div>
+      {max != null && (
+        <span style={{ fontSize:8, color:'rgba(255,255,255,0.5)', flexShrink:0, fontFamily:'monospace', minWidth:32, textAlign:'right' }}>
+          {Math.max(0, Math.round(current ?? 0))}/{Math.round(max)}
+        </span>
+      )}
     </div>
   )
 }
@@ -251,6 +256,7 @@ export default function MoveSelectBattleMode({
   // State
   const [enemyHP, setEnemyHP]             = useState(maxHP)
   const [playerHP, setPlayerHP]           = useState(MAX_PLAYER_HP)
+  const [localCreatureHP, setLocalCreatureHP] = useState(() => creatureCurrentHP ?? creatureStats?.HP ?? 15)
   const [battleLog, setBattleLog]         = useState(`${enemy.name} ปรากฏตัว!`)
   const [shownText, setShownText]         = useState(`${enemy.name} ปรากฏตัว!`)
   const [hitFlash, setHitFlash]           = useState(false)
@@ -648,7 +654,8 @@ export default function MoveSelectBattleMode({
         const finalDmg = Math.max(1, Math.round(rawDmg - def * 0.5))
         missLog = `💥 โดนโจมตี -${finalDmg} HP!`
         onCreatureTakeDamage?.(finalDmg)
-        const newCreatureHP = (creatureCurrentHP ?? 0) - finalDmg
+        const newCreatureHP = localCreatureHP - finalDmg
+        setLocalCreatureHP(Math.max(0, newCreatureHP))
         if (newCreatureHP <= 0) {
           faintTriggered = true
           battleOverRef.current = true
@@ -674,6 +681,8 @@ export default function MoveSelectBattleMode({
         if (!mountedRef.current) return
         setEggHitFlash(true)
         setTimeout(() => mountedRef.current && setEggHitFlash(false), 200)
+        setEggAnimClass('shake')
+        setTimeout(() => mountedRef.current && setEggAnimClass(''), 400)
       }, 300)
     }
     playTone('miss'); playSFX('attack_miss')
@@ -737,7 +746,7 @@ export default function MoveSelectBattleMode({
 
   // Derived
   const hpPct              = (enemyHP / maxHP) * 100
-  const _displayPlayerHP   = isWorldBattle ? (creatureCurrentHP ?? 0) : playerHP
+  const _displayPlayerHP    = isWorldBattle ? localCreatureHP : playerHP
   const _displayMaxPlayerHP = isWorldBattle ? (creatureStats?.HP || 1) : MAX_PLAYER_HP
   const playerHpPct        = (_displayPlayerHP / _displayMaxPlayerHP) * 100
   const eggAnim = eggAnimClass === 'charge' ? 'egg-charge .3s ease'
@@ -811,7 +820,7 @@ export default function MoveSelectBattleMode({
           minWidth:140, maxWidth:178, padding:'5px 10px',
         }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
-            <span className="px-name-badge" style={{ fontFamily:'var(--font-thai)', fontSize:12 }}>
+            <span className="px-name-badge" style={{ fontFamily:'var(--font-thai)', fontSize:12, color:'#ffffff', background:'rgba(0,0,0,0.6)' }}>
               {isBoss ? 'BOSS: ' : ''}{enemy.name}
             </span>
             <span style={{ fontSize:9, color:'rgba(255,255,255,.3)', marginLeft:6 }}>{cur+1}/{total}</span>
@@ -825,7 +834,7 @@ export default function MoveSelectBattleMode({
           }}>
             {ELEMENT_ICONS[battleElement]} {ELEMENTS[battleElement].name}
           </div>
-          <GBHPBar pct={hpPct} />
+          <GBHPBar pct={hpPct} current={enemyHP} max={maxHP} />
         </div>
 
         {/* Enemy canvas sprite — top right, slides in from right */}
@@ -862,10 +871,10 @@ export default function MoveSelectBattleMode({
           position:'absolute', bottom:8, right:10, zIndex:10,
           minWidth:140, maxWidth:172, padding:'5px 10px',
         }}>
-          <div className="px-name-badge" style={{ marginBottom:5, fontFamily:'var(--font-thai)', fontSize:11 }}>
+          <div className="px-name-badge" style={{ marginBottom:5, fontFamily:'var(--font-thai)', fontSize:11, color:'#ffffff', background:'rgba(0,0,0,0.6)' }}>
             {isWorldBattle ? (creatureName || 'ตัวเอก') : (EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ')}
           </div>
-          <GBHPBar pct={playerHpPct} isPlayer />
+          <GBHPBar pct={playerHpPct} isPlayer current={_displayPlayerHP} max={_displayMaxPlayerHP} />
         </div>
 
         {/* Egg/player — bottom left, slides in from left */}
@@ -885,7 +894,8 @@ export default function MoveSelectBattleMode({
                     style={{
                       imageRendering:'pixelated', display:'block',
                       filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
-                      transition:'filter .2s',
+                      transform: eggAnimClass === 'shake' ? 'translateX(-8px)' : 'none',
+                      transition:'filter .2s, transform .1s',
                     }}
                   />
                 ) : eggStats ? (

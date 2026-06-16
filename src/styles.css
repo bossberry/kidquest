@@ -621,7 +621,7 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 .px-dialogue .thai-text{font-family:var(--font-thai);font-size:13px}
 
 /* Pixel name badge */
-.px-name-badge{background:var(--px-darkest);border:2px solid var(--px-border);padding:4px 8px;font-family:var(--font-pixel);font-size:8px;box-shadow:2px 2px 0 var(--px-black);display:inline-block}
+.px-name-badge{background:var(--px-darkest);border:2px solid var(--px-border);padding:4px 8px;font-family:var(--font-pixel);font-size:8px;box-shadow:2px 2px 0 var(--px-black);display:inline-block;color:#fff}
 
 /* Pixel item card */
 .px-item-card{background:var(--px-dark);border:2px solid var(--px-border);box-shadow:2px 2px 0 var(--px-darkest);border-radius:0;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform 80ms;position:relative}

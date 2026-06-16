@@ -238,7 +238,9 @@ export default function WorldBattle({ navigate }) {
 
   const creatureCurrentHP = Math.min(
     creatureStats.HP,
-    Math.max(0, Math.round((creature?.currentHP ?? (creature?.stats?.HP ?? 100)) * WB_HP_SCALE))
+    creature?.currentHP != null
+      ? Math.round(creature.currentHP * WB_HP_SCALE)
+      : creatureStats.HP
   )
 
   function onCorrect() {

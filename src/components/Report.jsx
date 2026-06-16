@@ -1,8 +1,47 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import { computeReadiness } from '../lib/subjectReadiness.js'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
+
+const SUBJECT_LEVEL_MAP = {
+  thai: {
+    1: { name:'พยัญชนะ ก-ฮ',   grade:'อนุบาล 1-2', gradeEn:'K1-K2' },
+    2: { name:'พยัญชนะ+สระ',    grade:'อนุบาล 3',   gradeEn:'K3'    },
+    3: { name:'คำสัตว์',        grade:'ป.1',         gradeEn:'G1'    },
+    4: { name:'คำ 3 พยางค์',    grade:'ป.1-2',       gradeEn:'G1-G2' },
+    5: { name:'ประโยคสั้น',     grade:'ป.2',         gradeEn:'G2'    },
+  },
+  math: {
+    0: { name:'นับของ 1-5',     grade:'อนุบาล 1',    gradeEn:'K1'    },
+    1: { name:'บวก 1-5',        grade:'อนุบาล 2-3',  gradeEn:'K2-K3' },
+    2: { name:'บวก 1-10',       grade:'ป.1',         gradeEn:'G1'    },
+    3: { name:'บวก 1-20',       grade:'ป.1',         gradeEn:'G1'    },
+    4: { name:'ลบ 1-10',        grade:'ป.1-2',       gradeEn:'G1-G2' },
+    5: { name:'บวกลบผสม',       grade:'ป.2',         gradeEn:'G2'    },
+    6: { name:'โจทย์คำ',        grade:'ป.2-3',       gradeEn:'G2-G3' },
+    7: { name:'เปรียบเทียบ',    grade:'ป.2',         gradeEn:'G2'    },
+    8: { name:'รูปแบบ AB',      grade:'ป.1-2',       gradeEn:'G1-G2' },
+  },
+  eng: {
+    1: { name:'A-Z Phonics',    grade:'อนุบาล 2-3',  gradeEn:'K2-K3' },
+    2: { name:'CVC Words',      grade:'ป.1',         gradeEn:'G1'    },
+    3: { name:'Sight Words',    grade:'ป.1-2',       gradeEn:'G1-G2' },
+    4: { name:'Sentences',      grade:'ป.2-3',       gradeEn:'G2-G3' },
+  },
+}
+
+const SUBJECT_COLORS = {
+  thai: '#E24B4A',
+  math: '#378ADD',
+  eng:  '#EF9F27',
+}
+
+const SUBJECT_LABELS = {
+  thai: 'ภาษาไทย',
+  math: 'คณิตศาสตร์',
+  eng:  'ภาษาอังกฤษ',
+}
 
 const READINESS_LABELS = {
   strong:      'แข็งแรงมาก',
@@ -65,6 +104,94 @@ function XPBar({ label, xp, maxXP, color, readiness }) {
       <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 7, color: READINESS_COLORS[readiness], letterSpacing: 0.5 }}>
         {READINESS_LABELS[readiness]}
       </span>
+    </div>
+  )
+}
+
+// ─── Section: Subject Level Card ──────────────────────────────────────────────
+
+function SubjectLevelCard({ subject, currentLevel }) {
+  const [expanded, setExpanded] = useState(false)
+  const map      = SUBJECT_LEVEL_MAP[subject]
+  const color    = SUBJECT_COLORS[subject]
+  const label    = SUBJECT_LABELS[subject]
+  const current  = map[currentLevel]
+  const allLevels = Object.entries(map).map(([lv, data]) => ({ lv: Number(lv), ...data }))
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: `1px solid ${color}44`,
+      borderLeft: `3px solid ${color}`,
+      marginBottom: 8,
+      overflow: 'hidden',
+    }}>
+      {/* Header row */}
+      <div
+        onClick={() => setExpanded(e => !e)}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', cursor: 'pointer' }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color, letterSpacing: 1, marginBottom: 3 }}>
+            {label.toUpperCase()}
+          </div>
+          <div style={{ fontFamily: 'var(--font-thai)', fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
+            {current?.name ?? '—'}
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+          <div style={{
+            background: `${color}22`, border: `1px solid ${color}66`,
+            padding: '4px 10px',
+            fontFamily: 'var(--font-thai)', fontSize: 12, color,
+          }}>
+            {current?.grade ?? '—'}
+          </div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+            Lv.{currentLevel}
+          </div>
+        </div>
+
+        <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+          {expanded ? '▲' : '▼'}
+        </div>
+      </div>
+
+      {/* Expanded level table */}
+      {expanded && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {allLevels.map(({ lv, name, grade }) => {
+            const isCurrent = lv === currentLevel
+            const isPast    = lv < currentLevel
+            return (
+              <div
+                key={lv}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 14px',
+                  background: isCurrent ? `${color}18` : 'transparent',
+                  borderLeft: isCurrent ? `2px solid ${color}` : '2px solid transparent',
+                  opacity: isPast ? 0.5 : 1,
+                }}
+              >
+                <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: isCurrent ? color : isPast ? '#44ee44' : 'rgba(255,255,255,0.2)', width: 14, flexShrink: 0 }}>
+                  {isCurrent ? '►' : isPast ? '✓' : '·'}
+                </div>
+                <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 8, color: isCurrent ? color : 'rgba(255,255,255,0.3)', width: 28, flexShrink: 0 }}>
+                  Lv.{lv}
+                </div>
+                <div style={{ flex: 1, fontFamily: 'var(--font-thai)', fontSize: 12, color: isCurrent ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)', fontWeight: isCurrent ? 600 : 400 }}>
+                  {name}
+                </div>
+                <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: isCurrent ? color : 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+                  {grade}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -229,7 +356,29 @@ export default function Report() {
           </div>
         </div>
 
-        {/* Section 3 — Response Speed */}
+        {/* Section 3 — Subject Levels */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '14px 16px',
+          marginBottom: 24,
+        }}>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: 'var(--px-yellow)', letterSpacing: 2, marginBottom: 12 }}>
+            LEVEL · GRADE
+          </div>
+          <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+            กดแต่ละวิชาเพื่อดูตารางระดับทั้งหมด
+          </div>
+          {['thai', 'math', 'eng'].map(subject => (
+            <SubjectLevelCard
+              key={subject}
+              subject={subject}
+              currentLevel={state.subjectLevels?.[subject] ?? 1}
+            />
+          ))}
+        </div>
+
+        {/* Section 4 — Response Speed */}
         <ResponseSpeed responseTimeLogs={state.responseTimeLogs} />
 
         {/* Section 4 — Parent Report */}

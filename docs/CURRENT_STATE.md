@@ -64,13 +64,13 @@ _Last updated: 2026-06-16_
 - `HomeBackground.jsx` canvas: pixel scene (sky, mountains, ground, sun/moon, clouds, butterflies, bird, fireflies) + animated creature entities
 - Egg zone: large EggCanvas (190×225px), floating + aura. Post-session growth banner when `sessionXP > 0`
 - Creature zone: large 160×160 `drawCreature` canvas (tap/swipe for bond), party portrait bar (56×56 per creature, gold border on active)
-- Item tray: food/ribbon/potion/star with count badges; fly animation on use
+- Item tray: food/ribbon/shoes/rainbow_star; cooldown status from `state.activeBoosts`; active/cooldown overlays; saiyan aura drop-shadow on creature canvas when rainbow_star active
 - HatchOverlay biography phase (`bio`) before egg tapping when active creature has adventures
 - Creature companion tap: `handleCreatureTap` (+1 bond + bounce + emoji reaction); 3 swipes = +3 bond + 💖
 
 ### Collection Screen (`Collection.jsx`)
 - 2 tabs: ทีม (party with HP bars + level + ★ ตัวหลัก badge) + กระเป๋า (ItemBag)
-- ItemBag: two sections — "ไอเทมดูแลครีเอเจอร์" (homeItems: food/ribbon/potion/star) + "ไอเทมในการสู้" (battleItems: scroll/thunder/gem/mirror/clover); divider between sections; `drawItem` canvas per slot; count badge; dimmed when count=0
+- ItemBag: two sections — "ไอเทมดูแลครีเอเจอร์" (homeItems: food/ribbon/shoes/rainbow_star) + "ไอเทมในการสู้" (battleItems: scroll/thunder/gem/mirror/clover); divider between sections; `drawItem` canvas per slot; count badge; dimmed when count=0
 - Pixel art header: "COLLECTION" in font-pixel yellow; dark background matching Home screen
 - Creature cards: 90×90 pixel art `drawCreature` canvas per creature
 - `CreatureDetailPopup.jsx`: 120×120 pixel art canvas + element glow, Level + evo stage, ATK/DEF/SPD/HP grid, bond meter bar, born-stats XP bars
@@ -84,10 +84,13 @@ _Last updated: 2026-06-16_
 - Section 5: "ควรเล่นอะไรต่อ" — actionable suggestion based on weakest subject + streak
 
 ### Item System
-- `state.homeItems`: food/ribbon/potion/star — used on Home screen; affect creature HP/XP/temp buffs
+- `state.homeItems`: food/ribbon/shoes/rainbow_star — used on Home screen; affect HP/activeBoosts
 - `state.battleItems`: scroll/thunder/gem/mirror/clover — used in battle; drop 10% on victory, 55% from treasure chests
+- `state.activeBoosts`: persisted boost state (ribbon/shoes/rainbow_star) with `endsAt` timestamp; ribbon/shoes/rainbow_star boosts stored here after use
 - ACTIONS: USE_HOME_ITEM, USE_BATTLE_ITEM, DROP_HOME_ITEM, DROP_BATTLE_ITEM (backward-compat USE_ITEM/DROP_ITEM aliases remain)
-- localStorage migration: old `items{}` auto-migrated to `homeItems{}` + `battleItems{}` on load
+- localStorage migration: old `items{}` → homeItems/battleItems; star→rainbow_star, potion→shoes on load
+- HOME_ITEMS config in `itemConfig.js` with duration/cooldown per item
+- itemArt.js: pixel art for shoes (orange sneaker) + rainbow_star (multicolor 8-arm star)
 
 ### Audio
 - BGM: `playBGM(track)` / `stopBGM()` — 4 tracks (home/world/battle/victory) via Web Audio API

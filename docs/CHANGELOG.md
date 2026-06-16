@@ -1,5 +1,42 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — feat: new home items — shoes + rainbow star + saiyan aura
+
+### src/config/itemConfig.js
+- Added HOME_ITEMS export: food (instant heal), ribbon (SPD boost 5min), shoes (map speed ×2, 5min), rainbow_star (saiyan aura, 5min); all timed boosts with 5min cooldown
+
+### src/lib/itemArt.js
+- Added pixel art drawers: shoes (orange sneaker with laces/tongue/stripe), rainbow_star (multicolor 8-arm star with sparkle dots)
+
+### src/lib/state.js
+- defaultState homeItems: {food, ribbon, shoes, rainbow_star}; added activeBoosts: {}
+
+### src/context/StateContext.jsx
+- USE_HOME_ITEM: ribbon/shoes/rainbow_star store boost in state.activeBoosts (persisted)
+- Migration on load: star→rainbow_star, potion→shoes; ensure activeBoosts: {} exists
+
+### src/components/Home.jsx
+- ITEM_DEFS: food/ribbon/shoes/rainbow_star
+- Local activeBoosts state removed; hasRibbon + saiyanActive derived from state.activeBoosts
+- handleTapItem: ribbon/shoes/rainbow_star handlers; rainbow_star triggers excited state + saiyan reaction
+- Creature canvas wrapped with saiyan-pulse drop-shadow when rainbow_star active
+
+### src/components/WorldScreen.jsx
+- tryMove: shoes doubles tile step (stateRef.current.activeBoosts.shoes.endsAt check)
+- Canvas loop: rainbow_star adds ctx.shadowBlur gold glow on player sprite
+- HOME_ITEM_KEYS/LABELS/EFFECTS updated; `state.homeItems` replaces `state.items` in WorldHUD
+
+### src/games/MoveSelectBattleMode.jsx
+- saiyanActive check; eggFilter gets gold drop-shadow + brightness(1.3) when rainbow_star active
+
+### src/components/Collection.jsx
+- HOME_ITEM_DEFS: shoes/rainbow_star replace potion/star
+
+### src/styles.css
+- Added saiyan-pulse keyframe (gold/orange glow pulsing filter)
+
+---
+
 ## 2026-06-16 — refactor: separate homeItems and battleItems — clean up item system
 
 ### src/lib/state.js

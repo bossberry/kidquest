@@ -648,8 +648,7 @@ export default function MoveSelectBattleMode({
     let faintTriggered = false
     let missLog = '💨 โจมตีพลาด!'
     if (isWorldBattle) {
-      const spd        = creatureStats?.SPD ?? 40
-      const dodgeChance = Math.min(0.30, spd / 500)
+      const dodgeChance = 0.20
       const dodged      = Math.random() < dodgeChance
       if (dodged) {
         missLog = '🌀 หลบได้!'

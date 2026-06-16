@@ -219,7 +219,6 @@ export default function MoveSelectBattleMode({
   const enemyHPRef         = useRef(maxHP)
   const mountedRef         = useRef(true)
   const typeTimerRef       = useRef(null)
-  const isFirstQuestionRef = useRef(true)
 
   // Effect system refs
   const battleFieldRef  = useRef(null)
@@ -333,15 +332,6 @@ export default function MoveSelectBattleMode({
     return () => { alive = false; cancelAnimationFrame(effectRafRef.current) }
   }, [])
 
-  // ── Enemy name announce on mount ────────────────────────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (!mountedRef.current) return
-      speakTh(enemy.name + ' ปรากฏตัว')
-    }, 700)
-    return () => clearTimeout(t)
-  }, []) // eslint-disable-line
-
   // ── Typewriter dialogue ─────────────────────────────────────────────────────
   useEffect(() => {
     if (typeTimerRef.current) clearInterval(typeTimerRef.current)
@@ -356,15 +346,12 @@ export default function MoveSelectBattleMode({
 
   // ── TTS on question ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // First question: delay until after enemy-name announce (700ms) completes
-    const delay = isFirstQuestionRef.current ? 1800 : 500
-    isFirstQuestionRef.current = false
     const t = setTimeout(() => {
       if (!mountedRef.current) return
       if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
       else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
       else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
-    }, delay)
+    }, 500)
     return () => clearTimeout(t)
   }, [cur, subject]) // eslint-disable-line
 

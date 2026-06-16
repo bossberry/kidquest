@@ -387,6 +387,7 @@ const BGM_TRACKS = { home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victo
 export function playBGM(track) {
   stopBGM(0)
   if (!_soundOn) return
+  if (!audioCtx || audioCtx.state === 'suspended') return
   const fn = BGM_TRACKS[track]
   if (!fn) return
   try { bgmNodes = fn(getACtx()) || [] } catch(e) {}
@@ -492,11 +493,16 @@ export function playElementSFX(element, tierIndex) {
   } catch(e) {}
 }
 
-// iOS: resume AudioContext on first touch ──────────────────────────────────────
+// Resume / pre-warm AudioContext on first user gesture (iOS + desktop) ─────────
 if (typeof document !== 'undefined') {
-  document.addEventListener('touchstart', () => {
-    if (audioCtx?.state === 'suspended') audioCtx.resume()
-  }, { once: true })
+  const _resumeAudio = () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    if (audioCtx.state === 'suspended') audioCtx.resume()
+    document.removeEventListener('touchstart', _resumeAudio)
+    document.removeEventListener('click', _resumeAudio)
+  }
+  document.addEventListener('touchstart', _resumeAudio)
+  document.addEventListener('click', _resumeAudio)
 }
 
 export function initVoices() {

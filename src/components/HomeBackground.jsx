@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { drawCreature } from '../lib/creatureAlgorithm.js'
+import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 
 const P = {
   skyD1:'#4ec8f0', skyD2:'#87ddff', skyD3:'#d4f7c0',
@@ -18,26 +18,60 @@ const P = {
   fl1:'#ff88cc', fl2:'#ffdd44', fl3:'#88aaff', flC:'#f0d020',
   bfPink:'#ff99dd', bfYel:'#ffcc44', bfBody:'#443322',
   bird:'#554433',
-  white:'#e8e8f8',
 }
 
-export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
+const SIZE = 48
+
+function makeEntity(egg, i, count, W, groundY) {
+  // Deterministic seed per creature so initial positions/speeds are stable
+  let s = Math.abs(((egg.id ?? '').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)) + i * 97)
+  const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xffffffff }
+  const startFrac = count === 1 ? 0.5 : 0.15 + (i / Math.max(1, count - 1)) * 0.70
+  return {
+    x: W * startFrac,
+    y: groundY,
+    dir: i % 2 === 0 ? 1 : -1,
+    speed: 0.3 + rng() * 0.5,
+    walkFrame: 0,
+    walkFrameTimer: 0,
+    state: 'walk',
+    stateTimer: 120 + Math.floor(rng() * 180),
+    jumpY: 0,
+    jumpVel: 0,
+    spinAngle: 0,
+    meetingTimer: 0,
+  }
+}
+
+export default function HomeBackground({ hour, creatures }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
 
-  const canvasRef = useRef(null)
-  const rafRef    = useRef(null)
-  const offRef    = useRef(null)
+  const canvasRef   = useRef(null)
+  const rafRef      = useRef(null)
+  const offscreens  = useRef([])
+  const entitiesRef = useRef([])
 
-  // Redraw offscreen creature canvas whenever the active creature changes
+  // Rebuild offscreen canvases when creatures change
   useEffect(() => {
-    if (creatureSeed == null) return
-    const off = document.createElement('canvas')
-    off.width  = 32
-    off.height = 32
-    drawCreature(off, creatureSeed, creatureStats ?? {})
-    offRef.current = off
-  }, [creatureSeed, creatureStats]) // eslint-disable-line
+    offscreens.current = (creatures ?? []).map(egg => {
+      const off = document.createElement('canvas')
+      off.width  = SIZE
+      off.height = SIZE
+      drawCreature(off, getCreatureSeed(egg), egg.eggStats ?? egg.stats ?? {})
+      return off
+    })
+  }, [creatures]) // eslint-disable-line
+
+  // Rebuild entities when creature count changes
+  useEffect(() => {
+    const list = creatures ?? []
+    const count = list.length
+    if (entitiesRef.current.length === count) return
+    const W = window.innerWidth
+    const GY = Math.floor(Math.floor(window.innerHeight * 0.65) * 0.76)
+    entitiesRef.current = list.map((egg, i) => makeEntity(egg, i, count, W, GY - SIZE))
+  }, [creatures]) // eslint-disable-line
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -45,10 +79,10 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
 
     const W = window.innerWidth
     const H = Math.floor(window.innerHeight * 0.65)
-    canvas.width = W
+    canvas.width  = W
     canvas.height = H
 
-    const S = Math.max(1, Math.floor(W / 160))
+    const S   = Math.max(1, Math.floor(W / 160))
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
 
@@ -140,8 +174,6 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
       }
     }
 
-    // ── Animated sprites ───────────────────────────────────────────────
-
     function drawSun(t) {
       const pulse = 1 + Math.sin(t * 0.02) * 0.12
       const cx = Math.floor(W * 0.84)
@@ -207,9 +239,9 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
       const wingY = Math.sin(wingPhase) > 0 ? 0 : S
       const bxf = Math.floor(bx), byf = Math.floor(by)
       ctx.fillStyle = P.bird
-      ctx.fillRect(bxf,          byf + S,    3 * S, S)
-      ctx.fillRect(bxf - 3 * S, byf + wingY, 3 * S, S)
-      ctx.fillRect(bxf + 3 * S, byf + wingY, 3 * S, S)
+      ctx.fillRect(bxf,           byf + S,    3 * S, S)
+      ctx.fillRect(bxf - 3 * S,  byf + wingY, 3 * S, S)
+      ctx.fillRect(bxf + 3 * S,  byf + wingY, 3 * S, S)
     }
 
     function drawFirefly(fx, fy, t, phase) {
@@ -222,13 +254,8 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
       }
     }
 
-    // ── Animation state ────────────────────────────────────────────────
-    const CHAR_SIZE = 10 * S
-    const CHAR_MIN_X = W * 0.33
-    const CHAR_MAX_X = W * 0.67
-
+    // Non-creature animation state (clouds, butterflies, bird, fireflies)
     const anim = {
-      t: 0,
       clouds: [
         { x: W * 0.15, y: H * 0.14, w: 24 * S, h: 8 * S, spd: 0.30 },
         { x: W * 0.55, y: H * 0.07, w: 16 * S, h: 6 * S, spd: 0.18 },
@@ -238,23 +265,152 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
         { x: W * 0.25, baseY: H * 0.38, vx: 0.70, phase: 0,       wingP: 0,         color: P.bfPink },
         { x: W * 0.65, baseY: H * 0.44, vx: 0.45, phase: Math.PI, wingP: Math.PI/2, color: P.bfYel  },
       ],
-      bird: { x: -20 * S, vx: 1.0, wingP: 0 },
+      bird:  { x: -20 * S, vx: 1.0, wingP: 0 },
       ff: [
         { x: W * 0.22, baseY: H * 0.46, phase: 0 },
         { x: W * 0.68, baseY: H * 0.40, phase: Math.PI * 0.5 },
         { x: W * 0.44, baseY: H * 0.52, phase: Math.PI },
         { x: W * 0.80, baseY: H * 0.48, phase: Math.PI * 1.5 },
       ],
-      char: { x: W * 0.50, dir: 1 },
     }
 
+    function updateEntities() {
+      const ents = entitiesRef.current
+      if (!ents.length) return
+
+      // Meeting gimmick — two creatures walking toward each other
+      for (let i = 0; i < ents.length; i++) {
+        for (let j = i + 1; j < ents.length; j++) {
+          const a = ents[i], b = ents[j]
+          if (a.meetingTimer <= 0 && b.meetingTimer <= 0 &&
+              a.state === 'walk' && b.state === 'walk' &&
+              Math.abs(a.x - b.x) < 40) {
+            a.state = b.state = 'idle'
+            a.dir   = a.x < b.x ?  1 : -1  // face each other
+            b.dir   = b.x < a.x ?  1 : -1
+            a.meetingTimer = b.meetingTimer = 60
+            a.stateTimer   = b.stateTimer   = 60
+          }
+        }
+      }
+
+      ents.forEach(e => {
+        e.stateTimer--
+        if (e.meetingTimer > 0) e.meetingTimer--
+
+        // State transition when timer expires
+        if (e.stateTimer <= 0) {
+          if (e.meetingTimer > 0) {
+            e.state      = 'idle'
+            e.stateTimer = e.meetingTimer
+          } else {
+            const r = Math.random()
+            if (r < 0.50) {
+              e.state      = 'walk'
+              e.stateTimer = 120 + Math.floor(Math.random() * 180)
+            } else if (r < 0.70) {
+              e.state      = 'idle'
+              e.stateTimer = 60  + Math.floor(Math.random() * 60)
+            } else if (r < 0.85) {
+              e.state      = 'jump'
+              e.jumpY      = 0
+              e.jumpVel    = -4
+              e.stateTimer = 120
+            } else {
+              e.state      = 'spin'
+              e.spinAngle  = 0
+              e.stateTimer = 60  + Math.floor(Math.random() * 60)
+            }
+          }
+        }
+
+        // 0.5% spontaneous jump while walking
+        if (e.state === 'walk' && Math.random() < 0.005) {
+          e.state = 'jump'; e.jumpY = 0; e.jumpVel = -4; e.stateTimer = 120
+        }
+
+        switch (e.state) {
+          case 'walk':
+            e.x += e.dir * e.speed
+            if (e.x < SIZE / 2 + 10)     { e.x = SIZE / 2 + 10;       e.dir =  1 }
+            if (e.x > W - SIZE / 2 - 10) { e.x = W - SIZE / 2 - 10;   e.dir = -1 }
+            break
+          case 'jump':
+            e.jumpY   += e.jumpVel
+            e.jumpVel += 0.3
+            if (e.jumpY >= 0) {
+              e.jumpY = 0; e.jumpVel = 0
+              e.state = 'walk'
+              e.stateTimer = 120 + Math.floor(Math.random() * 180)
+            }
+            break
+          case 'spin':
+            e.spinAngle += 0.15
+            break
+          default: break // 'idle' — bob handled in draw
+        }
+
+        e.walkFrameTimer++
+        if (e.walkFrameTimer >= 20) {
+          e.walkFrame     = 1 - e.walkFrame
+          e.walkFrameTimer = 0
+        }
+      })
+    }
+
+    function drawEntities(t) {
+      const ents = entitiesRef.current
+      const offs = offscreens.current
+      if (!ents.length || !offs.length) return
+
+      // Which creature is closest to screen center gets a glow
+      let centerIdx = 0, minDist = Infinity
+      ents.forEach((e, i) => {
+        const d = Math.abs(e.x - W / 2)
+        if (d < minDist) { minDist = d; centerIdx = i }
+      })
+
+      ents.forEach((e, i) => {
+        if (!offs[i]) return
+        const bobOffset = e.state === 'idle' ? Math.floor(Math.sin(t * 0.1) * 2) : 0
+        const drawY = Math.floor(e.y + e.jumpY + bobOffset)
+        const drawX = Math.floor(e.x - SIZE / 2)
+
+        // Soft glow halo for center creature (only meaningful with 2+)
+        if (i === centerIdx && ents.length > 1) {
+          ctx.save()
+          ctx.shadowColor = 'rgba(255,220,80,0.9)'
+          ctx.shadowBlur  = 14
+          ctx.drawImage(offs[i], drawX, drawY, SIZE, SIZE)
+          ctx.restore()
+        }
+
+        // Main draw — spin uses rotate transform, left-walk uses horizontal flip
+        ctx.save()
+        if (e.state === 'spin') {
+          ctx.translate(Math.floor(e.x), drawY + SIZE / 2)
+          ctx.rotate(e.spinAngle)
+          ctx.drawImage(offs[i], -SIZE / 2, -SIZE / 2, SIZE, SIZE)
+        } else if (e.dir < 0) {
+          // Flip around creature center: translate to cx, scale -1, draw at -SIZE/2
+          ctx.translate(Math.floor(e.x), 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(offs[i], -SIZE / 2, drawY, SIZE, SIZE)
+        } else {
+          ctx.drawImage(offs[i], drawX, drawY, SIZE, SIZE)
+        }
+        ctx.restore()
+      })
+    }
+
+    let t = 0
     function frame() {
-      anim.t++
+      t++
       ctx.clearRect(0, 0, W, H)
       drawStatic()
 
       if (isDay) {
-        drawSun(anim.t)
+        drawSun(t)
         anim.clouds.forEach(c => {
           c.x -= c.spd
           if (c.x + c.w < 0) c.x = W + c.w
@@ -267,37 +423,22 @@ export default function HomeBackground({ hour, creatureSeed, creatureStats }) {
           if (b.x > W + 20 * S) b.x = -20 * S
           drawButterfly(b.x, b.baseY + Math.sin(b.phase) * 10 * S, b.color, b.wingP)
         })
-        anim.bird.x    += anim.bird.vx
+        anim.bird.x     += anim.bird.vx
         anim.bird.wingP += 0.22
         if (anim.bird.x > W + 30 * S) anim.bird.x = -30 * S
         drawBird(anim.bird.x, H * 0.10, anim.bird.wingP)
       } else {
         drawMoon()
-        drawStars(anim.t)
+        drawStars(t)
         anim.ff.forEach(f => {
-          const fx = f.x + Math.sin(anim.t * 0.02 + f.phase * 0.7) * 5 * S
-          const fy = f.baseY + Math.sin(anim.t * 0.03 + f.phase) * 8 * S
-          drawFirefly(Math.floor(fx), Math.floor(fy), anim.t, f.phase)
+          const fx = f.x + Math.sin(t * 0.02 + f.phase * 0.7) * 5 * S
+          const fy = f.baseY + Math.sin(t * 0.03 + f.phase) * 8 * S
+          drawFirefly(Math.floor(fx), Math.floor(fy), t, f.phase)
         })
       }
 
-      // ── Walking creature on the path ──────────────────────────────
-      anim.char.x += anim.char.dir * 0.8
-      if (anim.char.x > CHAR_MAX_X) anim.char.dir = -1
-      if (anim.char.x < CHAR_MIN_X) anim.char.dir =  1
-      if (offRef.current) {
-        const cx = Math.floor(anim.char.x - CHAR_SIZE / 2)
-        const cy = GY - CHAR_SIZE
-        if (anim.char.dir < 0) {
-          ctx.save()
-          ctx.translate(Math.floor(anim.char.x), 0)
-          ctx.scale(-1, 1)
-          ctx.drawImage(offRef.current, -CHAR_SIZE / 2, cy, CHAR_SIZE, CHAR_SIZE)
-          ctx.restore()
-        } else {
-          ctx.drawImage(offRef.current, cx, cy, CHAR_SIZE, CHAR_SIZE)
-        }
-      }
+      updateEntities()
+      drawEntities(t)
 
       rafRef.current = requestAnimationFrame(frame)
     }

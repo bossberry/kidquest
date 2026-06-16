@@ -460,8 +460,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
 
       <HomeBackground
         hour={hour}
-        creatureSeed={activeEgg ? getCreatureSeed(activeEgg) : null}
-        creatureStats={activeEgg?.eggStats ?? activeEgg?.stats ?? {}}
+        creatures={state.hatchedEggs ?? []}
       />
 
       {/* Flying food overlay */}

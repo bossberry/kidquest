@@ -7,6 +7,7 @@ import { buildLegacyPreviewDNA, buildVoiceProfile } from '../lib/creatureGenerat
 import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
+import { drawItem } from '../lib/itemArt.js'
 
 const ITEM_DEFS = [
   { key:'food',   label:'อาหาร' },
@@ -14,7 +15,6 @@ const ITEM_DEFS = [
   { key:'potion', label:'น้ำมนต์' },
   { key:'star',   label:'ดาว' },
 ]
-const ITEM_COLORS = { food:'#d46a2a', ribbon:'#ff88cc', potion:'#4488ff', star:'#ffcc00' }
 
 // Duration (ms) for each idle animation before clearing state
 const IDLE_DUR = {
@@ -875,7 +875,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                 boxShadow: isActive ? '3px 3px 0 var(--px-purple)' : undefined,
               }}
             >
-              <div style={{ width:22, height:22, background:ITEM_COLORS[key], margin:'0 auto 2px', border:'2px solid rgba(0,0,0,0.3)' }} />
+              <canvas ref={r => r && drawItem(r, key)} width={32} height={32} style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 2px' }} />
               <span style={{ fontFamily:'var(--font-thai)', fontSize:8, color:'var(--px-light)', marginTop:2 }}>{label}</span>
               {count > 0 && (
                 <div className="px-badge" style={{ position:'absolute', top:-5, right:-5 }}>{count}</div>

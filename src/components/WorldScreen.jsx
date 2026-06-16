@@ -14,6 +14,7 @@ import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
 import { ENEMY_DATA } from '../config/enemyConfig.js'
 import TreasureSlot from './TreasureSlot.jsx'
 import PixelItemIcon from './PixelItemIcon.jsx'
+import { drawItem } from '../lib/itemArt.js'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
@@ -1447,6 +1448,7 @@ export default function WorldScreen({ navigate }) {
                       textAlign: 'center',
                     }}
                   >
+                    <canvas ref={r => r && drawItem(r, key)} width={32} height={32} style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px' }} />
                     <div style={{ fontSize: 14, marginBottom: 2 }}>{HOME_ITEM_LABELS[key]}</div>
                     <div style={{ fontSize: 11, color: count > 0 ? '#80c080' : '#304030', marginBottom: 4 }}>
                       {HOME_ITEM_EFFECTS[key]}

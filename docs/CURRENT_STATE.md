@@ -76,10 +76,12 @@ _Last updated: 2026-06-16_
 - `CreatureDetailPopup.jsx`: 120×120 pixel art canvas + element glow, Level + evo stage, ATK/DEF/SPD/HP grid, bond meter bar, born-stats XP bars
 
 ### Report Screen
-- Subject Readiness: 4 states from last 10 sessions per subject
-- Response Speed: avg response time per subject (last 10 answers) + trend vs previous 10
-- Session history: last 10 entries, world label + date + completed status
-- Mission Analytics: runs/avg score/avg duration/hints/per-phase difficulty for Shop Mission
+- Pixel art dark theme (matches Home/Collection)
+- Section 1: Overview stats — mins played, rounds passed, accuracy %, streak
+- Section 2: Subject XP bars (Thai/Math/Eng) with readiness label from `computeReadiness()`
+- Section 3: Response speed per subject — avg seconds + trend arrow (only when ≥5 logs)
+- Section 4: Parent Report — natural Thai sentences generated from real data
+- Section 5: "ควรเล่นอะไรต่อ" — actionable suggestion based on weakest subject + streak
 
 ### Item System
 - Home items: food/ribbon/star/potion — drop from minigames, affect egg state

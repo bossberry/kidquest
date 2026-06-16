@@ -23,6 +23,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Report screen rewrite (5 sections, pixel art):**
+- Built: full rewrite of Report.jsx — removed MissionAnalytics + raw session history; added dark theme; 5 sections (overview, XP bars, response speed, parent report in Thai, what to do next).
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-16 — Enemy ATK source + dodge cap:**
 - Built: fireMiss() reads enemyData?.atk (has combat stats) not enemy.atk (local useState, name/emoji/type only). Dodge capped at 30% (was 80% at SPD=160 with old SPD/200 formula).
 - Not finished: nothing

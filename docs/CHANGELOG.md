@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — refactor: report screen — pixel art theme, parent report, 5 sections
+
+### src/components/Report.jsx (full rewrite)
+- Removed: MissionAnalytics (shopV1 dead), raw session history table, all light-theme CSS
+- Header: "REPORT" in font-pixel yellow, dark background matching Home/Collection
+- Section 1: 2×2 stat cards (mins/rounds/acc/streak), color-coded
+- Section 2: Subject XP bars (Thai red / Math blue / Eng orange), readiness label below each
+- Section 3: ResponseSpeed component restyled dark (unchanged logic, visible only when data exists)
+- Section 4: Parent Report — natural Thai sentences from real data (dominant subject, accuracy insight, streak, speed trend, weak-subject nudge)
+- Section 5: "ควรเล่นอะไรต่อ" — actionable suggestion with gold border box
+
+---
+
 ## 2026-06-16 — fix: enemy ATK from correct source + cap dodge chance at 30%
 
 ### src/games/MoveSelectBattleMode.jsx

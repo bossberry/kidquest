@@ -940,3 +940,14 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: If canvas size is not a multiple of 12, the grid is centered with px offset — very small canvases (<36px) will have P=2 and look cramped but won't crash
 - Ready to start next: Update BattleScreen/ChallengerOverlay to pass `evoStage` in stats so teen/final stages render; OR Phase 4 NPC System
 - Needs Chatbot decision first: nothing blocking
+
+---
+
+**2026-06-16 — fix: restore audio on mobile + remove monster name TTS before question:**
+- Built:
+  - `audio.js`: replaced `{ once: true }` touchstart-only listener with a persistent touchstart+click listener that also pre-warms AudioContext from user gesture (creates it if null, resumes if suspended); removes itself after first fire. Added `if (!audioCtx || audioCtx.state === 'suspended') return` guard in `playBGM` — prevents silent node scheduling in suspended context; BGM will properly start after user's first interaction triggers the gesture handler
+  - `MoveSelectBattleMode.jsx`: removed the "Enemy name announce on mount" useEffect that called `speakTh(enemy.name + ' ปรากฏตัว')` 700ms after mount; removed `isFirstQuestionRef` and the 1800ms first-question delay (now a flat 500ms for all questions); question TTS is unchanged
+- Not finished: nothing
+- Blockers/risks found: BGM won't play until after first user gesture — correct iOS behavior, but means home screen is silent until tap. If Chatbot wants ambient sound on home screen, we'd need a visible "tap to start" overlay that both resumes audio and plays BGM
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: whether silent home screen is acceptable or needs a "tap to start" overlay

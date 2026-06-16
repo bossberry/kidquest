@@ -1584,3 +1584,14 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 ### Auto Creature Names
 - `getCreatureName(element, evoStage)` exported from `creatureAlgorithm.js` — Thai species names per element × stage
 - `getCreatureSeed(egg)` unchanged — backward-compatible with all existing callers
+
+## 2026-06-16 — Audio fix: mobile resume + remove monster name TTS
+
+### Mobile Audio (audio.js)
+- Replaced single `touchstart` `{ once: true }` listener with paired `touchstart` + `click` listeners that pre-warm AudioContext from the user gesture (create if null, resume if suspended), then self-remove after first fire
+- Added `if (!audioCtx || audioCtx.state === 'suspended') return` guard in `playBGM` — prevents silent WebAudio nodes from scheduling in a suspended context; BGM starts cleanly after first user interaction on iOS
+
+### Monster Name TTS Removed (MoveSelectBattleMode.jsx)
+- Removed "Enemy name announce on mount" useEffect (was `speakTh(enemy.name + ' ปรากฏตัว')` at 700ms)
+- Removed `isFirstQuestionRef` and the 1800ms first-question delay (flat 500ms now)
+- Question TTS (`speakTh`/`speakEn` for thai/eng/math) is unchanged

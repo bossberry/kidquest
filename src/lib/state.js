@@ -64,6 +64,7 @@ export function defaultState() {
     pendingEvoNotice: null,
     clearedMaps: [],
     secretMapExpiry: null,
+    responseTimeLogs: { thai: [], math: [], eng: [] },
   }
 }
 

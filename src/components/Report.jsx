@@ -126,6 +126,46 @@ function MissionAnalytics({ shopV1, name }) {
   )
 }
 
+const SPEED_SUBJECT_LABELS = { thai: 'ภาษาไทย', math: 'คณิต', eng: 'อังกฤษ' }
+const avgSec = arr => arr.length ? arr.reduce((s, x) => s + x.timeMs, 0) / arr.length / 1000 : null
+
+function ResponseSpeed({ responseTimeLogs }) {
+  const subjects = ['thai', 'math', 'eng']
+  const hasAny = subjects.some(s => (responseTimeLogs?.[s]?.length ?? 0) >= 5)
+  if (!hasAny) return null
+  return (
+    <div className="report-card">
+      <div className="rc-title">ความเร็วในการตอบ</div>
+      {subjects.map(sub => {
+        const logs = responseTimeLogs?.[sub] ?? []
+        if (logs.length < 5) return null
+        const recent   = logs.slice(-10)
+        const prev     = logs.slice(-20, -10)
+        const recentAvg = avgSec(recent)
+        const prevAvg   = avgSec(prev)
+        let trend = null
+        if (recentAvg !== null && prevAvg !== null && prev.length >= 5) {
+          const diff = prevAvg - recentAvg  // positive = faster
+          if (diff > 0.3)       trend = { text: `เร็วขึ้น ${diff.toFixed(1)} วิ`, color: 'var(--green-d)', icon: '⚡' }
+          else if (diff < -0.3) trend = { text: `ช้าลง ${Math.abs(diff).toFixed(1)} วิ`, color: 'var(--amber-d)', icon: '🐢' }
+          else                  trend = { text: 'เท่าเดิม', color: 'var(--muted)', icon: '→' }
+        }
+        return (
+          <div key={sub} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <span style={{ flex:1, fontWeight:600, fontSize:14 }}>{SPEED_SUBJECT_LABELS[sub]}</span>
+            {recentAvg !== null && (
+              <span style={{ fontSize:12, color:'var(--muted)' }}>{recentAvg.toFixed(1)} วิ/ข้อ</span>
+            )}
+            {trend && (
+              <span style={{ fontSize:12, color:trend.color }}>{trend.icon} {trend.text}</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Report() {
   const { state, totalXP } = useAppState()
   const totalTime = Math.round(state.mins || 0)
@@ -187,6 +227,7 @@ export default function Report() {
         </div>
         <MissionAnalytics shopV1={state.shopV1} name={state.name || 'ลูก'} />
         <SubjectReadiness sessionLog={state.sessionLog} />
+        <ResponseSpeed responseTimeLogs={state.responseTimeLogs} />
         <div className="report-card">
           <div className="rc-title">ประวัติการเล่น</div>
           {(!state.sessionLog || state.sessionLog.length === 0) ? (

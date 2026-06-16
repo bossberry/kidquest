@@ -118,6 +118,8 @@ export const ACTIONS = {
   MAP_CLEARED:               'MAP_CLEARED',
   SECRET_MAP_SPAWN:          'SECRET_MAP_SPAWN',
   SECRET_MAP_EXPIRE:         'SECRET_MAP_EXPIRE',
+  // Analytics
+  LOG_BATTLE_ANSWER:         'LOG_BATTLE_ANSWER',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
 }
@@ -449,6 +451,20 @@ function reducer(state, action) {
         : false
       const nextLog = [...prevLog, { ...entry, replayedImmediately }].slice(-50)
       return { ...state, sessionLog: nextLog }
+    }
+
+    case ACTIONS.LOG_BATTLE_ANSWER: {
+      const { subject, correct, responseTimeMs, timestamp } = action.payload
+      if (!subject || typeof responseTimeMs !== 'number') return state
+      const prev = state.responseTimeLogs?.[subject] ?? []
+      const updated = [...prev, { timeMs: responseTimeMs, correct, timestamp }].slice(-50)
+      return {
+        ...state,
+        responseTimeLogs: {
+          ...(state.responseTimeLogs ?? {}),
+          [subject]: updated,
+        },
+      }
     }
 
     case ACTIONS.UPDATE_LAST_HOME_VISIT:

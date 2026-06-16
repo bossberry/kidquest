@@ -227,8 +227,10 @@ export default function MoveSelectBattleMode({
   const effectCanvasRef = useRef(null)
   const overlayCanvasRef = useRef(null)
   const effectsRef      = useRef([])
-  const effectRafRef    = useRef(null)
-  const rafTimeRef      = useRef(0)
+  const effectRafRef      = useRef(null)
+  const rafTimeRef        = useRef(0)
+  const questionStartTime = useRef(null)
+  const responseTimeRef   = useRef(0)
 
   // Element system
   const [battleElement] = useState(() => {
@@ -344,8 +346,9 @@ export default function MoveSelectBattleMode({
     }, 25)
   }, [battleLog]) // eslint-disable-line
 
-  // ── TTS on question ─────────────────────────────────────────────────────────
+  // ── TTS on question + start response timer ───────────────────────────────────
   useEffect(() => {
+    questionStartTime.current = Date.now()
     const t = setTimeout(() => {
       if (!mountedRef.current) return
       if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
@@ -462,6 +465,8 @@ export default function MoveSelectBattleMode({
   function handleTap(choiceVal, idx) {
     if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
     lockedRef.current = true
+    responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
+    questionStartTime.current = null
     setSelectedCard(idx)
     playTone('tap'); playSFX('attack_launch')
     setEggAnimClass('charge')
@@ -478,6 +483,17 @@ export default function MoveSelectBattleMode({
   }
 
   function fireHit(_idx) {
+    dispatch({
+      type: ACTIONS.LOG_BATTLE_ANSWER,
+      payload: {
+        subject,
+        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.answer ?? ''),
+        correct: true,
+        responseTimeMs: responseTimeRef.current,
+        battleLevel: state.battleLevel,
+        timestamp: Date.now(),
+      },
+    })
     const { earned, isCrit } = onCorrect()
     if (xpBoostActiveRef.current) {
       xpBoostActiveRef.current = false
@@ -577,6 +593,17 @@ export default function MoveSelectBattleMode({
   }
 
   function fireMiss(idx) {
+    dispatch({
+      type: ACTIONS.LOG_BATTLE_ANSWER,
+      payload: {
+        subject,
+        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.answer ?? ''),
+        correct: false,
+        responseTimeMs: responseTimeRef.current,
+        battleLevel: state.battleLevel,
+        timestamp: Date.now(),
+      },
+    })
     onWrong()
     comboRef.current = 0
     if (ultimateRef.current) { ultimateRef.current = false; if (mountedRef.current) setUltimateReady(false) }

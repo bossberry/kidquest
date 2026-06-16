@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: unified HP scale between home and battle, localCreatureHP tracks damage in-battle
+
+### src/components/WorldBattle.jsx
+- Removed `WB_HP_SCALE` from `creatureStats.HP` — HP is now raw same-unit as Home screen
+- `creatureCurrentHP = creature.currentHP ?? creatureStats.HP` (no scale conversion)
+- `handleCreatureTakeDamage` dispatches raw damage (no `/ WB_HP_SCALE` division)
+- Passes `onCreatureHeal={() => {}}` prop to MoveSelectBattleMode
+
+### src/games/MoveSelectBattleMode.jsx
+- Accepts `onCreatureHeal` prop
+- `fireHit()` increments `localCreatureHP` +1 when `creature.bondMeter >= 75` so the HP bar reflects passive heals in-battle
+
+---
+
 ## 2026-06-16 — fix: creature HP decreases in battle, HP numbers shown, name badge visible, shake on hit
 
 ### src/games/MoveSelectBattleMode.jsx

@@ -159,7 +159,6 @@ export default function WorldBattle({ navigate }) {
   // calcCreatureStats produces baseStat=100 scale: ATK≈40-70, HP≈120-200.
   // World enemies are balanced for ATK=4-5, HP=32-52 — divide by ~10-14.
   const WB_STAT_SCALE = 0.07   // ATK/DEF: ~60 → 4  (11 hits vs easiest enemy)
-  const WB_HP_SCALE   = 0.10   // HP:      ~166 → 17 (faint after ~8-9 non-dodged misses)
 
   const creatureStats = React.useMemo(() => {
     const base = creature?.stats ?? {}
@@ -170,7 +169,7 @@ export default function WorldBattle({ navigate }) {
     const spdBonus = bond >= 50 ? 30 : 0                            // 50%→+15% dodge
     return {
       ...base,
-      HP:  Math.max(15, Math.round((base.HP  ?? 100) * WB_HP_SCALE)  + lvBonus),
+      HP:  Math.max(15, Math.round(base.HP  ?? 100) + lvBonus),
       ATK: Math.max(3,  Math.round(Math.round((base.ATK ?? 50)  * WB_STAT_SCALE) * atkMult) + Math.floor(lvBonus * 0.5)),
       DEF: Math.max(0,  Math.round((base.DEF ?? 50)  * WB_STAT_SCALE)),
       SPD: (base.SPD ?? 40) + spdBonus,
@@ -238,9 +237,7 @@ export default function WorldBattle({ navigate }) {
 
   const creatureCurrentHP = Math.min(
     creatureStats.HP,
-    creature?.currentHP != null
-      ? Math.round(creature.currentHP * WB_HP_SCALE)
-      : creatureStats.HP
+    creature?.currentHP ?? creatureStats.HP
   )
 
   function onCorrect() {
@@ -274,8 +271,7 @@ export default function WorldBattle({ navigate }) {
 
   function handleCreatureTakeDamage(damage) {
     if (!creatureId) return
-    // Scale battle damage back to state HP range so state HP decreases proportionally
-    dispatch({ type: ACTIONS.CREATURE_TAKE_DAMAGE, payload: { creatureId, damage: Math.round(damage / WB_HP_SCALE) } })
+    dispatch({ type: ACTIONS.CREATURE_TAKE_DAMAGE, payload: { creatureId, damage } })
   }
 
   function handleBattleXP(xp) {
@@ -354,6 +350,7 @@ export default function WorldBattle({ navigate }) {
         creatureCurrentHP={creatureCurrentHP}
         creatureName={creature?.creature?.n}
         onCreatureTakeDamage={handleCreatureTakeDamage}
+        onCreatureHeal={() => {}}
         onBattleXP={handleBattleXP}
       />
     </div>

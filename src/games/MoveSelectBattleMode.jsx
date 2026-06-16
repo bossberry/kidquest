@@ -199,6 +199,7 @@ export default function MoveSelectBattleMode({
   creatureCurrentHP,
   creatureName,
   onCreatureTakeDamage,
+  onCreatureHeal,
   onBattleXP,
   onFaint,
 }) {
@@ -504,6 +505,9 @@ export default function MoveSelectBattleMode({
       },
     })
     const { earned, isCrit } = onCorrect()
+    if (isWorldBattle && (creature?.bondMeter ?? 0) >= 75) {
+      setLocalCreatureHP(h => Math.min(creatureStats?.HP ?? 999, h + 1))
+    }
     if (xpBoostActiveRef.current) {
       xpBoostActiveRef.current = false
       if (mountedRef.current) setXpBoost(false)

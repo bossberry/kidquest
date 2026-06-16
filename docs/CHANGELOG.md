@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: flat 20% dodge cap + temporary item boosts with cooldown timer
+
+### src/games/MoveSelectBattleMode.jsx
+- Dodge = flat 20% (removed SPD scaling; SPD=210 was giving 100% dodge)
+
+### src/components/Home.jsx
+- `activeBoosts` state for ribbon (5 min / 30 min cooldown) + star (10 min / 60 min cooldown)
+- Ribbon and star give temporary visual buff only — no permanent CREATURE_STAT_BOOST dispatch
+- Ribbon expiry useEffect auto-clears `hasRibbon` visual
+- Item tray: orange active overlay with countdown, dark cooldown overlay with timer, count badge only when ready
+
+---
+
 ## 2026-06-16 — refactor: report screen — pixel art theme, parent report, 5 sections
 
 ### src/components/Report.jsx (full rewrite)

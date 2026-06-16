@@ -23,6 +23,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Dodge cap + temporary item boosts:**
+- Built: flat 20% dodge (removed SPD scaling). Ribbon/star now give temporary visual buffs (5min/10min) with cooldown (30min/60min); no permanent stat changes to creature.
+- Not finished: nothing
+- Blockers/risks found: activeBoosts resets on page reload (in-memory only). Not persisted to localStorage. Acceptable for now — Chopin won't notice the reset.
+- Ready to start next: Phase 2 WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-16 — Report screen rewrite (5 sections, pixel art):**
 - Built: full rewrite of Report.jsx — removed MissionAnalytics + raw session history; added dark theme; 5 sections (overview, XP bars, response speed, parent report in Thai, what to do next).
 - Not finished: nothing

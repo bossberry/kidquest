@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: restore login button + auto-restore from Supabase when local state is empty
+
+### src/components/Home.jsx
+- Added `onOpenLogin` and `onOpenProfile` to function props (were passed from App.jsx but silently ignored)
+- Added `isLoggedIn` state via `supabase.auth.getSession()` + `onAuthStateChange` listener
+- Imported `supabase` from lib
+- Header: login button (เข้าสู่ระบบ) when not logged in; profile button (shows child name) when logged in
+
+### src/context/StateContext.jsx
+- SIGNED_IN handler: now always takes cloud data when cloud has hatchedEggs and local is empty, regardless of rounds count (prevents reset state from blocking restore)
+- Added startup guard: if user is authenticated but local hatchedEggs is empty on mount, auto-fetches from Supabase and dispatches INIT
+
+---
+
 ## 2026-06-16 — feat: connect creature/egg/tier/level systems — unified progression via PROGRESSION_MAP
 
 ### src/config/battleConfig.js

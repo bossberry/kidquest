@@ -65,6 +65,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split; or playtest battle balance
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Emergency fixes: login button + Supabase auto-restore (3 tasks):**
+- Built: Home.jsx — added onOpenLogin/onOpenProfile to props signature (were passed from App but ignored); added isLoggedIn useState via supabase.auth.getSession + onAuthStateChange; login/profile button in header right side. StateContext.jsx SIGNED_IN handler — always takes cloud data if cloud has creatures but local doesn't (before: only took cloud if rounds >= local rounds). StateContext.jsx startup — after loadState, if user is logged in but hatchedEggs empty, auto-fetches cloud and dispatches INIT
+- Not finished: nothing
+- Blockers/risks found: TASK 3 startup guard runs AFTER loadState() which also tries to load from cloud — there's a race condition risk on slow connections (both dispatches INIT). Acceptable for now; second dispatch wins and state is correct
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-16 — Creature/egg/tier connection audit (6 tasks):**
 - Built: PROGRESSION_MAP in battleConfig.js (5 tiers + evoRequirements); calcEvoStage now reads PROGRESSION_MAP thresholds (teen: Lv11+Tier1, final: Lv26+Tier3+Bond60); readyToHatch removed from ADD_XP and moved to SET_SUBJECT_LEVEL (tier advance when all subjects ≥ next minSubjectLevel, hatchedEggs < 6); state.grade auto-increments on tier advance; Home.jsx readyToHatch guard cleaned (removed stale stage check); Collection.jsx CreatureJourney component (evo roadmap ○/⚡/✅ with lv/tier/bond hints, stage bar); Report.jsx tier progression line in parent report
 - Not finished: HatchOverlay still only supports first egg (hasCreature = length >= 1); subsequent egg hatch UI needs new flow (out of scope)

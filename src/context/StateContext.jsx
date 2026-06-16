@@ -311,7 +311,17 @@ function reducer(state, action) {
       const count = state.homeItems?.[key] || 0
       if (count <= 0) return state
       const updates = { homeItems: { ...state.homeItems, [key]: count - 1 } }
-      if (key === 'food') updates.happiness = Math.min(100, (state.happiness || 80) + 25)
+      if (key === 'food') {
+        updates.happiness = Math.min(100, (state.happiness || 80) + 25)
+        const activeId = (state.party || [])[0]
+        if (activeId) {
+          updates.hatchedEggs = (state.hatchedEggs || []).map(e => {
+            if (e.id !== activeId) return e
+            const maxHP = e.stats?.HP ?? 100
+            return { ...e, currentHP: Math.min(maxHP, (e.currentHP ?? 0) + 30) }
+          })
+        }
+      }
       if (key === 'ribbon') {
         updates.activeBoosts = {
           ...(state.activeBoosts || {}),
@@ -581,12 +591,15 @@ function reducer(state, action) {
 
     case ACTIONS.CREATURE_HEAL: {
       const { creatureId, amount } = action.payload
-      const hatchedEggs = (state.hatchedEggs || []).map(e => {
-        if (e.id !== creatureId) return e
-        const maxHP = (e.stats?.HP ?? 10) + ((e.battleLevel ?? 1) - 1)
-        return { ...e, currentHP: Math.min(maxHP, (e.currentHP ?? maxHP) + amount), hpUpdatedAt: Date.now() }
-      })
-      return { ...state, hatchedEggs }
+      return {
+        ...state,
+        hatchedEggs: (state.hatchedEggs || []).map(e => {
+          if (e.id !== creatureId) return e
+          const maxHP = e.stats?.HP ?? 100
+          const newHP = Math.min(maxHP, (e.currentHP ?? maxHP) + amount)
+          return { ...e, currentHP: newHP }
+        })
+      }
     }
 
     case ACTIONS.CREATURE_GAIN_BATTLE_XP: {
@@ -744,11 +757,12 @@ function reducer(state, action) {
       const { creatureId, stat, amount } = action.payload
       return {
         ...state,
-        hatchedEggs: state.hatchedEggs.map(e =>
-          e.id === creatureId
-            ? { ...e, stats: { ...(e.stats ?? {}), [stat]: (e.stats?.[stat] ?? 0) + amount } }
-            : e
-        )
+        hatchedEggs: (state.hatchedEggs || []).map(e => {
+          if (e.id !== creatureId) return e
+          const newStats = { ...(e.stats ?? {}), [stat]: (e.stats?.[stat] ?? 0) + amount }
+          const maxHP = newStats.HP ?? 100
+          return { ...e, stats: newStats, currentHP: Math.min(maxHP, e.currentHP ?? maxHP) }
+        })
       }
     }
 
@@ -859,6 +873,13 @@ export function StateProvider({ children }) {
           return { ...e, evoStage: evo }
         })
         migrated._evoRechecked = true
+      }
+      // Clamp currentHP to stats.HP max (fixes corrupted states where currentHP > stats.HP)
+      if (migrated.hatchedEggs?.length) {
+        migrated.hatchedEggs = migrated.hatchedEggs.map(e => ({
+          ...e,
+          currentHP: Math.min(e.stats?.HP ?? 100, e.currentHP ?? e.stats?.HP ?? 100)
+        }))
       }
       const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
       const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated

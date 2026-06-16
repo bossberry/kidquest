@@ -1,73 +1,69 @@
 # KidQuest — Goals
 
-## Year 1 Goals
+## Who We're Building For
 
-Chopin is currently ~5 years old (born July 18, 2020). Year 1 targets Kindergarten core with Early Grade 1 stretch.
+**Chopin** — born July 18, 2020. Turns 6 in July 2026. Loves Sonic, Minecraft, Pokémon.  
+Learns through play, not passive instruction.
 
-### Core Learning Goals
+---
+
+## Current Status (2026-06-16)
+
+Core systems are built and stable:
+
+| System | Status |
+|--------|--------|
+| Egg system (9 stages, pet/feed, state machine) | ✅ Live |
+| Creature system (6 elements, 3 evo stages, bond) | ✅ Live |
+| Battle system (party, real HP, elements, items) | ✅ Live |
+| Map system (tile engine, 3 world tiers, boss + maze) | ✅ Live |
+| Learning: Thai (5L), Math (9L), English (4L) | ✅ Live |
+| Collection, Report, Home, Minigames (5) | ✅ Live |
+
+Current focus: **content depth and polish**. No new engine systems needed.
+
+---
+
+## Year 1 Goals (age 5–6, Kindergarten → Early Grade 1)
+
+### Learning Goals
 - [ ] Thai: letter recognition → simple spelling → short sentences (อนุบาล core)
-- [ ] Math: counting → addition/subtraction 1–20 → simple word problems (อนุบาล core)
-- [ ] English: A–Z phonics → CVC words → sight words → simple sentences (อนุบาล/KG core)
-- [ ] General knowledge: integrated into missions (animals, objects, colors, shapes)
+- [ ] Math: counting → addition/subtraction 1–20 → word problems (อนุบาล core)
+- [ ] English: A–Z phonics → CVC words → sight words → simple sentences (KG core)
+- [ ] General knowledge: woven naturally into missions
 
-### Stretch Goals (Early Grade 1)
-- [ ] Thai: 3-syllable words, short paragraph reading
-- [ ] Math: addition/subtraction to 100, comparison, simple patterns
-- [ ] English: short sentences, basic conversation phrases
+### Remaining Engine Goals
+- [ ] Phase 4: NPC dialogue system (5 NPCs with gifts + quests)
+- [ ] Cooking mission MVP (after shop play-validation)
+- [ ] First-run onboarding flow
 
-### Engine / Systems Goals
-- [x] Egg RPG loop (learn → XP → evolve → hatch → creature → battle)
-- [x] Mastery-based level unlock (≥80% accuracy)
-- [x] Persistent profile (name, grade)
-- [x] 5 minigames unlocked by progression
-- [ ] Mission system (integrated multi-subject missions)
-- [ ] First integrated mission (shop / cooking / garden)
-- [ ] Parent dashboard improvements
-
-### UX Goals
-- [x] No alert() — friendly in-app messages
-- [x] Sound persists across sessions
-- [x] XP boost indicator
-- [ ] First-run onboarding flow (before ProfileModal is opened manually)
-- [ ] Daily learning habit indicators
+### Definition of Done (Year 1)
+> Chopin voluntarily opens KidQuest, plays through a session, and asks to play again.
 
 ---
 
 ## Non-Goals (Year 1)
 
-These are explicitly out of scope for Year 1:
-
 - Grade 2+ content
 - Classroom / multi-student mode
-- Payment system (subscription not needed until app is ready to share)
+- Payment system (not until app is ready to share)
 - Multi-child profiles
-- Full ม.ต้น / ม.ปลาย content
 - AI-generated personalized questions
 - Multiplayer or social features
-- Native mobile app (PWA is acceptable later)
-- Complete K-6 curriculum
+- Native mobile app (PWA acceptable later)
 
 ---
 
-## Definition of Done (Year 1)
+## Long-Term Grade Structure
 
-Chopin voluntarily opens KidQuest, plays through a session, and asks to play again.
+```
+Kindergarten / age 5–6    ← currently building
+  └─ Stretch: Early Grade 1
 
-Not:
-- All content complete
-- All grades implemented
-- Feature parity with commercial apps
+Grade 1–2 / age 7–8       ← when Chopin is ready
+Grade 3–5 / age 9–11
+Grade 6–8 / age 12        ← long-term target ceiling
+```
 
----
-
-## Long-Term Goals (Year 2+)
-
-Only added when Year 1 is solid and Chopin is approaching Grade 1:
-
-- Grade 1 core content
-- Integrated mission system with shop/cooking/garden worlds
-- Multi-world narrative (story that ties subjects together)
-- Parent subscription (199 THB/month) if sharing with other families
-- Multi-child profiles if needed
-
-These are **not** actively developed until Year 1 goals are complete.
+New grades are only added when Chopin is actually approaching them.  
+**Golden Rule: build one mastery level ahead. Never six years ahead.**

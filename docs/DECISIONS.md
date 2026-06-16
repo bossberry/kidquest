@@ -66,3 +66,15 @@ Full system definition: `docs/AI_SYSTEMS.md`.
 - **Warn before proceeding** when a request violates the Golden Rule, Year 1 scope, stable engine philosophy, or non-goals. Explain the violation, suggest a smaller alternative, then proceed only if the user explicitly overrides.
 - **The user always has final authority.** Warnings are expected behavior, not obstruction.
 - See `VISION.md` → Scope Guardian Mandate for the full list of warning triggers.
+
+---
+
+## 2026-06-16
+
+- **Creature rendering**: `drawCreature(canvas, seed, stats)` from `creatureAlgorithm.js` is the single source of truth for all in-game creature display. `drawCreature.js` (DNA beauty layer) is used only for HatchOverlay reveal animation. Never mix rendering paths for the same use case.
+- **6 elements × 3 evo stages**: fire/water/thunder/nature/shadow/light × baby/teen/final. Determined at hatch by subject XP + accuracy + streak. Element and stage drive all visual differentiation.
+- **Single active creature**: app is locked to 1 active creature at a time. Up to 6 lifetime creatures per account. `hatchedEggs.length >= 6` blocks new hatching.
+- **Enemy HP scaling**: `Math.pow(playerLevel, 1.8)` ensures ~10 correct answers per battle at any level. This formula is intentional — do not change without testing battle duration.
+- **Auto-generated creature names**: `generateCreatureName(dna)` in `creatureGenerator.js` assigns a deterministic Thai name at hatch. Manual name-input UI was removed. Do not re-add a text input.
+- **ChallengerOverlay removed**: confirmed dead code as of 2026-06-16. Do not restore. The Challenger mechanic (AI_OPPONENTS via BattleScreen) still exists but is not a primary path.
+- **AI Sync decisions updated**: GPT removed from workflow. Claude Chatbot now handles all research, design review, and open questions. `CHATBOT_NOTES.md` replaces `GPT_NOTES.md` as the decision handoff file.

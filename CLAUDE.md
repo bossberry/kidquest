@@ -140,10 +140,10 @@ The notification must:
 
 ## Key Facts
 
-- Primary user: Chopin (~5 years old), likes Sonic / Pokémon / Minecraft
+- Primary user: Chopin (turning 6 in July 2026), likes Sonic / Pokémon / Minecraft
 - Business model: 199 THB/month subscription (not yet implemented)
 - Hosting: Vercel; Supabase: `https://dgpsnlkedergkbhqnjpu.supabase.co`
 - localStorage key: `kq_state`
 - Level unlock: ≥80% accuracy; fanfare: ≥90%
-- Challenger: every 15 `dailyBattleRounds`
 - Egg algorithm: LOCKED — `eggAlgorithm.js` must never be modified
+- Preferred model for everyday tasks: Claude Sonnet (not Opus)

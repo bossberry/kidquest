@@ -67,6 +67,9 @@ export function defaultState() {
     clearedMaps: [],
     secretMapExpiry: null,
     responseTimeLogs: { thai: [], math: [], eng: [] },
+    subjectSessionStreak: { thai: 0, math: 0, eng: 0 },
+    subjectLevelFloor:    { thai: 1, math: 1, eng: 1 },
+    pendingLevelUp: null,
   }
 }
 

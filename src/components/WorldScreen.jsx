@@ -20,6 +20,14 @@ import { drawItem } from '../lib/itemArt.js'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
+// Sky tint by subject level: morning → afternoon → sunset → night
+const SKY_TINTS = [
+  'rgba(0,0,0,0)',            // Lv1: dawn — no tint
+  'rgba(255,200,60,0.09)',    // Lv2: golden afternoon
+  'rgba(220,80,30,0.14)',     // Lv3: sunset
+  'rgba(30,10,70,0.25)',      // Lv4+: dark / night
+]
+
 // ── Chest pixel art drawing ──────────────────────────────────────────────────
 
 function drawChest(ctx, x, y, frame) {
@@ -701,7 +709,7 @@ export default function WorldScreen({ navigate }) {
   const triggerBattle = useCallback((enemy) => {
     if (stateRef.current.pendingBattle) return  // already awaiting creature selection
     const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
-    const level   = getBattleLevel(subject, stateRef.current)
+    const level   = stateRef.current.subjectLevels?.[subject] ?? 1
     // Write info so death animation plays when WorldScreen remounts after victory
     if (enemy.id !== '_grass_') {
       try {
@@ -742,7 +750,7 @@ export default function WorldScreen({ navigate }) {
     const worldDef = WORLD_LEVELS[wLevel]
     if (!worldDef) return
     const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
-    const level = getBattleLevel(subject, stateRef.current)
+    const level   = stateRef.current.subjectLevels?.[subject] ?? 1
     dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
       position: { screen: 'BOSS', tileX: BOSS_TILE.col, tileY: BOSS_TILE.row },
       enemy: {
@@ -1241,6 +1249,17 @@ export default function WorldScreen({ navigate }) {
         height={viewSize.h}
         style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated' }}
       />
+
+      {/* Sky tint — changes with subject level (morning/afternoon/sunset/night) */}
+      {(() => {
+        const subj = getBattleSubject(state.sessionLog, state)
+        const lvl  = Math.max(0, (state.subjectLevels?.[subj] ?? 1) - 1)
+        const tint = SKY_TINTS[Math.min(lvl, SKY_TINTS.length - 1)]
+        return <div style={{
+          position: 'absolute', inset: 0, background: tint,
+          pointerEvents: 'none', zIndex: 1, transition: 'background 3s ease',
+        }} />
+      })()}
 
       {/* Fade overlay */}
       <div style={{

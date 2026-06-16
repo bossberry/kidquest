@@ -49,6 +49,8 @@ _Last updated: 2026-06-16_
 
 ## Done (major systems)
 
+- [x] Adaptive difficulty system: auto level-up (3 streak ≥80%) + silent level-down (<50%) + LevelUpCutscene + map sky tint by level (2026-06-16)
+
 - [x] React 18 + Vite migration from single-file HTML prototype
 - [x] Supabase auth + cloud sync; guest mode; localStorage always-on
 - [x] Procedural egg algorithm (LOCKED) — 9 stages, adaptive XP pacing

@@ -1,5 +1,40 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — feat: adaptive difficulty — auto level up/down + level-up cutscene + map sky tint
+
+### src/lib/state.js
+- Added to defaultState(): `subjectSessionStreak`, `subjectLevelFloor`, `pendingLevelUp`
+
+### src/context/StateContext.jsx
+- Added ACTIONS: SET_SUBJECT_LEVEL, SET_PENDING_LEVEL_UP, CLEAR_PENDING_LEVEL_UP, SET_SUBJECT_SESSION_STREAK
+- Added reducer cases for all 4 new actions; SET_SUBJECT_LEVEL also updates subjectLevelFloor
+
+### src/components/WorldBattle.jsx
+- onComplete(): after each non-boss battle, check score and subject streak
+  - score ≥ 0.80 → increment streak; after 3 consecutive → dispatch SET_SUBJECT_LEVEL + SET_PENDING_LEVEL_UP + reset streak
+  - score < 0.50 → silent level down (clamped to floor), reset streak
+  - 0.50–0.79 → reset streak only (hold current level)
+
+### src/components/WorldScreen.jsx
+- triggerBattle + enterBossBattle: replaced `getBattleLevel()` with `state.subjectLevels?.[subject] ?? 1`
+- Added SKY_TINTS constant (4 time-of-day colors for levels 1/2/3/4+)
+- Added sky tint overlay div in JSX (reads active subject via getBattleSubject + subjectLevels, transitions with CSS)
+
+### src/components/LevelUpCutscene.jsx (new)
+- 4-phase cutscene: flash → reveal → celebrate → done
+- Canvas star rain animation (35 stars, 4-point rotating shapes, 6 colors)
+- Displays subject label, LEVEL UP!, Lv.old→Lv.new, new level name (Thai)
+- "แตะเพื่อดำเนินการต่อ" blink prompt when done; tap triggers onDone
+
+### src/App.jsx
+- Imported LevelUpCutscene; global overlay renders when `state.pendingLevelUp` is set
+- onDone: dispatches CLEAR_PENDING_LEVEL_UP + navigates to world
+
+### src/styles.css
+- Added keyframes: `blink`, `levelup-pulse`, `scale-pop`, `arrow-slide`
+
+---
+
 ## 2026-06-16 — feat: report subject level/grade section
 
 ### src/components/Report.jsx

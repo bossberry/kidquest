@@ -128,6 +128,11 @@ export const ACTIONS = {
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
+  // Adaptive difficulty
+  SET_SUBJECT_LEVEL:          'SET_SUBJECT_LEVEL',
+  SET_PENDING_LEVEL_UP:       'SET_PENDING_LEVEL_UP',
+  CLEAR_PENDING_LEVEL_UP:     'CLEAR_PENDING_LEVEL_UP',
+  SET_SUBJECT_SESSION_STREAK: 'SET_SUBJECT_SESSION_STREAK',
 }
 
 function reducer(state, action) {
@@ -741,6 +746,29 @@ function reducer(state, action) {
             ? { ...e, stats: { ...(e.stats ?? {}), [stat]: (e.stats?.[stat] ?? 0) + amount } }
             : e
         )
+      }
+    }
+
+    case ACTIONS.SET_SUBJECT_LEVEL: {
+      const { subject, level } = action.payload
+      return {
+        ...state,
+        subjectLevels:     { ...(state.subjectLevels     || {}), [subject]: level },
+        subjectLevelFloor: { ...(state.subjectLevelFloor || {}), [subject]: level },
+      }
+    }
+
+    case ACTIONS.SET_PENDING_LEVEL_UP:
+      return { ...state, pendingLevelUp: action.payload }
+
+    case ACTIONS.CLEAR_PENDING_LEVEL_UP:
+      return { ...state, pendingLevelUp: null }
+
+    case ACTIONS.SET_SUBJECT_SESSION_STREAK: {
+      const { subject, streak } = action.payload
+      return {
+        ...state,
+        subjectSessionStreak: { ...(state.subjectSessionStreak || {}), [subject]: streak },
       }
     }
 

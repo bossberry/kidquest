@@ -57,7 +57,13 @@ _Last updated: 2026-06-16_
 - Math visual models: L1/L2 = emoji objects grid; L3 = ten-frame; L4 = cross-out; L5+ = dot visualization
 - Teach overlay (first time per level), GameHeader (progress + streak), hint system (amber highlight / reveal)
 - Battle subject routing: `battleSubject.js` — strict thai→math→eng rotation with `notready` override
-- Adaptive level rotation: `getBattleLevel()` cycles easy→hard→medium every 3 battles
+- **Adaptive difficulty system** (2026-06-16):
+  - `state.subjectLevels` drives actual battle level (replaces `getBattleLevel()` rotation)
+  - After each non-boss battle: score ≥0.80 increments `subjectSessionStreak[subject]`; 3 consecutive → level up + cutscene
+  - Score <0.50 → silent level down (clamped to `subjectLevelFloor`, never below initial)
+  - Level up dispatches `SET_PENDING_LEVEL_UP` → `LevelUpCutscene.jsx` global overlay shows
+  - `LevelUpCutscene.jsx`: flash→reveal→celebrate→done phases; canvas star rain; tap to continue → navigate('world')
+  - Map sky tint shifts by subject level: L1=dawn, L2=golden, L3=sunset, L4+=dark (CSS rgba overlay, 3s transition)
 - `subjectReadiness.js` shared utility: 4 states (Strong/Comfortable/Exploring/Not Ready)
 
 ### Home Screen (`Home.jsx`, ~969 lines)

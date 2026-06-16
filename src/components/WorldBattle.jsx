@@ -301,6 +301,34 @@ export default function WorldBattle({ navigate }) {
       level: levelConfig.id, score,
       wrong: 0, dur, completed: true,
     }})
+
+    // Adaptive difficulty: level up after 3 strong sessions, silent level down on weak
+    if (!isBossBattle) {
+      const MAX_LEVEL = { thai: 5, math: 8, eng: 4 }
+      const curLevel  = state.subjectLevels?.[subject] ?? 1
+      const curStreak = state.subjectSessionStreak?.[subject] ?? 0
+      if (score >= 0.80) {
+        const newStreak = curStreak + 1
+        if (newStreak >= 3 && curLevel < (MAX_LEVEL[subject] ?? 5)) {
+          const newLevel = curLevel + 1
+          dispatch({ type: ACTIONS.SET_SUBJECT_LEVEL, payload: { subject, level: newLevel } })
+          dispatch({ type: ACTIONS.SET_PENDING_LEVEL_UP, payload: { subject, oldLevel: curLevel, newLevel } })
+          dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
+        } else {
+          dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: newStreak } })
+        }
+      } else if (score < 0.50) {
+        const floor    = state.subjectLevelFloor?.[subject] ?? 1
+        const newLevel = Math.max(floor, curLevel - 1)
+        if (newLevel < curLevel) {
+          dispatch({ type: ACTIONS.SET_SUBJECT_LEVEL, payload: { subject, level: newLevel } })
+        }
+        dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
+      } else {
+        dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
+      }
+    }
+
     if (isBossBattle) {
       dispatch({ type: ACTIONS.DEFEAT_BOSS })
     }

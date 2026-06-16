@@ -652,6 +652,12 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 /* Screen transition overlay */
 .px-transition-overlay{position:fixed;inset:0;background:var(--px-black);z-index:999;pointer-events:none}
 
+/* Level-up cutscene keyframes */
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes levelup-pulse{from{text-shadow:0 0 16px #FF8800,0 0 40px #FFD700}to{text-shadow:0 0 30px #FFFF00,0 0 60px #FF8800,0 0 90px #FFD700}}
+@keyframes scale-pop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes arrow-slide{0%{transform:translateY(-12px);opacity:0}100%{transform:translateY(0);opacity:1}}
+
 /* Pixel bottom nav */
 .px-bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:800;background:var(--px-darkest);border-top:3px solid var(--px-border);display:flex;justify-content:space-around;padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
 .px-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font-pixel);font-size:7px;color:var(--px-light);cursor:pointer;padding:4px 12px;border:none;background:none;-webkit-tap-highlight-color:transparent}

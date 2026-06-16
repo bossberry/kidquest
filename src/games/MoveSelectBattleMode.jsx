@@ -414,9 +414,9 @@ export default function MoveSelectBattleMode({
   // ── Battle item use ────────────────────────────────────────────────────────
   function useBattleItem(itemKey) {
     if (itemUsed || lockedRef.current || victoryMode || battleOverRef.current) return
-    if ((state.items?.[itemKey] || 0) <= 0) return
+    if ((state.battleItems?.[itemKey] || 0) <= 0) return
 
-    dispatch({ type: ACTIONS.USE_ITEM, payload: { key: itemKey } })
+    dispatch({ type: ACTIONS.USE_BATTLE_ITEM, payload: { key: itemKey } })
     setItemUsed(true)
     playSFX('item_collect')
 
@@ -717,7 +717,7 @@ export default function MoveSelectBattleMode({
     if (Math.random() < 0.10) {
       const bonus = rollBattleItem()
       if (bonus) {
-        dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: bonus } })
+        dispatch({ type: ACTIONS.DROP_BATTLE_ITEM, payload: { key: bonus } })
         if (mountedRef.current) setVictoryBonus(bonus)
       }
     }
@@ -1014,10 +1014,10 @@ export default function MoveSelectBattleMode({
       })()}
 
       {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
-      {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.items?.[k] || 0) > 0) && (
+      {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.battleItems?.[k] || 0) > 0) && (
         <div style={{ display:'flex', gap:6, padding:'0 10px 4px', flexShrink:0, alignItems:'center' }}>
           {Object.keys(BATTLE_ITEMS).map(key => {
-            const count = state.items?.[key] || 0
+            const count = state.battleItems?.[key] || 0
             if (count <= 0) return null
             const item = BATTLE_ITEMS[key]
             return (
@@ -1061,7 +1061,7 @@ export default function MoveSelectBattleMode({
       {pendingItem && !victoryMode && (() => {
         const key = pendingItem
         const item = BATTLE_ITEMS[key]
-        const count = state.items?.[key] || 0
+        const count = state.battleItems?.[key] || 0
         const descLines = (ITEM_DESCRIPTIONS[item.effect] || '').split('\n')
         return (
           <div

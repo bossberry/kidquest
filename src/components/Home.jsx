@@ -11,10 +11,10 @@ import { drawItem } from '../lib/itemArt.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 
 const ITEM_DEFS = [
-  { key:'food',   label:'อาหาร' },
-  { key:'ribbon', label:'ริบบิ้น' },
-  { key:'potion', label:'น้ำมนต์' },
-  { key:'star',   label:'ดาว' },
+  { key:'food',   label:'น่องไก่', effect:'HP+100',        desc:'ฟื้นฟู HP ของครีเอเจอร์' },
+  { key:'ribbon', label:'ริบบิ้น', effect:'SPD+10 (5นาที)', desc:'เพิ่มความเร็วชั่วคราว' },
+  { key:'potion', label:'น้ำมนต์', effect:'XP+20',          desc:'เพิ่ม XP วิชาหลัก' },
+  { key:'star',   label:'ดาว',     effect:'XP×2 (10นาที)', desc:'XP สองเท่าชั่วคราว' },
 ]
 
 // Duration (ms) for each idle animation before clearing state
@@ -335,9 +335,9 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       playTone('tap')
       return
     }
-    const count = state.items?.[key] || 0
+    const count = state.homeItems?.[key] || 0
     if (count <= 0) return
-    dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
+    dispatch({ type: ACTIONS.USE_HOME_ITEM, payload: { key } })
     setActiveItem(null)
 
     smRef.current.comboCount = 0  // items reset combo so next pet sequence starts clean
@@ -830,7 +830,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       }}>
         <div style={{ display:'flex', gap:8 }}>
         {ITEM_DEFS.map(({ key, label }) => {
-          const count    = state.items?.[key] || 0
+          const count    = state.homeItems?.[key] || 0
           const isActive = activeItem === key
           const boost    = activeBoosts[key]
           const now      = Date.now()

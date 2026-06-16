@@ -37,7 +37,7 @@ export default function Collection() {
             onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
         )}
-        {tab === 'items' && <ItemBag items={state.items} />}
+        {tab === 'items' && <ItemBag homeItems={state.homeItems} battleItems={state.battleItems} />}
       </div>
       {selectedEgg && (
         <CreatureDetailPopup
@@ -116,60 +116,86 @@ function PartyGrid({ partyCreatures, partySlots, onSelect, onSetActive }) {
   )
 }
 
-const ITEM_DEFS = [
-  { key:'food',    label:'น่องไก่',   effect:'HP+100',  color:'#8B4513' },
-  { key:'ribbon',  label:'ริบบิ้น',   effect:'SPD+10',  color:'#FF1493' },
-  { key:'potion',  label:'น้ำมนต์',   effect:'HP เต็ม', color:'#1D9E75' },
-  { key:'star',    label:'ดาวทอง',    effect:'XP+50',   color:'#DAA520' },
-  { key:'thunder', label:'พลังฟ้า',   effect:'ATK+20',  color:'#EF9F27' },
-  { key:'shield',  label:'โล่',       effect:'DEF+15',  color:'#4169E1' },
-  { key:'bone',    label:'กระดูก',    effect:'CRIT+10', color:'#F5F5F5' },
-  { key:'coin',    label:'เหรียญ',    effect:'สะสม',    color:'#DAA520' },
+const HOME_ITEM_DEFS = [
+  { key:'food',   label:'น่องไก่', effect:'HP+100',        color:'#8B4513' },
+  { key:'ribbon', label:'ริบบิ้น', effect:'SPD+10 (5นาที)', color:'#FF1493' },
+  { key:'potion', label:'น้ำมนต์', effect:'XP+20',          color:'#1D9E75' },
+  { key:'star',   label:'ดาว',     effect:'XP×2 (10นาที)', color:'#DAA520' },
 ]
 
-function ItemBag({ items }) {
-  const total = Object.values(items ?? {}).reduce((s, v) => s + (v || 0), 0)
+const BATTLE_ITEM_DEFS = [
+  { key:'scroll',  label:'คาถา',    effect:'ATK+30 (1ยก)', color:'#9B59B6' },
+  { key:'thunder', label:'พลังฟ้า', effect:'ATK+20',       color:'#EF9F27' },
+  { key:'gem',     label:'เพชร',    effect:'DEF+20',       color:'#00BFFF' },
+  { key:'mirror',  label:'กระจก',   effect:'สะท้อน',       color:'#C0C0C0' },
+  { key:'clover',  label:'โคลเวอร์',effect:'โชค+15%',      color:'#2ECC71' },
+]
+
+function ItemSlot({ def, count }) {
+  const { key, label, effect, color } = def
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+      padding:8,
+      background: count > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.3)',
+      border: `1px solid ${count > 0 ? color + '44' : 'rgba(255,255,255,0.08)'}`,
+      opacity: count > 0 ? 1 : 0.4,
+      position:'relative',
+    }}>
+      <canvas
+        ref={r => r && drawItem(r, key)}
+        width={40} height={40}
+        style={{ imageRendering:'pixelated' }}
+      />
+      {count > 0 && (
+        <div style={{
+          position:'absolute', top:2, right:4,
+          fontFamily:'var(--font-pixel)', fontSize:8,
+          color:'#fff', background:'rgba(0,0,0,0.7)',
+          padding:'0 3px',
+        }}>
+          ×{count}
+        </div>
+      )}
+      <div style={{ fontFamily:'var(--font-thai)', fontSize:9, color: count > 0 ? '#fff' : 'rgba(255,255,255,0.3)', textAlign:'center' }}>
+        {label}
+      </div>
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color: color + 'aa', textAlign:'center' }}>
+        {effect}
+      </div>
+    </div>
+  )
+}
+
+function ItemBag({ homeItems, battleItems }) {
+  const total = [
+    ...Object.values(homeItems ?? {}),
+    ...Object.values(battleItems ?? {}),
+  ].reduce((s, v) => s + (v || 0), 0)
   return (
     <div style={{ padding:'12px 16px' }}>
       <div style={{ fontFamily:'var(--font-pixel)', fontSize:9, color:'rgba(255,255,255,0.5)', marginBottom:12, letterSpacing:1 }}>
         ITEMS — {total} ชิ้น
       </div>
+
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'#aaa', letterSpacing:1, marginBottom:6 }}>
+        ไอเทมดูแลครีเอเจอร์
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:14 }}>
+        {HOME_ITEM_DEFS.map(def => (
+          <ItemSlot key={def.key} def={def} count={homeItems?.[def.key] ?? 0} />
+        ))}
+      </div>
+
+      <div style={{ height:1, background:'rgba(255,255,255,0.1)', marginBottom:14 }} />
+
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'#aaa', letterSpacing:1, marginBottom:6 }}>
+        ไอเทมในการสู้
+      </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
-        {ITEM_DEFS.map(({ key, label, effect, color }) => {
-          const count = items?.[key] ?? 0
-          return (
-            <div key={key} style={{
-              display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-              padding:8,
-              background: count > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.3)',
-              border: `1px solid ${count > 0 ? color + '44' : 'rgba(255,255,255,0.08)'}`,
-              opacity: count > 0 ? 1 : 0.4,
-              position:'relative',
-            }}>
-              <canvas
-                ref={r => r && drawItem(r, key)}
-                width={40} height={40}
-                style={{ imageRendering:'pixelated' }}
-              />
-              {count > 0 && (
-                <div style={{
-                  position:'absolute', top:2, right:4,
-                  fontFamily:'var(--font-pixel)', fontSize:8,
-                  color:'#fff', background:'rgba(0,0,0,0.7)',
-                  padding:'0 3px',
-                }}>
-                  ×{count}
-                </div>
-              )}
-              <div style={{ fontFamily:'var(--font-thai)', fontSize:9, color: count > 0 ? '#fff' : 'rgba(255,255,255,0.3)', textAlign:'center' }}>
-                {label}
-              </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color: color + 'aa', textAlign:'center' }}>
-                {effect}
-              </div>
-            </div>
-          )
-        })}
+        {BATTLE_ITEM_DEFS.map(def => (
+          <ItemSlot key={def.key} def={def} count={battleItems?.[def.key] ?? 0} />
+        ))}
       </div>
     </div>
   )

@@ -66,6 +66,10 @@ export const ACTIONS = {
   CLOSE_HATCH:        'CLOSE_HATCH',
   USE_ITEM:           'USE_ITEM',
   DROP_ITEM:          'DROP_ITEM',
+  USE_HOME_ITEM:      'USE_HOME_ITEM',
+  USE_BATTLE_ITEM:    'USE_BATTLE_ITEM',
+  DROP_HOME_ITEM:     'DROP_HOME_ITEM',
+  DROP_BATTLE_ITEM:   'DROP_BATTLE_ITEM',
   SET_CURRENT_WORLD:  'SET_CURRENT_WORLD',
   SET_SESSION_XP:     'SET_SESSION_XP',
   UPDATE_THAI_MASTERY:'UPDATE_THAI_MASTERY',
@@ -294,13 +298,13 @@ function reducer(state, action) {
     case ACTIONS.CLOSE_HATCH:
       return { ...state, hatching: false, readyToHatch: false }
 
-    case ACTIONS.USE_ITEM: {
+    case ACTIONS.USE_HOME_ITEM: {
       const { key } = action.payload
-      const count = state.items?.[key] || 0
+      const count = state.homeItems?.[key] || 0
       if (count <= 0) return state
-      let updates = { items: { ...state.items, [key]: count - 1 } }
+      const updates = { homeItems: { ...state.homeItems, [key]: count - 1 } }
       if (key === 'food') updates.happiness = Math.min(100, (state.happiness || 80) + 25)
-      if (key === 'star') { updates.xpBoost = 2; updates.xpBoostEnd = Date.now() + 5 * 60 * 1000 }
+      if (key === 'star') { updates.xpBoost = 2; updates.xpBoostEnd = Date.now() + 10 * 60 * 1000 }
       if (key === 'ribbon') updates.happiness = Math.min(100, (state.happiness || 80) + 15)
       if (key === 'potion') {
         const world = ['thai','eng','math'][Math.max(0, state.firstSubject)]
@@ -310,11 +314,28 @@ function reducer(state, action) {
       return { ...state, ...updates }
     }
 
-    case ACTIONS.DROP_ITEM: {
+    case ACTIONS.USE_BATTLE_ITEM: {
       const { key } = action.payload
-      if (!state.items) return state
-      return { ...state, items: { ...state.items, [key]: (state.items[key] || 0) + 1 } }
+      const count = state.battleItems?.[key] || 0
+      if (count <= 0) return state
+      return { ...state, battleItems: { ...state.battleItems, [key]: count - 1 } }
     }
+
+    case ACTIONS.DROP_HOME_ITEM: {
+      const { key } = action.payload
+      return { ...state, homeItems: { ...state.homeItems, [key]: (state.homeItems?.[key] || 0) + 1 } }
+    }
+
+    case ACTIONS.DROP_BATTLE_ITEM: {
+      const { key } = action.payload
+      return { ...state, battleItems: { ...state.battleItems, [key]: (state.battleItems?.[key] || 0) + 1 } }
+    }
+
+    // Backward-compat aliases
+    case ACTIONS.USE_ITEM:
+      return reducer(state, { type: ACTIONS.USE_HOME_ITEM, payload: action.payload })
+    case ACTIONS.DROP_ITEM:
+      return reducer(state, { type: ACTIONS.DROP_BATTLE_ITEM, payload: action.payload })
 
     case ACTIONS.SET_CURRENT_WORLD:
       return { ...state, currentWorld: action.payload }
@@ -401,10 +422,10 @@ function reducer(state, action) {
         ? [...new Set([...(state.defeatedBosses || []), bossKey])]
         : (state.defeatedBosses || [])
       const battleHistory = [...(state.battleHistory || []).slice(-99), entry]
-      const items = itemKey
-        ? { ...(state.items || {}), [itemKey]: ((state.items || {})[itemKey] || 0) + 1 }
-        : state.items
-      return { ...state, defeatedBosses, battleHistory, items }
+      const battleItems = itemKey
+        ? { ...(state.battleItems || {}), [itemKey]: ((state.battleItems || {})[itemKey] || 0) + 1 }
+        : state.battleItems
+      return { ...state, defeatedBosses, battleHistory, battleItems }
     }
 
     case ACTIONS.FOUNDATION_COMPLETE:
@@ -721,6 +742,12 @@ export function StateProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
+      // Migrate old unified items{} → homeItems{} + battleItems{}
+      if (raw.items && !raw.homeItems) {
+        raw.homeItems   = { food: raw.items.food ?? 0, ribbon: raw.items.ribbon ?? 0, potion: raw.items.potion ?? 0, star: raw.items.star ?? 0 }
+        raw.battleItems = { scroll: raw.items.scroll ?? 0, thunder: raw.items.thunder ?? 0, gem: raw.items.gem ?? 0, mirror: raw.items.mirror ?? 0, clover: raw.items.clover ?? 0 }
+        delete raw.items
+      }
       const migrated = _migrateBattleStats(raw)
       const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
       const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated

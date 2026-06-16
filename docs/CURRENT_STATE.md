@@ -59,16 +59,18 @@ _Last updated: 2026-06-16_
 - Battle subject routing: `battleSubject.js` — strict thai→math→eng rotation with `notready` override
 - **Adaptive difficulty system** (2026-06-16):
   - `state.subjectLevels` drives actual battle level (replaces `getBattleLevel()` rotation)
-  - After each non-boss battle: score ≥0.80 increments `subjectSessionStreak[subject]`; 3 consecutive → level up + cutscene
-  - Score <0.50 → silent level down (clamped to `subjectLevelFloor`, never below initial)
+  - After each non-boss battle: `isStrong = accuracy≥80% AND questions≥6`; 3 consecutive strong → level up + cutscene
+  - Accuracy <50% AND questions≥6 → silent level down (clamped to `subjectLevelFloor`)
   - Level up dispatches `SET_PENDING_LEVEL_UP` → `LevelUpCutscene.jsx` global overlay shows
   - `LevelUpCutscene.jsx`: flash→reveal→celebrate→done phases; canvas star rain; tap to continue → navigate('world')
   - Map sky tint shifts by subject level: L1=dawn, L2=golden, L3=sunset, L4+=dark (CSS rgba overlay, 3s transition)
+  - `WorldBattle.jsx` uses `accuracyRef` (correct/total) — `scoreRef` preserved for backward compat only
+- **Grade system** (updated 2026-06-16): `state.grade` computed from avg subject level in `SET_SUBJECT_LEVEL` reducer: avg≥2→grade1, avg≥3→grade2, avg≥4→grade3; grade only advances; creature evoStage updated immediately on grade change via `calcEvoStageInline()`
 - **PROGRESSION_MAP** (2026-06-16) — `battleConfig.js` — unified tier/evo/egg system:
   - 5 tiers: อนุบาล (L1) → ป.1ต้น (L2) → ป.1ปลาย (L3) → ป.2 (L4) → ป.3+ (L5)
-  - Tier advance triggers when ALL 3 subjects reach next tier's `minSubjectLevel`; auto-increments `state.grade`; sets `readyToHatch` for new egg (< 6 creatures)
-  - readyToHatch no longer XP-driven; driven by tier advance
+  - `readyToHatch` set when grade advances and hatchedEggs < 6
   - `calcEvoStage()` reads PROGRESSION_MAP evo thresholds: teen (Lv≥11, Tier≥1); final (Lv≥26, Tier≥3, Bond≥60)
+  - `calcEvoStageInline()` in StateContext.jsx for reducer use (avoids circular import)
 - `subjectReadiness.js` shared utility: 4 states (Strong/Comfortable/Exploring/Not Ready)
 
 ### Home Screen (`Home.jsx`, ~969 lines)
@@ -127,6 +129,7 @@ _Last updated: 2026-06-16_
 - Supabase `eggs` table: `user_id, child_name, state_json, updated_at`
 - Guest mode: full functionality without login
 - `_migrateBattleStats()` backfills all new fields for legacy eggs on load
+- One-time migration flags: `_subjectLevelCalibrated` (recalibrate subjectLevels from levelMastery), `_itemsMigrated` (additive items→homeItems/battleItems merge), `_evoRechecked` (recheck all creature evoStage on load)
 
 ### Config Architecture (2026-06-16 refactor)
 `gameConfig.js` is a barrel re-exporting from focused split files. All existing imports unchanged.

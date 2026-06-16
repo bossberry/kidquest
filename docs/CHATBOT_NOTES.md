@@ -106,3 +106,10 @@ _(Claude Code appends here after each session)_
 - Blockers/risks found: debugSupabaseState + restore button are intentionally temporary. Remove when Chopin's data is confirmed restored (or when issue root cause is fixed).
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
+
+**2026-06-16 — Fix 4 critical issues + remove debug code:**
+- Built: (1) subjectLevels recalibrated from levelMastery on first load (_subjectLevelCalibrated flag); (2) WorldBattle accuracy tracking via accuracyRef — level-up/down now requires ≥6 questions answered; (3) additive items→homeItems/battleItems migration (_itemsMigrated flag, handles partial states); (4) SET_SUBJECT_LEVEL uses avg subject level for grade (avg≥2→1, avg≥3→2, avg≥4→3) instead of minLevel tier gates; creatures recalculate evoStage inline when grade changes; _evoRechecked flag rechecks all eggs on load; calcEvoStageInline() avoids circular import. All debug code removed from App.jsx.
+- Not finished: nothing
+- Blockers/risks found: _subjectLevelCalibrated runs once — if levelMastery is empty (new account), subjectLevels defaults to {1,1,1} which is correct. Flag prevents re-running on every load.
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none

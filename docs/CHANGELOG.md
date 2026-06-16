@@ -1,5 +1,26 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: calibrate subject levels + accurate score tracking + item migration + grade/evo system + remove debug code
+
+### src/context/StateContext.jsx
+- Added `calcEvoStageInline(battleLevel, grade, bond)` helper above reducer (avoids circular import)
+- Initializer migration 1: `_subjectLevelCalibrated` — recalibrates `subjectLevels` from `levelMastery` (highest level with ≥60% mastery) on first load
+- Initializer migration 2: `_itemsMigrated` — additive merge of `items{}` into `homeItems/battleItems` (handles states where both exist simultaneously)
+- Initializer migration 3: `_evoRechecked` — rechecks `evoStage` for all creatures after `_migrateBattleStats` populates `battleLevel`
+- `SET_SUBJECT_LEVEL` reducer: grade now computed from avg subject level (thresholds: avg≥2→grade1, avg≥3→grade2, avg≥4→grade3); grade only advances, never drops; creature `evoStage` updated inline when grade changes
+
+### src/components/WorldBattle.jsx
+- Added `accuracyRef = useRef({ correct: 0, total: 0 })` to track real answer counts
+- `onCorrect()`: increments both `correct` and `total` in accuracyRef
+- `onWrong()`: increments `total` only
+- `onComplete()`: score replaced with `accuracy = correct/total`; `isStrong = accuracy≥0.80 AND total≥6`; level-up uses `isStrong`; level-down uses `accuracy<0.50 AND total≥6`; `LOG_SESSION` now includes `questionsAnswered` and accurate `wrong` count
+
+### src/App.jsx
+- Removed `debugSupabaseState()` function, its call, and emergency restore button JSX
+- Removed `import { supabase }` (was added only for debug)
+
+---
+
 ## 2026-06-16 — debug: Supabase state restore for emergency recovery
 
 ### src/App.jsx

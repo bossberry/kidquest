@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-16 — Fix currentHP exceeding max in all heal/boost actions:**
+- Built: CREATURE_HEAL maxHP changed from `(e.stats?.HP ?? 10) + battleLevel - 1` to `e.stats?.HP ?? 100` (battleLevel bonus was allowing healing past stats.HP — root cause of 519 > 504). USE_HOME_ITEM food now heals active creature +30 HP capped at stats.HP. CREATURE_STAT_BOOST now caps currentHP to new stats.HP after stat update. Initializer: clamp all creature currentHP to stats.HP on every load (no flag — harmless to run always).
+- Not finished: nothing
+- Blockers/risks found: none; food now heals +30 HP per use (was happiness-only before)
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-16 — Fix 4 critical issues + remove debug code:**
 - Built: (1) subjectLevels recalibrated from levelMastery on first load (_subjectLevelCalibrated flag); (2) WorldBattle accuracy tracking via accuracyRef — level-up/down now requires ≥6 questions answered; (3) additive items→homeItems/battleItems migration (_itemsMigrated flag, handles partial states); (4) SET_SUBJECT_LEVEL uses avg subject level for grade (avg≥2→1, avg≥3→2, avg≥4→3) instead of minLevel tier gates; creatures recalculate evoStage inline when grade changes; _evoRechecked flag rechecks all eggs on load; calcEvoStageInline() avoids circular import. All debug code removed from App.jsx.
 - Not finished: nothing

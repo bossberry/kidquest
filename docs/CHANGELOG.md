@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — fix: cap creature currentHP at stats.HP max in all heal/boost actions
+
+### src/context/StateContext.jsx
+- `CREATURE_HEAL`: maxHP changed from `(e.stats?.HP ?? 10) + (battleLevel - 1)` to `e.stats?.HP ?? 100` — the battleLevel bonus was the root cause of Chopin's 519 > 504 bug
+- `USE_HOME_ITEM` food: now also heals active creature +30 HP (capped at `stats.HP`); was happiness-only before
+- `CREATURE_STAT_BOOST`: after updating stats, `currentHP` is clamped to `newStats.HP ?? 100` (defensive — prevents overflow if HP stat was the one boosted)
+- Initializer: clamps all `currentHP` values to `stats.HP` on every app load (fixes corrupted states like Chopin's immediately on next open)
+
+---
+
 ## 2026-06-16 — fix: calibrate subject levels + accurate score tracking + item migration + grade/evo system + remove debug code
 
 ### src/context/StateContext.jsx

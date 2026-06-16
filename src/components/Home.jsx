@@ -8,6 +8,7 @@ import { EGG_STAGE_NAMES, EGG_STAGES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 import { drawItem } from '../lib/itemArt.js'
+import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 
 const ITEM_DEFS = [
   { key:'food',   label:'อาหาร' },
@@ -90,6 +91,7 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       ? (state.hatchedEggs || []).find(e => e.id === activeId)
       : state.hatchedEggs?.[0]
   }, [state.party, state.hatchedEggs]) // eslint-disable-line
+  const activeEgg = (state.hatchedEggs ?? []).find(e => e.id === state.party?.[0]) ?? state.hatchedEggs?.[0]
   const readyToHatch      = state.readyToHatch && stage >= EGG_STAGES - 1 && eggsHatched === 0
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
@@ -580,31 +582,43 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         position:'relative', paddingBottom:50,
       }}>
 
-        {/* Creature stats — shown when creature exists (TASK 4) */}
-        {eggsHatched > 0 && activeCreature && (
-          <div style={{ textAlign:'center', zIndex:5, display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:8 }}>
+        {/* Large creature display — shown when creature exists */}
+        {eggsHatched > 0 && activeEgg && (
+          <div style={{ textAlign:'center', zIndex:5, display:'flex', flexDirection:'column', alignItems:'center', gap:6, paddingBottom:8 }}>
+            {/* Creature name */}
             <div style={{
               fontFamily:'var(--font-thai)', fontSize:17, fontWeight:700,
               color:'var(--px-yellow)', textShadow:'2px 2px 0 var(--px-darkest)', lineHeight:1.2,
             }}>
-              {activeCreature.creatureName || activeCreature.creature?.n || ('เพื่อนของ' + state.name)}
+              {activeEgg.creatureName || activeEgg.creature?.n || ('เพื่อนของ' + state.name)}
             </div>
-            <div style={{ fontFamily:'var(--font-pixel)', fontSize:10, color:'rgba(255,255,255,0.5)' }}>
-              Lv.{activeCreature.battleLevel ?? 1}
+            {/* Level badge */}
+            <div style={{
+              fontFamily:'var(--font-pixel)', fontSize:9,
+              color:'rgba(255,255,255,0.6)',
+              background:'rgba(0,0,0,0.45)',
+              padding:'2px 10px',
+            }}>
+              Lv.{activeEgg.battleLevel ?? 1}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, width:200 }}>
+            {/* Large creature canvas */}
+            <canvas
+              key={activeEgg.id}
+              ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
+              width={160} height={160}
+              style={{ imageRendering:'pixelated', display:'block', margin:'0 auto' }}
+            />
+            {/* Compact single-line stat row */}
+            <div style={{ display:'flex', gap:14, justifyContent:'center', marginTop:2 }}>
               {[
-                { label:'ATK', value: activeCreature.stats?.ATK ?? 0, color:'#ff6655' },
-                { label:'DEF', value: activeCreature.stats?.DEF ?? 0, color:'#55aaff' },
-                { label:'SPD', value: activeCreature.stats?.SPD ?? 0, color:'#aaff55' },
-                { label:'HP',  value: activeCreature.stats?.HP  ?? 0, color:'#ff88aa' },
+                { label:'ATK', value: activeEgg.stats?.ATK ?? 0, color:'#ff6655' },
+                { label:'DEF', value: activeEgg.stats?.DEF ?? 0, color:'#55aaff' },
+                { label:'SPD', value: activeEgg.stats?.SPD ?? 0, color:'#aaff55' },
+                { label:'HP',  value: activeEgg.stats?.HP  ?? 0, color:'#ff88aa' },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{
-                  background:'rgba(0,0,0,0.3)', border:`1px solid ${color}44`,
-                  padding:'6px 10px', textAlign:'left',
-                }}>
-                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color, marginBottom:2 }}>{label}</div>
-                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:18, color:'#fff' }}>{value}</div>
+                <div key={label} style={{ fontFamily:'var(--font-pixel)', fontSize:7 }}>
+                  <span style={{ color }}>{label}</span>
+                  <span style={{ color:'rgba(255,255,255,0.75)', marginLeft:3 }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -765,14 +779,14 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         </div>
       </div>
 
-      {/* Party HP bars */}
-      {(state.party || []).length > 0 && (
+      {/* Party bar — portrait cards, horizontal scroll, tap to switch active */}
+      {(state.hatchedEggs ?? []).length > 0 && (
         <div style={{
-          width:'100%', maxWidth:480, padding:'5px 14px',
-          display:'flex', gap:8, justifyContent:'center',
+          width:'100%', maxWidth:480, padding:'8px 12px',
           flexShrink:0, position:'relative',
           background:'var(--px-darker, #16162a)',
           borderTop:'1px solid var(--px-border)',
+          overflowX:'auto',
         }}>
           {healFloat && (
             <div key={healFloat} style={{
@@ -785,68 +799,46 @@ export default function Home({ navigate, soundOn, toggleSound }) {
               +100 HP
             </div>
           )}
-          {(state.party || []).map(id => {
-            const c = (state.hatchedEggs || []).find(e => e.id === id)
-            if (!c) return null
-            const maxHP = c.stats?.HP ?? 10
-            const curHP = c.currentHP ?? maxHP
-            const pct   = Math.max(0, (curHP / maxHP) * 100)
-            const dna   = c.dna ?? (() => { try { return buildLegacyPreviewDNA(c, 0) } catch { return null } })()
-            const elColor = c.element ? CREATURE_ELEMENT_COLORS[c.element] : null
-            const bondPct = Math.min(100, c.bondMeter ?? 0)
-            const isActive = id === (state.party || [])[0]
-            return (
-              <div key={id} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:52 }}>
-                <div style={{ position:'relative' }}>
-                  {dna ? (
-                    <CreatureCanvas dna={dna} size={22} animationEnabled={false} />
-                  ) : (
-                    <div style={{ fontSize:16 }}>🥚</div>
-                  )}
-                  {/* Element color dot */}
-                  {elColor && (
-                    <div style={{
-                      position:'absolute', bottom:-1, right:-1,
-                      width:6, height:6,
-                      background: elColor,
-                      boxShadow:`0 0 4px ${elColor}`,
-                    }} />
-                  )}
-                </div>
-                <div style={{
-                  fontFamily:'var(--font-thai)', fontSize:7,
-                  color:'rgba(255,255,255,0.5)',
-                  maxWidth:48, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                }}>
-                  {c.creatureName || c.creature?.n || '?'}
-                </div>
-                {/* HP bar */}
-                <div style={{ width:46, background:'#000', border:'1px solid #333', height:4 }}>
+          <div style={{
+            display:'flex', gap:8,
+            justifyContent: (state.hatchedEggs ?? []).length === 1 ? 'center' : 'flex-start',
+            minWidth:'max-content',
+          }}>
+            {(state.hatchedEggs ?? []).map(egg => {
+              const isActive = egg.id === (state.party?.[0] ?? state.hatchedEggs?.[0]?.id)
+              return (
+                <div
+                  key={egg.id}
+                  onClick={() => dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: egg.id } })}
+                  style={{
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                    cursor:'pointer', padding:4,
+                    border: isActive ? '2px solid #EF9F27' : '2px solid rgba(255,255,255,0.08)',
+                    background: isActive ? 'rgba(239,159,39,0.1)' : 'rgba(0,0,0,0.3)',
+                    boxShadow: isActive ? '0 0 6px rgba(239,159,39,0.5)' : 'none',
+                    transition:'border-color 150ms, box-shadow 150ms',
+                  }}
+                >
+                  <canvas
+                    key={`party-${egg.id}`}
+                    ref={r => r && drawCreature(r, getCreatureSeed(egg), { ...(egg?.eggStats ?? {}), evoStage: egg?.evoStage })}
+                    width={56} height={56}
+                    style={{ imageRendering:'pixelated', display:'block' }}
+                  />
                   <div style={{
-                    width:`${pct}%`, height:'100%',
-                    background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
-                    transition:'width 300ms steps(8)',
-                  }} />
-                </div>
-                {/* Bond meter — only for active creature */}
-                {isActive && (
-                  <div style={{ width:46, background:'#111', border:'1px solid #222', height:3 }} title={`Bond: ${bondPct}%`}>
-                    <div style={{
-                      width:`${bondPct}%`, height:'100%',
-                      background:'#d4a017',
-                      transition:'width 300ms steps(8)',
-                    }} />
+                    fontFamily:'var(--font-thai)', fontSize:7,
+                    color: isActive ? '#EF9F27' : 'rgba(255,255,255,0.55)',
+                    maxWidth:60, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                  }}>
+                    {egg.creatureName || egg.creature?.n || '?'}
                   </div>
-                )}
-                <div style={{
-                  fontFamily:'var(--font-pixel)', fontSize:6,
-                  color:'rgba(255,255,255,0.35)',
-                }}>
-                  {curHP}/{maxHP}
+                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'rgba(255,255,255,0.35)' }}>
+                    Lv.{egg.battleLevel ?? 1}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 

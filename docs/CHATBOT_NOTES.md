@@ -15,3 +15,10 @@ _(Claude Code appends here after each session)_
 - Blockers/risks found: none
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split (extract WorldHUD.jsx, useWorldEnemies.js, useWorldChests.js)
 - Needs Chatbot decision first: none
+
+**2026-06-16 — Collection simplify + pixel art style + Home nav cleanup:**
+- Built: Collection.jsx rewritten to 2 tabs (ทีม + กระเป๋า). Removed vault/hatched/current tabs and sub-components. New ItemBag shows 8 item types via drawItem canvas with count badge and effect text. Pixel art header + dark background. Home.jsx: removed คอลเลกชัน button; ลูบ!/ออกสำรวจ! remain with flex 1/2.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none

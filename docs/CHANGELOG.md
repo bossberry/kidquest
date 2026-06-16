@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-06-16 — refactor: simplify collection to team+items tabs, pixel art style, remove duplicate nav button
+
+### src/components/Collection.jsx
+- Removed tabs: vault (คลังสะสม), hatched (ทั้งหมด), current (กำลังฟัก) — redundant with team tab
+- Removed sub-components: VaultGrid, HatchedGrid, CurrentEgg
+- Removed unused imports: EggCanvas, buildEggStats, eggProgress, EGG_STAGE_NAMES, STAGE_XP_NEEDED, buildLegacyPreviewDNA
+- Now 2 tabs only: ทีม (PartyGrid, unchanged) + กระเป๋า (new ItemBag)
+- ItemBag: 4×2 grid of 8 items via `drawItem` canvas; count badge; dimmed at opacity 0.4 when count=0
+- Pixel art header: "COLLECTION" in font-pixel yellow; background changed to `var(--px-darkest, #0a0a12)`
+
+### src/components/Home.jsx
+- Removed คอลเลกชัน button from action row (Collection accessible via bottom nav tab)
+- Remaining buttons: ลูบ! (flex:1) + ออกสำรวจ! (flex:2)
+
+---
+
 ## 2026-06-16 — fix: remove duplicate walking creature, add HP bar, fix ribbon stat boost
 
 ### src/components/Home.jsx

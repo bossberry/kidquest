@@ -69,7 +69,9 @@ _Last updated: 2026-06-16_
 - Creature companion tap: `handleCreatureTap` (+1 bond + bounce + emoji reaction); 3 swipes = +3 bond + 💖
 
 ### Collection Screen (`Collection.jsx`)
-- Tabs: ทีม (party with HP bars + level), คลังสะสม (vault + add-to-party), ทั้งหมด (all hatched), กำลังฟัก (current egg with EggCanvas)
+- 2 tabs: ทีม (party with HP bars + level + ★ ตัวหลัก badge) + กระเป๋า (ItemBag)
+- ItemBag: 4×2 grid of 8 item types (food/ribbon/potion/star/thunder/shield/bone/coin) via `drawItem` canvas; count badge; dimmed 0.4 opacity when count=0; shows effect text per item
+- Pixel art header: "COLLECTION" in font-pixel yellow; dark background matching Home screen
 - Creature cards: 90×90 pixel art `drawCreature` canvas per creature
 - `CreatureDetailPopup.jsx`: 120×120 pixel art canvas + element glow, Level + evo stage, ATK/DEF/SPD/HP grid, bond meter bar, born-stats XP bars
 
@@ -126,6 +128,7 @@ _Last updated: 2026-06-16_
 
 ## Removed Systems
 - **ChallengerOverlay** — deleted 2026-06-16, confirmed dead code
+- **Collection vault/hatched/current tabs** — deleted 2026-06-16; replaced by ItemBag
 - **Manual creature naming UI** — replaced by auto-generated names via `generateCreatureName(dna)`
 - **GPT workflow** — Claude Chatbot handles all design/research
 

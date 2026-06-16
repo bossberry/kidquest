@@ -1612,3 +1612,22 @@ evaluates false → PartySelect never renders → player sees nothing after coll
   - 1 creature → centered; multiple → horizontal scroll
   - Tap any card → `SET_ACTIVE_CREATURE` → switches large display
 - `evoStage` merged into stats for both large canvas and party cards (teen/final stages now render)
+
+## 2026-06-16 — Response time analytics for battle answers
+
+### MoveSelectBattleMode.jsx
+- `questionStartTime` ref: set to `Date.now()` when each new question appears (in TTS effect on `[cur, subject]`)
+- `responseTimeRef`: captures elapsed ms in `handleTap` before animation, so timing is accurate to player tap
+- `fireHit` (correct) and `fireMiss` (wrong) both dispatch `LOG_BATTLE_ANSWER` with subject/question/correct/responseTimeMs/timestamp
+
+### StateContext.jsx
+- New action `LOG_BATTLE_ANSWER` in ACTIONS
+- Reducer maintains rolling 50-entry per-subject array in `state.responseTimeLogs.{thai,math,eng}` — each `{ timeMs, correct, timestamp }`
+
+### state.js (defaultState)
+- Added `responseTimeLogs: { thai:[], math:[], eng:[] }` — old saves get empty arrays, reducer handles missing keys gracefully
+
+### Report.jsx
+- New `ResponseSpeed` component: shows avg response time (last 10) and trend vs prior 10 per subject
+- Hidden until ≥5 answers recorded per subject; appears after SubjectReadiness section
+- Supabase persistence is automatic (responseTimeLogs included in state_json)

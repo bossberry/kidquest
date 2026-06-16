@@ -966,3 +966,16 @@ Root cause: NOT a broken import from GameSubjectAdventure. WorldBattle.jsx has i
 - Blockers/risks found: `CREATURE_ELEMENT_COLORS` import left in Home.jsx from old code — still used by voice profile logic; no issue. Walking creature companion at bottom of egg zone still appears alongside large canvas — could look redundant; ask Chatbot if companion should be hidden when large display exists
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: should the walking creature companion be hidden now that there's a large display? Or keep both?
+
+---
+
+**2026-06-16 — feat: response time tracking per battle answer:**
+- Built:
+  - `MoveSelectBattleMode.jsx`: added `questionStartTime` ref (set to `Date.now()` on each new question in TTS effect) + `responseTimeRef` (captures elapsed ms in `handleTap` before animation delay); both `fireHit` and `fireMiss` dispatch `LOG_BATTLE_ANSWER` with `{ subject, question, correct, responseTimeMs, battleLevel, timestamp }`
+  - `StateContext.jsx`: added `LOG_BATTLE_ANSWER` to ACTIONS; reducer keeps rolling 50-entry array per subject in `state.responseTimeLogs.{thai,math,eng}` — each entry `{ timeMs, correct, timestamp }`
+  - `state.js`: added `responseTimeLogs: { thai:[], math:[], eng:[] }` to `defaultState()`
+  - `Report.jsx`: added `ResponseSpeed` component — shows per-subject avg response time (last 10 answers) and trend vs previous 10 (⚡ เร็วขึ้น / 🐢 ช้าลง / → เท่าเดิม); only renders when ≥5 answers exist per subject; inserted after `SubjectReadiness`
+- Not finished: `state.battleLevel` passed in payload is always `undefined` — field doesn't exist on top-level state, it's `creature.battleLevel`; low priority for analytics but could be fixed if needed
+- Blockers/risks found: `responseTimeLogs` is included in `state_json` upserted to Supabase automatically (no extra code needed — TASK 5 is free)
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: nothing blocking

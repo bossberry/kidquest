@@ -2,6 +2,12 @@
 
 ## Implemented Features
 
+### Response Time Analytics (2026-06-16)
+- **`MoveSelectBattleMode.jsx`**: timer starts (`questionStartTime.current = Date.now()`) when each question appears; player tap captures elapsed ms in `responseTimeRef.current`; `fireHit`/`fireMiss` dispatch `LOG_BATTLE_ANSWER { subject, question, correct, responseTimeMs, timestamp }`
+- **`StateContext.jsx`**: `LOG_BATTLE_ANSWER` reducer maintains rolling 50-entry array per subject in `state.responseTimeLogs.{thai,math,eng}` — each `{ timeMs, correct, timestamp }`
+- **`state.js`**: `responseTimeLogs: { thai:[], math:[], eng:[] }` in `defaultState()`; persists to Supabase automatically via `state_json`
+- **`Report.jsx`**: `ResponseSpeed` component shows per-subject avg response time (last 10 answers) + trend vs previous 10 (⚡/🐢/→); hidden until ≥5 answers recorded; rendered after SubjectReadiness section
+
 ### Core Game System
 - **3 subjects** with level-unlock (≥80% accuracy → EMA unlock next)
   - Thai: 5 levels (match, spell×3, word-order)

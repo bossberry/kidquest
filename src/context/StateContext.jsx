@@ -37,6 +37,13 @@ export function scaleMonsterStats(baseStats, creatureLevel) {
   }
 }
 
+// Inline evo calculator — avoids circular import between StateContext and creatureSystem
+function calcEvoStageInline(battleLevel, grade, bond) {
+  if (battleLevel >= 26 && grade >= 3 && bond >= 60) return 'final'
+  if (battleLevel >= 11 && grade >= 1) return 'teen'
+  return 'baby'
+}
+
 // Dynamic egg progression — first egg fast, later eggs gradually harder
 // requiredXP = min(800, 120 + hatchedCount * 60)
 // Eggs 1–5: 120 / 180 / 240 / 300 / 360 XP; cap 800 at egg 12+
@@ -747,20 +754,27 @@ function reducer(state, action) {
 
     case ACTIONS.SET_SUBJECT_LEVEL: {
       const { subject, level } = action.payload
-      const newSubjectLevels = { ...(state.subjectLevels || { thai:1, math:1, eng:1 }), [subject]: level }
-      const levels = Object.values(newSubjectLevels)
-      const minLevel = levels.length > 0 ? Math.min(...levels) : 1
-      const currentTier = state.grade ?? 0
-      const nextTierReq = PROGRESSION_MAP.tiers[currentTier + 1]?.minSubjectLevel
-      const tierAdvance = !!nextTierReq && minLevel >= nextTierReq
+      const newLevels = { ...(state.subjectLevels || { thai:1, math:1, eng:1 }), [subject]: level }
+      const avgLevel = Object.values(newLevels).reduce((s,v) => s+v, 0) / Object.keys(newLevels).length
+      const newGrade = avgLevel >= 4 ? 3
+        : avgLevel >= 3 ? 2
+        : avgLevel >= 2 ? 1
+        : 0
+      const updatedGrade = Math.max(state.grade ?? 0, newGrade)
       return {
         ...state,
-        subjectLevels:     newSubjectLevels,
+        subjectLevels:     newLevels,
         subjectLevelFloor: { ...(state.subjectLevelFloor || {}), [subject]: level },
-        grade: tierAdvance ? currentTier + 1 : state.grade,
-        readyToHatch: (tierAdvance && (state.hatchedEggs?.length ?? 0) < 6)
+        grade: updatedGrade,
+        readyToHatch: updatedGrade !== (state.grade ?? 0) && (state.hatchedEggs?.length ?? 0) < 6
           ? true
           : state.readyToHatch,
+        hatchedEggs: updatedGrade !== (state.grade ?? 0)
+          ? (state.hatchedEggs || []).map(e => {
+              const newEvo = calcEvoStageInline(e.battleLevel ?? 1, updatedGrade, e.bondMeter ?? 0)
+              return newEvo !== (e.evoStage ?? 'baby') ? { ...e, evoStage: newEvo } : e
+            })
+          : state.hatchedEggs,
       }
     }
 
@@ -803,7 +817,49 @@ export function StateProvider({ children }) {
         delete raw.homeItems.potion
       }
       if (!raw.activeBoosts) raw.activeBoosts = {}
+      // Recalibrate subjectLevels from actual levelMastery (one-time on first load after this deploy)
+      if (!raw._subjectLevelCalibrated) {
+        const calibrate = (mastery) => {
+          const levels = Object.entries(mastery || {})
+            .filter(([_, v]) => v >= 0.6)
+            .map(([k]) => Number(k))
+          return levels.length ? Math.max(...levels) : 1
+        }
+        raw.subjectLevels = {
+          thai: calibrate(raw.levelMastery?.thai),
+          math: calibrate(raw.levelMastery?.math),
+          eng:  calibrate(raw.levelMastery?.eng),
+        }
+        raw._subjectLevelCalibrated = true
+      }
+      // Additive items migration: handles state where items{} and homeItems{} both exist
+      if (raw.items && !raw._itemsMigrated) {
+        raw.homeItems = {
+          food:         (raw.homeItems?.food         ?? 0) + (raw.items.food   ?? 0),
+          ribbon:       (raw.homeItems?.ribbon       ?? 0) + (raw.items.ribbon ?? 0),
+          shoes:        (raw.homeItems?.shoes        ?? 0) + (raw.items.potion ?? 0),
+          rainbow_star: (raw.homeItems?.rainbow_star ?? 0) + (raw.items.star   ?? 0),
+        }
+        raw.battleItems = {
+          scroll:  (raw.battleItems?.scroll  ?? 0) + (raw.items.scroll  ?? 0),
+          thunder: (raw.battleItems?.thunder ?? 0) + (raw.items.thunder ?? 0),
+          gem:     (raw.battleItems?.gem     ?? 0) + (raw.items.gem     ?? 0),
+          mirror:  (raw.battleItems?.mirror  ?? 0) + (raw.items.mirror  ?? 0),
+          clover:  (raw.battleItems?.clover  ?? 0) + (raw.items.clover  ?? 0),
+        }
+        delete raw.items
+        raw._itemsMigrated = true
+      }
       const migrated = _migrateBattleStats(raw)
+      // Recheck evo stage for all creatures based on current grade (one-time, after _migrateBattleStats populates battleLevel)
+      if (migrated.hatchedEggs?.length && !migrated._evoRechecked) {
+        const grade = migrated.grade ?? 0
+        migrated.hatchedEggs = migrated.hatchedEggs.map(e => {
+          const evo = calcEvoStageInline(e.battleLevel ?? 1, grade, e.bondMeter ?? 0)
+          return { ...e, evoStage: evo }
+        })
+        migrated._evoRechecked = true
+      }
       const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
       const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated
       // Always clear transient battle state — these can be stale if app was closed mid-battle.

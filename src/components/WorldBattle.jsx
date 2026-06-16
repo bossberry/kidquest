@@ -206,6 +206,7 @@ export default function WorldBattle({ navigate }) {
   const [cur, setCur]  = useState(0)
   const streakRef      = useRef(0)
   const scoreRef       = useRef(0)
+  const accuracyRef    = useRef({ correct: 0, total: 0 })
   const startTime      = useRef(Date.now())
   const doneRef        = useRef(false)
   const mountedRef     = useRef(true)
@@ -244,6 +245,8 @@ export default function WorldBattle({ navigate }) {
     const isCrit = streakRef.current >= 2
     const earned = 8 + (isCrit ? 4 : 0)
     scoreRef.current++
+    accuracyRef.current.correct++
+    accuracyRef.current.total++
     streakRef.current++
     dispatch({ type: ACTIONS.ADD_XP, payload: { world: subject, amount: earned } })
     // Bond 75%+: passive heal +1 HP per correct answer
@@ -254,6 +257,7 @@ export default function WorldBattle({ navigate }) {
   }
 
   function onWrong() {
+    accuracyRef.current.total++
     streakRef.current = 0
   }
 
@@ -292,22 +296,27 @@ export default function WorldBattle({ navigate }) {
     if (doneRef.current) return
     doneRef.current = true
     stopBGM()
-    const score = scoreRef.current / Math.max(1, scoreRef.current + (TOTAL_QS - scoreRef.current))
-    const dur   = Math.floor((Date.now() - startTime.current) / 1000)
-    dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score } })
+    const accuracy = accuracyRef.current.total > 0
+      ? accuracyRef.current.correct / accuracyRef.current.total
+      : 0
+    const isStrong = accuracy >= 0.80 && accuracyRef.current.total >= 6
+    const dur = Math.floor((Date.now() - startTime.current) / 1000)
+    dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score: accuracy } })
     dispatch({ type: ACTIONS.LOG_SESSION, payload: {
       ts: Date.now(), world: subject,
       missionId: `world-${enemy.type}`,
-      level: levelConfig.id, score,
-      wrong: 0, dur, completed: true,
+      level: levelConfig.id, score: accuracy,
+      questionsAnswered: accuracyRef.current.total,
+      wrong: accuracyRef.current.total - accuracyRef.current.correct,
+      dur, completed: true,
     }})
 
-    // Adaptive difficulty: level up after 3 strong sessions, silent level down on weak
+    // Adaptive difficulty: level up after 3 strong sessions (≥80% accuracy AND ≥6 questions)
     if (!isBossBattle) {
       const MAX_LEVEL = { thai: 5, math: 8, eng: 4 }
       const curLevel  = state.subjectLevels?.[subject] ?? 1
       const curStreak = state.subjectSessionStreak?.[subject] ?? 0
-      if (score >= 0.80) {
+      if (isStrong) {
         const newStreak = curStreak + 1
         if (newStreak >= 3 && curLevel < (MAX_LEVEL[subject] ?? 5)) {
           const newLevel = curLevel + 1
@@ -317,7 +326,7 @@ export default function WorldBattle({ navigate }) {
         } else {
           dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: newStreak } })
         }
-      } else if (score < 0.50) {
+      } else if (accuracy < 0.50 && accuracyRef.current.total >= 6) {
         const floor    = state.subjectLevelFloor?.[subject] ?? 1
         const newLevel = Math.max(floor, curLevel - 1)
         if (newLevel < curLevel) {

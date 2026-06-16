@@ -146,9 +146,9 @@ const HUD_SEP = (
   <div style={{ width: 1, background: 'rgba(60,120,60,0.25)', alignSelf: 'stretch' }} />
 )
 
-const HOME_ITEM_LABELS = { food: 'อาหาร', star: 'ดาว', ribbon: 'ริบบิ้น', potion: 'ยา' }
-const HOME_ITEM_EFFECTS = { food: 'ฟื้นความสุข', star: 'บูสต์ XP', ribbon: '+Bond', potion: 'ฟื้น HP' }
-const HOME_ITEM_KEYS = ['food', 'star', 'ribbon', 'potion']
+const HOME_ITEM_LABELS = { food: 'อาหาร', ribbon: 'ริบบิ้น', shoes: 'รองเท้า', rainbow_star: 'ดาวสีรุ้ง' }
+const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: 'วิ่ง×2', rainbow_star: 'ซูปเปอร์!' }
+const HOME_ITEM_KEYS = ['food', 'ribbon', 'shoes', 'rainbow_star']
 
 function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
   const discovered = new Set(discoveredScreens ?? [])
@@ -175,7 +175,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
   const hpColor = hpFrac > 0.5 ? '#38c038' : hpFrac > 0.2 ? '#c8c820' : '#c82020'
 
   const { level: xpLevel, fraction: xpFrac } = xpProgress(creature)
-  const items = state.items ?? {}
+  const items = state.homeItems ?? {}
 
   // Mini-map: 2×2 regular slots + BOSS row
   const groundColor = WORLD_LEVELS[worldLevel]?.bgColors?.ground ?? '#2a4a2a'
@@ -762,8 +762,10 @@ export default function WorldScreen({ navigate }) {
     if (!tileMap) return
 
     g.dir = dir
-    const newCol = g.col + dCol
-    const newRow = g.row + dRow
+    const shoesActive = (stateRef.current.activeBoosts?.shoes?.endsAt ?? 0) > Date.now()
+    const playerSpeed = shoesActive ? 2 : 1
+    const newCol = g.col + dCol * playerSpeed
+    const newRow = g.row + dRow * playerSpeed
 
     // Dynamic enemy collision — also catches chasers already on player's tile
     const hitEnemy = enemiesRef.current.find(e => {
@@ -1154,7 +1156,16 @@ export default function WorldScreen({ navigate }) {
       const playerGlowX = Math.round(g.displayX * TILE - camX)
       const playerGlowY = Math.round(g.displayY * TILE - camY)
       drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
-      renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
+      const saiyanOn = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+      if (saiyanOn) {
+        ctx.save()
+        ctx.shadowColor = '#FFD700'
+        ctx.shadowBlur = 16 + Math.sin(g.frame * 0.1) * 8
+        renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
+        ctx.restore()
+      } else {
+        renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
+      }
     }
 
     rafRef.current = requestAnimationFrame(loop)

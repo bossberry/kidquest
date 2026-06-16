@@ -9,12 +9,13 @@ import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/a
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 import { drawItem } from '../lib/itemArt.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import { HOME_ITEMS } from '../config/itemConfig.js'
 
 const ITEM_DEFS = [
-  { key:'food',   label:'น่องไก่', effect:'HP+100',        desc:'ฟื้นฟู HP ของครีเอเจอร์' },
-  { key:'ribbon', label:'ริบบิ้น', effect:'SPD+10 (5นาที)', desc:'เพิ่มความเร็วชั่วคราว' },
-  { key:'potion', label:'น้ำมนต์', effect:'XP+20',          desc:'เพิ่ม XP วิชาหลัก' },
-  { key:'star',   label:'ดาว',     effect:'XP×2 (10นาที)', desc:'XP สองเท่าชั่วคราว' },
+  { key:'food',         label:'น่องไก่',   effect:'HP+100' },
+  { key:'ribbon',       label:'ริบบิ้น',   effect:'SPD+10' },
+  { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×2' },
+  { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ซูปเปอร์!' },
 ]
 
 // Duration (ms) for each idle animation before clearing state
@@ -40,8 +41,8 @@ export default function Home({ navigate, soundOn, toggleSound }) {
   const [particles, setParticles]         = useState([])
   const [flyingItem, setFlyingItem]       = useState(null)
   const [eggGlow, setEggGlow]             = useState(null)
-  const [hasRibbon, setHasRibbon]         = useState(false)
-  const [activeBoosts, setActiveBoosts]   = useState({})
+  const hasRibbon    = (state.activeBoosts?.ribbon?.endsAt ?? 0) > Date.now()
+  const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
   const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // emoji shown above large canvas
@@ -219,16 +220,6 @@ export default function Home({ navigate, soundOn, toggleSound }) {
     return () => clearInterval(id)
   }, []) // eslint-disable-line
 
-  // Auto-clear ribbon visual when boost expires
-  useEffect(() => {
-    const boost = activeBoosts.ribbon
-    if (!boost) return
-    const remaining = boost.endsAt - Date.now()
-    if (remaining <= 0) { setHasRibbon(false); return }
-    const t = setTimeout(() => setHasRibbon(false), remaining)
-    return () => clearTimeout(t)
-  }, [activeBoosts.ribbon]) // eslint-disable-line
-
   const spawnParticles = (type, count = 5) => {
     const ps = Array.from({ length: count }, () => {
       const id    = ++particleIdRef.current
@@ -365,40 +356,29 @@ export default function Home({ navigate, soundOn, toggleSound }) {
       }
 
     } else if (key === 'ribbon') {
-      const RIBBON_DURATION = 5 * 60 * 1000
-      const RIBBON_COOLDOWN = 30 * 60 * 1000
-      const existing = activeBoosts.ribbon
-      const now = Date.now()
-      if (existing && now < existing.endsAt + RIBBON_COOLDOWN) return
-      setHasRibbon(true)
       playTone('jingle')
       spawnParticles('sparkle', 6)
       setGlow('pink', 1200)
       enterState('happy', 800)
-      setActiveBoosts(prev => ({ ...prev, ribbon: { endsAt: now + RIBBON_DURATION, stat: 'SPD', amount: 10 } }))
       setBondReaction('⚡ SPD+10 (5 นาที)')
       setTimeout(() => setBondReaction(null), 1500)
 
-    } else if (key === 'potion') {
-      playTone('slurp')
+    } else if (key === 'shoes') {
+      playTone('jingle')
       spawnParticles('sparkle', 6)
-      setGlow('blue', 2000)
-      enterState('relax', 1500)
+      setGlow('warm', 1200)
+      enterState('happy', 800)
+      setBondReaction('👟 วิ่ง×2 (5 นาที)')
+      setTimeout(() => setBondReaction(null), 1500)
 
-    } else if (key === 'star') {
-      const STAR_DURATION = 10 * 60 * 1000
-      const STAR_COOLDOWN = 60 * 60 * 1000
-      const existing = activeBoosts.star
-      const now = Date.now()
-      if (existing && now < existing.endsAt + STAR_COOLDOWN) return
+    } else if (key === 'rainbow_star') {
       playTone('celebrate')
-      spawnParticles('sparkle', 12)
+      spawnParticles('sparkle', 14)
       spawnParticles('hearts', 4)
       setGlow('gold', 3000)
-      enterState('happy', 900)
-      setActiveBoosts(prev => ({ ...prev, star: { endsAt: now + STAR_DURATION, stat: 'XP', amount: 2 } }))
-      setBondReaction('✨ XP×2 (10 นาที)')
-      setTimeout(() => setBondReaction(null), 1500)
+      enterState('excited', 1200)
+      setBondReaction('✨ ซูปเปอร์ไซย่า!')
+      setTimeout(() => setBondReaction(null), 2000)
     }
   }
 
@@ -608,20 +588,30 @@ export default function Home({ navigate, soundOn, toggleSound }) {
                   {bondReaction}
                 </div>
               )}
-              <canvas
-                key={activeEgg.id}
-                ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
-                width={160} height={160}
-                onClick={handleCreatureTap}
-                onTouchStart={handleCreatureTap}
-                onTouchMove={handleCreatureSwipe}
-                style={{
-                  imageRendering:'pixelated', display:'block', margin:'0 auto',
-                  cursor:'pointer',
-                  transform: creatureBounce ? 'scale(1.15)' : 'scale(1)',
-                  transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
-                }}
-              />
+              <div style={{
+                filter: saiyanActive
+                  ? undefined
+                  : undefined,
+                animation: saiyanActive ? 'saiyan-pulse 0.5s ease-in-out infinite alternate' : 'none',
+              }}>
+                <canvas
+                  key={activeEgg.id}
+                  ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
+                  width={160} height={160}
+                  onClick={handleCreatureTap}
+                  onTouchStart={handleCreatureTap}
+                  onTouchMove={handleCreatureSwipe}
+                  style={{
+                    imageRendering:'pixelated', display:'block', margin:'0 auto',
+                    cursor:'pointer',
+                    transform: creatureBounce ? 'scale(1.15)' : 'scale(1)',
+                    transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
+                    filter: saiyanActive
+                      ? 'drop-shadow(0 0 12px #FFD700) drop-shadow(0 0 24px #FF8800) drop-shadow(0 0 36px #FFFF00)'
+                      : 'none',
+                  }}
+                />
+              </div>
             </div>
             {/* Compact single-line stat row */}
             <div style={{ display:'flex', gap:14, justifyContent:'center', marginTop:2 }}>
@@ -832,17 +822,17 @@ export default function Home({ navigate, soundOn, toggleSound }) {
         {ITEM_DEFS.map(({ key, label }) => {
           const count    = state.homeItems?.[key] || 0
           const isActive = activeItem === key
-          const boost    = activeBoosts[key]
+          const boost    = state.activeBoosts?.[key]
           const now      = Date.now()
-          const COOLDOWNS = { ribbon: 30 * 60 * 1000, star: 60 * 60 * 1000 }
+          const cooldownMs = HOME_ITEMS[key]?.cooldown ?? 0
           const status = (() => {
             if (!boost) return 'ready'
             if (now < boost.endsAt) return 'active'
-            if (COOLDOWNS[key] && now < boost.endsAt + COOLDOWNS[key]) return 'cooldown'
+            if (cooldownMs && now < boost.endsAt + cooldownMs) return 'cooldown'
             return 'ready'
           })()
           const cooldownRemaining = boost
-            ? Math.max(0, Math.ceil((boost.endsAt + (COOLDOWNS[key] ?? 0) - now) / 60000))
+            ? Math.max(0, Math.ceil((boost.endsAt + cooldownMs - now) / 60000))
             : 0
           const activeRemaining = boost
             ? Math.max(0, Math.ceil((boost.endsAt - now) / 60000))

@@ -92,6 +92,7 @@ body{font-family:'Mitr',sans-serif;background:var(--bg);display:flex;flex-direct
 @keyframes egg-glow-blue{0%{filter:drop-shadow(0 0 0px rgba(80,160,255,0))}25%{filter:drop-shadow(0 0 24px rgba(80,160,255,.9))}70%{filter:drop-shadow(0 0 18px rgba(120,200,255,.55))}100%{filter:drop-shadow(0 0 6px rgba(80,160,255,.14))}}
 @keyframes egg-glow-gold{0%{filter:drop-shadow(0 0 0px rgba(255,215,0,0))}18%{filter:drop-shadow(0 0 28px rgba(255,215,0,1))}65%{filter:drop-shadow(0 0 20px rgba(255,215,0,.6))}100%{filter:drop-shadow(0 0 14px rgba(255,215,0,.35))}}
 @keyframes egg-glow-pink{0%{filter:drop-shadow(0 0 0px rgba(255,100,200,0))}20%{filter:drop-shadow(0 0 20px rgba(255,100,200,.82))}100%{filter:drop-shadow(0 0 4px rgba(255,100,200,.12))}}
+@keyframes saiyan-pulse{from{filter:drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 20px #FF8800)}to{filter:drop-shadow(0 0 20px #FFFF00) drop-shadow(0 0 40px #FF6600) drop-shadow(0 0 60px #FFD700)}}
 /* Star boost orbit */
 @keyframes star-orbit{from{transform:rotate(0deg) translateX(72px) rotate(0deg)}to{transform:rotate(360deg) translateX(72px) rotate(-360deg)}}
 /* CSS classes */

@@ -189,6 +189,52 @@ const DRAWERS = {
     f(ctx,4,8,8,2,G,s)
   },
 
+  shoes(ctx, s) {
+    const S='#EF9F27', T='#FAC775', L='#BA7517', D='#333333', W='#FFFFFF'
+    // Sole
+    f(ctx,1,12,14,1,D,s); f(ctx,1,13,14,1,D,s); f(ctx,2,14,12,1,D,s)
+    f(ctx,1,12,13,2,L,s)
+    // Body
+    f(ctx,2,7,10,5,S,s); f(ctx,1,9,2,3,S,s); f(ctx,3,6,8,2,S,s)
+    // Toe cap (wider left)
+    f(ctx,1,6,4,4,T,s); f(ctx,2,5,3,2,T,s)
+    // Tongue
+    f(ctx,5,3,4,5,W,s); f(ctx,6,3,2,1,T,s)
+    // Laces (3 dots)
+    f(ctx,5,7,2,1,W,s); f(ctx,8,7,2,1,W,s); f(ctx,11,7,2,1,W,s)
+    // Diagonal stripe
+    f(ctx,4,8,1,1,L,s); f(ctx,5,9,1,1,L,s); f(ctx,6,10,1,1,L,s)
+    f(ctx,7,10,1,1,L,s); f(ctx,8,11,1,1,L,s)
+    // Outline
+    f(ctx,1,5,1,1,D,s); f(ctx,2,4,3,1,D,s); f(ctx,5,2,4,1,D,s)
+    f(ctx,9,3,1,1,D,s); f(ctx,10,4,3,1,D,s); f(ctx,13,5,1,1,D,s)
+    f(ctx,13,6,1,6,D,s); f(ctx,11,11,1,1,D,s); f(ctx,1,11,1,1,D,s)
+  },
+
+  rainbow_star(ctx, s) {
+    const C=['#FF4444','#FF8800','#FFEE00','#44CC44','#4488FF','#CC44FF']
+    const W='#FFFFFF', CY='#00FFFF', MG='#FF00FF', YL='#FFFF00'
+    // Horizontal bar
+    f(ctx,0,7,16,2,C[2],s)
+    // Vertical bar
+    f(ctx,7,0,2,16,C[4],s)
+    // NW diagonal
+    f(ctx,1,1,2,2,C[5],s); f(ctx,3,3,2,2,C[4],s); f(ctx,4,4,2,2,C[3],s)
+    // NE diagonal
+    f(ctx,13,1,2,2,C[0],s); f(ctx,11,3,2,2,C[1],s); f(ctx,10,4,2,2,C[2],s)
+    // SW diagonal
+    f(ctx,1,13,2,2,C[3],s); f(ctx,3,11,2,2,C[2],s); f(ctx,4,10,2,2,C[1],s)
+    // SE diagonal
+    f(ctx,13,13,2,2,C[5],s); f(ctx,11,11,2,2,C[4],s); f(ctx,10,10,2,2,C[3],s)
+    // White center
+    f(ctx,6,6,4,4,W,s); f(ctx,7,7,2,2,C[2],s)
+    // Sparkle dots around
+    f(ctx,0,4,1,1,CY,s); f(ctx,15,4,1,1,MG,s)
+    f(ctx,0,11,1,1,MG,s); f(ctx,15,11,1,1,YL,s)
+    f(ctx,4,0,1,1,YL,s); f(ctx,11,0,1,1,CY,s)
+    f(ctx,4,15,1,1,CY,s); f(ctx,11,15,1,1,MG,s)
+  },
+
   coin(ctx, s) {
     const G='#DAA520', GL='#FFD700', GD='#8B6914', W='#FFFDD0'
     // Outline ring
@@ -219,6 +265,7 @@ const ALIASES = {
   food:         'chicken_leg',
   thunder:      'thunder_gem',
   gem:          'coin',
+  rainbow_star: 'rainbow_star',
 }
 
 export function drawItem(canvas, key) {

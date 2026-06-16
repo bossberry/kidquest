@@ -304,12 +304,23 @@ function reducer(state, action) {
       if (count <= 0) return state
       const updates = { homeItems: { ...state.homeItems, [key]: count - 1 } }
       if (key === 'food') updates.happiness = Math.min(100, (state.happiness || 80) + 25)
-      if (key === 'star') { updates.xpBoost = 2; updates.xpBoostEnd = Date.now() + 10 * 60 * 1000 }
-      if (key === 'ribbon') updates.happiness = Math.min(100, (state.happiness || 80) + 15)
-      if (key === 'potion') {
-        const world = ['thai','eng','math'][Math.max(0, state.firstSubject)]
-        const k = 'xp' + world.charAt(0).toUpperCase() + world.slice(1)
-        updates[k] = (state[k] || 0) + 20
+      if (key === 'ribbon') {
+        updates.activeBoosts = {
+          ...(state.activeBoosts || {}),
+          ribbon: { endsAt: Date.now() + 5 * 60 * 1000, stat: 'SPD', amount: 10 }
+        }
+      }
+      if (key === 'shoes') {
+        updates.activeBoosts = {
+          ...(state.activeBoosts || {}),
+          shoes: { endsAt: Date.now() + 5 * 60 * 1000, effect: 'map_speed' }
+        }
+      }
+      if (key === 'rainbow_star') {
+        updates.activeBoosts = {
+          ...(state.activeBoosts || {}),
+          rainbow_star: { endsAt: Date.now() + 5 * 60 * 1000, effect: 'saiyan_aura' }
+        }
       }
       return { ...state, ...updates }
     }
@@ -744,10 +755,20 @@ export function StateProvider({ children }) {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
       // Migrate old unified items{} → homeItems{} + battleItems{}
       if (raw.items && !raw.homeItems) {
-        raw.homeItems   = { food: raw.items.food ?? 0, ribbon: raw.items.ribbon ?? 0, potion: raw.items.potion ?? 0, star: raw.items.star ?? 0 }
+        raw.homeItems   = { food: raw.items.food ?? 0, ribbon: raw.items.ribbon ?? 0, shoes: 0, rainbow_star: 0 }
         raw.battleItems = { scroll: raw.items.scroll ?? 0, thunder: raw.items.thunder ?? 0, gem: raw.items.gem ?? 0, mirror: raw.items.mirror ?? 0, clover: raw.items.clover ?? 0 }
         delete raw.items
       }
+      // Migrate old home item names: star → rainbow_star, potion → shoes
+      if (raw.homeItems?.star !== undefined) {
+        raw.homeItems.rainbow_star = (raw.homeItems.rainbow_star || 0) + (raw.homeItems.star || 0)
+        delete raw.homeItems.star
+      }
+      if (raw.homeItems?.potion !== undefined) {
+        raw.homeItems.shoes = (raw.homeItems.shoes || 0) + (raw.homeItems.potion || 0)
+        delete raw.homeItems.potion
+      }
+      if (!raw.activeBoosts) raw.activeBoosts = {}
       const migrated = _migrateBattleStats(raw)
       const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
       const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated

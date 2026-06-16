@@ -1,3 +1,41 @@
+export const HOME_ITEMS = {
+  food: {
+    key: 'food',
+    name_th: 'น่องไก่',
+    color: '#8B4513',
+    effect: 'heal',
+    desc: 'ฟื้นฟู HP +100 ทันที',
+    instant: true,
+  },
+  ribbon: {
+    key: 'ribbon',
+    name_th: 'ริบบิ้น',
+    color: '#FF1493',
+    effect: 'spd_boost',
+    desc: 'SPD +10 ชั่วคราว',
+    duration: 5 * 60 * 1000,
+    cooldown: 5 * 60 * 1000,
+  },
+  shoes: {
+    key: 'shoes',
+    name_th: 'รองเท้า',
+    color: '#EF9F27',
+    effect: 'map_speed',
+    desc: 'วิ่งเร็ว ×2 ในแมพ',
+    duration: 5 * 60 * 1000,
+    cooldown: 5 * 60 * 1000,
+  },
+  rainbow_star: {
+    key: 'rainbow_star',
+    name_th: 'ดาวสีรุ้ง',
+    color: '#FF88FF',
+    effect: 'saiyan_aura',
+    desc: 'พลังซูปเปอร์ไซย่า! ✨',
+    duration: 5 * 60 * 1000,
+    cooldown: 5 * 60 * 1000,
+  },
+}
+
 export const BATTLE_ITEMS = {
   scroll:  { key: 'scroll',  name_th: 'ม้วนใบ',   color: '#e8c040', effect: 'skip'        },
   thunder: { key: 'thunder', name_th: 'สายฟ้า',   color: '#66aaff', effect: 'free_attack' },

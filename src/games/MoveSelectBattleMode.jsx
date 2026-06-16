@@ -758,8 +758,10 @@ export default function MoveSelectBattleMode({
     : victoryMode               ? 'eggBounce .6s ease infinite'
     : nearHatch                 ? 'egg-near-hatch 2s ease-in-out infinite'
     : 'egg-idle 3s ease-in-out infinite'
+  const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
   const eggFilter = victoryMode         ? 'drop-shadow(0 0 18px gold) brightness(1.25)'
     : eggAnimClass === 'lunge'          ? 'drop-shadow(0 0 14px gold) brightness(1.2)'
+    : saiyanActive                      ? 'drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 20px #FF8800) brightness(1.3)'
     : comboDisplay >= 2                 ? 'drop-shadow(0 0 8px rgba(255,215,0,.7))'
     : comboDisplay >= 1                 ? 'drop-shadow(0 0 4px rgba(255,215,0,.4))'
     : nearHatch                         ? 'drop-shadow(0 0 5px rgba(255,215,0,.5))'

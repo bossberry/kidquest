@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Post-battle reward chest (5 tasks):**
+- Built: RewardChest.jsx (closed→shaking 400ms→opening 600ms→reveal; tap-to-open; pixel art items via drawItem canvas with glow label; blink tap hint). WorldBattle.jsx rolls battle item (55%) + home item (40% from HOME_DROP_TABLE food/ribbon/shoes/rainbow_star), dispatches DROP_BATTLE_ITEM/DROP_HOME_ITEM immediately, shows RewardChest overlay instead of navigating; navigate('world') deferred to chest onDone. SET_PENDING_REWARDS + CLEAR_PENDING_REWARDS actions added to StateContext. pendingRewards: [] added to defaultState(). chest-shake/sparkle-rise/fadeInUp keyframes added to styles.css.
+- Not finished: boss battles also show chest — OK by design (bosses can also drop items)
+- Blockers/risks found: sparkle positions use fixed SPARKLE_POSITIONS array (not Math.random in JSX, avoids per-render jitter)
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Fix monster scaling + adaptive difficulty streak:**
 - Built: scaleMonsterStats() changed from step function (1.0/1.3/1.8/2.4/3.2x) to linear 2%/level hard-capped at 2x (level 16 = 1.30x, level 51 = 2.0x cap). WorldScreen triggerBattle scaleFactor changed from 0.4/level (level 16 = 7x!) to 0.15/level capped at 4x; def now scales at 0.5x; hp floor 30, atk floor 4. WorldBattle isStrong threshold raised from 6→8 questions min. Streak now always resets to 0 on any non-strong session (was only reset on level-up or level-down, causing drift).
 - Not finished: nothing

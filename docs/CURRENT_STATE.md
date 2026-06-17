@@ -27,6 +27,13 @@ _Last updated: 2026-06-16_
 - 6-creature hard limit; single active creature shown large on Home
 - `HomeBackground.jsx` canvas: `creatures` prop (array of hatchedEggs) → one animated entity per creature, walk/idle/jump/spin state machine, meeting gimmick, golden glow on center creature
 
+### Post-Battle Reward Chest
+- `RewardChest.jsx`: shown after every world battle victory (incl. bosses); phases: closed→shaking→opening→reveal; tap to open, tap to continue
+- Battle item drop: 55% chance via `rollBattleItem()` from `itemConfig.js`
+- Home item drop: 40% chance from `HOME_DROP_TABLE` (food 50 / ribbon 25 / shoes 15 / rainbow_star 10) in `WorldBattle.jsx`
+- Items dispatched immediately (DROP_BATTLE_ITEM / DROP_HOME_ITEM) then chest shows pixel art of each reward
+- Navigate-to-world deferred until player taps through chest
+
 ### Battle System (World Battles)
 - `MoveSelectBattleMode.jsx` (~1190 lines) — answer choices = attack moves
 - Real HP combat: hit damage = `max(1, creatureStats.ATK − enemy.def) × mult`; miss = SPD/200 dodge + DEF reduction

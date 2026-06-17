@@ -1,5 +1,34 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — feat: post-battle reward chest with open animation — battle + home item drops
+
+### src/components/RewardChest.jsx (new file)
+- Phases: closed → shaking (400ms delay) → opening (600ms animation) → reveal
+- Tap at any phase to accelerate to open; tap at reveal to continue
+- Pixel art items drawn via dynamic `import('../lib/itemArt.js').then(drawItem)` on canvas refs
+- Item glow labels using ITEM_COLORS; type tag (ไอเทมสู้/ไอเทมบ้าน) shown below each item
+- Empty rewards handled gracefully ("ไม่มีของรางวัลครั้งนี้...")
+
+### src/components/WorldBattle.jsx
+- Imports `rollBattleItem` from `itemConfig.js` and `RewardChest`
+- Module-level `HOME_DROP_TABLE` (food 50 / ribbon 25 / shoes 15 / rainbow_star 10) + `rollHomeItem()` (40% chance)
+- `onComplete()`: rolls both drops, dispatches `DROP_BATTLE_ITEM` / `DROP_HOME_ITEM`, calls `setPendingRewards(rewards)` instead of navigating immediately
+- Chest overlay rendered in JSX; `onDone` dispatches `CLEAR_PENDING_REWARDS` + `RETURN_FROM_WORLD_BATTLE` then navigates
+
+### src/context/StateContext.jsx
+- `ACTIONS.SET_PENDING_REWARDS` + `ACTIONS.CLEAR_PENDING_REWARDS` added
+- Reducer cases: `SET_PENDING_REWARDS` sets `state.pendingRewards`; `CLEAR_PENDING_REWARDS` resets to `[]`
+
+### src/lib/state.js
+- `pendingRewards: []` added to `defaultState()`
+
+### src/styles.css
+- `@keyframes chest-shake` — horizontal wiggle with rotation
+- `@keyframes sparkle-rise` — scale + float up + fade out
+- `@keyframes fadeInUp` — slide up + fade in for revealed items
+
+---
+
 ## 2026-06-17 — fix: gentle monster scaling + stricter adaptive difficulty (streak resets properly)
 
 ### src/context/StateContext.jsx

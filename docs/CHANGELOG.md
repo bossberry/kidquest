@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — fix: shoes boost uses faster lerp animation instead of tile-skipping playerSpeed=2
+
+### src/components/WorldScreen.jsx
+- `tryMove`: removed `playerSpeed = shoesActive ? 2 : 1` and `dCol * playerSpeed`; always moves exactly 1 tile
+- Sets `window.__kq_moveSpeedMult = 2.0` when shoes active (1.0 otherwise)
+- RAF lerp: `/ 120` → `/ (120 / speedMult)` — shoes = 60ms per tile, normal = 120ms
+- `g.moving` gate naturally clears 2× faster so next input is accepted sooner; no separate cooldown needed
+- Every tile is now visited during shoes boost — chests, enemies, and NPCs all trigger correctly
+
+---
+
 ## 2026-06-17 — feat: subject level progress with streak dots + evo stage visual preview in Collection
 
 ### src/components/Collection.jsx

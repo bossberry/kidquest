@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Fix shoes boost — faster lerp instead of tile-skip:**
+- Built: `tryMove` no longer multiplies `dCol/dRow` by `playerSpeed`; always moves 1 tile. Sets `window.__kq_moveSpeedMult = 2.0` when shoes active (1.0 otherwise). RAF lerp changed from `/ 120` to `/ (120 / speedMult)` — shoes → 60ms per tile instead of 120ms. `g.moving` gate naturally halves in duration so next input can fire sooner too. Every tile is now visited; chests, items, NPCs all trigger normally.
+- Not finished: nothing
+- Blockers/risks found: `window.__kq_moveSpeedMult` is a global side effect — acceptable since WorldScreen is a singleton and is always the only writer
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Collection: subject level progress + evo stage visual preview:**
 - Built: `SubjectLevelProgress` component (LEVEL UP section) — 3 subjects each showing icon badge, level + grade label, streak dots (3 needed for level-up, glowing when filled), mastery bar of current level, "LEVEL UP! ⬆️" text when streak≥3. `CreatureJourney` STAGE row replaced with 3 mini drawCreature canvases (Baby/Teen/Final), sized 29/38/48px, future stages grayscale+dim, current has gold drop-shadow + NOW label, past has ✓. Props passed from Collection → PartyGrid → SubjectLevelProgress (subjectLevels, subjectSessionStreak, levelMastery).
 - Not finished: nothing

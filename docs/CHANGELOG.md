@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — fix: item bag popup reads from homeItems/battleItems + pixel art redesign + show correct counts
+
+### src/components/WorldScreen.jsx
+- Split `items = state.homeItems` into `homeItems = state.homeItems` + `battleItems = state.battleItems`
+- HUD battle items bar: `items[key]` → `battleItems[key]` (was reading home items, showing wrong counts)
+- `homeItemCount`: `items[k]` → `homeItems[k]`
+- Item bag popup: `state.items` → `state.homeItems`; `USE_ITEM` → `USE_HOME_ITEM`; closes bag after use
+- Popup redesigned: dark pixel art style (`#0a0a12` bg, pixel font), HOME 4-col grid (40px drawItem canvas + ×count in gold), BATTLE 5-col grid (32px PixelItemIcon + ×count in green), CLOSE button
+
+---
+
 ## 2026-06-17 — feat: rewrite TreasureSlot — pixel art chest open animation + item reveal with drawItem
 
 ### src/components/TreasureSlot.jsx (full rewrite)

@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Fix item bag popup counts + HUD battle items source:**
+- Built: (1) Split `items = state.homeItems` into `homeItems = state.homeItems` + `battleItems = state.battleItems`; HUD battle items now reads from `battleItems`; homeItemCount uses `homeItems`. (2) Item bag popup: `state.items` → `state.homeItems`, `USE_ITEM` → `USE_HOME_ITEM`, closes bag on use. (3) Popup redesigned: dark pixel art theme, HOME 4-col grid (40px drawItem canvas + ×count), BATTLE 5-col grid (32px PixelItemIcon + ×count), CLOSE button.
+- Not finished: nothing
+- Blockers/risks found: maze exit still uses DROP_ITEM backward-compat alias (intentional — out of scope)
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — TreasureSlot rewrite — chest open animation + item reveal:**
 - Built: TreasureSlot.jsx fully rewritten — slot machine removed; new flow: question gate → chest shakes → tap to open → items float up with drawItem canvas + glow labels → รับของ! button. Rolls home item (55%) + battle item via rollBattleItem(). onReward now passes `{ rewards: [{type,key},...] }` array. WorldScreen.jsx handleTreasureReward updated to dispatch DROP_HOME_ITEM/DROP_BATTLE_ITEM per item.
 - Not finished: nothing

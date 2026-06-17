@@ -25,15 +25,12 @@ function calcBattleLevel(xp) {
 
 // Scale world enemy stats by creature battle level
 export function scaleMonsterStats(baseStats, creatureLevel) {
-  const mult =
-    creatureLevel <= 5  ? 1.0 :
-    creatureLevel <= 15 ? 1.3 :
-    creatureLevel <= 30 ? 1.8 :
-    creatureLevel <= 50 ? 2.4 : 3.2
+  // Gentle linear scale — each level adds 2% (level 16 → 1.30x, level 51 → 2.0x hard cap)
+  const mult = Math.min(1.0 + (creatureLevel - 1) * 0.02, 2.0)
   return {
     hp:  Math.round(baseStats.HP  * mult),
     atk: Math.round(baseStats.ATK * mult),
-    def: Math.round(baseStats.DEF * mult),
+    def: Math.round(baseStats.DEF * mult * 0.5),  // DEF scales slower
   }
 }
 

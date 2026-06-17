@@ -299,7 +299,7 @@ export default function WorldBattle({ navigate }) {
     const accuracy = accuracyRef.current.total > 0
       ? accuracyRef.current.correct / accuracyRef.current.total
       : 0
-    const isStrong = accuracy >= 0.80 && accuracyRef.current.total >= 6
+    const isStrong = accuracy >= 0.80 && accuracyRef.current.total >= 8
     const dur = Math.floor((Date.now() - startTime.current) / 1000)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: streakRef.current, score: accuracy } })
     dispatch({ type: ACTIONS.LOG_SESSION, payload: {
@@ -311,30 +311,29 @@ export default function WorldBattle({ navigate }) {
       dur, completed: true,
     }})
 
-    // Adaptive difficulty: level up after 3 strong sessions (≥80% accuracy AND ≥6 questions)
+    // Adaptive difficulty: 3 consecutive strong sessions → level up; streak resets on any non-strong session
     if (!isBossBattle) {
       const MAX_LEVEL = { thai: 5, math: 8, eng: 4 }
       const curLevel  = state.subjectLevels?.[subject] ?? 1
       const curStreak = state.subjectSessionStreak?.[subject] ?? 0
       if (isStrong) {
         const newStreak = curStreak + 1
+        dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: newStreak } })
         if (newStreak >= 3 && curLevel < (MAX_LEVEL[subject] ?? 5)) {
-          const newLevel = curLevel + 1
+          const newLevel = Math.min(curLevel + 1, MAX_LEVEL[subject] ?? 5)
           dispatch({ type: ACTIONS.SET_SUBJECT_LEVEL, payload: { subject, level: newLevel } })
           dispatch({ type: ACTIONS.SET_PENDING_LEVEL_UP, payload: { subject, oldLevel: curLevel, newLevel } })
           dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
-        } else {
-          dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: newStreak } })
         }
-      } else if (accuracy < 0.50 && accuracyRef.current.total >= 6) {
-        const floor    = state.subjectLevelFloor?.[subject] ?? 1
-        const newLevel = Math.max(floor, curLevel - 1)
-        if (newLevel < curLevel) {
-          dispatch({ type: ACTIONS.SET_SUBJECT_LEVEL, payload: { subject, level: newLevel } })
-        }
-        dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
       } else {
+        // Always reset streak when not strong — prevents gradual drift
         dispatch({ type: ACTIONS.SET_SUBJECT_SESSION_STREAK, payload: { subject, streak: 0 } })
+        if (accuracy < 0.50 && accuracyRef.current.total >= 8) {
+          const floor = state.subjectLevelFloor?.[subject] ?? 1
+          if (curLevel > floor) {
+            dispatch({ type: ACTIONS.SET_SUBJECT_LEVEL, payload: { subject, level: curLevel - 1 } })
+          }
+        }
       }
     }
 

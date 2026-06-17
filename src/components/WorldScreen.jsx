@@ -723,14 +723,15 @@ export default function WorldScreen({ navigate }) {
     const eData = ENEMY_DATA[enemy.type] || { hp: 24, atk: 4, nameTH: 'ศัตรู' }
     const activeEgg = (stateRef.current.hatchedEggs || []).find(e => e.id === stateRef.current.party?.[0]) || (stateRef.current.hatchedEggs || [])[0]
     const playerLevel = activeEgg?.battleLevel ?? 1
-    const scaleFactor = 1 + (playerLevel - 1) * 0.4
+    const scaleFactor = 1.0 + (playerLevel - 1) * 0.15  // level 16 → 3.25x (was 0.4x = 7x, way too high)
+    const cappedScale = Math.min(scaleFactor, 4.0)
     dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
       position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
       enemy: {
         type: enemy.type, subject, level,
-        hp:  Math.round((eData.hp  ?? 24) * scaleFactor),
-        atk: Math.round((eData.atk ??  4) * scaleFactor),
-        def: Math.round((eData.def ??  0) * scaleFactor),
+        hp:  Math.max(30, Math.round((eData.hp  ?? 24) * cappedScale)),
+        atk: Math.max(4,  Math.round((eData.atk ??  4) * cappedScale)),
+        def: Math.max(0,  Math.round((eData.def ??  0) * cappedScale * 0.5)),
         nameTH: eData.nameTH ?? '?',
       },
     }})

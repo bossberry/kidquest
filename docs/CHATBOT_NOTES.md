@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Collection screen dark pixel art theme:**
+- Built: Header — fontSize 11→10, color `var(--px-yellow)` → `#EF9F27`, letterSpacing 2→3, borderBottom → `rgba(255,255,255,0.08)`. Tabs — inline override: active gold `#EF9F27` border-bottom, inactive `rgba(255,255,255,0.35)`, both `background:transparent`. Card container — `background:'#0f0f1a'`, `border: 2px solid #EF9F27 (active) or rgba(255,255,255,0.1)`, `boxShadow` glow on active, `borderRadius:0`, removed `borderRadius:4` on canvas. Active badge `#FFD700→#EF9F27`. Creature name — replaced className with inline dark style. Level text `rgba(0.5)→rgba(0.35)`. HP bar `#000/#333→rgba`. HP text `rgba(0.4)→rgba(0.3)`. Set active button — filled gold → transparent outlined `#EF9F27`. CreatureJourney — `width:'100%'`, label "JOURNEY→JOURNEY AHEAD", future step color `rgba(0.2)`, needs text `rgba(255,100,100,0.5)`.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Mission progress panel above map:**
 - Built: `MissionPanel` component in WorldScreen.jsx — shows map name, cleared status (✓), objective text per screen (NW/NE/SW/SE/MAZE/BOSS), enemy type list, daily progress bar (dailyBattleRounds/10). Positioned `top: HUD_CONTENT_H+8` with `pointerEvents:none`. Camera offset updated: `(HUD_CONTENT_H + PANEL_H=72) / 2` centers map in space below panel.
 - Not finished: nothing

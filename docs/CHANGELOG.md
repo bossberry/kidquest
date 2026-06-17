@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — fix: collection screen dark pixel art theme — creature cards, tabs, journey section
+
+### src/components/Collection.jsx
+- Header: `fontSize:11→10`, `color:#EF9F27`, `letterSpacing:3`, `borderBottom:rgba(255,255,255,0.08)`
+- Tabs: inline style overrides — active `color:#EF9F27 + borderBottom:2px solid #EF9F27`, inactive `rgba(255,255,255,0.35)`, both `background:transparent`
+- Card container: `background:#0f0f1a`, dark/gold border, `borderRadius:0`, gold `boxShadow` glow on active card
+- Active badge: `#FFD700→#EF9F27`; creature name inline dark style; level `rgba(0.5→0.35)`; HP bar `rgba(0,0,0,0.5)` bg
+- Set active button: filled `#B8860B` → transparent outlined `border:1px solid #EF9F27`, `color:#EF9F27`
+- CreatureJourney: `width:'100%'` on container; label "JOURNEY AHEAD"; future step icon `rgba(255,255,255,0.2)`; needs text `rgba(255,100,100,0.5)` (was white)
+
+---
+
 ## 2026-06-17 — feat: mission progress panel in empty space above map — shows objective, enemies, daily progress
 
 ### src/components/WorldScreen.jsx

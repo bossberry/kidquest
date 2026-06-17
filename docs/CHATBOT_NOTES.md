@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Add SFX/tones to all animation/cutscene points:**
+- Built: (1) MoveSelectBattleMode — `playSFX('player_hit')` on shake, `useEffect` plays `playTone('ultimate')` when saiyan activates. (2) LevelUpCutscene — added audio import + `playSFX('level_up')` at reveal (400ms), `playTone('fanfare')` at celebrate (1200ms), timings extended (2800→3800ms done). (3) RewardChest — added audio import + `playTone('jingle')` on shaking, `playSFX('item_collect')` on tap-to-open, `playTone('reveal')` when reveal phase starts, `playTone('sparkle')` on collect. (4) TreasureSlot — `playSFX('item_collect')` on handleCollect. (5) HomeBackground — added audio import + `lastJumpSoundRef` + `playTone('chirp')` on meeting start + throttled `playSFX('footstep')` on jump (800ms cooldown). (6) WorldScreen — `playSFX('enemy_notice')` before boss confirm dialog + `playSFX('battle_start')` in enterBossBattle. (7) WorldBattle — `playSFX('victory')` + `playTone('fanfare')` before DEFEAT_BOSS dispatch. (8) App.jsx — `playSFX('stage_up')` + `playTone('stageUp')` in pendingEvoNotice handler.
+- Not finished: HatchOverlay already had sounds (playHatchSound + reveal + fanfare) — no change needed. Home.jsx already had all sounds.
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — rainbow_star: phase-through immunity from chaser enemies:**
 - Built: `tryMove` collision check — added `saiyanActive` guard; chasers (snake/baby_zombie/woken sleepy_bunny) skip collision when rainbow_star active. Walking directly INTO a non-chaser enemy still triggers battle normally. RAF loop enemy-initiated collision — added `saiyanActiveNow` guard so chasers can't force battle by walking onto player while saiyan active. Effect labels updated everywhere: rainbow_star → 'ล่องหนจากมอนสเตอร์ตาม'; shoes → 'วิ่ง×4' (all 3 files + bondReaction text).
 - Not finished: nothing

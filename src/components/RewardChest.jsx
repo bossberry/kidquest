@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { drawItem } from '../lib/itemArt.js'
 
 const ITEM_NAMES = {
   scroll: 'ม้วนใบ', thunder: 'สายฟ้า', gem: 'อัญมณี', mirror: 'กระจก', clover: 'โคลเวอร์',
@@ -11,7 +12,7 @@ const ITEM_COLORS = {
 const SPARKLE_POSITIONS = [12, 28, 46, 64, 80]  // fixed % positions to avoid per-render random
 
 export default function RewardChest({ rewards, onDone }) {
-  const [phase, setPhase] = useState('closed')
+  const [phase, setPhase] = useState('closed')  // closed | shaking | opening | reveal | collected
   const t1Ref = useRef(null)
   const t2Ref = useRef(null)
 
@@ -21,7 +22,12 @@ export default function RewardChest({ rewards, onDone }) {
   }, [])
 
   const handleTap = () => {
-    if (phase === 'reveal') { onDone?.(); return }
+    if (phase === 'collected') { onDone?.(); return }
+    if (phase === 'reveal') {
+      setPhase('collected')
+      t2Ref.current = setTimeout(() => onDone?.(), 1200)
+      return
+    }
     if (phase === 'shaking' || phase === 'closed') {
       setPhase('opening')
       t2Ref.current = setTimeout(() => setPhase('reveal'), 600)
@@ -112,11 +118,10 @@ export default function RewardChest({ rewards, onDone }) {
       </div>
 
       {/* Revealed items */}
-      {phase === 'reveal' && (
+      {(phase === 'reveal' || phase === 'collected') && (
         <div style={{
           marginTop: 32,
           display: 'flex', gap: 16, justifyContent: 'center',
-          animation: 'fadeInUp 0.4s ease both',
         }}>
           {rewards.length === 0 ? (
             <div style={{ fontFamily: 'var(--font-thai)', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
@@ -125,12 +130,13 @@ export default function RewardChest({ rewards, onDone }) {
           ) : rewards.map((r, i) => (
             <div key={i} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              animation: `scale-pop 0.4s ease ${i * 0.15}s both`,
+              transform: phase === 'collected' ? 'translateY(-60px) scale(0.5)' : 'translateY(0) scale(1)',
+              opacity: phase === 'collected' ? 0 : 1,
+              transition: `transform 0.6s ease ${i * 0.1}s, opacity 0.6s ease ${i * 0.1}s`,
+              animation: phase === 'reveal' ? `scale-pop 0.4s ease ${i * 0.15}s both` : 'none',
             }}>
               <canvas
-                ref={ref => {
-                  if (ref) import('../lib/itemArt.js').then(({ drawItem }) => drawItem(ref, r.key))
-                }}
+                ref={ref => { if (ref) drawItem(ref, r.key) }}
                 width={56} height={56}
                 style={{ imageRendering: 'pixelated' }}
               />
@@ -152,6 +158,18 @@ export default function RewardChest({ rewards, onDone }) {
         </div>
       )}
 
+      {/* "เข้ากระเป๋าแล้ว!" message when collected */}
+      {phase === 'collected' && (
+        <div style={{
+          marginTop: 16,
+          fontFamily: 'var(--font-pixel)', fontSize: 10,
+          color: '#FFD700', letterSpacing: 2,
+          animation: 'fadeInUp 0.3s ease both',
+        }}>
+          เข้ากระเป๋าแล้ว!
+        </div>
+      )}
+
       {/* Tap hint */}
       <div style={{
         marginTop: 24,
@@ -159,7 +177,7 @@ export default function RewardChest({ rewards, onDone }) {
         color: 'rgba(255,255,255,0.4)',
         animation: 'blink 1.2s ease infinite',
       }}>
-        {phase === 'reveal' ? 'แตะเพื่อดำเนินการต่อ' : 'แตะเพื่อเปิด!'}
+        {phase === 'reveal' ? 'แตะเพื่อเก็บ!' : phase === 'collected' ? '' : 'แตะเพื่อเปิด!'}
       </div>
     </div>
   )

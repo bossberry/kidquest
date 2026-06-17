@@ -1231,12 +1231,15 @@ export default function WorldScreen({ navigate }) {
   // ── Treasure reward ──────────────────────────────────────────────────────────
 
   function handleTreasureReward(reward) {
-    for (let i = 0; i < reward.qty; i++) {
-      dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: reward.type } })
-    }
-    if (reward.battleItem) {
-      dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: reward.battleItem } })
-    }
+    const { rewards } = reward
+    if (!rewards?.length) return
+    rewards.forEach(r => {
+      if (r.type === 'home') {
+        dispatch({ type: ACTIONS.DROP_HOME_ITEM, payload: { key: r.key } })
+      } else if (r.type === 'battle') {
+        dispatch({ type: ACTIONS.DROP_BATTLE_ITEM, payload: { key: r.key } })
+      }
+    })
     playSFX('stage_up')
   }
 

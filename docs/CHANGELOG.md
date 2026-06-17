@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — fix: RewardChest — static import for drawItem + collected animation before closing
+
+### src/components/RewardChest.jsx
+- Static `import { drawItem } from '../lib/itemArt.js'` replaces dynamic import inside ref callback (fixes black canvas)
+- New `collected` phase: items animate to `translateY(-60px) scale(0.5)` + fade out over 0.6s staggered; "เข้ากระเป๋าแล้ว!" banner fades in; `onDone` auto-fires after 1200ms
+- Tap in `reveal` → `collected` phase (was: tap in `reveal` → `onDone` immediately)
+- Tap hint: `reveal`→"แตะเพื่อเก็บ!", `collected`→"" (hidden), else "แตะเพื่อเปิด!"
+
+---
+
 ## 2026-06-17 — fix: item bag popup reads from homeItems/battleItems + pixel art redesign + show correct counts
 
 ### src/components/WorldScreen.jsx

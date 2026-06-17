@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Fix RewardChest — static drawItem import + collected animation:**
+- Built: (1) Dynamic `import('../lib/itemArt.js')` inside ref callback replaced with static `import { drawItem }` at top — fixes black/broken canvas on iOS/Android where dynamic import timing was unreliable. (2) New `collected` phase after `reveal`: items fly up + fade out, "เข้ากระเป๋าแล้ว!" banner appears, auto-calls onDone after 1200ms. Tap hint updated: reveal→"แตะเพื่อเก็บ!", collected→"".
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Fix item bag popup counts + HUD battle items source:**
 - Built: (1) Split `items = state.homeItems` into `homeItems = state.homeItems` + `battleItems = state.battleItems`; HUD battle items now reads from `battleItems`; homeItemCount uses `homeItems`. (2) Item bag popup: `state.items` → `state.homeItems`, `USE_ITEM` → `USE_HOME_ITEM`, closes bag on use. (3) Popup redesigned: dark pixel art theme, HOME 4-col grid (40px drawItem canvas + ×count), BATTLE 5-col grid (32px PixelItemIcon + ×count), CLOSE button.
 - Not finished: nothing

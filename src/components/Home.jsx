@@ -15,8 +15,8 @@ import { supabase } from '../lib/supabase.js'
 const ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100' },
   { key:'ribbon',       label:'ริบบิ้น',   effect:'SPD+10' },
-  { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×2' },
-  { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ซูปเปอร์!' },
+  { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×4' },
+  { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ล่องหนจากมอนสเตอร์ตาม' },
 ]
 
 // Duration (ms) for each idle animation before clearing state
@@ -376,7 +376,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
       spawnParticles('sparkle', 6)
       setGlow('warm', 1200)
       enterState('happy', 800)
-      setBondReaction('👟 วิ่ง×2 (5 นาที)')
+      setBondReaction('👟 วิ่ง×4 (5 นาที)')
       setTimeout(() => setBondReaction(null), 1500)
 
     } else if (key === 'rainbow_star') {

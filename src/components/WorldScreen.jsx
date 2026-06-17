@@ -155,7 +155,7 @@ const HUD_SEP = (
 )
 
 const HOME_ITEM_LABELS = { food: 'อาหาร', ribbon: 'ริบบิ้น', shoes: 'รองเท้า', rainbow_star: 'ดาวสีรุ้ง' }
-const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: 'วิ่ง×2', rainbow_star: 'ซูปเปอร์!' }
+const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: 'วิ่ง×4', rainbow_star: 'หลบศัตรูตาม!' }
 const HOME_ITEM_KEYS = ['food', 'ribbon', 'shoes', 'rainbow_star']
 
 function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
@@ -888,11 +888,15 @@ export default function WorldScreen({ navigate }) {
     const newRow = g.row + dRow
 
     // Dynamic enemy collision — also catches chasers already on player's tile
+    const saiyanActive = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+
     const hitEnemy = enemiesRef.current.find(e => {
       if (e.defeated || e.dead) return false
-      if (e.col === newCol && e.row === newRow) return true
       const isChaser = e.type === 'snake' || e.type === 'baby_zombie' ||
                        (e.type === 'sleepy_bunny' && e.woken)
+      // Saiyan mode: phase through chasers, but still collide with enemies walked into directly
+      if (isChaser && saiyanActive) return false
+      if (e.col === newCol && e.row === newRow) return true
       if (isChaser && e.col === g.col && e.row === g.row) return true
       return false
     })
@@ -1171,7 +1175,8 @@ export default function WorldScreen({ navigate }) {
         // Enemies that ran into the player trigger battle
         const isChaser = ne.type === 'snake' || ne.type === 'baby_zombie' ||
                          (ne.type === 'sleepy_bunny' && ne.woken)
-        if (!pendingBattle && isChaser && !battleDispatchedRef.current) {
+        const saiyanActiveNow = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+        if (!pendingBattle && isChaser && !saiyanActiveNow && !battleDispatchedRef.current) {
           const gc = gameRef.current
           if (gc && ne.col === gc.col && ne.row === gc.row) {
             pendingBattle = ne

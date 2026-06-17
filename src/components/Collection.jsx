@@ -375,8 +375,8 @@ function CreatureJourney({ egg, currentTier }) {
 const HOME_ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100',  color:'#8B4513' },
   { key:'ribbon',       label:'ริบบิ้น',   effect:'SPD+10',  color:'#FF1493' },
-  { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×2',  color:'#EF9F27' },
-  { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ซูปเปอร์!', color:'#FF88FF' },
+  { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×4',  color:'#EF9F27' },
+  { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ล่องหนจากมอนสเตอร์ตาม', color:'#FF88FF' },
 ]
 
 const BATTLE_ITEM_DEFS = [

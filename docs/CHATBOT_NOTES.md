@@ -198,6 +198,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Phase 2 Round 1: extract WorldHUD + MissionPanel into world/ subfolder:**
+- Built: Created `src/components/world/WorldHUD.jsx` (HUD bar with mini-map, creature HP, XP, battle items, item bag, home button; exports HUD_CONTENT_H/HOME_ITEM_KEYS/BATTLE_ITEM_KEYS as named exports). Created `src/components/world/MissionPanel.jsx` (map objective panel; imports HUD_CONTENT_H from WorldHUD). WorldScreen.jsx reduced from 1700→1346 lines — removed WorldHUD+MissionPanel function bodies and their local consts; removed getCreatureSeed + MAP_THEMES imports (now only used in WorldHUD.jsx). Build clean: 137 modules, 0 errors.
+- Not finished: Round 2 (enemy hook) and Round 3 (chest hook) not started
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Round 2 — useWorldEnemies.js hook extraction
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Remove completed migrations + simplify creature merge + audit hardcoded names:**
 - Built: (1) Removed 5 completed one-time migrations from StateContext.jsx initializer: items→homeItems/battleItems split, star→rainbow_star/potion→shoes rename, subjectLevels calibration, additive items, evo recheck. All flags (_subjectLevelCalibrated, _itemsMigrated, _evoRechecked) confirmed true in live state before removal. (2) Simplified creature merge check: removed `_creaturesMerged && !_statAveraged` flag logic — now just `length > 1` at both local and remote merge sites. (3) Removed `_creaturesMerged` and `_statAveraged` flag tracking from `_mergeAllCreaturesIntoOne()` returns in state.js; updated re-averaging guard from `count <= 1 || state._statAveraged` to `count <= 1`. (4) Fixed hardcoded `โชแปง` in WorldScreen.jsx: OWL_LINES → `getOwlLines(name)` function, boss cutscene → `{state.name}พิชิต`. (5) Removed 2 debug console.logs: battleSubject.js getBattleLevel log, WorldBattle.jsx "Debug log — verify level rotation" useEffect. Kept all [KQ:*] prefixed diagnostic logs in state.js and StateContext.jsx.
 - Not finished: nothing

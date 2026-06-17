@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — refactor(phase2-round1): extract WorldHUD and MissionPanel into separate components
+
+### New files
+- `src/components/world/WorldHUD.jsx` — HUD bar (mini-map, creature HP, XP bar, battle items, item bag button, home button). Exports: `default WorldHUD`, `HUD_CONTENT_H`, `HOME_ITEM_KEYS`, `BATTLE_ITEM_KEYS`
+- `src/components/world/MissionPanel.jsx` — Map info panel above the world map (name, objective, enemy types, daily progress bar)
+
+### src/components/WorldScreen.jsx
+- Removed 387 lines (WorldHUD + MissionPanel functions + their local consts)
+- Imports WorldHUD/MissionPanel from `./world/`; `HUD_CONTENT_H`, `HOME_ITEM_KEYS`, `BATTLE_ITEM_KEYS` imported as named exports
+- Removed `getCreatureSeed` import (only used inside WorldHUD)
+- Removed `MAP_THEMES` import (only used inside WorldHUD)
+- Build: 137 modules transform, 0 errors
+
+---
+
 ## 2026-06-17 — cleanup: remove completed migrations, simplify merge logic, audit hardcoded names
 
 ### src/context/StateContext.jsx

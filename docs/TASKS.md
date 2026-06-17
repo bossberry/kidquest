@@ -6,11 +6,12 @@ _Last updated: 2026-06-16_
 ## Now
 
 ### Phase 2 Refactor — WorldScreen.jsx split
-`WorldScreen.jsx` is 1540 lines. Goal: extract logical modules without changing behavior.
+`WorldScreen.jsx` was 1700 lines; now 1346. Goal: extract logical modules without changing behavior.
 
-- [ ] Extract `WorldHUD` into `WorldHUD.jsx` (currently module-level component inside WorldScreen)
-- [ ] Extract enemy logic into `useWorldEnemies.js` hook (enemiesRef, movement patterns, respawn)
-- [ ] Extract chest logic into `useWorldChests.js` hook
+- [x] Round 1 — Extract `WorldHUD` into `src/components/world/WorldHUD.jsx` ✅
+- [x] Round 1 — Extract `MissionPanel` into `src/components/world/MissionPanel.jsx` ✅
+- [ ] Round 2 — Extract enemy logic into `useWorldEnemies.js` hook (enemiesRef, movement patterns, respawn)
+- [ ] Round 3 — Extract chest logic into `useWorldChests.js` hook
 - [ ] Build verify + zero behavior change after each extraction
 
 ---

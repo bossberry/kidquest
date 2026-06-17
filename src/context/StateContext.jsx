@@ -137,6 +137,9 @@ export const ACTIONS = {
   SET_PENDING_LEVEL_UP:       'SET_PENDING_LEVEL_UP',
   CLEAR_PENDING_LEVEL_UP:     'CLEAR_PENDING_LEVEL_UP',
   SET_SUBJECT_SESSION_STREAK: 'SET_SUBJECT_SESSION_STREAK',
+  // Reward chest
+  SET_PENDING_REWARDS:        'SET_PENDING_REWARDS',
+  CLEAR_PENDING_REWARDS:      'CLEAR_PENDING_REWARDS',
 }
 
 function reducer(state, action) {
@@ -794,6 +797,12 @@ function reducer(state, action) {
 
     case ACTIONS.CLEAR_PENDING_LEVEL_UP:
       return { ...state, pendingLevelUp: null }
+
+    case ACTIONS.SET_PENDING_REWARDS:
+      return { ...state, pendingRewards: action.payload ?? [] }
+
+    case ACTIONS.CLEAR_PENDING_REWARDS:
+      return { ...state, pendingRewards: [] }
 
     case ACTIONS.SET_SUBJECT_SESSION_STREAK: {
       const { subject, streak } = action.payload

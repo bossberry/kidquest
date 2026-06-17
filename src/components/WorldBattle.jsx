@@ -4,6 +4,22 @@ import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuff
          SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS } from '../config/gameConfig.js'
 import { speakTh, speakEn, playBGM, stopBGM } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
+import RewardChest from '../components/RewardChest.jsx'
+import { rollBattleItem } from '../config/itemConfig.js'
+
+const HOME_DROP_TABLE = [
+  { key: 'food',         weight: 50 },
+  { key: 'ribbon',       weight: 25 },
+  { key: 'shoes',        weight: 15 },
+  { key: 'rainbow_star', weight: 10 },
+]
+function rollHomeItem() {
+  if (Math.random() > 0.40) return null
+  const total = HOME_DROP_TABLE.reduce((s, d) => s + d.weight, 0)
+  let r = Math.random() * total
+  for (const d of HOME_DROP_TABLE) { r -= d.weight; if (r <= 0) return d.key }
+  return HOME_DROP_TABLE[0].key
+}
 
 const TOTAL_QS = 8
 
@@ -203,7 +219,8 @@ export default function WorldBattle({ navigate }) {
   const [qs, setQs] = useState(() =>
     Array.from({ length: TOTAL_QS }, () => genMoveQuestion(subject, levelConfig))
   )
-  const [cur, setCur]  = useState(0)
+  const [cur, setCur]          = useState(0)
+  const [pendingRewards, setPendingRewards] = useState(null)
   const streakRef      = useRef(0)
   const scoreRef       = useRef(0)
   const accuracyRef    = useRef({ correct: 0, total: 0 })
@@ -340,8 +357,20 @@ export default function WorldBattle({ navigate }) {
     if (isBossBattle) {
       dispatch({ type: ACTIONS.DEFEAT_BOSS })
     }
-    dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
-    navigate('world')
+
+    // Roll rewards
+    const battleItemDrop = rollBattleItem()
+    const homeItemDrop   = rollHomeItem()
+    const rewards = []
+    if (battleItemDrop) rewards.push({ type: 'battle', key: battleItemDrop })
+    if (homeItemDrop)   rewards.push({ type: 'home',   key: homeItemDrop })
+
+    if (battleItemDrop) dispatch({ type: ACTIONS.DROP_BATTLE_ITEM, payload: { key: battleItemDrop } })
+    if (homeItemDrop)   dispatch({ type: ACTIONS.DROP_HOME_ITEM,   payload: { key: homeItemDrop } })
+    dispatch({ type: ACTIONS.SET_PENDING_REWARDS, payload: rewards })
+
+    // Show chest overlay — navigation happens in onDone
+    setPendingRewards(rewards)
   }
 
   function onFaint() {
@@ -361,6 +390,17 @@ export default function WorldBattle({ navigate }) {
 
   return (
     <div style={{ position:'fixed', inset:0, display:'flex', flexDirection:'column' }}>
+      {pendingRewards !== null && (
+        <RewardChest
+          rewards={pendingRewards}
+          onDone={() => {
+            setPendingRewards(null)
+            dispatch({ type: ACTIONS.CLEAR_PENDING_REWARDS })
+            dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
+            navigate('world')
+          }}
+        />
+      )}
       <MoveSelectBattleMode
         q={qs[cur]}
         cur={cur}

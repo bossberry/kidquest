@@ -657,6 +657,10 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 @keyframes levelup-pulse{from{text-shadow:0 0 16px #FF8800,0 0 40px #FFD700}to{text-shadow:0 0 30px #FFFF00,0 0 60px #FF8800,0 0 90px #FFD700}}
 @keyframes scale-pop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 @keyframes arrow-slide{0%{transform:translateY(-12px);opacity:0}100%{transform:translateY(0);opacity:1}}
+/* Reward chest keyframes */
+@keyframes chest-shake{0%,100%{transform:translateX(0) rotate(0deg)}25%{transform:translateX(-6px) rotate(-3deg)}75%{transform:translateX(6px) rotate(3deg)}}
+@keyframes sparkle-rise{from{transform:translateY(0) scale(0);opacity:1}to{transform:translateY(-60px) scale(1.2);opacity:0}}
+@keyframes fadeInUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* Pixel bottom nav */
 .px-bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:800;background:var(--px-darkest);border-top:3px solid var(--px-border);display:flex;justify-content:space-around;padding:10px 0 calc(10px + env(safe-area-inset-bottom))}

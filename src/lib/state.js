@@ -70,6 +70,7 @@ export function defaultState() {
     subjectSessionStreak: { thai: 0, math: 0, eng: 0 },
     subjectLevelFloor:    { thai: 1, math: 1, eng: 1 },
     pendingLevelUp: null,
+    pendingRewards: [],
   }
 }
 

@@ -27,6 +27,13 @@ _Last updated: 2026-06-16_
 - 6-creature hard limit; single active creature shown large on Home
 - `HomeBackground.jsx` canvas: `creatures` prop (array of hatchedEggs) → one animated entity per creature, walk/idle/jump/spin state machine, meeting gimmick, golden glow on center creature
 
+### Treasure Chest (Map Chests)
+- `TreasureSlot.jsx`: question gate → correct → chest shakes (tap to open) → chest opens → items float up → collect
+- Rolls home item (55% from food/ribbon/shoes/rainbow_star) + battle item via `rollBattleItem()`
+- Items drawn via `drawItem` canvas with glow + Thai label + type badge (สู้/บ้าน)
+- `onReward` passes `{ rewards: [{type,key},...] }`; WorldScreen dispatches `DROP_HOME_ITEM`/`DROP_BATTLE_ITEM` per item
+- Wrong answer: red flash + close (no retry)
+
 ### Post-Battle Reward Chest
 - `RewardChest.jsx`: shown after every world battle victory (incl. bosses); phases: closed→shaking→opening→reveal; tap to open, tap to continue
 - Battle item drop: 55% chance via `rollBattleItem()` from `itemConfig.js`

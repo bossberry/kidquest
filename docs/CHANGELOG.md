@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — feat: rewrite TreasureSlot — pixel art chest open animation + item reveal with drawItem
+
+### src/components/TreasureSlot.jsx (full rewrite)
+- Removed slot machine reels entirely
+- New flow: question gate → chest shakes (tap to open) → chest opens → items float up → รับของ! button
+- Rolls home item (55% chance from food/ribbon/shoes/rainbow_star) + battle item via `rollBattleItem()`
+- Items drawn via dynamic `import('../lib/itemArt.js').then(drawItem)` canvas; glow + label + type badge
+- `onReward` now passes `{ rewards: [{type, key}, ...] }` array (was `{qty, type, battleItem}` object)
+
+### src/components/WorldScreen.jsx
+- `handleTreasureReward`: updated to handle `reward.rewards[]` array format; dispatches `DROP_HOME_ITEM` / `DROP_BATTLE_ITEM` per item (was `DROP_ITEM` with qty loop)
+
+---
+
 ## 2026-06-17 — feat: post-battle reward chest with open animation — battle + home item drops
 
 ### src/components/RewardChest.jsx (new file)

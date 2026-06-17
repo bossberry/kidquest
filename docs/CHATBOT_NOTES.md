@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — TreasureSlot rewrite — chest open animation + item reveal:**
+- Built: TreasureSlot.jsx fully rewritten — slot machine removed; new flow: question gate → chest shakes → tap to open → items float up with drawItem canvas + glow labels → รับของ! button. Rolls home item (55%) + battle item via rollBattleItem(). onReward now passes `{ rewards: [{type,key},...] }` array. WorldScreen.jsx handleTreasureReward updated to dispatch DROP_HOME_ITEM/DROP_BATTLE_ITEM per item.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Post-battle reward chest (5 tasks):**
 - Built: RewardChest.jsx (closed→shaking 400ms→opening 600ms→reveal; tap-to-open; pixel art items via drawItem canvas with glow label; blink tap hint). WorldBattle.jsx rolls battle item (55%) + home item (40% from HOME_DROP_TABLE food/ribbon/shoes/rainbow_star), dispatches DROP_BATTLE_ITEM/DROP_HOME_ITEM immediately, shows RewardChest overlay instead of navigating; navigate('world') deferred to chest onDone. SET_PENDING_REWARDS + CLEAR_PENDING_REWARDS actions added to StateContext. pendingRewards: [] added to defaultState(). chest-shake/sparkle-rise/fadeInUp keyframes added to styles.css.
 - Not finished: boss battles also show chest — OK by design (bosses can also drop items)

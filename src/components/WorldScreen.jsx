@@ -183,7 +183,8 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
   const hpColor = hpFrac > 0.5 ? '#38c038' : hpFrac > 0.2 ? '#c8c820' : '#c82020'
 
   const { level: xpLevel, fraction: xpFrac } = xpProgress(creature)
-  const items = state.homeItems ?? {}
+  const homeItems   = state.homeItems   ?? {}
+  const battleItems = state.battleItems ?? {}
 
   // Mini-map: 2×2 regular slots + BOSS row
   const groundColor = WORLD_LEVELS[worldLevel]?.bgColors?.ground ?? '#2a4a2a'
@@ -200,7 +201,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
     return groundColor
   }
 
-  const homeItemCount = HOME_ITEM_KEYS.reduce((n, k) => n + (items[k] ?? 0), 0)
+  const homeItemCount = HOME_ITEM_KEYS.reduce((n, k) => n + (homeItems[k] ?? 0), 0)
 
   return (
     <div style={{
@@ -357,7 +358,7 @@ function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag,
           </div>
           <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             {BATTLE_ITEM_KEYS.map(key => {
-              const count = items[key] ?? 0
+              const count = battleItems[key] ?? 0
               return (
                 <div key={key} style={{ position: 'relative', opacity: count > 0 ? 1 : 0.2 }}>
                   <PixelItemIcon type={key} size={13} />
@@ -1495,42 +1496,55 @@ export default function WorldScreen({ navigate }) {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#0e1a0e', border: '2px solid #3a6a3a',
-              borderRadius: 14, padding: '18px 20px', maxWidth: 280, width: '88%',
-              fontFamily: 'Mitr,sans-serif',
+              background:'#0a0a12',
+              border:'2px solid rgba(255,255,255,0.12)',
+              padding:'16px',
+              maxWidth:300, width:'90%',
             }}
           >
-            <div style={{ color: '#a0d0a0', fontSize: 15, fontWeight: 700, marginBottom: 14, textAlign: 'center' }}>
-              🎒 ไอเทมสนาม
+            <div style={{
+              fontFamily:'var(--font-pixel)', fontSize:9,
+              color:'#FFD700', letterSpacing:2,
+              marginBottom:14, textAlign:'center',
+            }}>
+              ITEMS
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+
+            {/* Home items */}
+            <div style={{
+              fontFamily:'var(--font-pixel)', fontSize:7,
+              color:'rgba(255,255,255,0.3)', marginBottom:8, letterSpacing:1,
+            }}>HOME</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:16 }}>
               {HOME_ITEM_KEYS.map(key => {
-                const count = (state.items ?? {})[key] ?? 0
+                const count = (state.homeItems ?? {})[key] ?? 0
                 return (
                   <button
                     key={key}
                     disabled={count === 0}
                     onClick={() => {
                       if (count === 0) return
-                      dispatch({ type: ACTIONS.USE_ITEM, payload: { key } })
+                      dispatch({ type: ACTIONS.USE_HOME_ITEM, payload: { key } })
+                      setItemBagOpen(false)
                     }}
                     style={{
-                      padding: '10px 8px', borderRadius: 10,
-                      background: count > 0 ? 'rgba(40,80,40,0.6)' : 'rgba(20,30,20,0.4)',
-                      border: count > 0 ? '1px solid #3a6a3a' : '1px solid #1a2a1a',
-                      color: count > 0 ? '#c0e0c0' : '#405040',
+                      display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+                      padding:'8px 4px',
+                      background: count > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.3)',
+                      border: count > 0 ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.04)',
                       cursor: count > 0 ? 'pointer' : 'default',
-                      textAlign: 'center',
+                      position:'relative',
+                      opacity: count > 0 ? 1 : 0.35,
                     }}
                   >
-                    <canvas ref={r => r && drawItem(r, key)} width={32} height={32} style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px' }} />
-                    <div style={{ fontSize: 14, marginBottom: 2 }}>{HOME_ITEM_LABELS[key]}</div>
-                    <div style={{ fontSize: 11, color: count > 0 ? '#80c080' : '#304030', marginBottom: 4 }}>
-                      {HOME_ITEM_EFFECTS[key]}
-                    </div>
+                    <canvas
+                      ref={r => r && drawItem(r, key)}
+                      width={40} height={40}
+                      style={{ imageRendering:'pixelated' }}
+                    />
                     <div style={{
-                      fontFamily: 'var(--font-pixel)', fontSize: 11,
-                      color: count > 0 ? '#a8d060' : '#304030',
+                      fontFamily:'var(--font-pixel)', fontSize:9,
+                      color: count > 0 ? '#FFD700' : 'rgba(255,255,255,0.2)',
                     }}>
                       ×{count}
                     </div>
@@ -1538,16 +1552,48 @@ export default function WorldScreen({ navigate }) {
                 )
               })}
             </div>
+
+            {/* Battle items */}
+            <div style={{
+              fontFamily:'var(--font-pixel)', fontSize:7,
+              color:'rgba(255,255,255,0.3)', marginBottom:8, letterSpacing:1,
+            }}>BATTLE</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, marginBottom:16 }}>
+              {BATTLE_ITEM_KEYS.map(key => {
+                const count = (state.battleItems ?? {})[key] ?? 0
+                return (
+                  <div key={key} style={{
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+                    padding:'6px 2px',
+                    background:'rgba(255,255,255,0.03)',
+                    border:'1px solid rgba(255,255,255,0.06)',
+                    opacity: count > 0 ? 1 : 0.3,
+                    position:'relative',
+                  }}>
+                    <PixelItemIcon type={key} size={32} />
+                    <div style={{
+                      fontFamily:'var(--font-pixel)', fontSize:9,
+                      color: count > 0 ? '#a8d030' : 'rgba(255,255,255,0.2)',
+                    }}>
+                      ×{count}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
             <button
               onClick={() => setItemBagOpen(false)}
               style={{
-                marginTop: 14, width: '100%', padding: '8px 0', borderRadius: 8,
-                background: 'rgba(30,50,30,0.5)', border: '1px solid #2a4a2a',
-                color: '#608060', fontFamily: 'Mitr,sans-serif', fontSize: 13,
-                cursor: 'pointer',
+                width:'100%', padding:'8px 0',
+                background:'transparent',
+                border:'1px solid rgba(255,255,255,0.1)',
+                color:'rgba(255,255,255,0.4)',
+                fontFamily:'var(--font-pixel)', fontSize:8,
+                cursor:'pointer', letterSpacing:1,
               }}
             >
-              ปิด
+              CLOSE
             </button>
           </div>
         </div>

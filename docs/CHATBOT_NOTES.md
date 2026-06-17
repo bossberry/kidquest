@@ -198,6 +198,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Phase 2 Round 2: extract pure drawing helpers into worldDrawHelpers.js:**
+- Built: Created `src/lib/worldDrawHelpers.js` — exports drawChest, drawPlayerGlow, spawnChests, findSpecials, getOwlLines, SIGN_LINES, STAGE_COLORS. Imports T/MAP_ROWS/MAP_COLS from tileEngine.js; local TILE=16. WorldScreen.jsx: removed 94 lines, added import; TILE + SKY_TINTS kept in WorldScreen (still needed for RAF loop). WorldScreen now 1257 lines. Build: 0 errors.
+- Not finished: Round 3 (enemy hook) and Round 4 (chest hook) not started
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Round 3 — useWorldEnemies.js hook extraction
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Phase 2 Round 1: extract WorldHUD + MissionPanel into world/ subfolder:**
 - Built: Created `src/components/world/WorldHUD.jsx` (HUD bar with mini-map, creature HP, XP, battle items, item bag, home button; exports HUD_CONTENT_H/HOME_ITEM_KEYS/BATTLE_ITEM_KEYS as named exports). Created `src/components/world/MissionPanel.jsx` (map objective panel; imports HUD_CONTENT_H from WorldHUD). WorldScreen.jsx reduced from 1700→1346 lines — removed WorldHUD+MissionPanel function bodies and their local consts; removed getCreatureSeed + MAP_THEMES imports (now only used in WorldHUD.jsx). Build clean: 137 modules, 0 errors.
 - Not finished: Round 2 (enemy hook) and Round 3 (chest hook) not started

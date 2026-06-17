@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — refactor(phase2-round2): extract pure drawing helpers into worldDrawHelpers.js
+
+### New file
+- `src/lib/worldDrawHelpers.js` — exports: `drawChest`, `drawPlayerGlow`, `spawnChests`, `findSpecials`, `getOwlLines`, `SIGN_LINES`, `STAGE_COLORS`
+  - Imports `T`, `MAP_ROWS`, `MAP_COLS` from `tileEngine.js`; local `TILE = 16`
+
+### src/components/WorldScreen.jsx
+- Removed 94 lines (drawing helpers + STAGE_COLORS + SIGN_LINES)
+- Added import from `../lib/worldDrawHelpers.js`; `const TILE = 16` and `SKY_TINTS` kept in WorldScreen
+- WorldScreen.jsx now 1257 lines (was 1346 after Round 1)
+- Build: 0 errors
+
+---
+
 ## 2026-06-17 — refactor(phase2-round1): extract WorldHUD and MissionPanel into separate components
 
 ### New files

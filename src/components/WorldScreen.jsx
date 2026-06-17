@@ -883,9 +883,9 @@ export default function WorldScreen({ navigate }) {
 
     g.dir = dir
     const shoesActive = (stateRef.current.activeBoosts?.shoes?.endsAt ?? 0) > Date.now()
-    const playerSpeed = shoesActive ? 2 : 1
-    const newCol = g.col + dCol * playerSpeed
-    const newRow = g.row + dRow * playerSpeed
+    window.__kq_moveSpeedMult = shoesActive ? 2.0 : 1.0
+    const newCol = g.col + dCol
+    const newRow = g.row + dRow
 
     // Dynamic enemy collision — also catches chasers already on player's tile
     const hitEnemy = enemiesRef.current.find(e => {
@@ -1243,7 +1243,8 @@ export default function WorldScreen({ navigate }) {
       if (!g || !tileMap) return
 
       if (g.moving) {
-        const t = Math.min(1, (now - g.moveStartTime) / 120)
+        const speedMult = window.__kq_moveSpeedMult ?? 1.0
+        const t = Math.min(1, (now - g.moveStartTime) / (120 / speedMult))
         g.displayX = g.fromX + (g.col - g.fromX) * t
         g.displayY = g.fromY + (g.row - g.fromY) * t
         if (t >= 1) { g.displayX = g.col; g.displayY = g.row; g.moving = false }

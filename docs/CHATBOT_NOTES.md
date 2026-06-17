@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — rainbow_star: phase-through immunity from chaser enemies:**
+- Built: `tryMove` collision check — added `saiyanActive` guard; chasers (snake/baby_zombie/woken sleepy_bunny) skip collision when rainbow_star active. Walking directly INTO a non-chaser enemy still triggers battle normally. RAF loop enemy-initiated collision — added `saiyanActiveNow` guard so chasers can't force battle by walking onto player while saiyan active. Effect labels updated everywhere: rainbow_star → 'ล่องหนจากมอนสเตอร์ตาม'; shoes → 'วิ่ง×4' (all 3 files + bondReaction text).
+- Not finished: nothing
+- Blockers/risks found: boss enemy (`hitEnemy.isWorldBoss`) still triggers boss confirm regardless of saiyan — intentional
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Fix shoes boost — faster lerp instead of tile-skip:**
 - Built: `tryMove` no longer multiplies `dCol/dRow` by `playerSpeed`; always moves 1 tile. Sets `window.__kq_moveSpeedMult = 2.0` when shoes active (1.0 otherwise). RAF lerp changed from `/ 120` to `/ (120 / speedMult)` — shoes → 60ms per tile instead of 120ms. `g.moving` gate naturally halves in duration so next input can fire sooner too. Every tile is now visited; chests, items, NPCs all trigger normally.
 - Not finished: nothing

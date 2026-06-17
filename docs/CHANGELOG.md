@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — feat: rainbow_star boost grants phase-through immunity from chaser enemies
+
+### src/components/WorldScreen.jsx
+- `tryMove`: `saiyanActive` check before chaser collision — snake/baby_zombie/woken sleepy_bunny are ignored when rainbow_star active; walking directly onto a stationary enemy still triggers battle
+- RAF loop enemy-initiated: `saiyanActiveNow` check added to `if (!pendingBattle && isChaser ...)` — chasers can't force battle by landing on player tile during saiyan
+- `HOME_ITEM_EFFECTS`: `rainbow_star: 'หลบศัตรูตาม!'`; `shoes: 'วิ่ง×4'`
+
+### src/components/Collection.jsx + src/components/Home.jsx
+- `rainbow_star` effect → `'ล่องหนจากมอนสเตอร์ตาม'`; `shoes` effect → `'วิ่ง×4'`; Home bondReaction → `'👟 วิ่ง×4 (5 นาที)'`
+
+---
+
 ## 2026-06-17 — fix: shoes boost uses faster lerp animation instead of tile-skipping playerSpeed=2
 
 ### src/components/WorldScreen.jsx

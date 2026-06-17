@@ -57,6 +57,9 @@ export default function Collection() {
             partyCreatures={partyCreatures}
             partySlots={state.partySlots ?? 1}
             currentTier={state.grade ?? 0}
+            subjectLevels={state.subjectLevels}
+            subjectSessionStreak={state.subjectSessionStreak}
+            levelMastery={state.levelMastery}
             onSelect={handleSelect}
             onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
@@ -74,7 +77,7 @@ export default function Collection() {
   )
 }
 
-function PartyGrid({ partyCreatures, partySlots, currentTier, onSelect, onSetActive }) {
+function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, subjectSessionStreak, levelMastery, onSelect, onSetActive }) {
   if (partyCreatures.length === 0) return (
     <div className="catalog-empty">ยังไม่มี creature ในทีม<br/><span style={{ fontSize:12, color:'var(--muted)' }}>ฟักไข่แล้วเพิ่มในทีม!</span></div>
   )
@@ -154,11 +157,118 @@ function PartyGrid({ partyCreatures, partySlots, currentTier, onSelect, onSetAct
                 </button>
               )}
               <CreatureJourney egg={egg} currentTier={currentTier ?? 0} />
+              <SubjectLevelProgress
+                subjectLevels={subjectLevels}
+                subjectSessionStreak={subjectSessionStreak}
+                levelMastery={levelMastery}
+              />
             </div>
           )
         })}
       </div>
     </>
+  )
+}
+
+const SUBJECT_CONFIG = {
+  thai: { label:'ไทย',  color:'#E24B4A', icon:'ก' },
+  math: { label:'คณิต', color:'#378ADD', icon:'#' },
+  eng:  { label:'Eng',  color:'#EF9F27', icon:'A' },
+}
+const SUBJECT_MAX_LEVELS = { thai:5, math:8, eng:4 }
+const LEVEL_GRADE_LABELS = {
+  thai: { 1:'อนุบาล', 2:'อนุบาล', 3:'ป.1', 4:'ป.1-2', 5:'ป.2' },
+  math: { 1:'อนุบาล', 2:'ป.1', 3:'ป.1', 4:'ป.1-2', 5:'ป.2', 6:'ป.2-3', 7:'ป.2', 8:'ป.1-2' },
+  eng:  { 1:'อนุบาล', 2:'ป.1', 3:'ป.1-2', 4:'ป.2-3' },
+}
+
+function SubjectLevelProgress({ subjectLevels, subjectSessionStreak, levelMastery }) {
+  return (
+    <div style={{
+      width:'100%', marginTop:10,
+      padding:'8px 10px',
+      background:'rgba(255,255,255,0.03)',
+      border:'1px solid rgba(255,255,255,0.06)',
+    }}>
+      <div style={{
+        fontFamily:'var(--font-pixel)', fontSize:7,
+        color:'rgba(255,255,255,0.25)', marginBottom:8, letterSpacing:1,
+      }}>
+        LEVEL UP
+      </div>
+      {['thai','math','eng'].map(sub => {
+        const cfg    = SUBJECT_CONFIG[sub]
+        const level  = subjectLevels?.[sub] ?? 1
+        const maxLv  = SUBJECT_MAX_LEVELS[sub]
+        const streak = subjectSessionStreak?.[sub] ?? 0
+        const mastery = levelMastery?.[sub]?.[String(level)] ?? 0
+        const grade  = LEVEL_GRADE_LABELS[sub]?.[level] ?? ''
+        const streakNeeded = 3
+        return (
+          <div key={sub} style={{ marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+              <div style={{
+                width:18, height:18,
+                background: cfg.color + '33',
+                border: `1px solid ${cfg.color}66`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontFamily:'var(--font-pixel)', fontSize:8,
+                color: cfg.color, flexShrink:0,
+              }}>
+                {cfg.icon}
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.7)' }}>
+                  {cfg.label} Lv.{level}
+                  {level >= maxLv && <span style={{ color:'#44ee44', marginLeft:4 }}>MAX</span>}
+                </div>
+                <div style={{ fontFamily:'var(--font-thai)', fontSize:9, color:'rgba(255,255,255,0.3)' }}>
+                  {grade}
+                </div>
+              </div>
+              {level < maxLv && (
+                <div style={{ display:'flex', gap:3, alignItems:'center' }}>
+                  {Array.from({ length: streakNeeded }, (_, i) => (
+                    <div key={i} style={{
+                      width:6, height:6, borderRadius:'50%',
+                      background: i < streak ? cfg.color : 'rgba(255,255,255,0.1)',
+                      border: `1px solid ${i < streak ? cfg.color : 'rgba(255,255,255,0.15)'}`,
+                      boxShadow: i < streak ? `0 0 4px ${cfg.color}` : 'none',
+                    }} />
+                  ))}
+                  <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'rgba(255,255,255,0.2)', marginLeft:2 }}>
+                    {streak}/{streakNeeded}
+                  </div>
+                </div>
+              )}
+            </div>
+            {level < maxLv && (
+              <div style={{ paddingLeft:24 }}>
+                <div style={{ height:4, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{
+                    height:'100%',
+                    width:`${Math.min(100, mastery * 100)}%`,
+                    background: mastery >= 0.8 ? '#44ee44' : cfg.color,
+                    transition:'width 0.5s ease',
+                  }} />
+                </div>
+                <div style={{
+                  fontFamily:'var(--font-pixel)', fontSize:6,
+                  color:'rgba(255,255,255,0.2)', marginTop:2,
+                  display:'flex', justifyContent:'space-between',
+                }}>
+                  <span>Mastery {Math.round(mastery * 100)}%</span>
+                  {streak >= streakNeeded
+                    ? <span style={{ color:'#44ee44' }}>LEVEL UP! ⬆️</span>
+                    : <span>ต้องการ {streakNeeded} strong ติดกัน</span>
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -217,18 +327,46 @@ function CreatureJourney({ egg, currentTier }) {
           )}
         </div>
       ))}
-      <div style={{ marginTop:6, display:'flex', gap:6, alignItems:'center' }}>
-        <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)' }}>STAGE</div>
-        {['baby','teen','final'].map(s => (
-          <div key={s} style={{
-            fontFamily:'var(--font-pixel)', fontSize:7,
-            color: evo === s ? '#EF9F27' : EVO_ORDER[evo] > EVO_ORDER[s] ? '#44ee44' : 'rgba(255,255,255,0.2)',
-            borderBottom: evo === s ? '1px solid #EF9F27' : 'none',
-            paddingBottom:1,
-          }}>
-            {s.toUpperCase()}
-          </div>
-        ))}
+      <div style={{ marginTop:8, display:'flex', gap:8, alignItems:'flex-end', justifyContent:'center' }}>
+        {[
+          { stage:'baby',  label:'Baby',  scale:0.6 },
+          { stage:'teen',  label:'Teen',  scale:0.8 },
+          { stage:'final', label:'Final', scale:1.0 },
+        ].map(({ stage, label, scale }) => {
+          const isDone    = EVO_ORDER[evo] > EVO_ORDER[stage]
+          const isCurrent = evo === stage
+          const isFuture  = EVO_ORDER[evo] < EVO_ORDER[stage]
+          const size = Math.round(48 * scale)
+          return (
+            <div key={stage} style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+              opacity: isFuture ? 0.3 : 1,
+              position:'relative',
+            }}>
+              {isCurrent && (
+                <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'#EF9F27', marginBottom:2 }}>NOW</div>
+              )}
+              {isDone && (
+                <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'#44ee44', marginBottom:2 }}>✓</div>
+              )}
+              <canvas
+                ref={r => { if (r) drawCreature(r, getCreatureSeed({ ...egg, evoStage: stage }), { ...(egg.eggStats ?? {}), evoStage: stage }) }}
+                width={size} height={size}
+                style={{
+                  imageRendering:'pixelated',
+                  filter: isFuture ? 'grayscale(1) brightness(0.4)' : isCurrent ? 'drop-shadow(0 0 4px #EF9F27)' : 'none',
+                  border: isCurrent ? '1px solid #EF9F27' : '1px solid rgba(255,255,255,0.08)',
+                }}
+              />
+              <div style={{
+                fontFamily:'var(--font-pixel)', fontSize:6,
+                color: isCurrent ? '#EF9F27' : isDone ? '#44ee44' : 'rgba(255,255,255,0.2)',
+              }}>
+                {label.toUpperCase()}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

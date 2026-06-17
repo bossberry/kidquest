@@ -205,6 +205,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Round 3 — useWorldEnemies.js hook extraction
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Phase 2 Round 3: extract battle-trigger logic into useBattleTrigger hook:**
+- Built: Created `src/hooks/useBattleTrigger.js` — exports triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle. Calls useAppState internally for dispatch; owns all 3 refs; useLayoutEffect (no-dep) syncs battlePendingRef/battleDispatchedRef after every commit. WorldScreen.jsx: removed duplicate useLayoutEffect (lines 61-64); removed getBattleLevel + ENEMY_DATA imports (moved to hook); removed 3 ref declarations; removed triggerBattle callback + triggerBattleRef.current assignment + useLayoutEffect + enterBossBattle (58 lines); added useBattleTrigger hook call after setBossConfirm/mazeTimerTick state declarations. WorldScreen now 1194 lines (was 1257 after Round 2). RAF loop refs (battleDispatchedRef, battlePendingRef, triggerBattleRef) now come from hook return value — no behavior change. Build: 0 errors.
+- Not finished: Round 4 (useWorldChests.js hook) not started
+- Blockers/risks found: none
+- Ready to start next: Phase 2 Round 4 — extract chest logic into useWorldChests.js hook
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Phase 2 Round 1: extract WorldHUD + MissionPanel into world/ subfolder:**
 - Built: Created `src/components/world/WorldHUD.jsx` (HUD bar with mini-map, creature HP, XP, battle items, item bag, home button; exports HUD_CONTENT_H/HOME_ITEM_KEYS/BATTLE_ITEM_KEYS as named exports). Created `src/components/world/MissionPanel.jsx` (map objective panel; imports HUD_CONTENT_H from WorldHUD). WorldScreen.jsx reduced from 1700→1346 lines — removed WorldHUD+MissionPanel function bodies and their local consts; removed getCreatureSeed + MAP_THEMES imports (now only used in WorldHUD.jsx). Build clean: 137 modules, 0 errors.
 - Not finished: Round 2 (enemy hook) and Round 3 (chest hook) not started

@@ -11,7 +11,7 @@ _Last updated: 2026-06-16_
 - [x] Round 1 — Extract `WorldHUD` into `src/components/world/WorldHUD.jsx` ✅
 - [x] Round 1 — Extract `MissionPanel` into `src/components/world/MissionPanel.jsx` ✅
 - [x] Round 2 — Extract pure drawing helpers into `src/lib/worldDrawHelpers.js` ✅
-- [ ] Round 3 — Extract enemy logic into `useWorldEnemies.js` hook (enemiesRef, movement patterns, respawn)
+- [x] Round 3 — Extract battle-trigger logic into `src/hooks/useBattleTrigger.js` ✅
 - [ ] Round 4 — Extract chest logic into `useWorldChests.js` hook
 - [ ] Build verify + zero behavior change after each extraction
 

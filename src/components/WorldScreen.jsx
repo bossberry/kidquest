@@ -11,8 +11,8 @@ import {
 } from '../lib/tileEngine.js'
 import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies } from '../lib/tileMaps.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
-import { getBattleSubject, getBattleLevel } from '../lib/battleSubject.js'
-import { ENEMY_DATA } from '../config/enemyConfig.js'
+import { getBattleSubject } from '../lib/battleSubject.js'
+import useBattleTrigger from '../hooks/useBattleTrigger.js'
 import TreasureSlot from './TreasureSlot.jsx'
 import PixelItemIcon from './PixelItemIcon.jsx'
 import { drawItem } from '../lib/itemArt.js'
@@ -58,10 +58,6 @@ export default function WorldScreen({ navigate }) {
   // preventing triggerBattle from dispatching SET_PENDING_BATTLE multiple times in rapid
   // succession (the "PartySelect infinite loop" bug).
   useLayoutEffect(() => { stateRef.current = state }, [state])
-  useLayoutEffect(() => {
-    battlePendingRef.current = !!state.pendingBattle
-    if (!state.pendingBattle) battleDispatchedRef.current = false
-  }, [state.pendingBattle])
 
   useEffect(() => {
     playBGM('world')
@@ -89,15 +85,14 @@ export default function WorldScreen({ navigate }) {
   const transTimer   = useRef(null)
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
-  const triggerBattleRef     = useRef(null)
-  const battleDispatchedRef  = useRef(false) // prevents re-dispatch between RAF tick and React state commit
-  const battlePendingRef     = useRef(false) // mirrors state.pendingBattle — pauses RAF game logic
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
   const [itemBagOpen, setItemBagOpen] = useState(false)
   const [bossCutscene, setBossCutscene] = useState(null) // null | string (world name)
   const [mazeTimerTick, setMazeTimerTick] = useState(0)
+  const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
+    useBattleTrigger({ stateRef, screenIdRef, gameRef, setEncounterFlash, setBossConfirm, BOSS_TILE })
 
   screenIdRef.current   = screenId
   transRef.current      = transitioning
@@ -327,64 +322,6 @@ export default function WorldScreen({ navigate }) {
   }, [dispatch, initScreen])
 
   // ── Player movement ──────────────────────────────────────────────────────────
-
-  const triggerBattle = useCallback((enemy) => {
-    if (stateRef.current.pendingBattle) return  // already awaiting creature selection
-    const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
-    const level   = stateRef.current.subjectLevels?.[subject] ?? 1
-    // Write info so death animation plays when WorldScreen remounts after victory
-    if (enemy.id !== '_grass_') {
-      try {
-        sessionStorage.setItem('kq_last_battle', JSON.stringify({
-          screenId: screenIdRef.current, enemyType: enemy.type,
-        }))
-      } catch {}
-    }
-    setEncounterFlash(true)
-    setTimeout(() => setEncounterFlash(false), 80)
-    const eData = ENEMY_DATA[enemy.type] || { hp: 24, atk: 4, nameTH: 'ศัตรู' }
-    const activeEgg = (stateRef.current.hatchedEggs || []).find(e => e.id === stateRef.current.party?.[0]) || (stateRef.current.hatchedEggs || [])[0]
-    const playerLevel = activeEgg?.battleLevel ?? 1
-    const scaleFactor = 1.0 + (playerLevel - 1) * 0.15  // level 16 → 3.25x (was 0.4x = 7x, way too high)
-    const cappedScale = Math.min(scaleFactor, 4.0)
-    dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
-      position: { screen: screenIdRef.current, tileX: gameRef.current?.col ?? 0, tileY: gameRef.current?.row ?? 0 },
-      enemy: {
-        type: enemy.type, subject, level,
-        hp:  Math.max(30, Math.round((eData.hp  ?? 24) * cappedScale)),
-        atk: Math.max(4,  Math.round((eData.atk ??  4) * cappedScale)),
-        def: Math.max(0,  Math.round((eData.def ??  0) * cappedScale * 0.5)),
-        nameTH: eData.nameTH ?? '?',
-      },
-    }})
-  }, [dispatch]) // eslint-disable-line
-  triggerBattleRef.current = triggerBattle
-
-  useLayoutEffect(() => {
-    battlePendingRef.current = !!state.pendingBattle
-    if (!state.pendingBattle) {
-      battleDispatchedRef.current = false
-    }
-  }, [state.pendingBattle])
-
-  const enterBossBattle = useCallback(() => {
-    playSFX('battle_start')
-    setBossConfirm(false)
-    const wLevel = stateRef.current.worldLevel ?? 0
-    const worldDef = WORLD_LEVELS[wLevel]
-    if (!worldDef) return
-    const subject = getBattleSubject(stateRef.current.sessionLog, stateRef.current)
-    const level   = stateRef.current.subjectLevels?.[subject] ?? 1
-    dispatch({ type: ACTIONS.SET_PENDING_BATTLE, payload: {
-      position: { screen: 'BOSS', tileX: BOSS_TILE.col, tileY: BOSS_TILE.row },
-      enemy: {
-        type: worldDef.bossEnemy, subject, level,
-        hp: worldDef.bossHP, atk: worldDef.bossATK, def: worldDef.bossDEF,
-        nameTH: worldDef.bossNameTH, isBossBattle: true,
-      },
-    }})
-  }, [dispatch])
-
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
     if (!g || g.moving || transRef.current || dialogueRef.current) return

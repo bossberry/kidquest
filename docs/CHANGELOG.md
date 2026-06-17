@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — refactor(phase2-round3): extract battle-trigger logic into useBattleTrigger hook
+
+### New file
+- `src/hooks/useBattleTrigger.js` — custom hook owning triggerBattle, enterBossBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef. Imports useAppState/ACTIONS, getBattleSubject, ENEMY_DATA, WORLD_LEVELS, playSFX internally.
+
+### src/components/WorldScreen.jsx
+- Removed duplicate useLayoutEffect that synced battlePendingRef/battleDispatchedRef (was exact duplicate of canonical one now in hook)
+- Removed `getBattleLevel` import from battleSubject.js (moved to hook; not used elsewhere)
+- Removed `ENEMY_DATA` import from enemyConfig.js (moved to hook)
+- Added `import useBattleTrigger from '../hooks/useBattleTrigger.js'`
+- Removed 3 ref declarations (triggerBattleRef, battleDispatchedRef, battlePendingRef)
+- Added hook call after state declarations; destructures all 5 values
+- Removed 58-line block: triggerBattle callback + triggerBattleRef assignment + useLayoutEffect + enterBossBattle callback
+- WorldScreen.jsx now 1194 lines (was 1257 after Round 2)
+- Build: 0 errors
+
+---
+
 ## 2026-06-17 — refactor(phase2-round2): extract pure drawing helpers into worldDrawHelpers.js
 
 ### New file

@@ -49,15 +49,19 @@ src/
 │       ├── TIERS(0-5), calcCreatureStats(), AI_OPPONENTS(tier 0+1)
 │       └── shuffle(), todayStr()
 │
+├── hooks/
+│   └── useBattleTrigger.js — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
+│
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()
 │   ├── supabase.js         — createClient (URL + publishable key)
 │   ├── eggAlgorithm.js     — LOCKED: drawEgg(), hash(), prng(), eggProgress(), buildEggStats()
 │   ├── creatureAlgorithm.js — drawCreature(), getCreatureSeed()
-│   ├── creatureSystem.js   — NEW: determineElement(), calcEvoStage(), getEggElementHint(), CREATURE_ELEMENT_COLORS
+│   ├── creatureSystem.js   — determineElement(), calcEvoStage(), getEggElementHint(), CREATURE_ELEMENT_COLORS
 │   ├── audio.js            — playTone(), speakTh(), speakEn(), playPhonicsSound()
-│   ├── tileEngine.js       — NEW: T constants, renderMap/Player/canMove/getCamera/getExitAt/getEntryPosition
-│   └── tileMaps.js         — NEW: BM_MAP (20×15) + 8 minimal screen maps + SCREEN_MAPS registry
+│   ├── tileEngine.js       — T constants, renderMap/Player/canMove/getCamera/getExitAt/getEntryPosition
+│   ├── tileMaps.js         — BM_MAP (20×15) + 8 minimal screen maps + SCREEN_MAPS registry
+│   └── worldDrawHelpers.js — drawChest, drawPlayerGlow, spawnChests, findSpecials, getOwlLines, SIGN_LINES, STAGE_COLORS
 │
 ├── games/
 │   ├── GameScreen.jsx      — Routes by currentWorld; all 8 games are lazy-loaded (44 lines)

@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Collection: subject level progress + evo stage visual preview:**
+- Built: `SubjectLevelProgress` component (LEVEL UP section) — 3 subjects each showing icon badge, level + grade label, streak dots (3 needed for level-up, glowing when filled), mastery bar of current level, "LEVEL UP! ⬆️" text when streak≥3. `CreatureJourney` STAGE row replaced with 3 mini drawCreature canvases (Baby/Teen/Final), sized 29/38/48px, future stages grayscale+dim, current has gold drop-shadow + NOW label, past has ✓. Props passed from Collection → PartyGrid → SubjectLevelProgress (subjectLevels, subjectSessionStreak, levelMastery).
+- Not finished: nothing
+- Blockers/risks found: mini evo canvases always draw baby/teen/final regardless of actual seed — this is correct behavior (showing what the evolution looks like)
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Collection screen dark pixel art theme:**
 - Built: Header — fontSize 11→10, color `var(--px-yellow)` → `#EF9F27`, letterSpacing 2→3, borderBottom → `rgba(255,255,255,0.08)`. Tabs — inline override: active gold `#EF9F27` border-bottom, inactive `rgba(255,255,255,0.35)`, both `background:transparent`. Card container — `background:'#0f0f1a'`, `border: 2px solid #EF9F27 (active) or rgba(255,255,255,0.1)`, `boxShadow` glow on active, `borderRadius:0`, removed `borderRadius:4` on canvas. Active badge `#FFD700→#EF9F27`. Creature name — replaced className with inline dark style. Level text `rgba(0.5)→rgba(0.35)`. HP bar `#000/#333→rgba`. HP text `rgba(0.4)→rgba(0.3)`. Set active button — filled gold → transparent outlined `#EF9F27`. CreatureJourney — `width:'100%'`, label "JOURNEY→JOURNEY AHEAD", future step color `rgba(0.2)`, needs text `rgba(255,100,100,0.5)`.
 - Not finished: nothing

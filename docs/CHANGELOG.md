@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — feat: subject level progress with streak dots + evo stage visual preview in Collection
+
+### src/components/Collection.jsx
+- `SubjectLevelProgress` component: LEVEL UP section per creature card; shows Thai/Math/Eng icon badge, Lv + grade label, 3 streak dots (glowing when filled), mastery bar for current level, "LEVEL UP! ⬆️" when streak≥3
+- `CreatureJourney` STAGE row replaced with 3 mini `drawCreature` canvases (Baby 29px / Teen 38px / Final 48px); future = grayscale + dim; current = gold glow + NOW label; past = ✓
+- `PartyGrid` signature extended with `subjectLevels`, `subjectSessionStreak`, `levelMastery`; passed down from Collection state
+
+---
+
 ## 2026-06-17 — fix: collection screen dark pixel art theme — creature cards, tabs, journey section
 
 ### src/components/Collection.jsx

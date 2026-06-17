@@ -22,12 +22,34 @@ export default function Collection() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', width:'100%', height:'100%', overflowY:'auto', overflowX:'hidden', background:'var(--px-darkest, #0a0a12)', paddingBottom:80 }}>
-      <div style={{ fontFamily:'var(--font-pixel)', fontSize:11, color:'var(--px-yellow)', letterSpacing:2, padding:'14px 20px 8px', borderBottom:'2px solid var(--px-border)', width:'100%', boxSizing:'border-box' }}>
+      <div style={{
+        fontFamily:'var(--font-pixel)', fontSize:10,
+        color:'#EF9F27', letterSpacing:3,
+        padding:'14px 20px 10px',
+        borderBottom:'2px solid rgba(255,255,255,0.08)',
+        width:'100%', boxSizing:'border-box',
+      }}>
         COLLECTION
       </div>
       <div className="coll-tabs" style={{ width:'100%', maxWidth:480 }}>
-        <div className={`coll-tab${tab==='team'?' active':''}`} onClick={() => setTab('team')}>ทีม</div>
-        <div className={`coll-tab${tab==='items'?' active':''}`} onClick={() => setTab('items')}>กระเป๋า</div>
+        <div
+          className="coll-tab"
+          onClick={() => setTab('team')}
+          style={{
+            color: tab==='team' ? '#EF9F27' : 'rgba(255,255,255,0.35)',
+            borderBottom: tab==='team' ? '2px solid #EF9F27' : '2px solid transparent',
+            background: 'transparent',
+          }}
+        >ทีม</div>
+        <div
+          className="coll-tab"
+          onClick={() => setTab('items')}
+          style={{
+            color: tab==='items' ? '#EF9F27' : 'rgba(255,255,255,0.35)',
+            borderBottom: tab==='items' ? '2px solid #EF9F27' : '2px solid transparent',
+            background: 'transparent',
+          }}
+        >กระเป๋า</div>
       </div>
       <div className="egg-catalog">
         {tab === 'team' && (
@@ -68,46 +90,67 @@ function PartyGrid({ partyCreatures, partySlots, currentTier, onSelect, onSetAct
           const elColor = egg.element ? CREATURE_ELEMENT_COLORS[egg.element] : null
           const isActive = i === 0
           return (
-            <div key={egg.id || i} className="catalog-item catalog-item-lg" onClick={() => onSelect(egg, dna)}>
+            <div
+              key={egg.id || i}
+              className="catalog-item catalog-item-lg"
+              onClick={() => onSelect(egg, dna)}
+              style={{
+                background: '#0f0f1a',
+                border: `2px solid ${isActive ? '#EF9F27' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: 0,
+                padding: '14px 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                cursor: 'pointer',
+                boxShadow: isActive ? '0 0 12px rgba(239,159,39,0.3)' : 'none',
+              }}
+            >
               {isActive && (
                 <div style={{
-                  fontFamily:'var(--font-pixel)', fontSize:7, color:'#FFD700',
-                  marginBottom:2, letterSpacing:1,
+                  fontFamily:'var(--font-pixel)', fontSize:7,
+                  color:'#EF9F27', marginBottom:4, letterSpacing:1,
                 }}>★ ตัวหลัก</div>
               )}
               <canvas
                 key={egg.id}
                 ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
                 width={90} height={90}
-                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px', borderRadius:4 }}
+                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px' }}
               />
-              <div className="catalog-item-name" style={{ display:'flex', alignItems:'center', gap:4, justifyContent:'center' }}>
+              <div style={{
+                fontFamily:'var(--font-thai)', fontSize:13,
+                color:'rgba(255,255,255,0.9)',
+                display:'flex', alignItems:'center', gap:4, justifyContent:'center',
+                marginBottom:2,
+              }}>
                 {elColor && <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
                 {creatureName(egg)}
               </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.5)', marginBottom:4 }}>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.35)', marginBottom:6 }}>
                 Lv.{egg.battleLevel ?? 1}
               </div>
-              <div style={{ width:'100%', background:'#000', border:'1px solid #333', height:5, marginBottom:2 }}>
+              <div style={{ width:'100%', background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.1)', height:5, marginBottom:2 }}>
                 <div style={{
                   width:`${pct}%`, height:'100%',
                   background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
                 }} />
               </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.4)', marginBottom:6 }}>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', marginBottom:8 }}>
                 HP {curHP}/{maxHP}
               </div>
               {!isActive && (
                 <button
                   onClick={e => { e.stopPropagation(); onSetActive?.(egg.id) }}
                   style={{
-                    padding:'3px 8px',
-                    background:'#B8860B', border:'none', borderRadius:0,
-                    color:'#fff', fontSize:10, fontFamily:'var(--font-thai)',
-                    cursor:'pointer', boxShadow:'2px 2px 0 #000',
+                    padding:'4px 10px',
+                    background:'transparent',
+                    border:'1px solid #EF9F27',
+                    borderRadius:0,
+                    color:'#EF9F27',
+                    fontSize:10, fontFamily:'var(--font-thai)',
+                    cursor:'pointer',
                   }}
                 >
-                  ★ ตั้งเป็นตัวหลัก
+                  ตั้งเป็นตัวหลัก
                 </button>
               )}
               <CreatureJourney egg={egg} currentTier={currentTier ?? 0} />
@@ -151,21 +194,24 @@ function CreatureJourney({ egg, currentTier }) {
   ]
 
   return (
-    <div style={{ marginTop:8, padding:'8px 10px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', marginBottom:6, letterSpacing:1 }}>
-        JOURNEY
+    <div style={{ marginTop:10, padding:'8px 10px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', width:'100%' }}>
+      <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.25)', marginBottom:6, letterSpacing:1 }}>
+        JOURNEY AHEAD
       </div>
       {steps.map(step => (
         <div key={step.id} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-          <div style={{ fontSize:11 }}>{step.done ? '✅' : step.ready ? '⚡' : '○'}</div>
+          <div style={{
+            fontSize:11,
+            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.2)',
+          }}>{step.done ? '✅' : step.ready ? '⚡' : '○'}</div>
           <div style={{
             flex:1, fontFamily:'var(--font-thai)', fontSize:10,
-            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.45)',
+            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.4)',
           }}>
             {step.label}
           </div>
           {!step.done && step.needs.length > 0 && (
-            <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', textAlign:'right' }}>
+            <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,100,100,0.5)', textAlign:'right' }}>
               {step.needs.join(' · ')}
             </div>
           )}

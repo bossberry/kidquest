@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — refactor(phase2-round4): extract RAF game loop into useWorldGameLoop hook
+
+### New file
+- `src/hooks/useWorldGameLoop.js` — RAF render/update loop: enemy AI (9 types), respawn timers, collision-triggered battle, chest/enemy/player rendering, camera. TILE+DIRS4 at module level; local rafIdRef inside effect; dep array [].
+
+### src/components/WorldScreen.jsx
+- Removed 326-line RAF useEffect (lines 423–748)
+- Added `useWorldGameLoop({ canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef, battlePendingRef, battleDispatchedRef, triggerBattleRef, eggColorRef, HUD_CONTENT_H })` call at same location
+- Removed from tileEngine import: `renderMap`, `renderPlayer`, `getCamera`, `MAP_ROWS`, `MAP_COLS`, `EXIT_OPPOSITE` (none needed in WorldScreen after extraction)
+- Removed `import { drawEnemy }` (only used inside RAF loop)
+- Removed `rafRef = useRef(null)` declaration (replaced by local rafIdRef in hook)
+- Added `import { useWorldGameLoop } from '../hooks/useWorldGameLoop.js'`
+- WorldScreen.jsx now **873 lines** (was 1700 at start of Phase 2 refactor — 49% reduction)
+- Build: 0 errors
+
+---
+
 ## 2026-06-17 — refactor(phase2-round3): extract battle-trigger logic into useBattleTrigger hook
 
 ### New file

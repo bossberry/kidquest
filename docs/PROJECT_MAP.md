@@ -50,7 +50,8 @@ src/
 │       └── shuffle(), todayStr()
 │
 ├── hooks/
-│   └── useBattleTrigger.js — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
+│   ├── useBattleTrigger.js  — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
+│   └── useWorldGameLoop.js  — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()

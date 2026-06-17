@@ -207,9 +207,16 @@ _(Claude Code appends here after each session)_
 
 **2026-06-17 — Phase 2 Round 3: extract battle-trigger logic into useBattleTrigger hook:**
 - Built: Created `src/hooks/useBattleTrigger.js` — exports triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle. Calls useAppState internally for dispatch; owns all 3 refs; useLayoutEffect (no-dep) syncs battlePendingRef/battleDispatchedRef after every commit. WorldScreen.jsx: removed duplicate useLayoutEffect (lines 61-64); removed getBattleLevel + ENEMY_DATA imports (moved to hook); removed 3 ref declarations; removed triggerBattle callback + triggerBattleRef.current assignment + useLayoutEffect + enterBossBattle (58 lines); added useBattleTrigger hook call after setBossConfirm/mazeTimerTick state declarations. WorldScreen now 1194 lines (was 1257 after Round 2). RAF loop refs (battleDispatchedRef, battlePendingRef, triggerBattleRef) now come from hook return value — no behavior change. Build: 0 errors.
-- Not finished: Round 4 (useWorldChests.js hook) not started
+- Not finished: Round 4 (RAF loop hook) not started
 - Blockers/risks found: none
-- Ready to start next: Phase 2 Round 4 — extract chest logic into useWorldChests.js hook
+- Ready to start next: Phase 2 Round 4 — extract RAF game loop into useWorldGameLoop hook
+- Needs Chatbot decision first: none
+
+**2026-06-17 — Phase 2 Round 4: extract RAF game loop (enemy AI, rendering, camera) into useWorldGameLoop hook:**
+- Built: Created `src/hooks/useWorldGameLoop.js` — pure relocation of 326-line RAF useEffect (findRespawnPos, scheduleRespawn, updateEnemies, renderEnemies, renderChests, loop). TILE+DIRS4 moved to module level; rafRef replaced with local rafIdRef inside effect closure; effect dep array stays []. WorldScreen.jsx: removed renderMap/renderPlayer/getCamera from tileEngine import (only needed by hook); removed drawEnemy import (only needed by hook); removed dead imports MAP_ROWS/MAP_COLS/EXIT_OPPOSITE; removed rafRef useRef declaration; replaced 326-line useEffect block with 6-line useWorldGameLoop() call. WorldScreen now 873 lines (was 1700 at start). Build: 0 errors, zero behavior change.
+- Not finished: nothing — Phase 2 WorldScreen.jsx split complete
+- Blockers/risks found: none
+- Ready to start next: Phase 4: NPC System (5 NPCs with dialogue/gifts), or content expansion (Thai Lv6-8, Math Lv9-10, English Lv5-6)
 - Needs Chatbot decision first: none
 
 **2026-06-17 — Phase 2 Round 1: extract WorldHUD + MissionPanel into world/ subfolder:**

@@ -12,7 +12,7 @@ _Last updated: 2026-06-16_
 - [x] Round 1 — Extract `MissionPanel` into `src/components/world/MissionPanel.jsx` ✅
 - [x] Round 2 — Extract pure drawing helpers into `src/lib/worldDrawHelpers.js` ✅
 - [x] Round 3 — Extract battle-trigger logic into `src/hooks/useBattleTrigger.js` ✅
-- [ ] Round 4 — Extract chest logic into `useWorldChests.js` hook
+- [x] Round 4 — Extract RAF game loop (enemy AI, rendering, camera) into `src/hooks/useWorldGameLoop.js` ✅
 - [ ] Build verify + zero behavior change after each extraction
 
 ---

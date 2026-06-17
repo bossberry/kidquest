@@ -883,7 +883,7 @@ export default function WorldScreen({ navigate }) {
 
     g.dir = dir
     const shoesActive = (stateRef.current.activeBoosts?.shoes?.endsAt ?? 0) > Date.now()
-    window.__kq_moveSpeedMult = shoesActive ? 2.0 : 1.0
+    window.__kq_moveSpeedMult = shoesActive ? 4.0 : 1.0
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 

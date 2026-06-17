@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — fix: gentle monster scaling + stricter adaptive difficulty (streak resets properly)
+
+### src/context/StateContext.jsx
+- `scaleMonsterStats()`: replaced step function (1.0/1.3/1.8/2.4/3.2x) with linear `1.0 + (level-1)*0.02`, hard-capped at 2.0x; DEF now scales at `mult*0.5` (slower than HP/ATK)
+
+### src/components/WorldScreen.jsx
+- `triggerBattle` scaleFactor: `0.4/level` → `0.15/level` (capped at 4x); level 16 was 7x, now 3.25x
+- Enemy HP/ATK floors: `Math.max(30, ...)` and `Math.max(4, ...)` prevent trivially-weak enemies at Lv1
+- DEF scales at `cappedScale * 0.5`
+
+### src/components/WorldBattle.jsx
+- `isStrong` minimum questions: 6 → 8
+- Streak always resets to 0 on any non-strong session (was only reset on level-up or level-down, causing slow drift upward)
+- Level-down minimum questions: 6 → 8 (consistent with `isStrong`)
+
+---
+
 ## 2026-06-16 — fix: cap creature currentHP at stats.HP max in all heal/boost actions
 
 ### src/context/StateContext.jsx

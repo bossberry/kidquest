@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Fix monster scaling + adaptive difficulty streak:**
+- Built: scaleMonsterStats() changed from step function (1.0/1.3/1.8/2.4/3.2x) to linear 2%/level hard-capped at 2x (level 16 = 1.30x, level 51 = 2.0x cap). WorldScreen triggerBattle scaleFactor changed from 0.4/level (level 16 = 7x!) to 0.15/level capped at 4x; def now scales at 0.5x; hp floor 30, atk floor 4. WorldBattle isStrong threshold raised from 6→8 questions min. Streak now always resets to 0 on any non-strong session (was only reset on level-up or level-down, causing drift).
+- Not finished: nothing
+- Blockers/risks found: target at Lv16 = enemy takes 8-12 correct answers to defeat. Verify in playtest — at Lv1, base HP 24 × 1.0 = 24 HP; creature ATK ~4 per hit → 6 hits to defeat. At Lv16, base HP 24 × 3.25 = 78 HP but then scaleMonsterStats multiplies again by 1.30 → 101 HP total; ~12-15 hits. May still be on the high side; can tune further if needed.
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split; or playtest
+- Needs Chatbot decision first: none
+
 **2026-06-16 — Fix currentHP exceeding max in all heal/boost actions:**
 - Built: CREATURE_HEAL maxHP changed from `(e.stats?.HP ?? 10) + battleLevel - 1` to `e.stats?.HP ?? 100` (battleLevel bonus was allowing healing past stats.HP — root cause of 519 > 504). USE_HOME_ITEM food now heals active creature +30 HP capped at stats.HP. CREATURE_STAT_BOOST now caps currentHP to new stats.HP after stat update. Initializer: clamp all creature currentHP to stats.HP on every load (no flag — harmless to run always).
 - Not finished: nothing

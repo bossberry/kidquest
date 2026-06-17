@@ -107,6 +107,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
 
+**2026-06-17 — Mission progress panel above map:**
+- Built: `MissionPanel` component in WorldScreen.jsx — shows map name, cleared status (✓), objective text per screen (NW/NE/SW/SE/MAZE/BOSS), enemy type list, daily progress bar (dailyBattleRounds/10). Positioned `top: HUD_CONTENT_H+8` with `pointerEvents:none`. Camera offset updated: `(HUD_CONTENT_H + PANEL_H=72) / 2` centers map in space below panel.
+- Not finished: nothing
+- Blockers/risks found: PANEL_H=72 is an approximation — if panel grows (e.g. long enemy list), map may shift. Acceptable for now.
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Fix RewardChest — static drawItem import + collected animation:**
 - Built: (1) Dynamic `import('../lib/itemArt.js')` inside ref callback replaced with static `import { drawItem }` at top — fixes black/broken canvas on iOS/Android where dynamic import timing was unreliable. (2) New `collected` phase after `reveal`: items fly up + fade out, "เข้ากระเป๋าแล้ว!" banner appears, auto-calls onDone after 1200ms. Tap hint updated: reveal→"แตะเพื่อเก็บ!", collected→"".
 - Not finished: nothing

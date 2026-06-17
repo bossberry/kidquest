@@ -1,5 +1,14 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — feat: mission progress panel in empty space above map — shows objective, enemies, daily progress
+
+### src/components/WorldScreen.jsx
+- `MissionPanel` component added (above WorldScreen): `SCREEN_NAMES` + `SCREEN_ENEMIES` lookup tables for 6 screen IDs; shows map name + cleared badge, objective text, enemy list, daily progress bar (dailyBattleRounds/10)
+- `<MissionPanel>` rendered below `<WorldHUD>`, `zIndex:25`, `pointerEvents:none`
+- Camera offset: `HUD_CONTENT_H/2` → `(HUD_CONTENT_H + PANEL_H=72) / 2` — map now centers in space below panel
+
+---
+
 ## 2026-06-17 — fix: RewardChest — static import for drawItem + collected animation before closing
 
 ### src/components/RewardChest.jsx

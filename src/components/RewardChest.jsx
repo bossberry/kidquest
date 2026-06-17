@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { drawItem } from '../lib/itemArt.js'
+import { playSFX, playTone } from '../lib/audio.js'
 
 const ITEM_NAMES = {
   scroll: 'ม้วนใบ', thunder: 'สายฟ้า', gem: 'อัญมณี', mirror: 'กระจก', clover: 'โคลเวอร์',
@@ -17,7 +18,7 @@ export default function RewardChest({ rewards, onDone }) {
   const t2Ref = useRef(null)
 
   useEffect(() => {
-    t1Ref.current = setTimeout(() => setPhase('shaking'), 400)
+    t1Ref.current = setTimeout(() => { setPhase('shaking'); playTone('jingle') }, 400)
     return () => { clearTimeout(t1Ref.current); clearTimeout(t2Ref.current) }
   }, [])
 
@@ -25,12 +26,14 @@ export default function RewardChest({ rewards, onDone }) {
     if (phase === 'collected') { onDone?.(); return }
     if (phase === 'reveal') {
       setPhase('collected')
+      playTone('sparkle')
       t2Ref.current = setTimeout(() => onDone?.(), 1200)
       return
     }
     if (phase === 'shaking' || phase === 'closed') {
       setPhase('opening')
-      t2Ref.current = setTimeout(() => setPhase('reveal'), 600)
+      playSFX('item_collect')
+      t2Ref.current = setTimeout(() => { setPhase('reveal'); playTone('reveal') }, 600)
     }
   }
 

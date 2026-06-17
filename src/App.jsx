@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppState, ACTIONS } from './context/StateContext.jsx'
-import { setSoundOn } from './lib/audio.js'
-import { initVoices } from './lib/audio.js'
+import { setSoundOn, initVoices, playSFX, playTone } from './lib/audio.js'
 import Home from './components/Home.jsx'
 import Collection from './components/Collection.jsx'
 import Report from './components/Report.jsx'
@@ -32,6 +31,8 @@ export default function App() {
     if (!state.pendingEvoNotice) return
     const { newStage, creatureName } = state.pendingEvoNotice
     const stageTH = EVO_STAGE_LABELS_TH[newStage] ?? newStage
+    playSFX('stage_up')
+    playTone('stageUp')
     showToast(`★ ${creatureName || 'สัตว์'} วิวัฒนาการแล้ว! → ${stageTH}`)
     dispatch({ type: ACTIONS.CLEAR_EVO_NOTICE })
   }, [state.pendingEvoNotice]) // eslint-disable-line

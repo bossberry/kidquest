@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import { playSFX, playTone } from '../lib/audio.js'
 
 const P = {
   skyD1:'#4ec8f0', skyD2:'#87ddff', skyD3:'#d4f7c0',
@@ -47,10 +48,11 @@ export default function HomeBackground({ hour, creatures }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
 
-  const canvasRef   = useRef(null)
-  const rafRef      = useRef(null)
-  const offscreens  = useRef([])
-  const entitiesRef = useRef([])
+  const canvasRef      = useRef(null)
+  const rafRef         = useRef(null)
+  const offscreens     = useRef([])
+  const entitiesRef    = useRef([])
+  const lastJumpSoundRef = useRef(0)
 
   // Rebuild offscreen canvases when creatures change
   useEffect(() => {
@@ -290,6 +292,7 @@ export default function HomeBackground({ hour, creatures }) {
             b.dir   = b.x < a.x ?  1 : -1
             a.meetingTimer = b.meetingTimer = 60
             a.stateTimer   = b.stateTimer   = 60
+            playTone('chirp')
           }
         }
       }
@@ -316,6 +319,7 @@ export default function HomeBackground({ hour, creatures }) {
               e.jumpY      = 0
               e.jumpVel    = -4
               e.stateTimer = 120
+              if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
             } else {
               e.state      = 'spin'
               e.spinAngle  = 0
@@ -327,6 +331,7 @@ export default function HomeBackground({ hour, creatures }) {
         // 0.5% spontaneous jump while walking
         if (e.state === 'walk' && Math.random() < 0.005) {
           e.state = 'jump'; e.jumpY = 0; e.jumpVel = -4; e.stateTimer = 120
+          if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
         }
 
         switch (e.state) {

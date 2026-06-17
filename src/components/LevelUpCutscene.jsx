@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { playSFX, playTone } from '../lib/audio.js'
 
 const LEVEL_NAMES = {
   thai: { 1:'พยัญชนะ ก-ฮ', 2:'สะกดคำ', 3:'คำศัพท์', 4:'ประโยค', 5:'อ่านจับใจความ' },
@@ -32,9 +33,9 @@ export default function LevelUpCutscene({ data, onDone }) {
 
   // Phase timing
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('reveal'),    300)
-    const t2 = setTimeout(() => setPhase('celebrate'), 800)
-    const t3 = setTimeout(() => setPhase('done'),     2800)
+    const t1 = setTimeout(() => { setPhase('reveal');    playSFX('level_up') },   400)
+    const t2 = setTimeout(() => { setPhase('celebrate'); playTone('fanfare') },   1200)
+    const t3 = setTimeout(() => setPhase('done'), 3800)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 

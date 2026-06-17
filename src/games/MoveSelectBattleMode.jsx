@@ -686,6 +686,7 @@ export default function MoveSelectBattleMode({
         setEggHitFlash(true)
         setTimeout(() => mountedRef.current && setEggHitFlash(false), 200)
         setEggAnimClass('shake')
+        playSFX('player_hit')
         setTimeout(() => mountedRef.current && setEggAnimClass(''), 400)
       }, 300)
     }
@@ -759,6 +760,7 @@ export default function MoveSelectBattleMode({
     : nearHatch                 ? 'egg-near-hatch 2s ease-in-out infinite'
     : 'egg-idle 3s ease-in-out infinite'
   const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+  useEffect(() => { if (saiyanActive) playTone('ultimate') }, [saiyanActive]) // eslint-disable-line
   const eggFilter = victoryMode         ? 'drop-shadow(0 0 18px gold) brightness(1.25)'
     : eggAnimClass === 'lunge'          ? 'drop-shadow(0 0 14px gold) brightness(1.2)'
     : saiyanActive                      ? 'drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 20px #FF8800) brightness(1.3)'

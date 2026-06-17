@@ -90,6 +90,7 @@ export default function TreasureSlot({ onClose, onReward, subject='thai' }) {
   }
 
   function handleCollect() {
+    playSFX('item_collect')
     onReward({ rewards })
     onClose()
   }

@@ -857,6 +857,7 @@ export default function WorldScreen({ navigate }) {
   }, [state.pendingBattle])
 
   const enterBossBattle = useCallback(() => {
+    playSFX('battle_start')
     setBossConfirm(false)
     const wLevel = stateRef.current.worldLevel ?? 0
     const worldDef = WORLD_LEVELS[wLevel]
@@ -902,6 +903,7 @@ export default function WorldScreen({ navigate }) {
     })
     if (hitEnemy) {
       if (hitEnemy.isWorldBoss) {
+        playSFX('enemy_notice')
         setBossConfirm(true)
         return
       }

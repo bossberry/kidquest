@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS, scaleMonsterStats } from '../context/StateContext.jsx'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle,
          SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS } from '../config/gameConfig.js'
-import { speakTh, speakEn, playBGM, stopBGM } from '../lib/audio.js'
+import { speakTh, speakEn, playBGM, stopBGM, playSFX, playTone } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 import RewardChest from '../components/RewardChest.jsx'
 import { rollBattleItem } from '../config/itemConfig.js'
@@ -355,6 +355,8 @@ export default function WorldBattle({ navigate }) {
     }
 
     if (isBossBattle) {
+      playSFX('victory')
+      playTone('fanfare')
       dispatch({ type: ACTIONS.DEFEAT_BOSS })
     }
 

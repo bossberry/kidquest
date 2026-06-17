@@ -236,21 +236,6 @@ export default function WorldBattle({ navigate }) {
 
   useEffect(() => { if (!enemy) navigate('world') }, []) // eslint-disable-line
 
-  // Debug log — verify level rotation is working across battles
-  useEffect(() => {
-    if (!enemy) return
-    console.log('🎮 Battle started:', {
-      subject,
-      levelId: levelConfig?.id,
-      levelName: levelConfig?.name,
-      levelType: levelConfig?.type ?? levelConfig?.op,
-      questionCount: qs.length,
-      firstQuestion: qs[0]?.question ?? qs[0]?.word ?? qs[0]?.story ?? '?',
-      xpThai: state.xpThai, xpMath: state.xpMath, xpEng: state.xpEng,
-      dailyBattleRounds: state.dailyBattleRounds,
-    })
-  }, []) // eslint-disable-line
-
   if (!enemy || !scaledEnemy) return null
 
   const creatureCurrentHP = Math.min(

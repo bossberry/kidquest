@@ -821,65 +821,8 @@ export function StateProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
     try {
       const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
-      // Migrate old unified items{} → homeItems{} + battleItems{}
-      if (raw.items && !raw.homeItems) {
-        raw.homeItems   = { food: raw.items.food ?? 0, ribbon: raw.items.ribbon ?? 0, shoes: 0, rainbow_star: 0 }
-        raw.battleItems = { scroll: raw.items.scroll ?? 0, thunder: raw.items.thunder ?? 0, gem: raw.items.gem ?? 0, mirror: raw.items.mirror ?? 0, clover: raw.items.clover ?? 0 }
-        delete raw.items
-      }
-      // Migrate old home item names: star → rainbow_star, potion → shoes
-      if (raw.homeItems?.star !== undefined) {
-        raw.homeItems.rainbow_star = (raw.homeItems.rainbow_star || 0) + (raw.homeItems.star || 0)
-        delete raw.homeItems.star
-      }
-      if (raw.homeItems?.potion !== undefined) {
-        raw.homeItems.shoes = (raw.homeItems.shoes || 0) + (raw.homeItems.potion || 0)
-        delete raw.homeItems.potion
-      }
       if (!raw.activeBoosts) raw.activeBoosts = {}
-      // Recalibrate subjectLevels from actual levelMastery (one-time on first load after this deploy)
-      if (!raw._subjectLevelCalibrated) {
-        const calibrate = (mastery) => {
-          const levels = Object.entries(mastery || {})
-            .filter(([_, v]) => v >= 0.6)
-            .map(([k]) => Number(k))
-          return levels.length ? Math.max(...levels) : 1
-        }
-        raw.subjectLevels = {
-          thai: calibrate(raw.levelMastery?.thai),
-          math: calibrate(raw.levelMastery?.math),
-          eng:  calibrate(raw.levelMastery?.eng),
-        }
-        raw._subjectLevelCalibrated = true
-      }
-      // Additive items migration: handles state where items{} and homeItems{} both exist
-      if (raw.items && !raw._itemsMigrated) {
-        raw.homeItems = {
-          food:         (raw.homeItems?.food         ?? 0) + (raw.items.food   ?? 0),
-          ribbon:       (raw.homeItems?.ribbon       ?? 0) + (raw.items.ribbon ?? 0),
-          shoes:        (raw.homeItems?.shoes        ?? 0) + (raw.items.potion ?? 0),
-          rainbow_star: (raw.homeItems?.rainbow_star ?? 0) + (raw.items.star   ?? 0),
-        }
-        raw.battleItems = {
-          scroll:  (raw.battleItems?.scroll  ?? 0) + (raw.items.scroll  ?? 0),
-          thunder: (raw.battleItems?.thunder ?? 0) + (raw.items.thunder ?? 0),
-          gem:     (raw.battleItems?.gem     ?? 0) + (raw.items.gem     ?? 0),
-          mirror:  (raw.battleItems?.mirror  ?? 0) + (raw.items.mirror  ?? 0),
-          clover:  (raw.battleItems?.clover  ?? 0) + (raw.items.clover  ?? 0),
-        }
-        delete raw.items
-        raw._itemsMigrated = true
-      }
       const migrated = _migrateBattleStats(raw)
-      // Recheck evo stage for all creatures based on current grade (one-time, after _migrateBattleStats populates battleLevel)
-      if (migrated.hatchedEggs?.length && !migrated._evoRechecked) {
-        const grade = migrated.grade ?? 0
-        migrated.hatchedEggs = migrated.hatchedEggs.map(e => {
-          const evo = calcEvoStageInline(e.battleLevel ?? 1, grade, e.bondMeter ?? 0)
-          return { ...e, evoStage: evo }
-        })
-        migrated._evoRechecked = true
-      }
       // Clamp currentHP to stats.HP max (fixes corrupted states where currentHP > stats.HP)
       if (migrated.hatchedEggs?.length) {
         migrated.hatchedEggs = migrated.hatchedEggs.map(e => ({
@@ -887,8 +830,8 @@ export function StateProvider({ children }) {
           currentHP: Math.min(e.stats?.HP ?? 100, e.currentHP ?? e.stats?.HP ?? 100)
         }))
       }
-      const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1 || (migrated._creaturesMerged && migrated.hatchedEggs?.length === 1 && !migrated._statAveraged)
-      const merged = needsMerge ? { ..._mergeAllCreaturesIntoOne(migrated), _creaturesMerged: true } : migrated
+      const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1
+      const merged = needsMerge ? _mergeAllCreaturesIntoOne(migrated) : migrated
       // Always clear transient battle state — these can be stale if app was closed mid-battle.
       // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
       return { ...merged, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }
@@ -926,8 +869,8 @@ export function StateProvider({ children }) {
       if (!remote) return
       const cur = stateRef.current
       // Run merge on remote data so Supabase state gets cleaned up too
-      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1 || (remote._creaturesMerged && remote.hatchedEggs?.length === 1 && !remote._statAveraged)
-      const remoteFinal = remoteNeedsMerge ? { ..._mergeAllCreaturesIntoOne(remote), _creaturesMerged: true } : remote
+      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1
+      const remoteFinal = remoteNeedsMerge ? _mergeAllCreaturesIntoOne(remote) : remote
       if ((remoteFinal.rounds || 0) >= (cur.rounds || 0)) {
         dispatch({ type: ACTIONS.INIT, payload: remoteFinal })
       } else {

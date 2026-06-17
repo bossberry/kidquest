@@ -33,9 +33,5 @@ export function getBattleLevel(subject, state) {
   const rotation = [minId, maxUnlocked, midId]
   const result = rotation[(state?.dailyBattleRounds ?? 0) % 3]
 
-  console.log('getBattleLevel', subject, {
-    xp, minId, maxId, maxUnlocked, rotation, result,
-    dailyBattleRounds: state.dailyBattleRounds,
-  })
   return result
 }

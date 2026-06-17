@@ -98,10 +98,12 @@ function drawPlayerGlow(ctx, px, py, frame) {
   ctx.stroke()
 }
 
-const OWL_LINES = [
-  'สวัสดี โชแปง! ข้าคือ ศาสตราจารย์นกฮูก',
-  'หญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!',
-]
+function getOwlLines(name) {
+  return [
+    `สวัสดี ${name}! ข้าคือ ศาสตราจารย์นกฮูก`,
+    'หญ้าสูงนั้น... อาจมีสัตว์ซ่อนอยู่นะ!',
+  ]
+}
 const SIGN_LINES = [
   '→ ทาวน์สแควร์',
   '← ทุ่งดอกไม้',
@@ -966,7 +968,7 @@ export default function WorldScreen({ navigate }) {
 
   // ── Dialogue ─────────────────────────────────────────────────────────────────
 
-  const openNPC  = () => { setDialogue({ lines: OWL_LINES,  index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
+  const openNPC  = () => { setDialogue({ lines: getOwlLines(state.name || 'เพื่อน'),  index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
   const openSign = () => { setDialogue({ lines: SIGN_LINES, index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
   const advance  = () => {
     if (!dialogue) return
@@ -1598,7 +1600,7 @@ export default function WorldScreen({ navigate }) {
         }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
           <div style={{ color: '#ffe060', fontSize: 22, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
-            โชแปงพิชิต
+            {state.name}พิชิต
           </div>
           <div style={{ color: '#ffcc00', fontSize: 28, fontWeight: 900, marginBottom: 16 }}>
             {bossCutscene}!

@@ -178,7 +178,7 @@ export function _mergeAllCreaturesIntoOne(state) {
   if (eggs.length === 1) {
     const egg = eggs[0]
     const count = egg.mergedFromCount || 1
-    if (count <= 1 || state._statAveraged) return state
+    if (count <= 1) return state
     const avgHP = Math.round((egg.stats?.HP || 0) / count)
     const averaged = {
       ...egg,
@@ -199,8 +199,6 @@ export function _mergeAllCreaturesIntoOne(state) {
       party: [averaged.id],
       battleCreatureId: null,
       pendingBattle: null,
-      _creaturesMerged: true,
-      _statAveraged: true,
     }
   }
 
@@ -241,8 +239,6 @@ export function _mergeAllCreaturesIntoOne(state) {
     party: [merged.id],
     battleCreatureId: null,
     pendingBattle: null,
-    _creaturesMerged: true,
-    _statAveraged: true,
   }
 }
 

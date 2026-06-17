@@ -197,3 +197,10 @@ _(Claude Code appends here after each session)_
 - Blockers/risks found: _subjectLevelCalibrated runs once — if levelMastery is empty (new account), subjectLevels defaults to {1,1,1} which is correct. Flag prevents re-running on every load.
 - Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
 - Needs Chatbot decision first: none
+
+**2026-06-17 — Remove completed migrations + simplify creature merge + audit hardcoded names:**
+- Built: (1) Removed 5 completed one-time migrations from StateContext.jsx initializer: items→homeItems/battleItems split, star→rainbow_star/potion→shoes rename, subjectLevels calibration, additive items, evo recheck. All flags (_subjectLevelCalibrated, _itemsMigrated, _evoRechecked) confirmed true in live state before removal. (2) Simplified creature merge check: removed `_creaturesMerged && !_statAveraged` flag logic — now just `length > 1` at both local and remote merge sites. (3) Removed `_creaturesMerged` and `_statAveraged` flag tracking from `_mergeAllCreaturesIntoOne()` returns in state.js; updated re-averaging guard from `count <= 1 || state._statAveraged` to `count <= 1`. (4) Fixed hardcoded `โชแปง` in WorldScreen.jsx: OWL_LINES → `getOwlLines(name)` function, boss cutscene → `{state.name}พิชิต`. (5) Removed 2 debug console.logs: battleSubject.js getBattleLevel log, WorldBattle.jsx "Debug log — verify level rotation" useEffect. Kept all [KQ:*] prefixed diagnostic logs in state.js and StateContext.jsx.
+- Not finished: nothing
+- Blockers/risks found: `calcEvoStageInline()` still used by SET_SUBJECT_LEVEL reducer (line 788) — correctly kept. Re-averaging path in `_mergeAllCreaturesIntoOne` is now dead code (never called with length=1) but left in place for safety.
+- Ready to start next: Phase 2 Refactor — WorldScreen.jsx split
+- Needs Chatbot decision first: none

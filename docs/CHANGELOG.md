@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-06-17 — cleanup: remove completed migrations, simplify merge logic, audit hardcoded names
+
+### src/context/StateContext.jsx
+- Removed 5 one-time migrations: items→homeItems/battleItems split; star→rainbow_star/potion→shoes rename; subjectLevels calibration; additive items; evo recheck (all flags confirmed true in live state)
+- Simplified creature merge check to `(length ?? 0) > 1` at both local and remote sites (removed `_creaturesMerged && !_statAveraged` flag complexity)
+
+### src/lib/state.js
+- `_mergeAllCreaturesIntoOne()`: removed `_creaturesMerged` and `_statAveraged` flag tracking from both return objects
+- Re-averaging guard simplified: `count <= 1 || state._statAveraged` → `count <= 1`
+
+### src/components/WorldScreen.jsx
+- `OWL_LINES` → `getOwlLines(name)` function so NPC greets player by their actual name
+- Boss cutscene: `โชแปงพิชิต` → `{state.name}พิชิต` (uses state.name for any player)
+
+### src/lib/battleSubject.js
+- Removed debug `console.log('getBattleLevel', ...)` (was printing on every battle)
+
+### src/components/WorldBattle.jsx
+- Removed "Debug log — verify level rotation" useEffect (was printing on every battle start)
+
+---
+
 ## 2026-06-17 — feat: rainbow_star boost grants phase-through immunity from chaser enemies
 
 ### src/components/WorldScreen.jsx

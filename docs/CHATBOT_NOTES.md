@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Collection team carousel redesign:**
+- Built: PartyGrid replaced with horizontal scroll-snap carousel. One creature per screen, scroll reveals next/prev. Dot indicator in header (active pill=18px, inactive=6px). handleScroll uses Math.round(scrollLeft/clientWidth) for index. Canvas 90→140px (drawCreature confirmed scale-agnostic via Math.floor(min(W,H)/12)). SubjectLevelProgress dropped from cards (shows global stats, not per-creature). Swipe hint for >1 creature. CSS `.carousel-scroll-hide-bar` hides scrollbar cross-browser. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: SubjectLevelProgress no longer visible in Collection — if needed it could go in a separate info section or the Report tab. Not blocking.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Missing pixel art + hint item mode-awareness:**
 - Built: `scroll`/`mirror`/`clover` drawers added to itemArt.js — all 9 game item keys now resolve (verified). `hint` effect in useBattleCombat.js made mode-aware: numpad shows digit-count clue, wordbuild/sequence shows first-char clue, memory shows friendly "ใบ้ไม่ได้" message, choice mode unchanged. skip/free_attack/block/double_xp confirmed mode-agnostic (touch only HP/flags, no choices dependency). Build: 0 errors.
 - Not finished: nothing

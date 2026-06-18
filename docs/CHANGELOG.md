@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: Collection team tab redesigned as full-screen swipeable carousel
+
+### src/components/Collection.jsx
+- `PartyGrid` rewritten: multi-column grid replaced with horizontal `scroll-snap` carousel (one creature per screen)
+- Dot indicator in header — active dot widens to 18px pill, inactive stays 6px circle; both animate on scroll
+- Carousel uses `onScroll` + `Math.round(scrollLeft / clientWidth)` to track current page index
+- Each card: 140×140 creature canvas (up from 90×90), gold "★ ตัวหลัก" badge on slot 0, HP bar (maxWidth 240), "ตั้งเป็นตัวหลัก" button for non-active slots, CreatureJourney section
+- `SubjectLevelProgress` removed from per-card layout (it showed global stats, not per-creature)
+- "← เลื่อนดูตัวอื่น →" hint shown when party has >1 creature
+- `useRef` added to React imports
+
+### src/styles.css
+- Added `.carousel-scroll-hide-bar` — hides scrollbar cross-browser (webkit + Firefox/IE)
+
+### Notes
+- `drawCreature()` confirmed scale-agnostic: uses `Math.floor(Math.min(W,H) / 12)` so 140×140 renders correctly without code changes
+
+---
+
 ## 2026-06-18 — fix: missing scroll/mirror/clover pixel art + hint item mode-awareness
 
 ### src/lib/itemArt.js

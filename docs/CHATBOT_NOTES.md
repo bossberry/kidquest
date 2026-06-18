@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Adaptive hint overlay for word-building and sequencing:**
+- Built: `inputModeMastery:{wordbuild:0,sequence:0}` added to defaultState. `RECORD_INPUT_MODE_RESULT` action + EMA reducer (success:+0.15, fail:-0.08, clamped 0-1). MoveSelectBattleMode dispatches result before locking, computes showWordbuildHint/showSequenceHint (threshold 0.5). WordBuildInput + SequenceInput: nextNeededChar + hintTileId derived from slots state, hinted tile gets gold pulsing border, "👆 ตัวที่กระพริบ" instruction shown. `@keyframes hint-pulse` in styles.css. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. EMA: ~4-5 correct in a row crosses threshold and hints stop. A few wrongs brings them back.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Input mode coverage fix (all English/Math levels):**
 - Built: genEngMoveQ — removed type gates from all 4 variety checks (sequence/fillgap/visualdiscrim/memory); now fires at same rates for sight/sentences players. Sight branch adds wordbuild 35% (chars:item.blank.split('')). genMathQ — isCount gains numpad 40%. isPattern stays choice-only (emoji answer). Verified: MoveSelectBattleMode numpad branch handles isCount correctly (value===q.answer plain number comparison); WordBuildInput Latin font path covers sight word chars. Build: 0 errors.
 - Not finished: nothing

@@ -1,5 +1,36 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: adaptive hint overlay for word-building and sequencing modes
+
+### src/lib/state.js
+- Added `inputModeMastery: { wordbuild: 0, sequence: 0 }` to `defaultState()` — range 0–1, persists to localStorage
+
+### src/context/StateContext.jsx
+- Added `RECORD_INPUT_MODE_RESULT` action constant
+- Added reducer case: EMA update with `success ? +0.15 : -0.08`, clamped 0–1
+
+### src/games/MoveSelectBattleMode.jsx
+- Computed `showWordbuildHint = wordbuildMastery < 0.5` and `showSequenceHint = sequenceMastery < 0.5` from `state.inputModeMastery`
+- Wordbuild `onSubmit`: dispatches `RECORD_INPUT_MODE_RESULT` with `mode:'wordbuild'` before locking
+- Sequence `onSubmit`: dispatches `RECORD_INPUT_MODE_RESULT` with `mode:'sequence'` before locking
+- Both components now receive `showHint` prop
+
+### src/components/battle/WordBuildInput.jsx
+- Accepts `showHint` prop; computes `nextNeededChar` (target char at first empty slot) and `hintTileId` (first unused tray tile matching it)
+- Hinted tile gets gold border + pulsing `hint-pulse` box-shadow animation
+- "👆 ตัวที่กระพริบ ไปวางในช่องว่างนะ" instruction shown above tray when hint is active
+
+### src/components/battle/SequenceInput.jsx
+- Identical hint system as WordBuildInput; `nextNeededChar` from `target[nextEmptyIdx]`
+
+### src/styles.css
+- Added `@keyframes hint-pulse` — oscillates box-shadow between 8px and 18px at 0.8s
+
+### Notes
+- EMA math: 4–5 consecutive correct answers crosses 0.5 threshold and hints disappear; a few wrong answers brings them back — adaptive behaviour confirmed
+
+---
+
 ## 2026-06-18 — fix: new input mode coverage expanded to ALL English/Math levels
 
 ### src/components/WorldBattle.jsx

@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(battle-round2): extract particle/effect canvas system into useBattleEffects hook
+
+### New file
+- `src/hooks/useBattleEffects.js` — owns effectCanvasRef, overlayCanvasRef, effectsRef, effectRafRef, rafTimeRef, ResizeObserver canvas-sync effect, RAF tick loop, and spawnEffect(). Returns `{effectCanvasRef, overlayCanvasRef, spawnEffect}`.
+
+### src/games/MoveSelectBattleMode.jsx
+- Removed `import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects }` (now in hook)
+- Added `import { useBattleEffects } from '../hooks/useBattleEffects.js'`
+- Removed 5 useRef declarations (effectCanvasRef, overlayCanvasRef, effectsRef, effectRafRef, rafTimeRef)
+- Removed `cancelAnimationFrame(effectRafRef.current)` from unmount cleanup (hook owns its own cleanup)
+- Removed ResizeObserver useEffect (~18 lines)
+- Removed RAF loop useEffect (~19 lines)
+- Removed `spawnEffect` function (~31 lines)
+- Added `useBattleEffects({battleFieldRef, eggDivRef, enemyDivRef, subject})` hook call
+- MoveSelectBattleMode.jsx now **1018 lines** (was ~1190); build: 0 errors
+
+---
+
 ## 2026-06-18 — refactor(battle-round1): extract GBHPBar, EnemyCanvas, MoveCard, HintBar presentational components
 
 ### New files

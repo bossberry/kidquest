@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Battle Round 2 (useBattleEffects hook):**
+- Built: extracted particle/effect canvas system (ResizeObserver sync, RAF loop, spawnEffect, effectCanvasRef, overlayCanvasRef) into `src/hooks/useBattleEffects.js`. Removed mkBeam/mkOrb/mkLightning/mkSparks/tickEffects import from main file. Removed effectRafRef cancel from unmount cleanup (hook owns it). MoveSelectBattleMode.jsx: ~1190 → 1018 lines. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Battle Round 3 (extract battle logic functions — fireHit, fireMiss, useBattleItem into hooks)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Battle Round 1 (presentational component extraction):**
 - Built: created `src/components/battle/` with GBHPBar.jsx, EnemyCanvas.jsx, MoveCard.jsx, HintBar.jsx. Moved THAI_NUMS/numTh/mathToThai to HintBar.jsx with named exports; re-imported in main file. Removed drawEnemy/drawEnemyHurt import from MoveSelectBattleMode. File: ~1190 → 1092 lines. Build: 0 errors.
 - Not finished: nothing

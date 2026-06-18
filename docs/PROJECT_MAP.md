@@ -54,7 +54,8 @@ src/
 │   ├── useWorldGameLoop.js       — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
 │   ├── useHomeAmbience.js        — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
 │   ├── useCreatureInteraction.js — creature interaction FSM (enterState/extendState/setGlow/watchdog); owns eggAnim, eggGlow, smRef
-│   └── useHomeInteractions.js    — tap/swipe handlers (handlePetEgg/handleTapItem/handleCreatureTap/handleCreatureSwipe); owns spawnParticles, particleIdRef, swipeCountRef
+│   ├── useHomeInteractions.js    — tap/swipe handlers (handlePetEgg/handleTapItem/handleCreatureTap/handleCreatureSwipe); owns spawnParticles, particleIdRef, swipeCountRef
+│   └── useBattleEffects.js       — particle/effect canvas system: ResizeObserver sync, RAF loop, spawnEffect(); owns effectCanvasRef, overlayCanvasRef
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()

@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: memory card matching mini-game for Thai/English vocabulary
+
+### New file
+- `src/components/battle/MemoryCardInput.jsx` — 6-card 3-pair flip-and-match grid; tap to flip, tap mismatch returns after 700ms, tap match stays face-up in green; `onPairFound()` fires per match; `onAllPairsFound()` fires 500ms after last pair; no penalty for mismatches
+
+### src/components/WorldBattle.jsx
+- Added `genMemoryCardQ(alphaList)` — picks 3 random items, creates 6 cards (emoji+char pairs), shuffles the card array
+- Thai L1–2: 8% chance for memory card round (after fill-gap and visual-discrim checks)
+- English phonics: 8% chance for memory card round
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `import MemoryCardInput from '../components/battle/MemoryCardInput.jsx'`
+- Added `memoryMatchedRef = useRef(0)`, reset inside per-question `useEffect`
+- Added `handleMemoryPairFound()`: increments counter, calls `fireHit(-1)` only on the **last** pair (which triggers normal onNext/showVictory flow); earlier pairs call `playTone('correct') + spawnEffect('attack')` for feedback without advancing the question
+- Move panel: `memory` inputMode uses flex centering container; renders `MemoryCardInput` with `onPairFound={handleMemoryPairFound}` and no-op `onAllPairsFound` (last pair's `fireHit` handles progression)
+- `disabled` for memory mode does NOT lock on `lockedRef.current` — individual card interactions are never locked by the outer question lock
+
+---
+
 ## 2026-06-18 — feat: fill-the-gap and visual-discrimination question types for Thai/English
 
 ### src/components/WorldBattle.jsx

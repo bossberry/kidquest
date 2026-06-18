@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-18 — Memory card matching mini-game (Thai/English):**
+- Built: `genMemoryCardQ` (3 items → 6 emoji+char cards, shuffled). `MemoryCardInput.jsx` (flip-and-match, no mismatch penalty, onPairFound per match, onAllPairsFound after last). `handleMemoryPairFound` in MoveSelectBattleMode: intermediate pairs → playTone+spawnEffect only; last pair → fireHit(-1) (triggers onNext/showVictory). memoryMatchedRef resets per question. disabled check skips lockedRef for memory (card interaction must remain open during round). Thai L1–2 (8%), English phonics (8%). Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. onAllPairsFound is no-op — the last fireHit handles progression. This avoids double-advance.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Fill-the-gap + visual discrimination question types:**
 - Built: `genFillGapQ` (3-letter run, hide middle, wrong choices from non-adjacent positions); `TH_CONFUSABLE_GROUPS` / `EN_CONFUSABLE_GROUPS`; `genVisualDiscriminationQ` (pick target from look-alike group, pad with unrelated letters). Both wired into Thai L1–2 (10% each) and English phonics (10% each) after existing sequence check. Zone 2: early-return custom JSX for isFillGap (inline gap display) and isVisualDiscrim (large char + subtitle). Both use inputMode:'choice' so MoveCard grid renders unchanged. Build: 0 errors.
 - Not finished: nothing

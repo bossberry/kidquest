@@ -108,6 +108,22 @@ function genVisualDiscriminationQ(alphaList, isThai) {
   }
 }
 
+function genMemoryCardQ(alphaList) {
+  const items = shuffle([...alphaList]).slice(0, 3)
+  const cards = []
+  items.forEach((item, i) => {
+    const ch = item.char ?? item.letter
+    cards.push({ id: `card_${i}_emoji`, pairId: i, display: item.emoji, type: 'emoji' })
+    cards.push({ id: `card_${i}_char`,  pairId: i, display: ch,         type: 'char'  })
+  })
+  return {
+    isMemoryCard: true,
+    inputMode: 'memory',
+    memoryCards: shuffle(cards),
+    memoryPairCount: items.length,
+  }
+}
+
 function genMathQ(lv) {
   if (lv?.op === 'count') {
     const emoji = COUNTABLES[Math.floor(Math.random() * COUNTABLES.length)]
@@ -157,6 +173,10 @@ function genThaiMoveQ(lv) {
   // 10% chance for levels 1-2 to be a visual discrimination question
   if (id <= 2 && Math.random() < 0.10) {
     return genVisualDiscriminationQ(TH_ALPHA, true)
+  }
+  // 8% chance for levels 1-2 to be a memory card matching round
+  if (id <= 2 && Math.random() < 0.08) {
+    return genMemoryCardQ(TH_ALPHA)
   }
 
   if (id <= 1) {
@@ -212,6 +232,10 @@ function genEngMoveQ(lv) {
   // 10% chance for phonics level to be a visual discrimination question
   if (type === 'phonics' && Math.random() < 0.10) {
     return genVisualDiscriminationQ(EN_ALPHA, false)
+  }
+  // 8% chance for phonics level to be a memory card matching round
+  if (type === 'phonics' && Math.random() < 0.08) {
+    return genMemoryCardQ(EN_ALPHA)
   }
 
   if (type === 'phonics') {

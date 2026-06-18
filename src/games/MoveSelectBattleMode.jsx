@@ -17,6 +17,7 @@ import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 import NumpadInput from '../components/battle/NumpadInput.jsx'
 import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from '../components/battle/WordBuildInput.jsx'
 import SequenceInput from '../components/battle/SequenceInput.jsx'
+import MemoryCardInput from '../components/battle/MemoryCardInput.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -124,8 +125,9 @@ export default function MoveSelectBattleMode({
     battleFieldRef, eggDivRef, enemyDivRef, subject,
   })
 
-  const questionStartTime = useRef(null)
-  const responseTimeRef   = useRef(0)
+  const questionStartTime  = useRef(null)
+  const responseTimeRef    = useRef(0)
+  const memoryMatchedRef   = useRef(0)
 
   // Element system
   const [battleElement] = useState(() => {
@@ -220,6 +222,7 @@ export default function MoveSelectBattleMode({
     setEliminated([])
     setItemUsed(false)
     lockedRef.current = false
+    memoryMatchedRef.current = 0
     if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
   }, [cur])
 
@@ -260,6 +263,18 @@ export default function MoveSelectBattleMode({
         else                         fireMiss(idx)
       }, 280)
     }, 220)
+  }
+
+  function handleMemoryPairFound() {
+    if (victoryMode || battleOverRef.current) return
+    memoryMatchedRef.current += 1
+    const isLast = memoryMatchedRef.current >= (q?.memoryPairCount ?? 3)
+    if (isLast) {
+      fireHit(-1) // final pair — full reward + advances to next question / triggers victory
+    } else {
+      playTone('correct')
+      spawnEffect('attack')
+    }
   }
 
   function handleDismissTeach() {
@@ -689,7 +704,7 @@ export default function MoveSelectBattleMode({
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence')
+        <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence' || q?.inputMode === 'memory')
           ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'center', height:168, flexShrink:0 }
           : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, height:168, flexShrink:0 }
         }>
@@ -764,6 +779,15 @@ export default function MoveSelectBattleMode({
                   }, 280)
                 }, 220)
               }}
+            />
+          ) : q?.inputMode === 'memory' ? (
+            <MemoryCardInput
+              cards={q.memoryCards}
+              pairCount={q.memoryPairCount}
+              resetKey={cur}
+              disabled={victoryMode || showTeach || battleOverRef.current}
+              onPairFound={handleMemoryPairFound}
+              onAllPairsFound={() => {}}
             />
           ) : (
             q.choices.map((choice, idx) => {

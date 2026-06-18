@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: sequencing input mode — reorder consecutive Thai/English alphabet letters
+
+### New file
+- `src/components/battle/SequenceInput.jsx` — tap-to-place letter ordering; shuffled tray of N tiles (no distractors — all tiles are correct letters); fills slots in order; tap slot to return tile; auto-submits `onSubmit(true|false)` on last tile; shows "เรียงตามลำดับ" instruction label; resets on `resetKey`
+
+### src/components/WorldBattle.jsx
+- Added `genSequenceQ(alphaList)` — picks a random run of 3–4 consecutive letters from TH_ALPHA or EN_ALPHA; returns `{ isSequence, inputMode:'sequence', sequenceChars, ttsWord:null }`
+- `genThaiMoveQ()`: 15% chance for levels 1–4 to return a sequence question (level 5 sentences unchanged)
+- `genEngMoveQ()`: 15% chance for phonics/cvc levels to return a sequence question (sight/sentences unchanged)
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `import SequenceInput from '../components/battle/SequenceInput.jsx'`
+- Zone 2 display: added `q.isSequence` branch showing `🔤` so the question zone doesn't appear blank
+- Move panel container style now centers for `numpad`, `wordbuild`, and `sequence` inputModes
+- Move panel branches: `numpad` → NumpadInput | `wordbuild` → WordBuildInput | `sequence` → SequenceInput | default → 2×2 MoveCard grid
+- SequenceInput `onSubmit(isCorrect)` mirrors exact timing/animation as all other input modes (220ms charge → 280ms lunge → fireHit/fireMiss)
+
+---
+
 ## 2026-06-18 — feat: word-building (tap-to-spell) input mode for Thai battles
 
 ### New file

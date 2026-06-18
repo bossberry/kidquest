@@ -16,6 +16,7 @@ import MoveCard from '../components/battle/MoveCard.jsx'
 import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 import NumpadInput from '../components/battle/NumpadInput.jsx'
 import WordBuildInput from '../components/battle/WordBuildInput.jsx'
+import SequenceInput from '../components/battle/SequenceInput.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -495,6 +496,8 @@ export default function MoveSelectBattleMode({
           else if (q.question)                          display = q.question
           else if (q.a !== undefined && q.op != null)  display = `${q.a} ${q.op} ${q.b} = ?`
           else if (q.story)                             display = q.story
+        } else if (q.isSequence) {
+          display = '🔤'
         } else if (subject === 'thai') {
           display = q.word ?? q.question
         } else {
@@ -653,7 +656,7 @@ export default function MoveSelectBattleMode({
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild')
+        <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence')
           ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'center', height:168, flexShrink:0 }
           : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, height:168, flexShrink:0 }
         }>
@@ -683,6 +686,30 @@ export default function MoveSelectBattleMode({
           ) : q?.inputMode === 'wordbuild' ? (
             <WordBuildInput
               chars={q.chars}
+              resetKey={cur}
+              disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
+              onSubmit={(isCorrect) => {
+                if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
+                lockedRef.current = true
+                responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
+                questionStartTime.current = null
+                playTone('tap'); playSFX('attack_launch')
+                setEggAnimClass('charge')
+                setTimeout(() => {
+                  if (!mountedRef.current) return
+                  setEggAnimClass('lunge')
+                  setTimeout(() => {
+                    if (!mountedRef.current) return
+                    setEggAnimClass('')
+                    if (isCorrect) fireHit(-1)
+                    else           fireMiss(-1)
+                  }, 280)
+                }, 220)
+              }}
+            />
+          ) : q?.inputMode === 'sequence' ? (
+            <SequenceInput
+              correctOrder={q.sequenceChars}
               resetKey={cur}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(isCorrect) => {

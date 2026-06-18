@@ -40,6 +40,20 @@ const WORLD_ENEMY_NAMES = {
 
 // ── Question generators ────────────────────────────────────────────────────────
 
+function genSequenceQ(alphaList) {
+  const runLen = Math.random() < 0.5 ? 3 : 4
+  const maxStart = alphaList.length - runLen
+  const start = Math.floor(Math.random() * (maxStart + 1))
+  const run = alphaList.slice(start, start + runLen)
+  const correctOrder = run.map(item => item.char ?? item.letter)
+  return {
+    isSequence: true,
+    inputMode: 'sequence',
+    sequenceChars: correctOrder,
+    ttsWord: null,
+  }
+}
+
 function genMathQ(lv) {
   if (lv?.op === 'count') {
     const emoji = COUNTABLES[Math.floor(Math.random() * COUNTABLES.length)]
@@ -77,6 +91,11 @@ function genMathQ(lv) {
 
 function genThaiMoveQ(lv) {
   const id = lv?.id ?? 1
+
+  // 15% chance for levels 1-4 to be a letter-sequencing question instead
+  if (id <= 4 && Math.random() < 0.15) {
+    return genSequenceQ(TH_ALPHA)
+  }
 
   if (id <= 1) {
     // Level 1: alphabet match — hear word, tap correct emoji
@@ -119,6 +138,11 @@ function genThaiMoveQ(lv) {
 
 function genEngMoveQ(lv) {
   const type = lv?.type || 'phonics'
+
+  // 15% chance for phonics/cvc levels to be a letter-sequencing question instead
+  if ((type === 'phonics' || type === 'cvc') && Math.random() < 0.15) {
+    return genSequenceQ(EN_ALPHA)
+  }
 
   if (type === 'phonics') {
     // Level 1: A–Z phonics — hear word, tap correct emoji

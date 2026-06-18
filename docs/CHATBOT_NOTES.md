@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Sequencing input mode (Thai/English alphabet ordering):**
+- Built: `genSequenceQ(alphaList)` picks 3–4 consecutive letters from TH_ALPHA (`.char`) or EN_ALPHA (`.letter`); returns `isSequence:true, inputMode:'sequence', sequenceChars`. Thai L1–4: 15% chance to get sequence instead of normal question. English phonics/cvc: same 15% chance. `SequenceInput.jsx` — shuffled tile tray, slots, auto-submit on last tile, "เรียงตามลำดับ" label. Zone 2 shows 🔤 for sequence questions (no word/emoji context). MoveSelectBattleMode chains numpad → wordbuild → sequence → choice. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. Level 5 Thai (sentences) and English sight/sentences deliberately excluded — those word runs would be too long/complex.
+- Ready to start next: Phase 4 NPC System (Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Word-building (tap-to-spell) input mode for Thai battles:**
 - Built: `WordBuildInput.jsx` (tap tile → fills next slot; tap slot → returns tile; auto-submit on last tile; 1–2 distractor tiles from DISTRACTOR_POOL; resets on resetKey). `genThaiMoveQ()` levels 2/3/4 add `inputMode:'wordbuild'|'choice'` at 50/50 and `chars:correct.chars`. MoveSelectBattleMode move panel now branches numpad → wordbuild → choice; div style centers for both non-choice modes. Build: 0 errors.
 - Not finished: nothing

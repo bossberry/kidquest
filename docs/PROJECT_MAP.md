@@ -94,7 +94,8 @@ src/
 │   │   ├── MoveCard.jsx    — Answer move button with emoji/text font-size logic
 │   │   ├── HintBar.jsx     — Dot-group math hint bar; exports numTh(), mathToThai()
 │   │   ├── NumpadInput.jsx    — Digit-by-digit numeric entry for math numpad mode; resets on resetKey prop
-│   │   └── WordBuildInput.jsx — Tap-to-place spelling for Thai wordbuild mode; shuffled tray + distractors; auto-submits on last tile
+│   │   ├── WordBuildInput.jsx  — Tap-to-place spelling for Thai wordbuild mode; shuffled tray + distractors; auto-submits on last tile
+│   │   └── SequenceInput.jsx   — Tap-to-place letter ordering for sequence mode; shuffled run of 3-4 alphabet chars; auto-submits on last tile
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Hatched creatures + current egg tabs (86 lines)

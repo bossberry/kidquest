@@ -33,6 +33,7 @@ _Last updated: 2026-06-16_
 
 ## Next (no Chatbot decision needed)
 
+- [x] **Sequencing input mode** — 3–4 consecutive alphabet letters to reorder; Thai L1–4 (15%) + English phonics/cvc (15%); Zone 2 shows 🔤; SequenceInput.jsx ✅
 - [x] **Word-building (tap-to-spell) input mode for Thai battles** — 50/50 random alternation for levels 2–4; WordBuildInput.jsx in battle/; levels 1 and 5 unchanged ✅
 - [x] **Numpad input mode for math battles** — 50/50 random alternation; NumpadInput.jsx in battle/; TEACH_INTRO unchanged (safe — isFirstLevel=false always in world battle) ✅
 

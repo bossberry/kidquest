@@ -53,6 +53,7 @@ _Last updated: 2026-06-16_
 - Combat logic extracted to `useBattleCombat.js`: fireHit, fireMiss, showVictory, useBattleItem — all refs/setters passed as params, zero behavior change
 - **Numpad input mode** (2026-06-18): math arithmetic questions in world battles randomly alternate 50/50 between 4-choice `MoveCard` grid and `NumpadInput` digit-entry (2-digit cap, confirm button, resets per question). `q.inputMode` field set by `genMathQ()`. `NumpadInput.jsx` in `src/components/battle/`.
 - **Word-building input mode** (2026-06-18): Thai levels 2–4 randomly alternate 50/50 between 4-choice and `WordBuildInput` tap-to-spell (shuffle tray + 1–2 distractors, answer slots, auto-submit on last tile). Levels 1 and 5 unchanged. `WordBuildInput.jsx` in `src/components/battle/`.
+- **Sequencing input mode** (2026-06-18): Thai levels 1–4 (15% chance) and English phonics/cvc (15% chance) may yield a `SequenceInput` question — shuffle 3–4 consecutive alphabet letters, player taps to reorder them. Zone 2 shows 🔤 placeholder. `SequenceInput.jsx` in `src/components/battle/`.
 - Canvas particle effects: `particles.js` (beam/orb/lightning/sparks)
 - Enemy sprites: `drawEnemy.js` — 9 types via `ctx.fillRect` pixel art
 

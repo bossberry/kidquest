@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Word-building (tap-to-spell) input mode for Thai battles:**
+- Built: `WordBuildInput.jsx` (tap tile → fills next slot; tap slot → returns tile; auto-submit on last tile; 1–2 distractor tiles from DISTRACTOR_POOL; resets on resetKey). `genThaiMoveQ()` levels 2/3/4 add `inputMode:'wordbuild'|'choice'` at 50/50 and `chars:correct.chars`. MoveSelectBattleMode move panel now branches numpad → wordbuild → choice; div style centers for both non-choice modes. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. DISTRACTOR_POOL overlaps are filtered per-question so distractors never duplicate target chars.
+- Ready to start next: Phase 4 NPC System (Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Numpad input mode for math battles:**
 - Built: `NumpadInput.jsx` (digit-by-digit entry, 2-digit cap, gold display, confirm/backspace). `genMathQ()` in WorldBattle.jsx adds `inputMode: 'numpad'|'choice'` at 50/50 random on arithmetic questions only (count/pattern/word unchanged). MoveSelectBattleMode Zone 3 branches on `q?.inputMode === 'numpad'` — numpad centered in 168px panel, or existing 2×2 MoveCard grid. Submission mirrors handleTap timing exactly. Build: 0 errors.
 - Not finished: TEACH_INTRO not updated (teach screen never shows in world battles — isFirstLevel=false always)

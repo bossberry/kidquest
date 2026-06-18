@@ -88,19 +88,22 @@ function genThaiMoveQ(lv) {
     // Level 2: SPELL_L1 — see emoji, choose correct 2-char word (อา/อิ/อู/เ/โ vowels)
     const items = shuffle([...SPELL_L1])
     const correct = items[0]; const wrongs = items.slice(1, 4)
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
   }
   if (id === 3) {
     // Level 3: TH_L2 — see emoji, choose correct animal word
     const items = shuffle([...TH_L2])
     const correct = items[0]; const wrongs = items.slice(1, 4)
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
   }
   if (id === 4) {
     // Level 4: TH_L3 — see emoji, choose correct 3-syllable word (fruits/objects)
     const items = shuffle([...TH_L3])
     const correct = items[0]; const wrongs = items.slice(1, 4)
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji }
+    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
+    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
   }
   // Level 5: TH_L5 — see emoji, choose correct short sentence
   const items = shuffle([...TH_L5])

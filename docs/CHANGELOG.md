@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: word-building (tap-to-spell) input mode for Thai battles
+
+### New file
+- `src/components/battle/WordBuildInput.jsx` — tap-to-place spelling; character tiles from shuffled tray fill ordered answer slots; tap filled slot returns tile; auto-submits `onSubmit(true|false)` when all slots filled; adds 1–2 distractor tiles from DISTRACTOR_POOL; resets on `resetKey` prop change
+
+### src/components/WorldBattle.jsx
+- `genThaiMoveQ()` levels 2, 3, 4: added `inputMode: 'wordbuild'|'choice'` at 50/50 random and `chars: correct.chars` on returned question object
+- Level 1 (emoji/audio match) and level 5 (sentences) unchanged — choice only
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `import WordBuildInput from '../components/battle/WordBuildInput.jsx'`
+- Move panel div style now centers for both `'numpad'` and `'wordbuild'` inputModes
+- Move panel branches: `numpad` → NumpadInput | `wordbuild` → WordBuildInput | default → 2×2 MoveCard grid
+- WordBuildInput `onSubmit(isCorrect)` mirrors exact timing/animation of handleTap (220ms charge → 280ms lunge → fireHit/fireMiss)
+
+---
+
 ## 2026-06-18 — feat: numpad input mode for math battles
 
 ### New file

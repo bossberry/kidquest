@@ -15,6 +15,7 @@ import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
 import MoveCard from '../components/battle/MoveCard.jsx'
 import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 import NumpadInput from '../components/battle/NumpadInput.jsx'
+import WordBuildInput from '../components/battle/WordBuildInput.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -652,7 +653,7 @@ export default function MoveSelectBattleMode({
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={q?.inputMode === 'numpad'
+        <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild')
           ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'center', height:168, flexShrink:0 }
           : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, height:168, flexShrink:0 }
         }>
@@ -675,6 +676,31 @@ export default function MoveSelectBattleMode({
                     setEggAnimClass('')
                     if (value === q.answer) fireHit(-1)
                     else                    fireMiss(-1)
+                  }, 280)
+                }, 220)
+              }}
+            />
+          ) : q?.inputMode === 'wordbuild' ? (
+            <WordBuildInput
+              chars={q.chars}
+              emoji={q.word}
+              resetKey={cur}
+              disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
+              onSubmit={(isCorrect) => {
+                if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
+                lockedRef.current = true
+                responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
+                questionStartTime.current = null
+                playTone('tap'); playSFX('attack_launch')
+                setEggAnimClass('charge')
+                setTimeout(() => {
+                  if (!mountedRef.current) return
+                  setEggAnimClass('lunge')
+                  setTimeout(() => {
+                    if (!mountedRef.current) return
+                    setEggAnimClass('')
+                    if (isCorrect) fireHit(-1)
+                    else           fireMiss(-1)
                   }, 280)
                 }, 220)
               }}

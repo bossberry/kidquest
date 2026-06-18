@@ -327,13 +327,24 @@ export function useBattleCombat(params) {
         setTimeout(() => mountedRef.current && showVictory(), 700)
       }
     } else if (effect === 'hint') {
-      const wrongIdxs = q.choices
-        .map((c, i) => ({ c, i }))
-        .filter(({ c }) => c !== q.answer)
-        .map(({ i }) => i)
-      const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
-      setEliminated(toElim)
-      setBattleLog('กระจก! ตัวเลือกผิด 2 ตัว หายไป!')
+      if (q?.inputMode === 'numpad') {
+        setBattleLog(`กระจก! คำตอบ ${q.answer < 10 ? 'เป็นเลขตัวเดียว' : `เริ่มด้วย ${String(q.answer)[0]}`}`)
+      } else if (q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence') {
+        const target = q.inputMode === 'wordbuild' ? (q.chars?.[0] ?? '') : (q.sequenceChars?.[0] ?? '')
+        setBattleLog(`กระจก! ตัวแรกคือ "${target}"`)
+      } else if (q?.inputMode === 'memory') {
+        setBattleLog('กระจก! ใบ้ไม่ได้ในโหมดนี้ แต่ได้พลังใจ! 💪')
+      } else if (q?.choices) {
+        const wrongIdxs = q.choices
+          .map((c, i) => ({ c, i }))
+          .filter(({ c }) => c !== q.answer)
+          .map(({ i }) => i)
+        const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
+        setEliminated(toElim)
+        setBattleLog('กระจก! ตัวเลือกผิด 2 ตัว หายไป!')
+      } else {
+        setBattleLog('กระจก! ไม่สามารถใช้ได้กับโจทย์นี้')
+      }
     } else if (effect === 'block') {
       shieldActiveRef.current = true
       setShieldActive(true)

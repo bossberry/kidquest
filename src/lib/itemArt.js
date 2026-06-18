@@ -235,6 +235,60 @@ const DRAWERS = {
     f(ctx,4,15,1,1,CY,s); f(ctx,11,15,1,1,MG,s)
   },
 
+  scroll(ctx, s) {
+    const P='#e8c040', PL='#FFE9A0', PD='#A8780A', R='#C0392B', RD='#7A2010'
+    // Paper roll body
+    f(ctx,3,3,10,10,P,s)
+    f(ctx,3,3,10,1,PL,s); f(ctx,3,4,2,8,PL,s)
+    // Top scroll roll
+    f(ctx,2,2,12,2,PD,s); f(ctx,2,1,12,1,P,s)
+    // Bottom scroll roll
+    f(ctx,2,12,12,2,PD,s); f(ctx,2,13,12,1,P,s)
+    // Side caps
+    f(ctx,1,2,1,12,PD,s); f(ctx,14,2,1,12,PD,s)
+    // Red ribbon binding
+    f(ctx,6,6,4,5,R,s); f(ctx,7,7,2,3,RD,s)
+    // Text lines (subtle)
+    f(ctx,4,5,6,1,PD,s); f(ctx,4,9,8,1,PD,s); f(ctx,4,11,5,1,PD,s)
+  },
+
+  mirror(ctx, s) {
+    const G='#44cccc', GL='#A0F0F0', GD='#1A7A7A', F='#888888', FD='#444444'
+    // Handle
+    f(ctx,6,12,4,3,F,s); f(ctx,7,13,2,2,FD,s)
+    // Frame ring (outer)
+    f(ctx,4,1,8,1,FD,s); f(ctx,2,2,2,1,FD,s); f(ctx,12,2,2,1,FD,s)
+    f(ctx,1,3,1,8,FD,s); f(ctx,14,3,1,8,FD,s)
+    f(ctx,2,11,2,1,FD,s); f(ctx,12,11,2,1,FD,s); f(ctx,4,12,8,1,FD,s)
+    // Frame fill
+    f(ctx,4,1,8,1,F,s); f(ctx,2,2,12,1,F,s); f(ctx,1,3,14,8,F,s)
+    f(ctx,2,11,12,1,F,s); f(ctx,4,12,8,1,F,s)
+    // Glass surface
+    f(ctx,3,3,10,8,G,s)
+    // Glass shine
+    f(ctx,4,4,3,3,GL,s); f(ctx,8,4,1,1,GL,s)
+    // Glass shadow
+    f(ctx,9,7,3,3,GD,s)
+  },
+
+  clover(ctx, s) {
+    const G='#2ECC71', GD='#1A8C4A', GL='#7FFFB0', ST='#0A6A2A'
+    // 4 leaf lobes (clockwise from top)
+    f(ctx,6,1,4,4,G,s); f(ctx,7,2,2,2,GL,s)
+    f(ctx,10,5,4,4,G,s); f(ctx,11,6,2,2,GL,s)
+    f(ctx,6,9,4,4,G,s); f(ctx,7,10,2,2,GL,s)
+    f(ctx,2,5,4,4,G,s); f(ctx,3,6,2,2,GL,s)
+    // Center connector
+    f(ctx,6,5,4,4,GD,s); f(ctx,7,6,2,2,G,s)
+    // Stem
+    f(ctx,7,13,2,2,ST,s)
+    // Leaf outlines (notches)
+    f(ctx,7,1,1,1,GD,s); f(ctx,9,1,1,1,GD,s)
+    f(ctx,13,6,1,1,GD,s); f(ctx,13,8,1,1,GD,s)
+    f(ctx,7,12,1,1,GD,s); f(ctx,9,12,1,1,GD,s)
+    f(ctx,2,6,1,1,GD,s); f(ctx,2,8,1,1,GD,s)
+  },
+
   coin(ctx, s) {
     const G='#DAA520', GL='#FFD700', GD='#8B6914', W='#FFFDD0'
     // Outline ring

@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — fix: new input mode coverage expanded to ALL English/Math levels
+
+### src/components/WorldBattle.jsx
+- `genEngMoveQ()` — removed type-specific gates (`type==='phonics'`/`type==='cvc'`) from sequence/fillgap/visualdiscrim/memory checks; all 4 variety modes now apply across every English level (15%/10%/10%/8% respectively)
+- `genEngMoveQ()` — `sight` branch gains `inputMode:'wordbuild'|'choice'` (35/65 split); `chars: item.blank.split('')` added for wordbuild path
+- `genMathQ()` — `isCount` branch gains `inputMode:'numpad'|'choice'` (40/60 split); `isPattern` intentionally left choice-only (emoji/symbol answer, not a number)
+- Verified: `value === q.answer` in MoveSelectBattleMode.jsx works for `isCount` numpad since `answer:n` is always a number; `WordBuildInput` `isLatinChars` check routes sight word chars to pixel font correctly — no further changes needed
+
+---
+
 ## 2026-06-18 — feat: Collection team tab redesigned as full-screen swipeable carousel
 
 ### src/components/Collection.jsx

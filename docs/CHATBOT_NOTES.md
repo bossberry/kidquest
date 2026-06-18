@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Input mode coverage fix (all English/Math levels):**
+- Built: genEngMoveQ — removed type gates from all 4 variety checks (sequence/fillgap/visualdiscrim/memory); now fires at same rates for sight/sentences players. Sight branch adds wordbuild 35% (chars:item.blank.split('')). genMathQ — isCount gains numpad 40%. isPattern stays choice-only (emoji answer). Verified: MoveSelectBattleMode numpad branch handles isCount correctly (value===q.answer plain number comparison); WordBuildInput Latin font path covers sight word chars. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Collection team carousel redesign:**
 - Built: PartyGrid replaced with horizontal scroll-snap carousel. One creature per screen, scroll reveals next/prev. Dot indicator in header (active pill=18px, inactive=6px). handleScroll uses Math.round(scrollLeft/clientWidth) for index. Canvas 90→140px (drawCreature confirmed scale-agnostic via Math.floor(min(W,H)/12)). SubjectLevelProgress dropped from cards (shows global stats, not per-creature). Swipe hint for >1 creature. CSS `.carousel-scroll-hide-bar` hides scrollbar cross-browser. Build: 0 errors.
 - Not finished: nothing

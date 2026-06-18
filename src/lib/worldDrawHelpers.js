@@ -72,6 +72,49 @@ export function drawPlayerGlow(ctx, px, py, frame) {
   ctx.stroke()
 }
 
+// ── Maze portal rendering ────────────────────────────────────────────────────
+
+export function drawMazePortal(ctx, x, y, frame) {
+  const s = TILE
+  const cx = x + s / 2
+  const cy = y + s / 2
+  const pulse = (Math.sin(frame * 0.08) + 1) / 2
+
+  // Outer glow rings
+  ctx.strokeStyle = `rgba(160,60,220,${0.25 + pulse * 0.35})`
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(cx, cy, s * 0.9, 0, Math.PI * 2)
+  ctx.stroke()
+
+  ctx.strokeStyle = `rgba(200,120,255,${0.4 + pulse * 0.4})`
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(cx, cy, s * 0.6, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Swirling core
+  ctx.fillStyle = `rgba(120,40,180,${0.7 + pulse * 0.3})`
+  ctx.beginPath()
+  ctx.arc(cx, cy, s * 0.38, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.fillStyle = `rgba(220,160,255,${0.6 + pulse * 0.4})`
+  ctx.beginPath()
+  ctx.arc(cx, cy, s * 0.2, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Orbiting sparkle particles
+  const sparkleAngle = (frame * 0.05) % (Math.PI * 2)
+  for (let i = 0; i < 3; i++) {
+    const a = sparkleAngle + (i * Math.PI * 2 / 3)
+    const sx = cx + Math.cos(a) * s * 0.75
+    const sy = cy + Math.sin(a) * s * 0.75
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'
+    ctx.fillRect(sx - 1, sy - 1, 2, 2)
+  }
+}
+
 // ── Fog-of-war (maze only) ───────────────────────────────────────────────────
 // Solid darkness over the whole canvas, punched through with a flickering
 // circular light radius centered on the player. No memory of lit areas.

@@ -117,6 +117,9 @@ export const ACTIONS = {
   RESPAWN_BOSS_ON_NORMAL_MAP:'RESPAWN_BOSS_ON_NORMAL_MAP',
   ACTIVATE_MAZE:             'ACTIVATE_MAZE',
   CLEAR_MAZE:                'CLEAR_MAZE',
+  SPAWN_MAZE_PORTAL:          'SPAWN_MAZE_PORTAL',
+  SPAWN_MAZE_PORTAL_RESOLVED: 'SPAWN_MAZE_PORTAL_RESOLVED',
+  ENTER_MAZE:                 'ENTER_MAZE',
   // Creature system
   SET_CREATURE_NAME:         'SET_CREATURE_NAME',
   ADD_CREATURE_BOND:         'ADD_CREATURE_BOND',
@@ -652,17 +655,11 @@ function reducer(state, action) {
           })
         : (state.hatchedEggs || [])
       const newBattleWins = (state.battleWins ?? 0) + 1
-      const shouldSpawnMaze = newBattleWins % 10 === 0 && !state.mazeActive && !state.mazeCleared
       return {
         ...state,
         battleWins: newBattleWins,
         hatchedEggs: eggsAfterWin,
         pendingEvoNotice: evoNoticeW,
-        ...(shouldSpawnMaze ? {
-          mazeActive: true,
-          mazeCleared: false,
-          secretMapExpiry: Date.now() + 30 * 60 * 1000,
-        } : {}),
       }
     }
 
@@ -672,10 +669,10 @@ function reducer(state, action) {
         worldLevel: action.payload,
         currentScreen: 'NW',
         discoveredScreens: ['NW'],
+        mazePortal: { screenId: ['NW','NE','SW','SE'][Math.floor(Math.random() * 4)], col: null, row: null },
         mazeActive: false,
         mazeCleared: false,
         clearedMaps: [],
-        secretMapExpiry: null,
         bossDefeatedThisTier: false,
         bossEnemyDefeated: false,
         bossRoamingScreen: null,
@@ -692,9 +689,8 @@ function reducer(state, action) {
         bossEnemyDefeated: true,
         bossWinsAtDefeat: state.battleWins ?? 0,
         clearedMaps: [],
-        secretMapExpiry: null,
-        currentScreen: 'NW',     // return player to normal map on remount
-        worldPosition: null,     // don't restore boss tile position
+        currentScreen: 'NW',
+        worldPosition: null,
       }
     }
 
@@ -707,8 +703,15 @@ function reducer(state, action) {
     case ACTIONS.ACTIVATE_MAZE:
       return { ...state, mazeActive: true }
 
-    case ACTIONS.CLEAR_MAZE:
-      return { ...state, mazeActive: false, mazeCleared: true }
+    case ACTIONS.CLEAR_MAZE: {
+      const mazeClearScreens = ['NW', 'NE', 'SW', 'SE']
+      const newPortalScreen = mazeClearScreens[Math.floor(Math.random() * mazeClearScreens.length)]
+      return {
+        ...state,
+        mazeActive: false,
+        mazePortal: { screenId: newPortalScreen, col: null, row: null },
+      }
+    }
 
     case ACTIONS.SET_CREATURE_NAME: {
       const { creatureId, name } = action.payload
@@ -825,6 +828,19 @@ function reducer(state, action) {
         inputModeMastery: { ...state.inputModeMastery, [mode]: updated },
       }
     }
+
+    case ACTIONS.SPAWN_MAZE_PORTAL: {
+      const portalScreens = ['NW', 'NE', 'SW', 'SE']
+      const portalScreenId = portalScreens[Math.floor(Math.random() * portalScreens.length)]
+      return { ...state, mazePortal: { screenId: portalScreenId, col: null, row: null } }
+    }
+
+    case ACTIONS.SPAWN_MAZE_PORTAL_RESOLVED:
+      if (!state.mazePortal) return state
+      return { ...state, mazePortal: { ...state.mazePortal, col: action.payload.col, row: action.payload.row } }
+
+    case ACTIONS.ENTER_MAZE:
+      return { ...state, mazeActive: true }
 
     default:
       return state

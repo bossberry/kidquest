@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { T, canMove, getCamera, renderMap, renderPlayer } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
-import { drawChest, drawPlayerGlow, drawMazeFog } from '../lib/worldDrawHelpers.js'
+import { drawChest, drawPlayerGlow, drawMazeFog, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const TILE = 16
@@ -18,7 +18,7 @@ const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
 export function useWorldGameLoop({
   canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
-  eggColorRef, HUD_CONTENT_H, screenIdRef,
+  eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -324,6 +324,11 @@ export function useWorldGameLoop({
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY)
       renderChests(ctx, camX, camY, g.frame)
+      if (mazePortalPosRef?.current) {
+        const ppx = Math.round(mazePortalPosRef.current.col * TILE - camX)
+        const ppy = Math.round(mazePortalPosRef.current.row * TILE - camY)
+        drawMazePortal(ctx, ppx, ppy, g.frame)
+      }
 
       const playerGlowX = Math.round(g.displayX * TILE - camX)
       const playerGlowY = Math.round(g.displayY * TILE - camY)

@@ -83,12 +83,13 @@ export default function WorldScreen({ navigate }) {
   const transTimer   = useRef(null)
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
+  const mazePortalPosRef = useRef(null)
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
+  const [mazeConfirm, setMazeConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
   const [itemBagOpen, setItemBagOpen] = useState(false)
-  const [bossCutscene, setBossCutscene] = useState(null) // null | string (world name)
-  const [mazeTimerTick, setMazeTimerTick] = useState(0)
+  const [bossCutscene, setBossCutscene] = useState(null)
   const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
     useBattleTrigger({ stateRef, screenIdRef, gameRef, setEncounterFlash, setBossConfirm, BOSS_TILE })
 
@@ -169,6 +170,7 @@ export default function WorldScreen({ navigate }) {
     const worldDef = WORLD_LEVELS[wLevel] ?? WORLD_LEVELS[0]
 
     if (screenId === 'BOSS') {
+      mazePortalPosRef.current = null
       // Don't spawn boss if already defeated this tier
       if (stateRef.current.bossEnemyDefeated) {
         enemiesRef.current = []
@@ -241,6 +243,37 @@ export default function WorldScreen({ navigate }) {
         }
       ]
     }
+
+    // Resolve maze portal position if the portal belongs on this screen
+    const portal = stateRef.current.mazePortal
+    if (portal && portal.screenId === screenId && screenId !== 'MAZE') {
+      if (portal.col !== null && portal.row !== null) {
+        // Already resolved — reuse the stored position for a stable location
+        mazePortalPosRef.current = { col: portal.col, row: portal.row }
+      } else {
+        // First visit: find a random open grass tile and persist the position
+        const portalCandidates = []
+        const tm = tileMapRef.current
+        if (tm) {
+          for (let r = 2; r < tm.length - 2; r++) {
+            for (let c = 2; c < (tm[r]?.length ?? 0) - 2; c++) {
+              const raw = tm[r][c]
+              const tt = typeof raw === 'object' ? raw.type : raw
+              if (tt === T.GRASS || tt === T.FLOWER) portalCandidates.push({ col: c, row: r })
+            }
+          }
+        }
+        if (portalCandidates.length) {
+          const pos = portalCandidates[Math.floor(Math.random() * portalCandidates.length)]
+          mazePortalPosRef.current = pos
+          dispatch({ type: ACTIONS.SPAWN_MAZE_PORTAL_RESOLVED, payload: { col: pos.col, row: pos.row } })
+        } else {
+          mazePortalPosRef.current = null
+        }
+      }
+    } else {
+      mazePortalPosRef.current = null
+    }
   }, [screenId]) // eslint-disable-line
 
   // ── Boss respawn trigger: after 10 battle wins, boss roams on a normal map ──
@@ -286,10 +319,8 @@ export default function WorldScreen({ navigate }) {
       dispatch({ type: ACTIONS.MAP_CLEARED, payload: sid })
     }
 
-    // Dynamic routing with maze override for NW→S and SE→W
-    let connects = { ...(DYNAMIC_SCREENS[sid]?.connects ?? {}) }
-    if (curState.mazeActive && sid === 'NW' && dirName === 'S') connects.S = 'MAZE'
-    if (curState.mazeActive && sid === 'SE' && dirName === 'W') connects.W = 'MAZE'
+    // Dynamic screen routing
+    const connects = { ...(DYNAMIC_SCREENS[sid]?.connects ?? {}) }
 
     const targetId = connects[dirName]
     if (!targetId) return
@@ -303,14 +334,12 @@ export default function WorldScreen({ navigate }) {
       if (!allCleared || xp < BOSS_XP_THRESHOLD) return
     }
 
-    const forcedStart = targetId === 'MAZE' ? { col: 1, row: 13 } : undefined
-
     playSFX('screen_enter')
     setTransitioning(true)
     setTransOverlay(1)
 
     transTimer.current = setTimeout(() => {
-      initScreen(targetId, exitType, forcedStart)
+      initScreen(targetId, exitType, undefined)
       setScreenId(targetId)
       dispatch({ type: ACTIONS.MOVE_SCREEN, payload: targetId })
       dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: targetId })
@@ -374,6 +403,13 @@ export default function WorldScreen({ navigate }) {
       return
     }
 
+    // Maze portal collision
+    const portalPos = mazePortalPosRef.current
+    if (portalPos && portalPos.col === newCol && portalPos.row === newRow) {
+      setMazeConfirm(true)
+      return
+    }
+
     if (!canMove(tileMap, newCol, newRow)) return
 
     g.fromX = g.displayX
@@ -405,6 +441,23 @@ export default function WorldScreen({ navigate }) {
     checkProximity(newCol, newRow)
   }, [dispatch, handleExit, checkProximity, navigate, triggerBattle])
 
+  const confirmEnterMaze = () => {
+    setMazeConfirm(false)
+    dispatch({ type: ACTIONS.ENTER_MAZE })
+    playSFX('screen_enter')
+    setTransitioning(true)
+    setTransOverlay(1)
+    transTimer.current = setTimeout(() => {
+      initScreen('MAZE', undefined, { col: 1, row: 13 })
+      setScreenId('MAZE')
+      dispatch({ type: ACTIONS.MOVE_SCREEN, payload: 'MAZE' })
+      dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: 'MAZE' })
+      setTransOverlay(0)
+      transTimer.current = setTimeout(() => setTransitioning(false), 170)
+    }, 160)
+  }
+  const declineEnterMaze = () => setMazeConfirm(false)
+
   const moveUp    = useCallback(() => tryMove( 0, -1, 'up'),    [tryMove])
   const moveDown  = useCallback(() => tryMove( 0,  1, 'down'),  [tryMove])
   const moveLeft  = useCallback(() => tryMove(-1,  0, 'left'),  [tryMove])
@@ -425,29 +478,8 @@ export default function WorldScreen({ navigate }) {
   useWorldGameLoop({
     canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
     battlePendingRef, battleDispatchedRef, triggerBattleRef,
-    eggColorRef, HUD_CONTENT_H, screenIdRef,
+    eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
   })
-
-  // ── Secret maze: countdown expiry ────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!state.secretMapExpiry || !state.mazeActive) return
-    const remaining = state.secretMapExpiry - Date.now()
-    if (remaining <= 0) {
-      dispatch({ type: ACTIONS.SECRET_MAP_EXPIRE })
-      return
-    }
-    const t = setTimeout(() => dispatch({ type: ACTIONS.SECRET_MAP_EXPIRE }), remaining)
-    return () => clearTimeout(t)
-  }, [state.secretMapExpiry, state.mazeActive]) // eslint-disable-line
-
-  // ── Secret maze: countdown display tick ──────────────────────────────────────
-
-  useEffect(() => {
-    if (!state.mazeActive || !state.secretMapExpiry) return
-    const id = setInterval(() => setMazeTimerTick(n => n + 1), 1000)
-    return () => clearInterval(id)
-  }, [state.mazeActive, state.secretMapExpiry])
 
   // ── Boss defeat → tier advance ────────────────────────────────────────────────
 
@@ -671,28 +703,38 @@ export default function WorldScreen({ navigate }) {
         </div>
       )}
 
-      {/* Maze notification */}
-      {state.mazeActive && !state.mazeCleared && (() => {
-        const expiry = state.secretMapExpiry
-        const msLeft = expiry ? Math.max(0, expiry - Date.now() + mazeTimerTick * 0) : 0
-        const mins   = Math.floor(msLeft / 60000)
-        const secs   = Math.floor((msLeft % 60000) / 1000)
-        const countdown = expiry ? ` · ${mins}:${String(secs).padStart(2, '0')}` : ''
-        return (
+      {/* Maze portal confirm dialog */}
+      {mazeConfirm && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 50,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
           <div style={{
-            position: 'absolute', bottom: 200, left: 0, right: 0, zIndex: 28,
-            display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+            background: 'rgba(24,8,48,0.97)', border: '2px solid #a040e0',
+            borderRadius: 14, padding: '20px 24px', maxWidth: 280, textAlign: 'center',
+            fontFamily: 'Mitr,sans-serif',
           }}>
-            <div style={{
-              background: 'rgba(24,8,48,0.92)', border: '1px solid #6030a0',
-              borderRadius: 10, padding: '8px 16px',
-              fontFamily: 'Mitr,sans-serif', color: '#c090ff', fontSize: 13,
-            }}>
-              🌀 แมพลับปรากฏทางทิศใต้{countdown}
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🌀</div>
+            <div style={{ fontSize: 15, color: '#fff', marginBottom: 16, lineHeight: 1.6 }}>
+              ประตูมิติลึกลับ! เขาวงกตมืดมิดรออยู่...<br/>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>เข้าไปสำรวจไหม?</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={declineEnterMaze} style={{
+                padding: '8px 16px', background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8,
+                color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
+              }}>ยังก่อน</button>
+              <button onClick={confirmEnterMaze} style={{
+                padding: '8px 16px', background: '#a040e0',
+                border: '1px solid #c060ff', borderRadius: 8,
+                color: '#fff', fontSize: 13, fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
+              }}>เข้าไปสำรวจ!</button>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {/* World unlock banner */}
       {worldUnlockBanner && (

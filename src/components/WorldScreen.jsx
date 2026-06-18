@@ -425,7 +425,7 @@ export default function WorldScreen({ navigate }) {
   useWorldGameLoop({
     canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
     battlePendingRef, battleDispatchedRef, triggerBattleRef,
-    eggColorRef, HUD_CONTENT_H,
+    eggColorRef, HUD_CONTENT_H, screenIdRef,
   })
 
   // ── Secret maze: countdown expiry ────────────────────────────────────────────

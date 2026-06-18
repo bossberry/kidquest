@@ -66,6 +66,7 @@ _Last updated: 2026-06-16_
 - Per tier: 4 regular maps (NW/NE/SW/SE) + BOSS map + secret MAZE map
 - Boss unlock: all 4 maps cleared + totalXP ≥ 300; defeat boss → cutscene → next tier
 - Secret maze: spawns when `battleWins % 10 === 0`; 30-min countdown; clear for 3 random item drops
+- **MAZE fog-of-war**: full canvas darkness with flickering circular torch-light radius (~58px) around player. `drawMazeFog()` in `worldDrawHelpers.js` — destination-out compositing punches the light circle through darkness; candle flicker via two overlapping sine waves. Drawn before player sprite so sprite stays crisp on top. Replaces `drawPlayerGlow` on MAZE screen only; all other screens unaffected. `screenIdRef` passed from WorldScreen to `useWorldGameLoop`.
 - 9 enemy types with movement patterns (patrol/wander/chase/aggro); 30s respawn timer
 - **rainbow_star (saiyan mode)**: chasers (snake/baby_zombie/woken sleepy_bunny) stop moving while boost is active; player can still walk INTO a chaser to trigger battle; non-chasers (bouncy_slime/fox_kit/egg_pawn/leaf_sprite/mushroom_imp) are unaffected. Fast rainbow hue-cycle glow on world-map player sprite (HSL hue 0→360 per 60 frames). `powerup` SFX plays on activation.
 - World HUD (WorldScreen.jsx): mini-map + creature status + XP bar + battle items + item bag + home button

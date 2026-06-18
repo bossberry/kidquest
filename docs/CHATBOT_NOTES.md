@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — MAZE fog-of-war rendering:**
+- Built: `drawMazeFog()` exported from worldDrawHelpers.js — fills canvas with near-black, punches lit circle via destination-out radial gradient, adds warm candle tint overlay. Flicker = `sin(frame×0.15)×3 + sin(frame×0.37+1.3)×2` (two sines avoid mechanical feel). `screenIdRef` added as new param to `useWorldGameLoop`; WorldScreen.jsx passes it. RAF loop checks `screenIdRef?.current === 'MAZE'`; MAZE uses fog, all other screens use normal `drawPlayerGlow`. Fog drawn before player sprite so sprite renders crisp on top of lit area. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. `[]` dep array unchanged — screenIdRef is a ref, safe to read inside closure.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — rainbow_star saiyan mode fix + SFX + rainbow visual:**
 - Built: (1) Chase AI suppressed: sleepy_bunny/baby_zombie/snake movement steps each check `saiyanActive` at top of `updateEnemies`; snake uses `else if (!ne.isAggro)` branch so aggro-but-saiyan state causes no movement. (2) tryMove fix: removed early `if (isChaser && saiyanActive) return false` which was blocking player-initiated walk-into-chaser; now only suppresses the "chaser already on player tile" overlap branch. (3) Activation SFX: `powerup` SFX added to `SFX` dict in audio.js (upward sweep + ascending arp); plays in rainbow_star handler in useHomeInteractions.js. (4) Rainbow visual: `@keyframes rainbow-cycle` (hue-rotate 0→360deg, 0.6s linear infinite) + `.saiyan-rainbow` class in styles.css; applied to creature outer wrapper in Home.jsx; world-map player shadowColor cycles `hsl(frame×6, 100%, 60%)` instead of static gold. Build: 0 errors.
 - Not finished: nothing

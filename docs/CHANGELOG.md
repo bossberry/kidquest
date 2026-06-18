@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: maze fog-of-war with flickering torch-light radius
+
+### src/lib/worldDrawHelpers.js
+- Added `drawMazeFog(ctx, playerPx, playerPy, frame, canvasW, canvasH)`: fills canvas near-black, uses destination-out radial gradient to punch a lit circle (~58px radius) around the player, adds warm candle tint overlay; flicker via two overlapping sine waves
+
+### src/hooks/useWorldGameLoop.js
+- Added `screenIdRef` to destructured params; imported `drawMazeFog`
+- Render loop: `screenIdRef?.current === 'MAZE'` → `drawMazeFog` before player; else normal `drawPlayerGlow`
+
+### src/components/WorldScreen.jsx
+- Passes `screenIdRef` to `useWorldGameLoop`
+
 ## 2026-06-18 — fix: rainbow_star saiyan stops chase AI; player can still walk into chasers; rainbow SFX + visual
 
 ### src/hooks/useWorldGameLoop.js

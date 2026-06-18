@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { T, canMove, getCamera, renderMap, renderPlayer } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
-import { drawChest, drawPlayerGlow } from '../lib/worldDrawHelpers.js'
+import { drawChest, drawPlayerGlow, drawMazeFog } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const TILE = 16
@@ -18,7 +18,7 @@ const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
 export function useWorldGameLoop({
   canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
-  eggColorRef, HUD_CONTENT_H,
+  eggColorRef, HUD_CONTENT_H, screenIdRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -324,10 +324,16 @@ export function useWorldGameLoop({
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY)
       renderChests(ctx, camX, camY, g.frame)
-      // Player glow drawn behind the sprite
+
       const playerGlowX = Math.round(g.displayX * TILE - camX)
       const playerGlowY = Math.round(g.displayY * TILE - camY)
-      drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
+      if (screenIdRef?.current === 'MAZE') {
+        // Fog-of-war: darkness with a flickering torch-light radius, drawn before
+        // the player sprite so the player stays crisp on top of the lit circle.
+        drawMazeFog(ctx, playerGlowX, playerGlowY, g.frame, vw, vh)
+      } else {
+        drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
+      }
       const saiyanOn = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
       if (saiyanOn) {
         ctx.save()

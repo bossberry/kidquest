@@ -72,6 +72,48 @@ export function drawPlayerGlow(ctx, px, py, frame) {
   ctx.stroke()
 }
 
+// ── Fog-of-war (maze only) ───────────────────────────────────────────────────
+// Solid darkness over the whole canvas, punched through with a flickering
+// circular light radius centered on the player. No memory of lit areas.
+export function drawMazeFog(ctx, playerPx, playerPy, frame, canvasW, canvasH) {
+  const cx = playerPx + TILE / 2
+  const cy = playerPy + TILE / 2
+
+  // Candle-like flicker: two overlapping sines at different speeds/phases
+  const flicker = Math.sin(frame * 0.15) * 3 + Math.sin(frame * 0.37 + 1.3) * 2
+  const radius = 58 + flicker
+
+  // Fill entire canvas with near-black darkness
+  ctx.fillStyle = 'rgba(6,3,12,0.97)'
+  ctx.fillRect(0, 0, canvasW, canvasH)
+
+  // Punch a lit circle through the darkness using destination-out compositing
+  ctx.save()
+  ctx.globalCompositeOperation = 'destination-out'
+  const eraseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+  eraseGrad.addColorStop(0,    'rgba(255,255,255,1)')
+  eraseGrad.addColorStop(0.65, 'rgba(255,255,255,0.85)')
+  eraseGrad.addColorStop(1,    'rgba(255,255,255,0)')
+  ctx.fillStyle = eraseGrad
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+
+  // Warm candle-light tint inside the radius (subtle additive overlay)
+  ctx.save()
+  ctx.globalCompositeOperation = 'source-over'
+  const warmGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+  warmGrad.addColorStop(0,   `rgba(255,200,120,${0.18 + Math.max(0, flicker) * 0.01})`)
+  warmGrad.addColorStop(0.6, 'rgba(255,180,90,0.08)')
+  warmGrad.addColorStop(1,   'rgba(255,180,90,0)')
+  ctx.fillStyle = warmGrad
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
 export function getOwlLines(name) {
   return [
     `สวัสดี ${name}! ข้าคือ ศาสตราจารย์นกฮูก`,

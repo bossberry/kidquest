@@ -138,7 +138,8 @@ function genMathQ(lv) {
     const n = Math.floor(Math.random() * 5) + 1
     const w = new Set()
     while (w.size < 3) { const v = Math.floor(Math.random()*5)+1; if(v!==n) w.add(v) }
-    return { isCount:true, objects:Array(n).fill(emoji), answer:n, choices:shuffle([n,...w]) }
+    const inputMode = Math.random() < 0.4 ? 'numpad' : 'choice'
+    return { isCount:true, objects:Array(n).fill(emoji), answer:n, choices:shuffle([n,...w]), inputMode }
   }
   if (lv?.op === 'pattern') {
     const set = PATTERN_SETS.AB[Math.floor(Math.random() * PATTERN_SETS.AB.length)]
@@ -229,20 +230,20 @@ function genThaiMoveQ(lv) {
 function genEngMoveQ(lv) {
   const type = lv?.type || 'phonics'
 
-  // 15% chance for phonics/cvc levels to be a letter-sequencing question instead
-  if ((type === 'phonics' || type === 'cvc') && Math.random() < 0.15) {
+  // 15% chance across ALL English levels to be a letter-sequencing question
+  if (Math.random() < 0.15) {
     return genSequenceQ(EN_ALPHA)
   }
-  // 10% chance for phonics level to be a fill-the-gap question
-  if (type === 'phonics' && Math.random() < 0.10) {
+  // 10% chance across ALL English levels to be a fill-the-gap question
+  if (Math.random() < 0.10) {
     return genFillGapQ(EN_ALPHA)
   }
-  // 10% chance for phonics level to be a visual discrimination question
-  if (type === 'phonics' && Math.random() < 0.10) {
+  // 10% chance across ALL English levels to be a visual discrimination question
+  if (Math.random() < 0.10) {
     return genVisualDiscriminationQ(EN_ALPHA, false)
   }
-  // 8% chance for phonics level to be a memory card matching round
-  if (type === 'phonics' && Math.random() < 0.08) {
+  // 8% chance across ALL English levels to be a memory card matching round
+  if (Math.random() < 0.08) {
     return genMemoryCardQ(EN_ALPHA)
   }
 
@@ -268,11 +269,14 @@ function genEngMoveQ(lv) {
   if (type === 'sight') {
     // Level 3: sight words — see picture, choose word that fills the blank
     const item = SIGHT_DATA[Math.floor(Math.random() * SIGHT_DATA.length)]
+    const inputMode = Math.random() < 0.35 ? 'wordbuild' : 'choice'
     return {
       isEng:true, ttsWord:item.sentence.replace('___', item.blank),
       answer:item.blank, choices:shuffle([...item.choices]),
       word:item.emoji,
-      question:item.sentence,  // shown in Zone 2 when present (smaller font)
+      question:item.sentence,
+      chars: inputMode === 'wordbuild' ? item.blank.split('') : undefined,
+      inputMode,
     }
   }
   // Level 4: sentences — see emoji, choose correct full sentence

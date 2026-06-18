@@ -432,6 +432,8 @@ const SFX = {
   screen_enter: ctx => _sweep(ctx, 150, 400, 0.055, 'sine', 280),
   item_collect: ctx => _arp(ctx, [523, 784], 75, 'sine'),
   enemy_notice: ctx => _arp(ctx, [294, 440], 95, 'square'),
+  // Powerup
+  powerup: ctx => { _sweep(ctx, 200, 1600, 0.10, 'sine', 250); _arp(ctx, [784, 988, 1175, 1568], 55, 'triangle') },
   // Home
   egg_pet:     ctx => _t(ctx, 440, 0.065, 95, 'sine'),
   egg_excited: ctx => _arp(ctx, [523, 659, 784], 52, 'sine'),

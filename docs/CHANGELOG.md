@@ -1,5 +1,33 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — fix: rainbow_star saiyan stops chase AI; player can still walk into chasers; rainbow SFX + visual
+
+### src/hooks/useWorldGameLoop.js
+- Added `saiyanActive` check at top of `updateEnemies()`
+- sleepy_bunny: chase movement now guarded by `&& !saiyanActive`
+- baby_zombie: movement timer check now guarded by `&& !saiyanActive`
+- snake: aggro movement changed from `if (ne.isAggro)` to `if (ne.isAggro && !saiyanActive)` / `else if (!ne.isAggro)` so aggro-but-saiyan causes zero movement (no movement branch taken)
+- Removed duplicate `saiyanActiveNow` local variable — reuses single `saiyanActive` from top of function
+- World-map player glow changed from static gold to fast rainbow hue cycle: `hsl((frame×6) % 360, 100%, 60%)` — full color rotation every ~60 frames
+
+### src/components/WorldScreen.jsx
+- `tryMove` hitEnemy: removed early `if (isChaser && saiyanActive) return false` that was blocking walk-into-chaser
+- Now only suppresses the "chaser already on player tile" overlap branch with `isChaser && !saiyanActive`
+- Player deliberately stepping onto enemy tile always triggers battle
+
+### src/lib/audio.js
+- Added `powerup` SFX to the SFX dictionary: upward sine sweep (200→1600 Hz) + ascending triangle arp
+
+### src/hooks/useHomeInteractions.js
+- rainbow_star activation now calls `playSFX('powerup')` before `playTone('celebrate')`
+
+### src/components/Home.jsx
+- Creature outer wrapper div gains `className={saiyanActive ? 'saiyan-rainbow' : ''}` for CSS hue-cycle animation
+
+### src/styles.css
+- Added `@keyframes rainbow-cycle`: hue-rotate 0→360deg with saturate(1.5) brightness(1.1)
+- Added `.saiyan-rainbow` class: `animation: rainbow-cycle 0.6s linear infinite`
+
 ## 2026-06-18 — feat: adaptive hint overlay for word-building and sequencing modes
 
 ### src/lib/state.js

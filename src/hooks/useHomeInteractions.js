@@ -123,6 +123,7 @@ export function useHomeInteractions({
       setTimeout(() => setBondReaction(null), 1500)
 
     } else if (key === 'rainbow_star') {
+      playSFX('powerup')
       playTone('celebrate')
       spawnParticles('sparkle', 14)
       spawnParticles('hearts', 4)

@@ -82,6 +82,7 @@ export function useWorldGameLoop({
     // Returns the enemy that ran into the player this tick (or null)
     function updateEnemies(tileMap, frame) {
       let pendingBattle = null
+      const saiyanActive = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
       enemiesRef.current = enemiesRef.current.map(e => {
         // Dead → schedule respawn and remove immediately
         if (e.dead) {
@@ -104,8 +105,8 @@ export function useWorldGameLoop({
               const dist = Math.abs(gc.col - ne.col) + Math.abs(gc.row - ne.row)
               if (dist <= 3) ne.woken = true
             }
-            // Chase player when woken
-            if (ne.woken && ne.timer >= 60 && gc) {
+            // Chase player when woken — but not while saiyan boost is active
+            if (ne.woken && ne.timer >= 60 && gc && !saiyanActive) {
               ne.timer = 0
               const dc = Math.sign(gc.col - ne.col)
               const dr = Math.sign(gc.row - ne.row)
@@ -158,7 +159,7 @@ export function useWorldGameLoop({
             break
           }
           case 'baby_zombie': {
-            if (ne.timer >= 6) {
+            if (ne.timer >= 6 && !saiyanActive) {
               ne.timer = 0
               const gc2 = gameRef.current
               if (gc2) {
@@ -190,7 +191,7 @@ export function useWorldGameLoop({
               playSFX('enemy_notice')
             }
 
-            if (ne.isAggro) {
+            if (ne.isAggro && !saiyanActive) {
               if (ne.timer >= 5 && gc3) {
                 ne.timer = 0
                 const dxS = gc3.col - ne.col
@@ -203,7 +204,7 @@ export function useWorldGameLoop({
                 }
                 if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
               }
-            } else {
+            } else if (!ne.isAggro) {
               if (ne.timer >= 36) {
                 ne.timer = 0
                 ne.rngSeed = (ne.rngSeed * 31 + 7) % 97
@@ -220,8 +221,7 @@ export function useWorldGameLoop({
         // Enemies that ran into the player trigger battle
         const isChaser = ne.type === 'snake' || ne.type === 'baby_zombie' ||
                          (ne.type === 'sleepy_bunny' && ne.woken)
-        const saiyanActiveNow = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
-        if (!pendingBattle && isChaser && !saiyanActiveNow && !battleDispatchedRef.current) {
+        if (!pendingBattle && isChaser && !saiyanActive && !battleDispatchedRef.current) {
           const gc = gameRef.current
           if (gc && ne.col === gc.col && ne.row === gc.row) {
             pendingBattle = ne
@@ -331,8 +331,10 @@ export function useWorldGameLoop({
       const saiyanOn = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
       if (saiyanOn) {
         ctx.save()
-        ctx.shadowColor = '#FFD700'
-        ctx.shadowBlur = 16 + Math.sin(g.frame * 0.1) * 8
+        // Fast rainbow cycle: full 360° hue rotation every ~60 frames (≈1 second at 60fps)
+        const hue = (g.frame * 6) % 360
+        ctx.shadowColor = `hsl(${hue}, 100%, 60%)`
+        ctx.shadowBlur = 18
         renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
         ctx.restore()
       } else {

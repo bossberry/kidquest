@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — rainbow_star saiyan mode fix + SFX + rainbow visual:**
+- Built: (1) Chase AI suppressed: sleepy_bunny/baby_zombie/snake movement steps each check `saiyanActive` at top of `updateEnemies`; snake uses `else if (!ne.isAggro)` branch so aggro-but-saiyan state causes no movement. (2) tryMove fix: removed early `if (isChaser && saiyanActive) return false` which was blocking player-initiated walk-into-chaser; now only suppresses the "chaser already on player tile" overlap branch. (3) Activation SFX: `powerup` SFX added to `SFX` dict in audio.js (upward sweep + ascending arp); plays in rainbow_star handler in useHomeInteractions.js. (4) Rainbow visual: `@keyframes rainbow-cycle` (hue-rotate 0→360deg, 0.6s linear infinite) + `.saiyan-rainbow` class in styles.css; applied to creature outer wrapper in Home.jsx; world-map player shadowColor cycles `hsl(frame×6, 100%, 60%)` instead of static gold. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Adaptive hint overlay for word-building and sequencing:**
 - Built: `inputModeMastery:{wordbuild:0,sequence:0}` added to defaultState. `RECORD_INPUT_MODE_RESULT` action + EMA reducer (success:+0.15, fail:-0.08, clamped 0-1). MoveSelectBattleMode dispatches result before locking, computes showWordbuildHint/showSequenceHint (threshold 0.5). WordBuildInput + SequenceInput: nextNeededChar + hintTileId derived from slots state, hinted tile gets gold pulsing border, "👆 ตัวที่กระพริบ" instruction shown. `@keyframes hint-pulse` in styles.css. Build: 0 errors.
 - Not finished: nothing

@@ -341,10 +341,10 @@ export default function WorldScreen({ navigate }) {
       if (e.defeated || e.dead) return false
       const isChaser = e.type === 'snake' || e.type === 'baby_zombie' ||
                        (e.type === 'sleepy_bunny' && e.woken)
-      // Saiyan mode: phase through chasers, but still collide with enemies walked into directly
-      if (isChaser && saiyanActive) return false
+      // Player deliberately steps onto enemy tile — always triggers battle, even during saiyan mode
       if (e.col === newCol && e.row === newRow) return true
-      if (isChaser && e.col === g.col && e.row === g.row) return true
+      // Enemy already on player's current tile (chased onto them) — suppressed during saiyan mode
+      if (isChaser && !saiyanActive && e.col === g.col && e.row === g.row) return true
       return false
     })
     if (hitEnemy) {

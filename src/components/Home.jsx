@@ -292,7 +292,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
               Lv.{activeEgg.battleLevel ?? 1}
             </div>
             {/* Large creature canvas — tappable + swipeable */}
-            <div style={{ position:'relative', display:'inline-block' }}>
+            <div className={saiyanActive ? 'saiyan-rainbow' : ''} style={{ position:'relative', display:'inline-block' }}>
               {bondReaction && (
                 <div style={{
                   position:'absolute', top:-34, left:'50%', transform:'translateX(-50%)',

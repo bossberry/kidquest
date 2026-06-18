@@ -67,6 +67,7 @@ _Last updated: 2026-06-16_
 - Boss unlock: all 4 maps cleared + totalXP ≥ 300; defeat boss → cutscene → next tier
 - Secret maze: spawns when `battleWins % 10 === 0`; 30-min countdown; clear for 3 random item drops
 - 9 enemy types with movement patterns (patrol/wander/chase/aggro); 30s respawn timer
+- **rainbow_star (saiyan mode)**: chasers (snake/baby_zombie/woken sleepy_bunny) stop moving while boost is active; player can still walk INTO a chaser to trigger battle; non-chasers (bouncy_slime/fox_kit/egg_pawn/leaf_sprite/mushroom_imp) are unaffected. Fast rainbow hue-cycle glow on world-map player sprite (HSL hue 0→360 per 60 frames). `powerup` SFX plays on activation.
 - World HUD (WorldScreen.jsx): mini-map + creature status + XP bar + battle items + item bag + home button
 - Treasure chests: `TreasureSlot.jsx` slot machine overlay with gate question; `PixelItemIcon.jsx`
 - Screen transitions: 160ms fade; player position restored after battle (`state.worldPosition`)
@@ -99,7 +100,7 @@ _Last updated: 2026-06-16_
 - `HomeBackground.jsx` canvas: pixel scene (sky, mountains, ground, sun/moon, clouds, butterflies, bird, fireflies) + animated creature entities
 - Egg zone: large EggCanvas (190×225px), floating + aura. Post-session growth banner when `sessionXP > 0`
 - Creature zone: large 160×160 `drawCreature` canvas (tap/swipe for bond), party portrait bar (56×56 per creature, gold border on active)
-- Item tray: food/ribbon/shoes/rainbow_star; cooldown status from `state.activeBoosts`; active/cooldown overlays; saiyan aura drop-shadow on creature canvas when rainbow_star active
+- Item tray: food/ribbon/shoes/rainbow_star; cooldown status from `state.activeBoosts`; active/cooldown overlays; saiyan rainbow hue-cycle animation on creature canvas when rainbow_star active (CSS `.saiyan-rainbow` class on wrapper div — `@keyframes rainbow-cycle` 0.6s hue-rotate); activation plays `powerup` SFX + `celebrate` tone
 - HatchOverlay biography phase (`bio`) before egg tapping when active creature has adventures
 - Creature companion tap: `handleCreatureTap` (+1 bond + bounce + emoji reaction); 3 swipes = +3 bond + 💖
 

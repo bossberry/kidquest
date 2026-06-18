@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: word-building input mode for English CVC words
+
+### src/components/WorldBattle.jsx
+- `genEngMoveQ()` cvc branch: added `inputMode:'wordbuild'|'choice'` at 50/50 random and `chars: correct.word.split('')` (e.g. 'cat' → ['c','a','t']) on returned question object
+
+### src/components/battle/WordBuildInput.jsx
+- Added named exports `DEFAULT_THAI_DISTRACTORS` and `DEFAULT_ENG_DISTRACTORS` (common Latin vowels + consonants)
+- Added `distractorPool` prop — overrides built-in pool; falls back to `DEFAULT_THAI_DISTRACTORS` when undefined (preserves Thai behavior)
+- Added `isLatinChars` detection (charCode < 0x0E00 = Thai Unicode block start)
+- `tileStyle` now uses `var(--font-pixel)` + `textTransform:'lowercase'` for Latin chars; `var(--font-thai)` for Thai
+
+### src/games/MoveSelectBattleMode.jsx
+- Updated import: `import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from '../components/battle/WordBuildInput.jsx'`
+- WordBuildInput call now passes `distractorPool={subject === 'eng' ? DEFAULT_ENG_DISTRACTORS : undefined}` — Thai words fall back to default pool, English CVC gets Latin distractors
+
+---
+
 ## 2026-06-18 — feat: sequencing input mode — reorder consecutive Thai/English alphabet letters
 
 ### New file

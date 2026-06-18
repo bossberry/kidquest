@@ -154,7 +154,14 @@ function genEngMoveQ(lv) {
     // Level 2: CVC words — see emoji, choose correct spelling
     const items = shuffle([...CVC_WORDS])
     const correct = items[0]
-    return { isEng:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...correct.alts.slice(0,3)]), word:correct.emoji }
+    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
+    return {
+      isEng:true, ttsWord:correct.word, answer:correct.word,
+      choices:shuffle([correct.word,...correct.alts.slice(0,3)]),
+      word:correct.emoji,
+      chars: correct.word.split(''),
+      inputMode,
+    }
   }
   if (type === 'sight') {
     // Level 3: sight words — see picture, choose word that fills the blank

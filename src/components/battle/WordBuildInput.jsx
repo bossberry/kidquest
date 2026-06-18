@@ -10,8 +10,8 @@ function shuffleArr(arr) {
   return a
 }
 
-// Distractor pool — common Thai consonants/vowels not likely to already be in chars
-const DISTRACTOR_POOL = ['ก','ข','ค','ง','จ','ด','ต','บ','ป','ม','ย','ร','ล','ว','ส','ห','อ','า','ิ','ี','ู','ะ','เ']
+export const DEFAULT_THAI_DISTRACTORS = ['ก','ข','ค','ง','จ','ด','ต','บ','ป','ม','ย','ร','ล','ว','ส','ห','อ','า','ิ','ี','ู','ะ','เ']
+export const DEFAULT_ENG_DISTRACTORS  = ['a','e','i','o','u','b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w']
 
 /**
  * WordBuildInput — tap-to-place word spelling. Player taps character tiles
@@ -20,17 +20,20 @@ const DISTRACTOR_POOL = ['ก','ข','ค','ง','จ','ด','ต','บ','ป','
  * Calls onSubmit(true|false) once all slots are filled.
  * No emoji prop — emoji is already shown in the question zone above.
  */
-export default function WordBuildInput({ chars, onSubmit, disabled, resetKey }) {
+export default function WordBuildInput({ chars, onSubmit, disabled, resetKey, distractorPool }) {
   const targetChars = chars || []
 
+  // Thai Unicode block starts at 0x0E00 — use pixel font for Latin, Thai font otherwise
+  const isLatinChars = (targetChars[0] || '').charCodeAt(0) < 0x0E00
+
   const trayChars = useMemo(() => {
-    // Add 1-2 distractor chars not already in the target, for difficulty
+    const pool = (distractorPool || DEFAULT_THAI_DISTRACTORS).filter(c => !targetChars.includes(c))
     const extra = []
     const distractorCount = targetChars.length <= 2 ? 1 : 2
-    const pool = DISTRACTOR_POOL.filter(c => !targetChars.includes(c))
-    for (let i = 0; i < distractorCount && pool.length; i++) {
-      const idx = Math.floor(Math.random() * pool.length)
-      extra.push(pool.splice(idx, 1)[0])
+    const poolCopy = [...pool]
+    for (let i = 0; i < distractorCount && poolCopy.length; i++) {
+      const idx = Math.floor(Math.random() * poolCopy.length)
+      extra.push(poolCopy.splice(idx, 1)[0])
     }
     return shuffleArr([...targetChars, ...extra]).map((c, i) => ({ id: `tile_${i}`, char: c }))
   }, [resetKey]) // eslint-disable-line
@@ -74,7 +77,9 @@ export default function WordBuildInput({ chars, onSubmit, disabled, resetKey }) 
   const tileStyle = (filled, isSlot) => ({ // eslint-disable-line no-unused-vars
     width: 38, height: 38,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 18, fontFamily: 'var(--font-thai)',
+    fontSize: 18,
+    fontFamily: isLatinChars ? 'var(--font-pixel)' : 'var(--font-thai)',
+    textTransform: isLatinChars ? 'lowercase' : 'none',
     background: filled ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.06)',
     border: filled ? '2px solid #FFD700' : '2px dashed rgba(255,255,255,0.25)',
     color: '#fff',

@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Word-building input mode for English CVC words:**
+- Built: CVC branch in genEngMoveQ now adds `inputMode:'wordbuild'|'choice'` (50/50) and `chars: correct.word.split('')`. WordBuildInput.jsx made subject-aware: `distractorPool` prop (named exports DEFAULT_THAI_DISTRACTORS / DEFAULT_ENG_DISTRACTORS), `isLatinChars` Unicode detection, pixel font + lowercase for Latin. MoveSelectBattleMode passes `distractorPool={subject === 'eng' ? DEFAULT_ENG_DISTRACTORS : undefined}`. Thai behavior unchanged. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Sequencing input mode (Thai/English alphabet ordering):**
 - Built: `genSequenceQ(alphaList)` picks 3–4 consecutive letters from TH_ALPHA (`.char`) or EN_ALPHA (`.letter`); returns `isSequence:true, inputMode:'sequence', sequenceChars`. Thai L1–4: 15% chance to get sequence instead of normal question. English phonics/cvc: same 15% chance. `SequenceInput.jsx` — shuffled tile tray, slots, auto-submit on last tile, "เรียงตามลำดับ" label. Zone 2 shows 🔤 for sequence questions (no word/emoji context). MoveSelectBattleMode chains numpad → wordbuild → sequence → choice. Build: 0 errors.
 - Not finished: nothing

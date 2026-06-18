@@ -15,7 +15,7 @@ import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
 import MoveCard from '../components/battle/MoveCard.jsx'
 import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 import NumpadInput from '../components/battle/NumpadInput.jsx'
-import WordBuildInput from '../components/battle/WordBuildInput.jsx'
+import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from '../components/battle/WordBuildInput.jsx'
 import SequenceInput from '../components/battle/SequenceInput.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -687,6 +687,7 @@ export default function MoveSelectBattleMode({
             <WordBuildInput
               chars={q.chars}
               resetKey={cur}
+              distractorPool={subject === 'eng' ? DEFAULT_ENG_DISTRACTORS : undefined}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(isCorrect) => {
                 if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return

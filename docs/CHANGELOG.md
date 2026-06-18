@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: numpad input mode for math battles
+
+### New file
+- `src/components/battle/NumpadInput.jsx` — digit-by-digit numeric entry; 3×4 button grid (1-9, ⌫, 0, ✓); gold display field shows typed digits; confirm disabled until ≥1 digit; caps at 2 digits; uses `playTone('tap'/'click')`; resets on `resetKey` prop change
+
+### src/components/WorldBattle.jsx
+- `genMathQ()` arithmetic branch: added `const inputMode = Math.random() < 0.5 ? 'numpad' : 'choice'` and `inputMode` field on returned question object
+- `isCount`, `isPattern`, `isWord` branches unchanged — no inputMode field, defaults to choice in component
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `import NumpadInput from '../components/battle/NumpadInput.jsx'`
+- Move panel (Zone 3) now branches on `q?.inputMode === 'numpad'`: renders `<NumpadInput>` centered in the 168px panel, or the existing 2×2 `<MoveCard>` grid
+- NumpadInput `onSubmit(value)` mirrors `handleTap` timing (220ms charge → 280ms lunge → resolve) and compares `value === q.answer` directly
+- TEACH_INTRO unchanged — `isFirstLevel={false}` always from WorldBattle, so teach screen never shows during numpad questions
+
+---
+
 ## 2026-06-18 — refactor(battle-round3): extract fireHit/fireMiss/showVictory/useBattleItem into useBattleCombat hook
 
 ### New file

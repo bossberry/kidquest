@@ -71,7 +71,8 @@ function genMathQ(lv) {
     a=Math.floor(Math.random()*mx)+1; b=Math.floor(Math.random()*(mx-a+1))+1; ans=a+b
   }
   const w=new Set(); while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v)}
-  return { a, b, op, answer:ans, choices:shuffle([ans,...w]) }
+  const inputMode = Math.random() < 0.5 ? 'numpad' : 'choice'
+  return { a, b, op, answer:ans, choices:shuffle([ans,...w]), inputMode }
 }
 
 function genThaiMoveQ(lv) {

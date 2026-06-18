@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Numpad input mode for math battles:**
+- Built: `NumpadInput.jsx` (digit-by-digit entry, 2-digit cap, gold display, confirm/backspace). `genMathQ()` in WorldBattle.jsx adds `inputMode: 'numpad'|'choice'` at 50/50 random on arithmetic questions only (count/pattern/word unchanged). MoveSelectBattleMode Zone 3 branches on `q?.inputMode === 'numpad'` — numpad centered in 168px panel, or existing 2×2 MoveCard grid. Submission mirrors handleTap timing exactly. Build: 0 errors.
+- Not finished: TEACH_INTRO not updated (teach screen never shows in world battles — isFirstLevel=false always)
+- Blockers/risks found: none. Battle items hint/mirror effect (setEliminated) has no visual in numpad mode — acceptable edge case, very rare
+- Ready to start next: Phase 4 NPC System (Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Battle Round 3 (useBattleCombat hook — MoveSelectBattleMode refactor complete):**
 - Built: extracted fireHit, fireMiss, showVictory, useBattleItem into `src/hooks/useBattleCombat.js`. All 4 functions receive every ref/state-setter/prop as explicit params; behavior byte-for-byte identical to original. Removed playElementSFX, spawnConfetti, getElementTier, playElementAttack, rollBattleItem from MoveSelectBattleMode imports (all now in hook). MoveSelectBattleMode.jsx: 1018 → 711 lines. Full Phase 4 refactor complete: 1190 → 711 lines (−40%). Build: 0 errors.
 - Not finished: nothing — all 3 battle rounds done

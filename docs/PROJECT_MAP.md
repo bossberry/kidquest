@@ -92,7 +92,8 @@ src/
 │   │   ├── GBHPBar.jsx     — GB-style HP bar (player green/yellow/red; enemy red/orange)
 │   │   ├── EnemyCanvas.jsx — Enemy pixel art canvas with hurt/defeat animation states
 │   │   ├── MoveCard.jsx    — Answer move button with emoji/text font-size logic
-│   │   └── HintBar.jsx     — Dot-group math hint bar; exports numTh(), mathToThai()
+│   │   ├── HintBar.jsx     — Dot-group math hint bar; exports numTh(), mathToThai()
+│   │   └── NumpadInput.jsx — Digit-by-digit numeric entry for math numpad mode; resets on resetKey prop
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Hatched creatures + current egg tabs (86 lines)

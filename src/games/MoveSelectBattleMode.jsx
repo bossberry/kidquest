@@ -14,6 +14,7 @@ import GBHPBar from '../components/battle/GBHPBar.jsx'
 import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
 import MoveCard from '../components/battle/MoveCard.jsx'
 import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
+import NumpadInput from '../components/battle/NumpadInput.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -651,24 +652,48 @@ export default function MoveSelectBattleMode({
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {!victoryMode && (
-        <div style={{
-          padding:'4px 10px 10px',
-          display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr',
-          gap:8, height:168, flexShrink:0,
-        }}>
-          {q.choices.map((choice, idx) => {
-            const eliminated = eliminatedChoices.includes(idx)
-            return (
-              <MoveCard
-                key={idx}
-                content={choice}
-                isSelected={selectedCard === idx}
-                isMiss={missCard === idx || eliminated}
-                onTap={() => !eliminated && handleTap(choice, idx)}
-                disabled={lockedRef.current || victoryMode || eliminated}
-              />
-            )
-          })}
+        <div style={q?.inputMode === 'numpad'
+          ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'center', height:168, flexShrink:0 }
+          : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, height:168, flexShrink:0 }
+        }>
+          {q?.inputMode === 'numpad' ? (
+            <NumpadInput
+              resetKey={cur}
+              disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
+              onSubmit={(value) => {
+                if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
+                lockedRef.current = true
+                responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
+                questionStartTime.current = null
+                playTone('tap'); playSFX('attack_launch')
+                setEggAnimClass('charge')
+                setTimeout(() => {
+                  if (!mountedRef.current) return
+                  setEggAnimClass('lunge')
+                  setTimeout(() => {
+                    if (!mountedRef.current) return
+                    setEggAnimClass('')
+                    if (value === q.answer) fireHit(-1)
+                    else                    fireMiss(-1)
+                  }, 280)
+                }, 220)
+              }}
+            />
+          ) : (
+            q.choices.map((choice, idx) => {
+              const eliminated = eliminatedChoices.includes(idx)
+              return (
+                <MoveCard
+                  key={idx}
+                  content={choice}
+                  isSelected={selectedCard === idx}
+                  isMiss={missCard === idx || eliminated}
+                  onTap={() => !eliminated && handleTap(choice, idx)}
+                  disabled={lockedRef.current || victoryMode || eliminated}
+                />
+              )
+            })
+          )}
         </div>
       )}
 

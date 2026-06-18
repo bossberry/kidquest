@@ -488,6 +488,39 @@ export default function MoveSelectBattleMode({
 
       {/* ── QUESTION DISPLAY (Zone 2) ─────────────────────────────────────── */}
       {!victoryMode && q && (() => {
+        // Custom display for structural question types (early return, no tts button)
+        const zoneWrap = (children) => (
+          <div style={{
+            textAlign: 'center', padding: '12px 16px 8px',
+            background: 'var(--px-darkest, #0a0a12)',
+            borderBottom: '1px solid rgba(255,255,255,0.10)',
+            flexShrink: 0,
+          }}>
+            {children}
+          </div>
+        )
+        if (q.isFillGap) {
+          return zoneWrap(
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, fontFamily:'var(--font-pixel)', fontSize:32, color:'#fff' }}>
+              <span>{q.gapBefore}</span>
+              <span style={{ color:'#FFD700', border:'2px dashed rgba(255,215,0,0.5)', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8 }}>?</span>
+              <span>{q.gapAfter}</span>
+            </div>
+          )
+        }
+        if (q.isVisualDiscrim) {
+          return zoneWrap(
+            <div>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:48, color:'#FFD700', textShadow:'0 0 16px rgba(255,215,0,0.5)' }}>
+                {q.targetChar}
+              </div>
+              <div style={{ fontFamily:'var(--font-thai)', fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:4 }}>
+                แตะตัวที่เหมือนกัน
+              </div>
+            </div>
+          )
+        }
+
         // Compute display text per question type
         let display = null
         if (subject === 'math') {

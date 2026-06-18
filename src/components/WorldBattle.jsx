@@ -54,6 +54,60 @@ function genSequenceQ(alphaList) {
   }
 }
 
+function genFillGapQ(alphaList) {
+  const runLen = 3
+  const maxStart = alphaList.length - runLen
+  const start = Math.floor(Math.random() * (maxStart + 1))
+  const run = alphaList.slice(start, start + runLen)
+  const chars = run.map(item => item.char ?? item.letter)
+  const answer = chars[1]
+  const before = chars[0]
+  const after  = chars[2]
+  const allChars = alphaList.map(item => item.char ?? item.letter)
+  const excludeIdx = new Set([start, start + 1, start + 2])
+  const farChars = allChars.filter((_, i) => !excludeIdx.has(i))
+  const wrongs = []
+  while (wrongs.length < 3 && farChars.length) {
+    const idx = Math.floor(Math.random() * farChars.length)
+    wrongs.push(farChars.splice(idx, 1)[0])
+  }
+  return {
+    isFillGap: true,
+    inputMode: 'choice',
+    gapBefore: before,
+    gapAfter: after,
+    answer,
+    choices: shuffle([answer, ...wrongs]),
+  }
+}
+
+const TH_CONFUSABLE_GROUPS = [
+  ['ก','ถ','ภ'], ['บ','ป'], ['ผ','ฝ'], ['ค','ด'], ['ฎ','ฏ'], ['ษ','ศ','ส'],
+]
+const EN_CONFUSABLE_GROUPS = [
+  ['b','d'], ['p','q'], ['m','w'], ['n','u'], ['f','t'], ['i','j','l'],
+]
+
+function genVisualDiscriminationQ(alphaList, isThai) {
+  const groups = isThai ? TH_CONFUSABLE_GROUPS : EN_CONFUSABLE_GROUPS
+  const group = groups[Math.floor(Math.random() * groups.length)]
+  const target = group[Math.floor(Math.random() * group.length)]
+  const otherInGroup = group.filter(c => c !== target)
+  const allChars = alphaList.map(item => item.char ?? item.letter).filter(c => !group.includes(c))
+  const wrongs = [...otherInGroup]
+  while (wrongs.length < 3 && allChars.length) {
+    const idx = Math.floor(Math.random() * allChars.length)
+    wrongs.push(allChars.splice(idx, 1)[0])
+  }
+  return {
+    isVisualDiscrim: true,
+    inputMode: 'choice',
+    targetChar: target,
+    answer: target,
+    choices: shuffle([target, ...wrongs.slice(0, 3)]),
+  }
+}
+
 function genMathQ(lv) {
   if (lv?.op === 'count') {
     const emoji = COUNTABLES[Math.floor(Math.random() * COUNTABLES.length)]
@@ -95,6 +149,14 @@ function genThaiMoveQ(lv) {
   // 15% chance for levels 1-4 to be a letter-sequencing question instead
   if (id <= 4 && Math.random() < 0.15) {
     return genSequenceQ(TH_ALPHA)
+  }
+  // 10% chance for levels 1-2 to be a fill-the-gap question
+  if (id <= 2 && Math.random() < 0.10) {
+    return genFillGapQ(TH_ALPHA)
+  }
+  // 10% chance for levels 1-2 to be a visual discrimination question
+  if (id <= 2 && Math.random() < 0.10) {
+    return genVisualDiscriminationQ(TH_ALPHA, true)
   }
 
   if (id <= 1) {
@@ -142,6 +204,14 @@ function genEngMoveQ(lv) {
   // 15% chance for phonics/cvc levels to be a letter-sequencing question instead
   if ((type === 'phonics' || type === 'cvc') && Math.random() < 0.15) {
     return genSequenceQ(EN_ALPHA)
+  }
+  // 10% chance for phonics level to be a fill-the-gap question
+  if (type === 'phonics' && Math.random() < 0.10) {
+    return genFillGapQ(EN_ALPHA)
+  }
+  // 10% chance for phonics level to be a visual discrimination question
+  if (type === 'phonics' && Math.random() < 0.10) {
+    return genVisualDiscriminationQ(EN_ALPHA, false)
   }
 
   if (type === 'phonics') {

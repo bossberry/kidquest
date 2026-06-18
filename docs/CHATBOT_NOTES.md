@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-18 — Fill-the-gap + visual discrimination question types:**
+- Built: `genFillGapQ` (3-letter run, hide middle, wrong choices from non-adjacent positions); `TH_CONFUSABLE_GROUPS` / `EN_CONFUSABLE_GROUPS`; `genVisualDiscriminationQ` (pick target from look-alike group, pad with unrelated letters). Both wired into Thai L1–2 (10% each) and English phonics (10% each) after existing sequence check. Zone 2: early-return custom JSX for isFillGap (inline gap display) and isVisualDiscrim (large char + subtitle). Both use inputMode:'choice' so MoveCard grid renders unchanged. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. Zone 2 IIFE now has a shared `zoneWrap` helper to reduce JSX repetition.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Sequencing input mode (Thai/English alphabet ordering):**
 - Built: `genSequenceQ(alphaList)` picks 3–4 consecutive letters from TH_ALPHA (`.char`) or EN_ALPHA (`.letter`); returns `isSequence:true, inputMode:'sequence', sequenceChars`. Thai L1–4: 15% chance to get sequence instead of normal question. English phonics/cvc: same 15% chance. `SequenceInput.jsx` — shuffled tile tray, slots, auto-submit on last tile, "เรียงตามลำดับ" label. Zone 2 shows 🔤 for sequence questions (no word/emoji context). MoveSelectBattleMode chains numpad → wordbuild → sequence → choice. Build: 0 errors.
 - Not finished: nothing

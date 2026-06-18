@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: fill-the-gap and visual-discrimination question types for Thai/English
+
+### src/components/WorldBattle.jsx
+- Added `genFillGapQ(alphaList)` — picks 3 consecutive letters, hides middle, presents `[before] [?] [after]`; wrong choices drawn from letters NOT adjacent to the run
+- Added `TH_CONFUSABLE_GROUPS` and `EN_CONFUSABLE_GROUPS` — visually similar letter clusters Chopin's age commonly confuses (e.g. ก/ถ/ภ, b/d, p/q)
+- Added `genVisualDiscriminationQ(alphaList, isThai)` — picks one letter from a confusable group as target; wrong choices are other group members padded with unrelated letters
+- `genThaiMoveQ()` levels 1–2: 10% fill-gap + 10% visual-discrim chance (after existing 15% sequence check)
+- `genEngMoveQ()` phonics level: same 10%+10% chances
+
+### src/games/MoveSelectBattleMode.jsx
+- Zone 2 (question display) now has early-return paths for `isFillGap` and `isVisualDiscrim` before the existing `display` logic
+- `isFillGap`: renders `[before] [?gold-dashed-box] [after]` in 32px pixel font, no TTS button
+- `isVisualDiscrim`: renders target char at 48px pixel font with gold glow + "แตะตัวที่เหมือนกัน" subtitle, no TTS button
+- Both types use `inputMode:'choice'` so MoveCard 4-choice grid renders automatically with no other changes
+
+---
+
 ## 2026-06-18 — feat: word-building input mode for English CVC words
 
 ### src/components/WorldBattle.jsx

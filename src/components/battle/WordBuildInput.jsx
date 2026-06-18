@@ -20,7 +20,7 @@ export const DEFAULT_ENG_DISTRACTORS  = ['a','e','i','o','u','b','c','d','f','g'
  * Calls onSubmit(true|false) once all slots are filled.
  * No emoji prop — emoji is already shown in the question zone above.
  */
-export default function WordBuildInput({ chars, onSubmit, disabled, resetKey, distractorPool }) {
+export default function WordBuildInput({ chars, onSubmit, disabled, resetKey, distractorPool, showHint }) {
   const targetChars = chars || []
 
   // Thai Unicode block starts at 0x0E00 — use pixel font for Latin, Thai font otherwise
@@ -74,6 +74,20 @@ export default function WordBuildInput({ chars, onSubmit, disabled, resetKey, di
     playTone('click')
   }
 
+  // Next character needed = target char at the first empty slot
+  const nextNeededChar = useMemo(() => {
+    const nextEmptyIdx = slots.findIndex(s => s === null)
+    if (nextEmptyIdx === -1) return null
+    return targetChars[nextEmptyIdx]
+  }, [slots, targetChars]) // eslint-disable-line
+
+  // Tray tile to highlight: first unused tile whose char matches what's needed next
+  const hintTileId = useMemo(() => {
+    if (!showHint || nextNeededChar === null) return null
+    const candidate = trayChars.find(t => t.char === nextNeededChar && !trayUsed[t.id])
+    return candidate?.id ?? null
+  }, [showHint, nextNeededChar, trayChars, trayUsed]) // eslint-disable-line
+
   const tileStyle = (filled, isSlot) => ({ // eslint-disable-line no-unused-vars
     width: 38, height: 38,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -106,25 +120,40 @@ export default function WordBuildInput({ chars, onSubmit, disabled, resetKey, di
         ))}
       </div>
 
+      {/* Hint prompt — only shown while player is still learning */}
+      {showHint && hintTileId && (
+        <div style={{ fontFamily:'var(--font-thai)', fontSize:11, color:'#FFD700', marginBottom:2 }}>
+          👆 ตัวที่กระพริบ ไปวางในช่องว่างนะ
+        </div>
+      )}
+
       {/* Tray of tappable tiles — smaller, wraps cleanly, no overflow */}
       <div style={{
         display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center',
         width:'100%', maxWidth: 320,
       }}>
-        {trayChars.map(tile => (
-          <button
-            key={tile.id}
-            onClick={() => handleTileTap(tile)}
-            disabled={disabled || trayUsed[tile.id]}
-            style={{
-              ...tileStyle(false, false),
-              opacity: trayUsed[tile.id] ? 0.25 : 1,
-              cursor: (disabled || trayUsed[tile.id]) ? 'default' : 'pointer',
-            }}
-          >
-            {tile.char}
-          </button>
-        ))}
+        {trayChars.map(tile => {
+          const isHinted = tile.id === hintTileId
+          return (
+            <button
+              key={tile.id}
+              onClick={() => handleTileTap(tile)}
+              disabled={disabled || trayUsed[tile.id]}
+              style={{
+                ...tileStyle(false, false),
+                opacity: trayUsed[tile.id] ? 0.25 : 1,
+                cursor: (disabled || trayUsed[tile.id]) ? 'default' : 'pointer',
+                ...(isHinted ? {
+                  border: '2px solid #FFD700',
+                  boxShadow: '0 0 12px rgba(255,215,0,0.7)',
+                  animation: 'hint-pulse 0.8s ease infinite',
+                } : {}),
+              }}
+            >
+              {tile.char}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

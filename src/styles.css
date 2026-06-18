@@ -671,3 +671,5 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 
 .carousel-scroll-hide-bar::-webkit-scrollbar{display:none}
 .carousel-scroll-hide-bar{scrollbar-width:none;-ms-overflow-style:none}
+
+@keyframes hint-pulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.5)}50%{box-shadow:0 0 18px rgba(255,215,0,0.9)}}

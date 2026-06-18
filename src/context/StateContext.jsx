@@ -140,6 +140,8 @@ export const ACTIONS = {
   // Reward chest
   SET_PENDING_REWARDS:        'SET_PENDING_REWARDS',
   CLEAR_PENDING_REWARDS:      'CLEAR_PENDING_REWARDS',
+  // Input mode mastery (tracks comfort with wordbuild/sequence mechanics, fades hints)
+  RECORD_INPUT_MODE_RESULT:   'RECORD_INPUT_MODE_RESULT',
 }
 
 function reducer(state, action) {
@@ -809,6 +811,18 @@ function reducer(state, action) {
       return {
         ...state,
         subjectSessionStreak: { ...(state.subjectSessionStreak || {}), [subject]: streak },
+      }
+    }
+
+    case ACTIONS.RECORD_INPUT_MODE_RESULT: {
+      const { mode, success } = action.payload
+      if (!['wordbuild', 'sequence'].includes(mode)) return state
+      const current = state.inputModeMastery?.[mode] ?? 0
+      const delta = success ? 0.15 : -0.08
+      const updated = Math.max(0, Math.min(1, current + delta))
+      return {
+        ...state,
+        inputModeMastery: { ...state.inputModeMastery, [mode]: updated },
       }
     }
 

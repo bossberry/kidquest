@@ -71,6 +71,7 @@ export function defaultState() {
     subjectLevelFloor:    { thai: 1, math: 1, eng: 1 },
     pendingLevelUp: null,
     pendingRewards: [],
+    inputModeMastery: { wordbuild: 0, sequence: 0 },
   }
 }
 

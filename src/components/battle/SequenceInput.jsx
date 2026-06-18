@@ -15,7 +15,7 @@ function shuffleArr(arr) {
  * tiles to fill ordered slots, reconstructing the correct alphabetical sequence.
  * Calls onSubmit(true|false) once all slots are filled.
  */
-export default function SequenceInput({ correctOrder, onSubmit, disabled, resetKey }) {
+export default function SequenceInput({ correctOrder, onSubmit, disabled, resetKey, showHint }) {
   const target = correctOrder || []
 
   const trayTiles = useMemo(() => {
@@ -57,6 +57,20 @@ export default function SequenceInput({ correctOrder, onSubmit, disabled, resetK
     playTone('click')
   }
 
+  // Next character needed = correct letter at the first empty slot
+  const nextNeededChar = useMemo(() => {
+    const nextEmptyIdx = slots.findIndex(s => s === null)
+    if (nextEmptyIdx === -1) return null
+    return target[nextEmptyIdx]
+  }, [slots, target]) // eslint-disable-line
+
+  // Tray tile to highlight: first unused tile whose char matches what's needed next
+  const hintTileId = useMemo(() => {
+    if (!showHint || nextNeededChar === null) return null
+    const candidate = trayTiles.find(t => t.char === nextNeededChar && !trayUsed[t.id])
+    return candidate?.id ?? null
+  }, [showHint, nextNeededChar, trayTiles, trayUsed]) // eslint-disable-line
+
   const tileStyle = (filled) => ({
     width: 38, height: 38,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -94,22 +108,37 @@ export default function SequenceInput({ correctOrder, onSubmit, disabled, resetK
         ))}
       </div>
 
+      {/* Hint prompt — only shown while player is still learning */}
+      {showHint && hintTileId && (
+        <div style={{ fontFamily:'var(--font-thai)', fontSize:11, color:'#FFD700', marginBottom:2 }}>
+          👆 ตัวที่กระพริบ ไปวางในช่องว่างนะ
+        </div>
+      )}
+
       {/* Tray of shuffled tiles */}
       <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center', width:'100%', maxWidth:320 }}>
-        {trayTiles.map(tile => (
-          <button
-            key={tile.id}
-            onClick={() => handleTileTap(tile)}
-            disabled={disabled || trayUsed[tile.id]}
-            style={{
-              ...tileStyle(false),
-              opacity: trayUsed[tile.id] ? 0.25 : 1,
-              cursor: (disabled || trayUsed[tile.id]) ? 'default' : 'pointer',
-            }}
-          >
-            {tile.char}
-          </button>
-        ))}
+        {trayTiles.map(tile => {
+          const isHinted = tile.id === hintTileId
+          return (
+            <button
+              key={tile.id}
+              onClick={() => handleTileTap(tile)}
+              disabled={disabled || trayUsed[tile.id]}
+              style={{
+                ...tileStyle(false),
+                opacity: trayUsed[tile.id] ? 0.25 : 1,
+                cursor: (disabled || trayUsed[tile.id]) ? 'default' : 'pointer',
+                ...(isHinted ? {
+                  border: '2px solid #FFD700',
+                  boxShadow: '0 0 12px rgba(255,215,0,0.7)',
+                  animation: 'hint-pulse 0.8s ease infinite',
+                } : {}),
+              }}
+            >
+              {tile.char}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

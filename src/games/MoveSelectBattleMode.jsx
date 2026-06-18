@@ -291,6 +291,12 @@ export default function MoveSelectBattleMode({
     }, 300)
   }
 
+  // Input mode hint eligibility (mastery < 0.5 → show hint)
+  const wordbuildMastery  = state.inputModeMastery?.wordbuild ?? 0
+  const sequenceMastery   = state.inputModeMastery?.sequence  ?? 0
+  const showWordbuildHint = wordbuildMastery < 0.5
+  const showSequenceHint  = sequenceMastery  < 0.5
+
   // Derived
   const hpPct              = (enemyHP / maxHP) * 100
   const _displayPlayerHP    = isWorldBattle ? localCreatureHP : playerHP
@@ -753,9 +759,11 @@ export default function MoveSelectBattleMode({
               chars={q.chars}
               resetKey={cur}
               distractorPool={subject === 'eng' ? DEFAULT_ENG_DISTRACTORS : undefined}
+              showHint={showWordbuildHint}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(isCorrect) => {
                 if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
+                dispatch({ type: ACTIONS.RECORD_INPUT_MODE_RESULT, payload: { mode: 'wordbuild', success: isCorrect } })
                 lockedRef.current = true
                 responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
                 questionStartTime.current = null
@@ -777,9 +785,11 @@ export default function MoveSelectBattleMode({
             <SequenceInput
               correctOrder={q.sequenceChars}
               resetKey={cur}
+              showHint={showSequenceHint}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(isCorrect) => {
                 if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
+                dispatch({ type: ACTIONS.RECORD_INPUT_MODE_RESULT, payload: { mode: 'sequence', success: isCorrect } })
                 lockedRef.current = true
                 responseTimeRef.current = Date.now() - (questionStartTime.current ?? Date.now())
                 questionStartTime.current = null

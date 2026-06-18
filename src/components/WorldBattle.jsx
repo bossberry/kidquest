@@ -51,6 +51,8 @@ function genSequenceQ(alphaList) {
     inputMode: 'sequence',
     sequenceChars: correctOrder,
     ttsWord: null,
+    instructionTh: 'แตะตัวอักษรให้เรียงตามลำดับ',
+    instructionEn: 'Tap the letters in the correct order',
   }
 }
 
@@ -78,6 +80,8 @@ function genFillGapQ(alphaList) {
     gapAfter: after,
     answer,
     choices: shuffle([answer, ...wrongs]),
+    instructionTh: 'แตะตัวอักษรที่หายไป',
+    instructionEn: 'Tap the missing letter',
   }
 }
 
@@ -105,6 +109,8 @@ function genVisualDiscriminationQ(alphaList, isThai) {
     targetChar: target,
     answer: target,
     choices: shuffle([target, ...wrongs.slice(0, 3)]),
+    instructionTh: 'แตะตัวที่เหมือนกัน',
+    instructionEn: 'Tap the matching letter',
   }
 }
 
@@ -121,6 +127,8 @@ function genMemoryCardQ(alphaList) {
     inputMode: 'memory',
     memoryCards: shuffle(cards),
     memoryPairCount: items.length,
+    instructionTh: 'แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน',
+    instructionEn: 'Flip cards to find matching pairs',
   }
 }
 
@@ -499,9 +507,13 @@ export default function WorldBattle({ navigate }) {
 
   function onSpeak() {
     const q = qs[cur]
-    if (!q?.ttsWord) return
-    if (subject === 'thai') speakTh(q.ttsWord)
-    else if (subject === 'eng') speakEn(q.ttsWord)
+    if (q?.ttsWord) {
+      if (subject === 'thai') speakTh(q.ttsWord)
+      else if (subject === 'eng') speakEn(q.ttsWord)
+      return
+    }
+    if (q?.instructionTh && subject === 'thai') { speakTh(q.instructionTh); return }
+    if (q?.instructionEn && subject === 'eng')  { speakEn(q.instructionEn); return }
   }
 
   return (

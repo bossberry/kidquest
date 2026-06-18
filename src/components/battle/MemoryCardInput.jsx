@@ -83,6 +83,12 @@ export default function MemoryCardInput({ cards, pairCount, onPairFound, onAllPa
       padding:'4px 8px', boxSizing:'border-box',
     }}>
       <div style={{
+        fontFamily:'var(--font-thai)', fontSize:15,
+        color:'#FFD700', fontWeight:600, marginBottom:2,
+      }}>
+        แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน
+      </div>
+      <div style={{
         fontFamily:'var(--font-pixel)', fontSize:8,
         color:'rgba(255,255,255,0.4)', letterSpacing:1,
       }}>

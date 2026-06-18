@@ -210,6 +210,8 @@ export default function MoveSelectBattleMode({
       if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
       else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
       else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
+      else if (q?.instructionTh && subject === 'thai') speakTh(q.instructionTh)
+      else if (q?.instructionEn && subject === 'eng')  speakEn(q.instructionEn)
     }, 500)
     return () => clearTimeout(t)
   }, [cur, subject]) // eslint-disable-line
@@ -284,6 +286,8 @@ export default function MoveSelectBattleMode({
       if (subject === 'thai' && q?.ttsWord) speakTh(q.ttsWord)
       else if (subject === 'eng' && q?.ttsWord) speakEn(q.ttsWord)
       else if (subject === 'math' && q) { const txt = mathToThai(q); if (txt) speakTh(txt) }
+      else if (q?.instructionTh && subject === 'thai') speakTh(q.instructionTh)
+      else if (q?.instructionEn && subject === 'eng')  speakEn(q.instructionEn)
     }, 300)
   }
 
@@ -516,22 +520,37 @@ export default function MoveSelectBattleMode({
         )
         if (q.isFillGap) {
           return zoneWrap(
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, fontFamily:'var(--font-pixel)', fontSize:32, color:'#fff' }}>
-              <span>{q.gapBefore}</span>
-              <span style={{ color:'#FFD700', border:'2px dashed rgba(255,215,0,0.5)', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8 }}>?</span>
-              <span>{q.gapAfter}</span>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:10, fontWeight:600 }}>
+                {q.instructionTh || 'แตะตัวอักษรที่หายไป'}
+              </div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, fontFamily:'var(--font-pixel)', fontSize:32, color:'#fff' }}>
+                <span>{q.gapBefore}</span>
+                <span style={{ color:'#FFD700', border:'2px dashed rgba(255,215,0,0.5)', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8 }}>?</span>
+                <span>{q.gapAfter}</span>
+              </div>
             </div>
           )
         }
         if (q.isVisualDiscrim) {
           return zoneWrap(
-            <div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:6, fontWeight:600 }}>
+                {q.instructionTh || 'แตะตัวที่เหมือนกัน'}
+              </div>
               <div style={{ fontFamily:'var(--font-pixel)', fontSize:48, color:'#FFD700', textShadow:'0 0 16px rgba(255,215,0,0.5)' }}>
                 {q.targetChar}
               </div>
-              <div style={{ fontFamily:'var(--font-thai)', fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:4 }}>
-                แตะตัวที่เหมือนกัน
+            </div>
+          )
+        }
+        if (q.isSequence) {
+          return zoneWrap(
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:8, fontWeight:600 }}>
+                {q.instructionTh || 'แตะตัวอักษรให้เรียงตามลำดับ'}
               </div>
+              <div style={{ fontFamily:'var(--font-pixel)', fontSize:32, color:'#f0d020' }}>🔤</div>
             </div>
           )
         }
@@ -544,8 +563,6 @@ export default function MoveSelectBattleMode({
           else if (q.question)                          display = q.question
           else if (q.a !== undefined && q.op != null)  display = `${q.a} ${q.op} ${q.b} = ?`
           else if (q.story)                             display = q.story
-        } else if (q.isSequence) {
-          display = '🔤'
         } else if (subject === 'thai') {
           display = q.word ?? q.question
         } else {

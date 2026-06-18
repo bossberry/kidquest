@@ -18,7 +18,7 @@ _Last updated: 2026-06-16_
 `Home.jsx` was 952 lines; now 848. Goal: extract logical modules without changing behavior.
 
 - [x] Round 1 — Extract ambient/idle effects into `src/hooks/useHomeAmbience.js` ✅
-- [ ] Round 2 — Extract interaction state machine into `src/hooks/useEggSM.js` hook
+- [x] Round 2 — Extract interaction state machine into `src/hooks/useCreatureInteraction.js` ✅
 - [ ] Build verify + zero behavior change after each extraction
 
 ---

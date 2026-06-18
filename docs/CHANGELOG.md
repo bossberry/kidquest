@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(home-round2): extract interaction state machine into useCreatureInteraction hook
+
+### New file
+- `src/hooks/useCreatureInteraction.js` — creature interaction FSM: `enterState`, `extendState`, `setGlow`, `smRef`, watchdog, unmount cleanup. STATE_CSS/STATE_DUR moved here. Returns `{eggAnim, setEggAnim, idleAnim, setIdleAnim, eggGlow, setGlow, smRef, comboResetRef, enterState, extendState}`.
+
+### src/components/Home.jsx
+- Removed `STATE_CSS`, `STATE_DUR` constants (moved to hook)
+- Removed `eggAnim`, `idleAnim`, `eggGlow` useState declarations (now from hook)
+- Removed `animTimerRef`, `glowTimerRef`, `stageRef`, `smRef`, `enterRafRef`, `enterGenRef`, `comboResetRef` useRef declarations (owned by hook)
+- Removed stageRef sync useEffect (moved to hook)
+- Removed unmount cleanup useEffect (moved to hook)
+- Removed watchdog useEffect (moved to hook)
+- Removed `enterState` function (moved to hook)
+- Removed `extendState` function (moved to hook)
+- Removed `setGlow` function (moved to hook)
+- Added `useCreatureInteraction` import
+- Added `useCreatureInteraction(stage)` hook call (before `spawnParticles`, before `useHomeAmbience`)
+- Home.jsx now **766 lines** (was 848 after round1)
+- Build: 0 errors
+
+---
+
 ## 2026-06-18 — refactor(home-round1): extract ambient/idle effects into useHomeAmbience hook
 
 ### New file

@@ -50,9 +50,10 @@ src/
 │       └── shuffle(), todayStr()
 │
 ├── hooks/
-│   ├── useBattleTrigger.js  — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
-│   ├── useWorldGameLoop.js  — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
-│   └── useHomeAmbience.js   — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
+│   ├── useBattleTrigger.js       — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
+│   ├── useWorldGameLoop.js       — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
+│   ├── useHomeAmbience.js        — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
+│   └── useCreatureInteraction.js — creature interaction FSM (enterState/extendState/setGlow/watchdog); owns eggAnim, eggGlow, smRef
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()

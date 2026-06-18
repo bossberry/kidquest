@@ -11,7 +11,7 @@ _Last updated: 2026-06-16_
 - Stage-up celebration: banner overlay + ascending fanfare + confetti burst
 - Per-stage persistent aura via `egg-s0`–`egg-s8` CSS drop-shadow classes
 - `EggCanvas.jsx` wraps `drawEgg` + `pixelateCanvas(canvas, 4)` post-processing
-- Pet/feed/item interaction with formal FSM in `Home.jsx`: `idle/pet/happy/excited/eating/sleep/relax/reunion`
+- Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`: `idle/pet/happy/excited/eating/sleep/relax/reunion`
 - Heartbeat sound on ready-to-hatch; reunion burst on return after >4h
 
 ### Creature System

@@ -12,6 +12,7 @@ import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { supabase } from '../lib/supabase.js'
 import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
+import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
 
 const ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100' },
@@ -20,20 +21,14 @@ const ITEM_DEFS = [
   { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ล่องหนจากมอนสเตอร์ตาม' },
 ]
 
-// Interaction state machine — CSS class and auto-return duration for each state
-const STATE_CSS = { idle:'float', pet:'pet', happy:'happy-spin', excited:'excited', eating:'eat', sleep:'sleepy', relax:'relax', reunion:'reunion' }
-const STATE_DUR = { pet:500, happy:700, excited:1200, eating:900, sleep:2000, relax:1500, reunion:1200 }
 const comboToState = n => n >= 8 ? 'excited' : n >= 4 ? 'happy' : 'pet'
 
 export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
 
-  const [eggAnim, setEggAnim]             = useState('float')
-  const [idleAnim, setIdleAnim]           = useState(null)
   const [activeItem, setActiveItem]       = useState(null)
   const [particles, setParticles]         = useState([])
   const [flyingItem, setFlyingItem]       = useState(null)
-  const [eggGlow, setEggGlow]             = useState(null)
   const hasRibbon    = (state.activeBoosts?.ribbon?.endsAt ?? 0) > Date.now()
   const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -49,15 +44,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
 
   const particleIdRef   = useRef(0)
   const swipeCountRef   = useRef(0)
-  const animTimerRef    = useRef(null)
-  const glowTimerRef    = useRef(null)
   const initVisitRef    = useRef(state.lastHomeVisit)
-  const stageRef        = useRef(0)
-  // Interaction state machine
-  const smRef           = useRef({ state: 'idle', comboCount: 0, enteredAt: 0 })
-  const enterRafRef     = useRef(null)
-  const enterGenRef     = useRef(0)
-  const comboResetRef   = useRef(null)
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
@@ -87,31 +74,10 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
     return () => stopBGM()
   }, [])
 
-  // Keep refs current
-  useEffect(() => { stageRef.current = stage }, [stage])
-
-  // Cancel pending RAF + timers on unmount
-  useEffect(() => () => {
-    if (enterRafRef.current) cancelAnimationFrame(enterRafRef.current)
-    clearTimeout(animTimerRef.current)
-    clearTimeout(comboResetRef.current)
-  }, [])
-
-  // Watchdog: every 5s force back to idle if stuck non-idle > 6s
-  useEffect(() => {
-    const id = setInterval(() => {
-      const sm = smRef.current
-      if (sm.state === 'idle') return
-      if (Date.now() - sm.enteredAt > 6000) {
-        clearTimeout(animTimerRef.current)
-        clearTimeout(comboResetRef.current)
-        sm.state = 'idle'
-        sm.comboCount = 0
-        setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
-      }
-    }, 5000)
-    return () => clearInterval(id)
-  }, []) // eslint-disable-line
+  const {
+    eggAnim, setEggAnim, idleAnim, setIdleAnim, eggGlow, setGlow,
+    smRef, comboResetRef, enterState, extendState,
+  } = useCreatureInteraction(stage)
 
   const spawnParticles = (type, count = 5) => {
     const ps = Array.from({ length: count }, () => {
@@ -125,54 +91,6 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
     })
     setParticles(prev => [...prev, ...ps])
     setTimeout(() => setParticles(prev => prev.filter(p => !ps.find(np => np.id === p.id))), 1200)
-  }
-
-  // Enter a new interaction state — cancels any in-flight transition, restarts animation
-  const enterState = (newState, dur) => {
-    if (enterRafRef.current) { cancelAnimationFrame(enterRafRef.current); enterRafRef.current = null }
-    clearTimeout(animTimerRef.current)
-    const sm = smRef.current
-    sm.state = newState
-    sm.enteredAt = Date.now()
-    setIdleAnim(null)
-    if (newState === 'idle') {
-      setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
-      return
-    }
-    const cssName = STATE_CSS[newState] || 'float'
-    const d = dur != null ? dur : (STATE_DUR[newState] ?? 600)
-    const gen = ++enterGenRef.current
-    setEggAnim('float')
-    enterRafRef.current = requestAnimationFrame(() => {
-      enterRafRef.current = null
-      if (enterGenRef.current !== gen) return
-      setEggAnim(cssName)
-      animTimerRef.current = setTimeout(() => {
-        if (smRef.current.state === newState) {
-          smRef.current.state = 'idle'
-          setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
-        }
-      }, d)
-    })
-  }
-
-  // Extend the current state without re-triggering the CSS animation (same visual tier)
-  const extendState = (targetState, dur) => {
-    clearTimeout(animTimerRef.current)
-    smRef.current.enteredAt = Date.now()
-    const d = dur != null ? dur : (STATE_DUR[targetState] ?? 600)
-    animTimerRef.current = setTimeout(() => {
-      if (smRef.current.state === targetState) {
-        smRef.current.state = 'idle'
-        setEggAnim(stageRef.current >= 7 ? 'excited' : 'float')
-      }
-    }, d)
-  }
-
-  const setGlow = (color, duration) => {
-    clearTimeout(glowTimerRef.current)
-    setEggGlow(color)
-    glowTimerRef.current = setTimeout(() => setEggGlow(null), duration)
   }
 
   const { ambientEvent, stageUp, growthBanner } = useHomeAmbience({

@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Missing pixel art + hint item mode-awareness:**
+- Built: `scroll`/`mirror`/`clover` drawers added to itemArt.js — all 9 game item keys now resolve (verified). `hint` effect in useBattleCombat.js made mode-aware: numpad shows digit-count clue, wordbuild/sequence shows first-char clue, memory shows friendly "ใบ้ไม่ได้" message, choice mode unchanged. skip/free_attack/block/double_xp confirmed mode-agnostic (touch only HP/flags, no choices dependency). Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Spoken + visual instructions for sequence/fillgap/visualdiscrim/memory modes:**
 - Built: `instructionTh`/`instructionEn` fields added to all 4 question generators. TTS useEffect + handleDismissTeach both fall back to instruction audio when ttsWord is null. `onSpeak()` in WorldBattle.jsx also falls back — speaker button now always does something. Zone 2 early-returns for isFillGap/isVisualDiscrim updated to show gold 16px Thai instruction label; isSequence converted from generic path to its own early-return with same label; MemoryCardInput.jsx gets a gold 15px Thai instruction label above the pair-count line.
 - Not finished: nothing

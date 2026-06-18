@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — fix: missing scroll/mirror/clover pixel art + hint item mode-awareness
+
+### src/lib/itemArt.js
+- Added `scroll` drawer — parchment roll with dark caps, red ribbon binding, text lines
+- Added `mirror` drawer — oval frame with handle, teal glass surface and shine
+- Added `clover` drawer — 4 leaf lobes with highlights, center connector, stem, notch outlines
+- All 9 game item keys now resolve: food/ribbon/shoes/rainbow_star (home) + scroll/thunder/gem/mirror/clover (battle)
+
+### src/hooks/useBattleCombat.js
+- `hint` effect (mirror item) is now mode-aware: numpad → digit-count hint in battle log; wordbuild/sequence → first-char hint in battle log; memory → friendly "ใบ้ไม่ได้" message; choice mode → original eliminate-2-wrong-choices behavior; fallback for unknown mode
+
+---
+
 ## 2026-06-18 — feat: spoken + visual instructions for sequence/fillgap/visualdiscrim/memory modes
 
 ### src/components/WorldBattle.jsx

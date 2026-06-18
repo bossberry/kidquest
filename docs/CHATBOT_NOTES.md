@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Home.jsx Round 3 (useHomeInteractions hook — Phase 3 refactor complete):**
+- Built: extracted all tap/swipe handlers (spawnParticles, handlePetEgg, handleTapItem, handleEggTap, handleCreatureTap, handleCreatureSwipe) into `src/hooks/useHomeInteractions.js`. Removed comboToState, particleIdRef, swipeCountRef from Home.jsx. Hook call order: useCreatureInteraction → useHomeInteractions → useHomeAmbience. Home.jsx now 632 lines (was 952 before Phase 3). Build: 0 errors.
+- Not finished: nothing — Phase 3 complete
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System (Prof Owl wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Home.jsx Round 2 (useCreatureInteraction hook):**
 - Built: extracted interaction state machine (enterState, extendState, setGlow, smRef, watchdog, unmount cleanup, STATE_CSS/STATE_DUR) into `src/hooks/useCreatureInteraction.js`. Home.jsx now 766 lines (was 848). Build: 0 errors.
 - Not finished: nothing — clean extraction with full behavior preservation

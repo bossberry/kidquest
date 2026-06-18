@@ -53,7 +53,8 @@ src/
 │   ├── useBattleTrigger.js       — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
 │   ├── useWorldGameLoop.js       — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
 │   ├── useHomeAmbience.js        — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
-│   └── useCreatureInteraction.js — creature interaction FSM (enterState/extendState/setGlow/watchdog); owns eggAnim, eggGlow, smRef
+│   ├── useCreatureInteraction.js — creature interaction FSM (enterState/extendState/setGlow/watchdog); owns eggAnim, eggGlow, smRef
+│   └── useHomeInteractions.js    — tap/swipe handlers (handlePetEgg/handleTapItem/handleCreatureTap/handleCreatureSwipe); owns spawnParticles, particleIdRef, swipeCountRef
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()
@@ -82,7 +83,7 @@ src/
 │       └── EggFishing.jsx  — Timing fishing game (132 lines)
 │
 ├── components/
-│   ├── Home.jsx            — Egg Home: large egg, pet/feed/items, explore button (176 lines)
+│   ├── Home.jsx            — Egg Home: layout + state wiring only; interaction logic in 3 hooks (632 lines)
 │   ├── WorldScreen.jsx     — Canvas tile engine: rAF loop, D-pad, GB palette tiles, NPC dialogue (~250 lines)
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)

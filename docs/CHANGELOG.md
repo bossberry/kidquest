@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(home-round3): extract item/tap/swipe handlers into useHomeInteractions hook
+
+### New file
+- `src/hooks/useHomeInteractions.js` — spawnParticles, handlePetEgg, handleTapItem, handleEggTap, handleCreatureTap, handleCreatureSwipe; owns its own particleIdRef/swipeCountRef; comboToState moved here from module scope
+
+### src/components/Home.jsx
+- Removed `comboToState` constant (moved to hook)
+- Removed `particleIdRef`, `swipeCountRef` useRef declarations (owned by hook)
+- Removed `spawnParticles`, `handlePetEgg`, `handleTapItem`, `handleEggTap`, `handleCreatureTap`, `handleCreatureSwipe` functions (~127 lines)
+- Added `useHomeInteractions` import
+- Added `useHomeInteractions({...})` hook call before `useHomeAmbience` (so spawnParticles is available to pass in)
+- Hook call order: useCreatureInteraction → useHomeInteractions → useHomeAmbience
+- Home.jsx now **632 lines** (was 952; Phase 3 refactor complete: −34%)
+- Build: 0 errors
+
+---
+
 ## 2026-06-18 — refactor(home-round2): extract interaction state machine into useCreatureInteraction hook
 
 ### New file

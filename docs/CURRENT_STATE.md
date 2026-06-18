@@ -12,6 +12,7 @@ _Last updated: 2026-06-16_
 - Per-stage persistent aura via `egg-s0`–`egg-s8` CSS drop-shadow classes
 - `EggCanvas.jsx` wraps `drawEgg` + `pixelateCanvas(canvas, 4)` post-processing
 - Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`: `idle/pet/happy/excited/eating/sleep/relax/reunion`
+- Tap/swipe handlers extracted to `useHomeInteractions.js`: spawnParticles, pet-combo escalation, item effects, creature bond rewards
 - Heartbeat sound on ready-to-hatch; reunion burst on return after >4h
 
 ### Creature System

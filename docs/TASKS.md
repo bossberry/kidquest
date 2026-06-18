@@ -19,7 +19,8 @@ _Last updated: 2026-06-16_
 
 - [x] Round 1 — Extract ambient/idle effects into `src/hooks/useHomeAmbience.js` ✅
 - [x] Round 2 — Extract interaction state machine into `src/hooks/useCreatureInteraction.js` ✅
-- [ ] Build verify + zero behavior change after each extraction
+- [x] Round 3 — Extract item/tap/swipe handlers into `src/hooks/useHomeInteractions.js` ✅ — Home.jsx refactor complete
+- [x] Build verify + zero behavior change after each extraction ✅
 
 ---
 

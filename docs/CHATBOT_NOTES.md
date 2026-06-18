@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Battle Round 3 (useBattleCombat hook — MoveSelectBattleMode refactor complete):**
+- Built: extracted fireHit, fireMiss, showVictory, useBattleItem into `src/hooks/useBattleCombat.js`. All 4 functions receive every ref/state-setter/prop as explicit params; behavior byte-for-byte identical to original. Removed playElementSFX, spawnConfetti, getElementTier, playElementAttack, rollBattleItem from MoveSelectBattleMode imports (all now in hook). MoveSelectBattleMode.jsx: 1018 → 711 lines. Full Phase 4 refactor complete: 1190 → 711 lines (−40%). Build: 0 errors.
+- Not finished: nothing — all 3 battle rounds done
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Battle Round 2 (useBattleEffects hook):**
 - Built: extracted particle/effect canvas system (ResizeObserver sync, RAF loop, spawnEffect, effectCanvasRef, overlayCanvasRef) into `src/hooks/useBattleEffects.js`. Removed mkBeam/mkOrb/mkLightning/mkSparks/tickEffects import from main file. Removed effectRafRef cancel from unmount cleanup (hook owns it). MoveSelectBattleMode.jsx: ~1190 → 1018 lines. Build: 0 errors.
 - Not finished: nothing

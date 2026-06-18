@@ -10,6 +10,7 @@ _Last updated: 2026-06-16_
 
 - [x] Round 1 — Extract GBHPBar, EnemyCanvas, MoveCard, HintBar into `src/components/battle/` ✅
 - [x] Round 2 — Extract particle/effect canvas system into `src/hooks/useBattleEffects.js` ✅
+- [x] Round 3 — Extract fireHit/fireMiss/showVictory/useBattleItem into `src/hooks/useBattleCombat.js` ✅ — MoveSelectBattleMode refactor complete (1190→711 lines)
 
 ### Phase 2 Refactor — WorldScreen.jsx split
 `WorldScreen.jsx` was 1700 lines; now 1346. Goal: extract logical modules without changing behavior.

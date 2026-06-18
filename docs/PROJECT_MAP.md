@@ -55,7 +55,8 @@ src/
 │   ├── useHomeAmbience.js        — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
 │   ├── useCreatureInteraction.js — creature interaction FSM (enterState/extendState/setGlow/watchdog); owns eggAnim, eggGlow, smRef
 │   ├── useHomeInteractions.js    — tap/swipe handlers (handlePetEgg/handleTapItem/handleCreatureTap/handleCreatureSwipe); owns spawnParticles, particleIdRef, swipeCountRef
-│   └── useBattleEffects.js       — particle/effect canvas system: ResizeObserver sync, RAF loop, spawnEffect(); owns effectCanvasRef, overlayCanvasRef
+│   ├── useBattleEffects.js       — particle/effect canvas system: ResizeObserver sync, RAF loop, spawnEffect(); owns effectCanvasRef, overlayCanvasRef
+│   └── useBattleCombat.js        — battle combat engine: fireHit, fireMiss, showVictory, useBattleItem; receives all state setters/refs as params
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()
@@ -73,7 +74,7 @@ src/
 │   ├── GameThai.jsx        — Match + Spell + WordOrder; GameHeader + useFinishRound (381 lines)
 │   ├── GameMath.jsx        — MathLevelGame; timer, 3-attempt hints (157 lines)
 │   ├── GamePhonics.jsx     — Phonics + CVC + Sight + Sentence; GameHeader (191 lines)
-│   ├── MoveSelectBattleMode.jsx — NEW: Pokémon-style battle shell for all 3 subjects (~370 lines)
+│   ├── MoveSelectBattleMode.jsx — Pokémon-style battle shell for all 3 subjects (711 lines; fully refactored)
 │   ├── LevelSelector.jsx   — Level grid (locked/preview/unlocked) (61 lines)
 │   ├── TeachOverlay.jsx    — First-time intro per level (32 lines)
 │   └── minigames/

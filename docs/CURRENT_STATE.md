@@ -43,13 +43,14 @@ _Last updated: 2026-06-16_
 - Navigate-to-world deferred until player taps through chest
 
 ### Battle System (World Battles)
-- `MoveSelectBattleMode.jsx` (~1190 lines) — answer choices = attack moves
+- `MoveSelectBattleMode.jsx` (711 lines, refactored) — answer choices = attack moves
 - Real HP combat: hit damage = `max(1, creatureStats.ATK − enemy.def) × mult`; miss = SPD/200 dodge + DEF reduction
 - Element attack system: 1 random element per battle × 4 tiers (T0–T3 by combo streak); 24 canvas animations in `elementAnimations.js`; `playElementSFX()` 6×4 Web Audio tones
 - Battle items: scroll (skip), thunder (15 free damage), gem (double XP), mirror (hint — eliminate 2 wrong), clover (block miss damage). `itemConfig.js` + `PixelItemIcon.jsx`
 - Party system: `state.party[]` (up to 4 slots), `PartySelect.jsx` overlay between encounter and battle
 - Response time analytics: rolling 50-entry log per subject in `state.responseTimeLogs`
 - `WorldBattle.jsx`: wraps MoveSelectBattleMode for world map battles; scales enemy stats via `Math.pow(level, 1.8)`
+- Combat logic extracted to `useBattleCombat.js`: fireHit, fireMiss, showVictory, useBattleItem — all refs/setters passed as params, zero behavior change
 - Canvas particle effects: `particles.js` (beam/orb/lightning/sparks)
 - Enemy sprites: `drawEnemy.js` — 9 types via `ctx.fillRect` pixel art
 

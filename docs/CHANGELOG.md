@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(battle-round3): extract fireHit/fireMiss/showVictory/useBattleItem into useBattleCombat hook
+
+### New file
+- `src/hooks/useBattleCombat.js` — owns fireHit, fireMiss, showVictory, useBattleItemFn (returned as `useBattleItem`). Receives all state setters, refs, and props as explicit params so behavior is byte-for-byte identical to original. Imports: StateContext, audio (playTone/playSFX/playElementSFX), Toasts (spawnConfetti), elementConfig (getElementTier), elementAnimations (playElementAttack), itemConfig (BATTLE_ITEMS, rollBattleItem).
+
+### src/games/MoveSelectBattleMode.jsx
+- Removed `playElementSFX` from audio import (now in hook)
+- Removed `spawnConfetti` import from Toasts (now in hook)
+- Removed `getElementTier` from elementConfig import (now in hook)
+- Removed `playElementAttack` import from elementAnimations (now in hook)
+- Removed `rollBattleItem` from itemConfig import (now in hook)
+- Added `import { useBattleCombat } from '../hooks/useBattleCombat.js'`
+- Removed `useBattleItem` function body (~60 lines, lines 223–282)
+- Removed `fireHit` function body (~113 lines, lines 304–416)
+- Removed `fireMiss` function body (~102 lines, lines 417–518)
+- Removed `showVictory` function body (~32 lines, lines 519–550)
+- Added `useBattleCombat({...})` hook call before `handleTap`
+- MoveSelectBattleMode.jsx now **711 lines** (was 1018); build: 0 errors
+- **MoveSelectBattleMode refactor complete** — all 3 rounds done: 1190 → 711 lines (−40%)
+
+---
+
 ## 2026-06-18 — refactor(battle-round2): extract particle/effect canvas system into useBattleEffects hook
 
 ### New file

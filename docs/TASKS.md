@@ -13,6 +13,12 @@ _Last updated: 2026-06-16_
 - [x] Round 2 — Extract pure drawing helpers into `src/lib/worldDrawHelpers.js` ✅
 - [x] Round 3 — Extract battle-trigger logic into `src/hooks/useBattleTrigger.js` ✅
 - [x] Round 4 — Extract RAF game loop (enemy AI, rendering, camera) into `src/hooks/useWorldGameLoop.js` ✅
+
+### Phase 3 Refactor — Home.jsx split
+`Home.jsx` was 952 lines; now 848. Goal: extract logical modules without changing behavior.
+
+- [x] Round 1 — Extract ambient/idle effects into `src/hooks/useHomeAmbience.js` ✅
+- [ ] Round 2 — Extract interaction state machine into `src/hooks/useEggSM.js` hook
 - [ ] Build verify + zero behavior change after each extraction
 
 ---

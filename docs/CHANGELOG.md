@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(home-round1): extract ambient/idle effects into useHomeAmbience hook
+
+### New file
+- `src/hooks/useHomeAmbience.js` — idle micro-animations, butterfly/leaf/star ambient events, stage-up celebration, hatch-ready heartbeat, reunion burst on mount, post-session growth banner. Returns `{ambientEvent, stageUp, growthBanner}`.
+
+### src/components/Home.jsx
+- Removed `IDLE_DUR` constant (moved to hook)
+- Removed `ambientEvent`, `stageUp`, `growthBanner` useState declarations (now from hook)
+- Removed `idleTimerRef`, `eggAnimRef`, `prevStageRef` useRef declarations (only used in moved effects)
+- Kept `stageRef` + its sync effect (still used by enterState/extendState/watchdog)
+- Removed eggAnimRef sync effect (moved to hook)
+- Removed 6 useEffect blocks — 100 lines total: stage-up, heartbeat, reunion-on-mount, growth banner, idle animations, ambient events
+- Added `useHomeAmbience({...})` call after setGlow, before interaction handlers
+- Home.jsx now **848 lines** (was 952 before refactor)
+- Build: 0 errors
+
+---
+
 ## 2026-06-17 — refactor(phase2-round4): extract RAF game loop into useWorldGameLoop hook
 
 ### New file

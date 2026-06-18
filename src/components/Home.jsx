@@ -11,6 +11,7 @@ import { drawItem } from '../lib/itemArt.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { supabase } from '../lib/supabase.js'
+import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 
 const ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100' },
@@ -18,15 +19,6 @@ const ITEM_DEFS = [
   { key:'shoes',        label:'รองเท้า',   effect:'วิ่ง×4' },
   { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ล่องหนจากมอนสเตอร์ตาม' },
 ]
-
-// Duration (ms) for each idle animation before clearing state
-const IDLE_DUR = {
-  'idle-wiggle': 600,
-  'idle-jump':   600,
-  'idle-blink':  380,
-  'idle-look':   1100,
-  'idle-yawn':   1350,
-}
 
 // Interaction state machine — CSS class and auto-return duration for each state
 const STATE_CSS = { idle:'float', pet:'pet', happy:'happy-spin', excited:'excited', eating:'eat', sleep:'sleepy', relax:'relax', reunion:'reunion' }
@@ -51,22 +43,16 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setIsLoggedIn(!!session))
     return () => subscription.unsubscribe()
   }, [])
-  const [ambientEvent, setAmbientEvent]   = useState(null)  // null | {type, id}
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // emoji shown above large canvas
-  const [stageUp, setStageUp]             = useState(null)  // null | {stage, id}
   const [healFloat, setHealFloat]         = useState(null)  // null | id
-  const [growthBanner, setGrowthBanner]   = useState(null)  // null | string
 
   const particleIdRef   = useRef(0)
   const swipeCountRef   = useRef(0)
   const animTimerRef    = useRef(null)
   const glowTimerRef    = useRef(null)
-  const idleTimerRef    = useRef(null)
   const initVisitRef    = useRef(state.lastHomeVisit)
   const stageRef        = useRef(0)
-  const eggAnimRef      = useRef('float')
-  const prevStageRef    = useRef(null)
   // Interaction state machine
   const smRef           = useRef({ state: 'idle', comboCount: 0, enteredAt: 0 })
   const enterRafRef     = useRef(null)
@@ -103,107 +89,6 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
 
   // Keep refs current
   useEffect(() => { stageRef.current = stage }, [stage])
-  useEffect(() => { eggAnimRef.current = eggAnim }, [eggAnim])
-
-  // Stage-up detection — skip first render by initializing prevStageRef to null
-  useEffect(() => {
-    if (prevStageRef.current === null) { prevStageRef.current = stage; return }
-    if (stage > prevStageRef.current) {
-      playTone('stageUp'); playSFX('stage_up')
-      spawnParticles('sparkle', 18)
-      spawnParticles('hearts', 6)
-      const id = Date.now()
-      setStageUp({ stage, id })
-      setTimeout(() => setStageUp(prev => prev?.id === id ? null : prev), 2800)
-    }
-    prevStageRef.current = stage
-  }, [stage]) // eslint-disable-line
-
-  // Heartbeat sound pulses when egg is ready to hatch
-  useEffect(() => {
-    if (!readyToHatch) return
-    playTone('heartbeat')
-    const id = setInterval(() => playTone('heartbeat'), 8000)
-    return () => clearInterval(id)
-  }, [readyToHatch]) // eslint-disable-line
-
-  // Record visit + reunion burst on mount
-  useEffect(() => {
-    const last = initVisitRef.current
-    const now  = Date.now()
-    const isReunion = !last || (now - last) > 4 * 60 * 60 * 1000
-    dispatch({ type: ACTIONS.UPDATE_LAST_HOME_VISIT, payload: now })
-    if (isReunion) {
-      enterState('reunion')
-      spawnParticles('hearts', 10)
-      spawnParticles('sparkle', 8)
-      // Creature voice for reunion moment (falls back to chirp if no voice profile yet)
-      setTimeout(() => {
-        if (voiceProfile) playCreatureSound(voiceProfile, 'reunion')
-        else { playTone('chirp'); setTimeout(() => playTone('chirp'), 360) }
-      }, 200)
-    }
-  }, []) // eslint-disable-line
-
-  // Post-session egg growth banner — fires once on mount if XP was earned this session
-  useEffect(() => {
-    if ((state.sessionXP || 0) <= 0) return
-    const msg = stage >= 5 ? 'อีกนิดเดียวก็ฟักแล้ว!' : 'ไข่ของเราโตขึ้นนะ!'
-    setTimeout(() => {
-      setGrowthBanner(msg)
-      playTone('stageUp')
-      setTimeout(() => setGrowthBanner(null), 3000)
-    }, 900)
-    dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
-  }, []) // eslint-disable-line
-
-  // Random idle micro-animations — egg feels alive on its own
-  useEffect(() => {
-    const IDLE = [
-      'idle-wiggle','idle-jump','idle-wiggle','idle-wiggle',
-      'idle-blink','idle-look','idle-yawn',
-      'idle-jump','idle-wiggle','idle-blink',
-    ]
-    const schedule = () => {
-      idleTimerRef.current = setTimeout(() => {
-        if (eggAnimRef.current === 'float') {
-          const a = IDLE[Math.floor(Math.random() * IDLE.length)]
-          setIdleAnim(a)
-          setTimeout(() => setIdleAnim(null), IDLE_DUR[a] || 600)
-          if (a === 'idle-yawn') {
-            playTone('yawn')
-          } else if (a === 'idle-jump') {
-            if (Math.random() < 0.28) playTone('chirp')
-          } else if (a === 'idle-wiggle' || a === 'idle-blink') {
-            if (Math.random() < 0.16) playTone('chirp')
-          } else if (a === 'idle-look') {
-            if (Math.random() < 0.12) playTone('begging')
-          }
-        }
-        schedule()
-      }, 5000 + Math.random() * 7000)
-    }
-    schedule()
-    return () => clearTimeout(idleTimerRef.current)
-  }, []) // eslint-disable-line
-
-  // Ambient events — rare visual delights: butterfly, falling leaf, shooting star
-  useEffect(() => {
-    const EVENTS = ['butterfly','leaf','star','butterfly','leaf','butterfly']
-    const CLEAR_AFTER = { butterfly: 4800, leaf: 4400, star: 1200 }
-    let timer
-    const doSchedule = () => {
-      timer = setTimeout(() => {
-        const type = EVENTS[Math.floor(Math.random() * EVENTS.length)]
-        const id = Date.now()
-        setAmbientEvent({ type, id })
-        setTimeout(() => setAmbientEvent(prev => prev?.id === id ? null : prev), CLEAR_AFTER[type])
-        doSchedule()
-      }, 38000 + Math.random() * 50000) // 38–88s between events
-    }
-    doSchedule()
-    return () => clearTimeout(timer)
-  }, []) // eslint-disable-line
 
   // Cancel pending RAF + timers on unmount
   useEffect(() => () => {
@@ -289,6 +174,18 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
     setEggGlow(color)
     glowTimerRef.current = setTimeout(() => setEggGlow(null), duration)
   }
+
+  const { ambientEvent, stageUp, growthBanner } = useHomeAmbience({
+    stage,
+    readyToHatch,
+    eggAnim,
+    setIdleAnim,
+    spawnParticles,
+    enterState,
+    voiceProfile,
+    initialLastHomeVisit: initVisitRef.current,
+    sessionXP: state.sessionXP,
+  })
 
   const handlePetEgg = () => {
     if (readyToHatch && eggsHatched === 0) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }

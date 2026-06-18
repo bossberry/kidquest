@@ -212,6 +212,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 2 Round 4 — extract RAF game loop into useWorldGameLoop hook
 - Needs Chatbot decision first: none
 
+**2026-06-18 — Home.jsx Round 1: extract ambient/idle effects into useHomeAmbience hook:**
+- Built: Created `src/hooks/useHomeAmbience.js` — owns idle micro-animations (7 types), rare ambient visual events (butterfly/leaf/star, 38–88s interval), stage-up celebration (sparkle/hearts + banner), hatch-ready heartbeat (8s pulse), reunion burst on mount (hearts+sparkle+creature voice), post-session growth banner. Returns {ambientEvent, stageUp, growthBanner}. Takes stage/readyToHatch/eggAnim/setIdleAnim/spawnParticles/enterState/voiceProfile/initialLastHomeVisit/sessionXP as params. IDLE_DUR constant moved to hook file. Home.jsx: removed ambientEvent/stageUp/growthBanner useState; removed idleTimerRef/eggAnimRef/prevStageRef useRef (only used in moved effects); kept stageRef + its sync effect (still needed by enterState/extendState/watchdog); removed eggAnimRef sync effect; removed 6 useEffects (100 lines); added useHomeAmbience hook call after setGlow. Home.jsx now 848 lines. Build: 0 errors.
+- Not finished: Home.jsx Round 2 (interaction state machine extraction) not started
+- Blockers/risks found: Hook has its own internal stageRef + eggAnimRef that are separate from Home.jsx's stageRef — minor duplication but correct since they serve different purposes
+- Ready to start next: Home.jsx Round 2 — extract interaction state machine into useEggSM hook
+- Needs Chatbot decision first: none
+
 **2026-06-17 — Phase 2 Round 4: extract RAF game loop (enemy AI, rendering, camera) into useWorldGameLoop hook:**
 - Built: Created `src/hooks/useWorldGameLoop.js` — pure relocation of 326-line RAF useEffect (findRespawnPos, scheduleRespawn, updateEnemies, renderEnemies, renderChests, loop). TILE+DIRS4 moved to module level; rafRef replaced with local rafIdRef inside effect closure; effect dep array stays []. WorldScreen.jsx: removed renderMap/renderPlayer/getCamera from tileEngine import (only needed by hook); removed drawEnemy import (only needed by hook); removed dead imports MAP_ROWS/MAP_COLS/EXIT_OPPOSITE; removed rafRef useRef declaration; replaced 326-line useEffect block with 6-line useWorldGameLoop() call. WorldScreen now 873 lines (was 1700 at start). Build: 0 errors, zero behavior change.
 - Not finished: nothing — Phase 2 WorldScreen.jsx split complete

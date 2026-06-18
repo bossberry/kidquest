@@ -51,7 +51,8 @@ src/
 │
 ├── hooks/
 │   ├── useBattleTrigger.js  — triggerBattle, enterBossBattle, all 3 battle refs; extracted from WorldScreen
-│   └── useWorldGameLoop.js  — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
+│   ├── useWorldGameLoop.js  — RAF render/update loop: enemy AI (9 types), respawn, rendering, camera
+│   └── useHomeAmbience.js   — idle animations, butterfly/leaf/star events, stage-up, heartbeat, reunion, growth banner
 │
 ├── lib/
 │   ├── state.js            — defaultState(), loadState(), saveState(), syncToSupabase()

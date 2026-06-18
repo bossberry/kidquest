@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Battle Round 1 (presentational component extraction):**
+- Built: created `src/components/battle/` with GBHPBar.jsx, EnemyCanvas.jsx, MoveCard.jsx, HintBar.jsx. Moved THAI_NUMS/numTh/mathToThai to HintBar.jsx with named exports; re-imported in main file. Removed drawEnemy/drawEnemyHurt import from MoveSelectBattleMode. File: ~1190 → 1092 lines. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Battle Round 2 (extract battle logic hooks — fireHit/fireMiss/effect system)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Home.jsx Round 3 (useHomeInteractions hook — Phase 3 refactor complete):**
 - Built: extracted all tap/swipe handlers (spawnParticles, handlePetEgg, handleTapItem, handleEggTap, handleCreatureTap, handleCreatureSwipe) into `src/hooks/useHomeInteractions.js`. Removed comboToState, particleIdRef, swipeCountRef from Home.jsx. Hook call order: useCreatureInteraction → useHomeInteractions → useHomeAmbience. Home.jsx now 632 lines (was 952 before Phase 3). Build: 0 errors.
 - Not finished: nothing — Phase 3 complete

@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — refactor(battle-round1): extract GBHPBar, EnemyCanvas, MoveCard, HintBar presentational components
+
+### New files
+- `src/components/battle/GBHPBar.jsx` — GB-style HP bar with player/enemy color logic
+- `src/components/battle/EnemyCanvas.jsx` — enemy canvas sprite with hurt/defeat animations; owns drawEnemy import
+- `src/components/battle/MoveCard.jsx` — answer move button with emoji/text size logic
+- `src/components/battle/HintBar.jsx` — dot-group hint for math arithmetic; exports `numTh`, `mathToThai` helpers
+
+### src/games/MoveSelectBattleMode.jsx
+- Removed inline GBHPBar, EnemyCanvas, MoveCard, HintBar function definitions (~120 lines)
+- Removed THAI_NUMS, numTh, mathToThai (moved to HintBar.jsx)
+- Removed `import { drawEnemy, drawEnemyHurt }` (now owned by EnemyCanvas.jsx)
+- Added 4 imports from `../components/battle/`; re-imported `{ numTh, mathToThai }` from HintBar.jsx
+- MoveSelectBattleMode.jsx now **1092 lines** (was ~1190); build: 0 errors
+
+---
+
 ## 2026-06-18 — refactor(home-round3): extract item/tap/swipe handlers into useHomeInteractions hook
 
 ### New file

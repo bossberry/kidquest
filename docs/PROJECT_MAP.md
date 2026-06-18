@@ -85,6 +85,12 @@ src/
 ├── components/
 │   ├── Home.jsx            — Egg Home: layout + state wiring only; interaction logic in 3 hooks (632 lines)
 │   ├── WorldScreen.jsx     — Canvas tile engine: rAF loop, D-pad, GB palette tiles, NPC dialogue (~250 lines)
+│   │
+│   ├── battle/             — Extracted presentational components from MoveSelectBattleMode
+│   │   ├── GBHPBar.jsx     — GB-style HP bar (player green/yellow/red; enemy red/orange)
+│   │   ├── EnemyCanvas.jsx — Enemy pixel art canvas with hurt/defeat animation states
+│   │   ├── MoveCard.jsx    — Answer move button with emoji/text font-size logic
+│   │   └── HintBar.jsx     — Dot-group math hint bar; exports numTh(), mathToThai()
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Hatched creatures + current egg tabs (86 lines)

@@ -5,13 +5,16 @@ import { spawnConfetti } from '../components/Toasts.jsx'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
-import { drawEnemy, drawEnemyHurt } from '../lib/drawEnemy.js'
 import { mkBeam, mkOrb, mkLightning, mkSparks, tickEffects } from '../lib/particles.js'
 import { ELEMENTS, getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import PixelItemIcon from '../components/PixelItemIcon.jsx'
 import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
+import GBHPBar from '../components/battle/GBHPBar.jsx'
+import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
+import MoveCard from '../components/battle/MoveCard.jsx'
+import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -62,125 +65,6 @@ const ITEM_DESCRIPTIONS = {
   hint:        'ตัดตัวเลือกผิดออก 2 อัน\nเหลือแค่ 2 ตัวเลือก ง่ายขึ้น!',
   block:       'ป้องกันการโจมตีครั้งต่อไป\nตอบผิดก็ไม่โดนตี 1 ครั้ง',
   double_xp:   'คำถามถัดไปถ้าตอบถูก\nได้ XP เพิ่มเป็น 2 เท่า!',
-}
-
-// ─── GB-style HP Bar ──────────────────────────────────────────────────────────
-
-function GBHPBar({ pct, isPlayer, current, max }) {
-  const color = isPlayer
-    ? (pct > 50 ? 'var(--px-green)' : pct > 25 ? 'var(--px-yellow)' : 'var(--px-red)')
-    : (pct > 50 ? 'var(--px-red)' : pct > 25 ? 'var(--px-orange)' : '#f66')
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-      <span style={{ fontSize:9, color:'rgba(255,255,255,0.4)', flexShrink:0, fontFamily:'monospace' }}>HP</span>
-      <div className="px-hp-bar-outer" style={{ flex:1 }}>
-        <div className="px-hp-bar-inner" style={{ width:`${Math.max(0, pct)}%`, background:color }} />
-      </div>
-      {max != null && (
-        <span style={{ fontSize:8, color:'rgba(255,255,255,0.5)', flexShrink:0, fontFamily:'monospace', minWidth:32, textAlign:'right' }}>
-          {Math.max(0, Math.round(current ?? 0))}/{Math.round(max)}
-        </span>
-      )}
-    </div>
-  )
-}
-
-// ─── Enemy canvas sprite ──────────────────────────────────────────────────────
-
-function EnemyCanvas({ enemyType, size, hitFlash, enemyDefeating, enemyHurt }) {
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    if (enemyHurt) {
-      drawEnemyHurt(canvas.getContext('2d'), enemyType, size)
-    } else {
-      drawEnemy(canvas.getContext('2d'), enemyType, size)
-    }
-  }, [enemyType, size, enemyHurt])
-  return (
-    <canvas
-      ref={canvasRef}
-      width={size} height={size}
-      style={{
-        imageRendering: 'pixelated',
-        display: 'block',
-        filter: hitFlash ? 'brightness(10) saturate(0)' : enemyDefeating ? 'brightness(0.35)' : 'none',
-        transform: enemyDefeating ? 'translateY(18px) rotate(-22deg)' : 'none',
-        opacity: enemyDefeating ? 0 : 1,
-        transition: enemyDefeating ? 'opacity 500ms ease, transform 500ms ease' : 'filter 80ms',
-      }}
-    />
-  )
-}
-
-// ─── Move Card (compact) ──────────────────────────────────────────────────────
-
-function MoveCard({ content, isSelected, isMiss, onTap, disabled }) {
-  const str = String(content)
-  const isEmoji = str.length <= 2
-  const fs = isEmoji ? 30 : str.length <= 4 ? 26 : str.length <= 8 ? 18 : 14
-  return (
-    <button
-      onClick={onTap}
-      disabled={disabled}
-      className={`move-card-btn px-answer-card${isMiss ? ' wrong' : ''}`}
-      style={{
-        cursor: disabled ? 'default' : 'pointer',
-        touchAction: 'manipulation',
-        animation: isSelected ? 'move-pulse .22s ease' : undefined,
-        opacity: isMiss ? 0.4 : 1,
-        userSelect: 'none', WebkitUserSelect: 'none',
-      }}
-    >
-      <div style={{
-        fontFamily: isEmoji ? 'system-ui,sans-serif' : "'Fredoka One',Sarabun,Mitr,sans-serif",
-        fontSize: fs, color: '#fff', lineHeight: 1.2,
-      }}>
-        {content}
-      </div>
-    </button>
-  )
-}
-
-// ─── Math speech helpers ──────────────────────────────────────────────────────
-
-const THAI_NUMS = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า',
-  'สิบ','สิบเอ็ด','สิบสอง','สิบสาม','สิบสี่','สิบห้า','สิบหก','สิบเจ็ด','สิบแปด','สิบเก้า','ยี่สิบ']
-function numTh(n) { return THAI_NUMS[n] ?? String(n) }
-function mathToThai(q) {
-  if (!q) return ''
-  if (q.isCount) return 'มีกี่อัน'
-  if (q.isPattern) return 'อะไรมาต่อ'
-  if (q.isWord || q.a === undefined) return ''
-  const opTh = q.op === '+' ? 'บวก' : q.op === '-' ? 'ลบ' : ''
-  return opTh ? `${numTh(q.a)} ${opTh} ${numTh(q.b)} เท่ากับ เท่าไหร่` : ''
-}
-
-
-// ─── HintBar: dot groups for math arithmetic only ─────────────────────────────
-
-function HintBar({ q, subject }) {
-  if (subject !== 'math') return null
-  if (!q || q.isCount || q.isPattern || q.isWord || q.a === undefined) return null
-  const numA = Math.min(q.a, 10)
-  const numB = Math.min(q.b, 10)
-  return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-      <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center', maxWidth:80 }}>
-        {Array.from({ length: numA }, (_, i) => (
-          <div key={i} style={{ width:14, height:14, borderRadius:'50%', background:'#4488ff', boxShadow:'0 0 4px #4488ff88' }} />
-        ))}
-      </div>
-      <div style={{ color:'rgba(255,255,255,0.6)', fontSize:18, fontWeight:'bold' }}>{q.op}</div>
-      <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center', maxWidth:80 }}>
-        {Array.from({ length: numB }, (_, i) => (
-          <div key={i} style={{ width:14, height:14, borderRadius:'50%', background:'#ff8844', boxShadow:'0 0 4px #ff884488' }} />
-        ))}
-      </div>
-      <div style={{ color:'rgba(255,255,255,0.4)', fontSize:18 }}>= ?</div>
-    </div>
-  )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────

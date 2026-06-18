@@ -5,6 +5,11 @@ _Last updated: 2026-06-16_
 
 ## Now
 
+### Phase 4 Refactor — MoveSelectBattleMode.jsx split
+`MoveSelectBattleMode.jsx` was ~1190 lines. Goal: extract logical modules without changing behavior.
+
+- [x] Round 1 — Extract GBHPBar, EnemyCanvas, MoveCard, HintBar into `src/components/battle/` ✅
+
 ### Phase 2 Refactor — WorldScreen.jsx split
 `WorldScreen.jsx` was 1700 lines; now 1346. Goal: extract logical modules without changing behavior.
 

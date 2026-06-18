@@ -683,7 +683,6 @@ export default function MoveSelectBattleMode({
           ) : q?.inputMode === 'wordbuild' ? (
             <WordBuildInput
               chars={q.chars}
-              emoji={q.word}
               resetKey={cur}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(isCorrect) => {

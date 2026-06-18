@@ -18,8 +18,9 @@ const DISTRACTOR_POOL = ['ก','ข','ค','ง','จ','ด','ต','บ','ป','
  * from the tray to fill ordered slots and reconstruct the target word.
  * Tap a tray tile → fills next empty slot. Tap a filled slot → returns tile to tray.
  * Calls onSubmit(true|false) once all slots are filled.
+ * No emoji prop — emoji is already shown in the question zone above.
  */
-export default function WordBuildInput({ chars, emoji, onSubmit, disabled, resetKey }) {
+export default function WordBuildInput({ chars, onSubmit, disabled, resetKey }) {
   const targetChars = chars || []
 
   const trayChars = useMemo(() => {
@@ -70,42 +71,48 @@ export default function WordBuildInput({ chars, emoji, onSubmit, disabled, reset
     playTone('click')
   }
 
-  const tileStyle = (filled) => ({
-    width: 44, height: 44,
+  const tileStyle = (filled, isSlot) => ({ // eslint-disable-line no-unused-vars
+    width: 38, height: 38,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 22, fontFamily: 'var(--font-thai)',
+    fontSize: 18, fontFamily: 'var(--font-thai)',
     background: filled ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.06)',
     border: filled ? '2px solid #FFD700' : '2px dashed rgba(255,255,255,0.25)',
     color: '#fff',
-    borderRadius: 8,
-    cursor: disabled ? 'default' : 'pointer',
+    borderRadius: 6,
+    cursor: 'pointer',
     WebkitTapHighlightColor: 'transparent',
     touchAction: 'manipulation',
+    flexShrink: 0,
   })
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
-      {/* Target emoji hint */}
-      <div style={{ fontSize: 36 }}>{emoji}</div>
-
-      {/* Answer slots */}
-      <div style={{ display:'flex', gap:6 }}>
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', gap:8,
+      width:'100%', maxHeight:'100%', overflow:'hidden',
+      padding:'4px 8px',
+      boxSizing:'border-box',
+    }}>
+      {/* Answer slots — smaller, tighter gap */}
+      <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center' }}>
         {slots.map((tile, i) => (
-          <button key={i} onClick={() => handleSlotTap(i)} style={tileStyle(!!tile)} disabled={disabled}>
+          <button key={i} onClick={() => handleSlotTap(i)} style={tileStyle(!!tile, true)} disabled={disabled}>
             {tile?.char ?? ''}
           </button>
         ))}
       </div>
 
-      {/* Tray of tappable tiles */}
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'center', maxWidth: 280 }}>
+      {/* Tray of tappable tiles — smaller, wraps cleanly, no overflow */}
+      <div style={{
+        display:'flex', gap:4, flexWrap:'wrap', justifyContent:'center',
+        width:'100%', maxWidth: 320,
+      }}>
         {trayChars.map(tile => (
           <button
             key={tile.id}
             onClick={() => handleTileTap(tile)}
             disabled={disabled || trayUsed[tile.id]}
             style={{
-              ...tileStyle(false),
+              ...tileStyle(false, false),
               opacity: trayUsed[tile.id] ? 0.25 : 1,
               cursor: (disabled || trayUsed[tile.id]) ? 'default' : 'pointer',
             }}

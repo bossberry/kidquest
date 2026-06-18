@@ -1,5 +1,26 @@
 # Changelog — KidQuest
 
+## 2026-06-18 — feat: spoken + visual instructions for sequence/fillgap/visualdiscrim/memory modes
+
+### src/components/WorldBattle.jsx
+- `genSequenceQ` — added `instructionTh:'แตะตัวอักษรให้เรียงตามลำดับ'`, `instructionEn:'Tap the letters in the correct order'`
+- `genFillGapQ` — added `instructionTh:'แตะตัวอักษรที่หายไป'`, `instructionEn:'Tap the missing letter'`
+- `genVisualDiscriminationQ` — added `instructionTh:'แตะตัวที่เหมือนกัน'`, `instructionEn:'Tap the matching letter'`
+- `genMemoryCardQ` — added `instructionTh:'แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน'`, `instructionEn:'Flip cards to find matching pairs'`
+- `onSpeak()` — falls back to speaking instruction phrase when `ttsWord` is null; speaker button now always does something
+
+### src/games/MoveSelectBattleMode.jsx
+- TTS `useEffect` — falls back to `speakTh(q.instructionTh)` / `speakEn(q.instructionEn)` when no `ttsWord` or math text
+- `handleDismissTeach` — same fallback so instruction plays after teach overlay closes
+- Zone 2 `isFillGap` — added gold `fontSize:16` Thai instruction label above the gap display
+- Zone 2 `isVisualDiscrim` — added gold `fontSize:16` Thai instruction label above target char; removed old dim 11px caption
+- Zone 2 `isSequence` — new early-return path with gold `fontSize:16` Thai instruction label above 🔤 (no longer falls through to generic TTS-button path)
+
+### src/components/battle/MemoryCardInput.jsx
+- Added gold `fontSize:15` Thai instruction label "แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน" above the existing small pair-count label
+
+---
+
 ## 2026-06-18 — feat: memory card matching mini-game for Thai/English vocabulary
 
 ### New file

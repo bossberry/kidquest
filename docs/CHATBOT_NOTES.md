@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-18 — Spoken + visual instructions for sequence/fillgap/visualdiscrim/memory modes:**
+- Built: `instructionTh`/`instructionEn` fields added to all 4 question generators. TTS useEffect + handleDismissTeach both fall back to instruction audio when ttsWord is null. `onSpeak()` in WorldBattle.jsx also falls back — speaker button now always does something. Zone 2 early-returns for isFillGap/isVisualDiscrim updated to show gold 16px Thai instruction label; isSequence converted from generic path to its own early-return with same label; MemoryCardInput.jsx gets a gold 15px Thai instruction label above the pair-count line.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System (Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-18 — Word-building input mode for English CVC words:**
 - Built: CVC branch in genEngMoveQ now adds `inputMode:'wordbuild'|'choice'` (50/50) and `chars: correct.word.split('')`. WordBuildInput.jsx made subject-aware: `distractorPool` prop (named exports DEFAULT_THAI_DISTRACTORS / DEFAULT_ENG_DISTRACTORS), `isLatinChars` Unicode detection, pixel font + lowercase for Latin. MoveSelectBattleMode passes `distractorPool={subject === 'eng' ? DEFAULT_ENG_DISTRACTORS : undefined}`. Thai behavior unchanged. Build: 0 errors.
 - Not finished: nothing

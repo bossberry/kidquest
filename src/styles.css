@@ -668,3 +668,6 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 .px-nav-item.active{color:var(--px-yellow)}
 .px-nav-item.active .px-nav-dot{background:var(--px-yellow)}
 .px-nav-dot{width:4px;height:4px;background:transparent}
+
+.carousel-scroll-hide-bar::-webkit-scrollbar{display:none}
+.carousel-scroll-hide-bar{scrollbar-width:none;-ms-overflow-style:none}

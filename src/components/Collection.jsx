@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
@@ -78,13 +78,58 @@ export default function Collection() {
 }
 
 function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, subjectSessionStreak, levelMastery, onSelect, onSetActive }) {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const scrollRef = useRef(null)
+
   if (partyCreatures.length === 0) return (
     <div className="catalog-empty">ยังไม่มี creature ในทีม<br/><span style={{ fontSize:12, color:'var(--muted)' }}>ฟักไข่แล้วเพิ่มในทีม!</span></div>
   )
+
+  const handleScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    const idx = Math.round(el.scrollLeft / el.clientWidth)
+    setActiveIdx(idx)
+  }
+
   return (
-    <>
-      <div className="catalog-section-title">ทีมปัจจุบัน ({partyCreatures.length}/{partySlots})</div>
-      <div className="catalog-grid catalog-grid-lg">
+    <div style={{ width:'100%', display:'flex', flexDirection:'column' }}>
+      {/* Header with position indicator */}
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'0 16px', marginBottom:8,
+      }}>
+        <div className="catalog-section-title" style={{ margin:0 }}>
+          ทีมปัจจุบัน ({partyCreatures.length}/{partySlots})
+        </div>
+        {partyCreatures.length > 1 && (
+          <div style={{ display:'flex', gap:4 }}>
+            {partyCreatures.map((_, i) => (
+              <div key={i} style={{
+                width: i === activeIdx ? 18 : 6, height: 6,
+                borderRadius: 3,
+                background: i === activeIdx ? '#EF9F27' : 'rgba(255,255,255,0.2)',
+                transition:'width 0.25s ease, background 0.25s ease',
+              }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Horizontal scroll-snap carousel */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{
+          display:'flex',
+          overflowX:'auto',
+          scrollSnapType:'x mandatory',
+          WebkitOverflowScrolling:'touch',
+          width:'100%',
+          scrollbarWidth:'none',
+        }}
+        className="carousel-scroll-hide-bar"
+      >
         {partyCreatures.map((egg, i) => {
           const dna = egg.dna ?? (() => { try { return buildLegacyPreviewDNA(egg, i) } catch { return null } })()
           const maxHP = egg.stats?.HP ?? 10
@@ -95,78 +140,100 @@ function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, sub
           return (
             <div
               key={egg.id || i}
-              className="catalog-item catalog-item-lg"
-              onClick={() => onSelect(egg, dna)}
               style={{
-                background: '#0f0f1a',
-                border: `2px solid ${isActive ? '#EF9F27' : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: 0,
-                padding: '14px 12px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                cursor: 'pointer',
-                boxShadow: isActive ? '0 0 12px rgba(239,159,39,0.3)' : 'none',
+                flex:'0 0 100%',
+                width:'100%',
+                scrollSnapAlign:'start',
+                boxSizing:'border-box',
+                padding:'0 16px 24px',
+                display:'flex',
+                flexDirection:'column',
+                alignItems:'center',
               }}
             >
-              {isActive && (
+              <div
+                onClick={() => onSelect(egg, dna)}
+                className="catalog-item catalog-item-lg"
+                style={{
+                  background: '#0f0f1a',
+                  border: `2px solid ${isActive ? '#EF9F27' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 0,
+                  padding: '20px 16px',
+                  width: '100%',
+                  maxWidth: 380,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  cursor: 'pointer',
+                  boxShadow: isActive ? '0 0 16px rgba(239,159,39,0.3)' : 'none',
+                }}
+              >
+                {isActive && (
+                  <div style={{
+                    fontFamily:'var(--font-pixel)', fontSize:8,
+                    color:'#EF9F27', marginBottom:6, letterSpacing:1,
+                  }}>★ ตัวหลัก</div>
+                )}
+                <canvas
+                  key={egg.id}
+                  ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
+                  width={140} height={140}
+                  style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px' }}
+                />
                 <div style={{
-                  fontFamily:'var(--font-pixel)', fontSize:7,
-                  color:'#EF9F27', marginBottom:4, letterSpacing:1,
-                }}>★ ตัวหลัก</div>
-              )}
-              <canvas
-                key={egg.id}
-                ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
-                width={90} height={90}
-                style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 4px' }}
-              />
-              <div style={{
-                fontFamily:'var(--font-thai)', fontSize:13,
-                color:'rgba(255,255,255,0.9)',
-                display:'flex', alignItems:'center', gap:4, justifyContent:'center',
-                marginBottom:2,
-              }}>
-                {elColor && <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
-                {creatureName(egg)}
+                  fontFamily:'var(--font-thai)', fontSize:16,
+                  color:'rgba(255,255,255,0.9)',
+                  display:'flex', alignItems:'center', gap:6, justifyContent:'center',
+                  marginBottom:4,
+                }}>
+                  {elColor && <span style={{ display:'inline-block', width:9, height:9, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
+                  {creatureName(egg)}
+                </div>
+                <div style={{ fontFamily:'var(--font-pixel)', fontSize:9, color:'rgba(255,255,255,0.35)', marginBottom:8 }}>
+                  Lv.{egg.battleLevel ?? 1}
+                </div>
+                <div style={{ width:'100%', maxWidth:240, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.1)', height:6, marginBottom:3 }}>
+                  <div style={{
+                    width:`${pct}%`, height:'100%',
+                    background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
+                  }} />
+                </div>
+                <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.3)', marginBottom:10 }}>
+                  HP {curHP}/{maxHP}
+                </div>
+                {!isActive && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onSetActive?.(egg.id) }}
+                    style={{
+                      padding:'5px 14px',
+                      background:'transparent',
+                      border:'1px solid #EF9F27',
+                      borderRadius:0,
+                      color:'#EF9F27',
+                      fontSize:11, fontFamily:'var(--font-thai)',
+                      cursor:'pointer',
+                    }}
+                  >
+                    ตั้งเป็นตัวหลัก
+                  </button>
+                )}
+                <CreatureJourney egg={egg} currentTier={currentTier ?? 0} />
               </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:'rgba(255,255,255,0.35)', marginBottom:6 }}>
-                Lv.{egg.battleLevel ?? 1}
-              </div>
-              <div style={{ width:'100%', background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.1)', height:5, marginBottom:2 }}>
-                <div style={{
-                  width:`${pct}%`, height:'100%',
-                  background: pct > 50 ? '#4acd4a' : pct > 20 ? '#cdcd20' : '#cd2020',
-                }} />
-              </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.3)', marginBottom:8 }}>
-                HP {curHP}/{maxHP}
-              </div>
-              {!isActive && (
-                <button
-                  onClick={e => { e.stopPropagation(); onSetActive?.(egg.id) }}
-                  style={{
-                    padding:'4px 10px',
-                    background:'transparent',
-                    border:'1px solid #EF9F27',
-                    borderRadius:0,
-                    color:'#EF9F27',
-                    fontSize:10, fontFamily:'var(--font-thai)',
-                    cursor:'pointer',
-                  }}
-                >
-                  ตั้งเป็นตัวหลัก
-                </button>
-              )}
-              <CreatureJourney egg={egg} currentTier={currentTier ?? 0} />
-              <SubjectLevelProgress
-                subjectLevels={subjectLevels}
-                subjectSessionStreak={subjectSessionStreak}
-                levelMastery={levelMastery}
-              />
             </div>
           )
         })}
       </div>
-    </>
+
+      {/* Swipe hint — only show if more than 1 creature */}
+      {partyCreatures.length > 1 && (
+        <div style={{
+          textAlign:'center',
+          fontFamily:'var(--font-thai)', fontSize:11,
+          color:'rgba(255,255,255,0.25)',
+          marginTop:4,
+        }}>
+          ← เลื่อนดูตัวอื่น →
+        </div>
+      )}
+    </div>
   )
 }
 

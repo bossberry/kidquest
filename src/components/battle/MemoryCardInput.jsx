@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { playTone, playSFX } from '../../lib/audio.js'
 
-/**
- * MemoryCardInput — flip-and-match mini-game. 6 cards (3 pairs of emoji+letter).
- * Each successfully matched pair calls onPairFound(). Mismatched flips
- * have no penalty — they just flip back after a short delay.
- * Calls onAllPairsFound() once all pairs are matched.
- */
 export default function MemoryCardInput({ cards, pairCount, onPairFound, onAllPairsFound, disabled, resetKey }) {
   const [flipped, setFlipped] = useState([])
   const [matched, setMatched] = useState([])
@@ -59,9 +53,9 @@ export default function MemoryCardInput({ cards, pairCount, onPairFound, onAllPa
   }
 
   const cardStyle = (card, isFaceUp) => ({
-    width: 52, height: 52,
+    width: 40, height: 40,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: card.type === 'emoji' ? 26 : 22,
+    fontSize: card.type === 'emoji' ? 19 : 16,
     fontFamily: card.type === 'char' ? 'var(--font-thai)' : 'inherit',
     background: isFaceUp
       ? (matched.includes(card.pairId) ? 'rgba(74,205,74,0.2)' : 'rgba(255,215,0,0.15)')
@@ -69,32 +63,30 @@ export default function MemoryCardInput({ cards, pairCount, onPairFound, onAllPa
     border: isFaceUp
       ? (matched.includes(card.pairId) ? '2px solid #4acd4a' : '2px solid #FFD700')
       : '2px solid rgba(255,255,255,0.15)',
-    borderRadius: 8,
+    borderRadius: 6,
     cursor: disabled ? 'default' : 'pointer',
     WebkitTapHighlightColor: 'transparent',
     touchAction: 'manipulation',
     transition: 'transform 0.15s ease',
+    flexShrink: 0,
   })
 
   return (
     <div style={{
-      display:'flex', flexDirection:'column', alignItems:'center', gap:8,
+      display:'flex', flexDirection:'column', alignItems:'center', gap:4,
       width:'100%', maxHeight:'100%', overflow:'hidden',
-      padding:'4px 8px', boxSizing:'border-box',
+      padding:'2px 8px', boxSizing:'border-box',
     }}>
       <div style={{
-        fontFamily:'var(--font-thai)', fontSize:15,
-        color:'#FFD700', fontWeight:600, marginBottom:2,
+        fontFamily:'var(--font-thai)', fontSize:12,
+        color:'#FFD700', fontWeight:600, lineHeight:1.2, textAlign:'center',
       }}>
-        แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน
+        แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน ({pairCount} คู่)
       </div>
       <div style={{
-        fontFamily:'var(--font-pixel)', fontSize:8,
-        color:'rgba(255,255,255,0.4)', letterSpacing:1,
+        display:'grid', gridTemplateColumns:'repeat(3, 40px)', gap:5,
+        marginTop: 2,
       }}>
-        จับคู่ให้ครบ {pairCount} คู่
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 52px)', gap:6 }}>
         {cards.map(card => {
           const isFaceUp = flipped.includes(card.id) || matched.includes(card.pairId)
           return (

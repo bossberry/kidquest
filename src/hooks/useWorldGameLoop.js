@@ -19,7 +19,7 @@ export function useWorldGameLoop({
   canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
   eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
-  fogOverlayRef, torchRingRef,
+  fogOverlayRef, torchRingRef, mazeExitPosRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -178,6 +178,17 @@ export function useWorldGameLoop({
             }
             break
           }
+          case 'ghost_wisp': {
+            // Slow random drift — never chases, always passive
+            if (ne.timer >= 70) {
+              ne.timer = 0
+              ne.rngSeed = (ne.rngSeed * 31 + 7) % 97
+              const d = DIRS4[ne.rngSeed % 4]
+              const nc = ne.col + d[0]; const nr = ne.row + d[1]
+              if (canMove(tileMap, nc, nr)) { ne.col = nc; ne.row = nr }
+            }
+            break
+          }
           case 'snake': {
             const gc3 = gameRef.current
             const dist = gc3
@@ -235,17 +246,31 @@ export function useWorldGameLoop({
       return pendingBattle
     }
 
-    function renderEnemies(ctx, camX, camY) {
+    function renderEnemies(ctx, camX, camY, frame) {
       const spriteSize = TILE * 2
       enemiesRef.current.forEach(e => {
         if (e.defeated) return
         const sz = e.type === 'baby_zombie' ? Math.round(spriteSize * 0.6) : spriteSize
         const cx = Math.round((e.col + 0.5) * TILE - camX)
-        const cy = Math.round((e.row + 0.5) * TILE - camY)
+        let cy = Math.round((e.row + 0.5) * TILE - camY)
+
+        // Ghosts bob up and down gently
+        if (e.type === 'ghost_wisp') {
+          cy += Math.round(Math.sin((frame + e.col * 13) * 0.08) * 3)
+        }
+
         const px = cx - sz / 2
         const py = cy - sz / 2
 
-        drawEnemy(ctx, e.type, sz, px, py)
+        if (e.type === 'ghost_wisp') {
+          ctx.save()
+          ctx.shadowColor = 'rgba(180,140,255,0.8)'
+          ctx.shadowBlur = 10
+          drawEnemy(ctx, e.type, sz, px, py)
+          ctx.restore()
+        } else {
+          drawEnemy(ctx, e.type, sz, px, py)
+        }
         // Boss always shows red '!'
         if (e.isWorldBoss) {
           ctx.fillStyle = '#ff2020'
@@ -323,12 +348,19 @@ export function useWorldGameLoop({
       const camY = camYBase - Math.round((HUD_CONTENT_H + PANEL_H) / 2)
       ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
-      renderEnemies(ctx, camX, camY)
+      renderEnemies(ctx, camX, camY, g.frame)
       renderChests(ctx, camX, camY, g.frame)
+      // World-map entry portal (shown on NW/NE/SW/SE screens)
       if (mazePortalPosRef?.current) {
         const ppx = Math.round(mazePortalPosRef.current.col * TILE - camX)
         const ppy = Math.round(mazePortalPosRef.current.row * TILE - camY)
         drawMazePortal(ctx, ppx, ppy, g.frame)
+      }
+      // Maze exit portal (shown only inside MAZE, at the opposite corner from entry)
+      if (screenIdRef?.current === 'MAZE' && mazeExitPosRef?.current) {
+        const epx = Math.round(mazeExitPosRef.current.col * TILE - camX)
+        const epy = Math.round(mazeExitPosRef.current.row * TILE - camY)
+        drawMazePortal(ctx, epx, epy, g.frame)
       }
 
       const playerGlowX = Math.round(g.displayX * TILE - camX)

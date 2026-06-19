@@ -286,6 +286,7 @@ export function generateBossMap(worldLevel) {
 
 export function generateMazeMap() {
   const map = Array.from({ length: 15 }, () => Array(20).fill(T.TREE))
+  const openCells = []
 
   // Recursive backtracker — carves through interior odd-coordinate cells
   function carve(r, c) {
@@ -297,26 +298,61 @@ export function generateMazeMap() {
     for (const [dr, dc] of dirs) {
       const nr = r + dr, nc = c + dc
       if (nr > 0 && nr < 14 && nc > 0 && nc < 19 && map[nr][nc] === T.TREE) {
-        map[r + Math.sign(dr)][c + Math.sign(dc)] = T.GRASS
+        const mr = r + Math.sign(dr), mc = c + Math.sign(dc)
+        map[mr][mc] = T.GRASS
         map[nr][nc] = T.GRASS
+        openCells.push({ col: mc, row: mr }, { col: nc, row: nr })
         carve(nr, nc)
       }
     }
   }
 
   map[13][1] = T.GRASS
+  openCells.push({ col: 1, row: 13 })
   carve(13, 1)
 
-  // Ensure path to exit column (row 1, col 17)
-  if (map[1][17] !== T.GRASS) map[1][17] = T.GRASS
-  if (map[1][18] !== T.GRASS) map[1][18] = T.GRASS
+  // Ensure corridor reaches the exit corner (top-right)
+  if (map[1][17] !== T.GRASS) { map[1][17] = T.GRASS; openCells.push({ col: 17, row: 1 }) }
+  if (map[1][18] !== T.GRASS) { map[1][18] = T.GRASS; openCells.push({ col: 18, row: 1 }) }
 
-  // Exit tiles
-  map[0][17]  = T.EXIT_N   // maze clear → go to NW
-  map[7][19]  = T.EXIT_E   // side exit → go to SE
-  map[14][1]  = T.EXIT_S   // give-up exit → go to BOSS
+  // Single exit portal tile — top-right corner, opposite the bottom-left entry.
+  // Reuses EXIT_N for collision/routing; rendered as a purple portal by the RAF loop.
+  map[1][18] = T.EXIT_N
 
-  return map
+  return { map, openCells, entryPos: { col: 1, row: 13 }, exitPos: { col: 18, row: 1 } }
+}
+
+export function spawnMazeContents(openCells, entryPos, exitPos) {
+  const safeCells = openCells.filter(c =>
+    (Math.abs(c.col - entryPos.col) + Math.abs(c.row - entryPos.row) > 2) &&
+    (Math.abs(c.col - exitPos.col) + Math.abs(c.row - exitPos.row) > 2)
+  )
+  const shuffled = [...safeCells]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+
+  const chestCount = 2 + Math.floor(Math.random() * 2)
+  const chests = shuffled.slice(0, chestCount).map((pos, i) => ({
+    col: pos.col, row: pos.row,
+    id: `maze_chest_${Date.now()}_${i}`,
+    opened: false,
+  }))
+
+  const enemyCount = 3 + Math.floor(Math.random() * 2)
+  const enemyCells = shuffled.slice(chestCount, chestCount + enemyCount)
+  const enemies = enemyCells.map((pos, i) => ({
+    id: `ghost_${Date.now()}_${i}`,
+    type: 'ghost_wisp',
+    col: pos.col, row: pos.row,
+    dir: 'none', timer: 0,
+    rngSeed: Math.floor(Math.random() * 97),
+    woken: false, isAggro: false, aggroTimer: 0,
+    defeated: false, respawnTimer: 0, dead: false, deathTimer: 0, opacity: 1,
+  }))
+
+  return { chests, enemies }
 }
 
 // Randomly place enemies from world level pool on a regular screen slot

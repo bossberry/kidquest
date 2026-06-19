@@ -12,4 +12,5 @@ export const ENEMY_DATA = {
   grumpy_mole:  { nameTH: 'ตุ่นบึ้กตึง', hp: 52, atk: 4, def: 1, level: 3, subject: 'math' },
   baby_zombie:  { nameTH: 'เบบี้ซอมบี้',  hp: 32, atk: 4, def: 0, level: 2, subject: null  },
   snake:        { nameTH: 'งูยักษ์',      hp: 50, atk: 5, def: 1, level: 3, subject: null  },
+  ghost_wisp:   { nameTH: 'วิญญาณเรืองแสง', hp: 30, atk: 3, def: 0, level: 1, subject: null },
 }

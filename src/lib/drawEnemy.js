@@ -30,6 +30,7 @@ const DRAW_FNS = {
   mushroom_imp: _mushroomImp,
   baby_zombie: _babyZombie,
   snake: _snake,
+  ghost_wisp: _ghostWisp,
 }
 
 // ── SLEEPY BUNNY ──────────────────────────────────────────────────────────────
@@ -312,6 +313,54 @@ function _snake(ctx, size) {
   p(23,  3,  2,  2, '#cc2020')  // fork right
 }
 
+// ── GHOST WISP ────────────────────────────────────────────────────────────────
+
+function _ghostWisp(ctx, size) {
+  const s = size / 48
+  const p = (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(Math.round(x*s),Math.round(y*s),Math.round(w*s),Math.round(h*s)) }
+
+  // Outer glow halo (very transparent, large)
+  ctx.save()
+  ctx.globalAlpha = 0.25
+  p(6, 4, 36, 36, '#b090ff')
+  ctx.restore()
+
+  // Wispy trailing tail (3 fading blob segments below the body)
+  ctx.save()
+  ctx.globalAlpha = 0.35
+  p(16, 34, 16, 6, '#c8a8ff')
+  ctx.globalAlpha = 0.22
+  p(18, 39, 12, 5, '#c8a8ff')
+  ctx.globalAlpha = 0.12
+  p(20, 43, 8, 4, '#c8a8ff')
+  ctx.restore()
+
+  // Main body (rounded blob, semi-transparent)
+  ctx.save()
+  ctx.globalAlpha = 0.75
+  p(14, 10, 20, 22, '#d8c0ff')
+  p(12, 14, 24, 18, '#d8c0ff')
+  ctx.restore()
+
+  // Bright core
+  ctx.save()
+  ctx.globalAlpha = 0.9
+  p(17, 14, 14, 14, '#f0e8ff')
+  ctx.restore()
+
+  // Eyes — simple glowing dots, no pupils (ghostly)
+  ctx.save()
+  ctx.globalAlpha = 0.95
+  p(19, 19, 4, 4, '#6a3acc')
+  p(27, 19, 4, 4, '#6a3acc')
+  ctx.restore()
+
+  // Tiny mouth
+  ctx.globalAlpha = 0.7
+  p(22, 26, 6, 2, '#6a3acc')
+  ctx.globalAlpha = 1
+}
+
 // ── EYE POSITIONS (48-grid coords) — used by drawEnemyHurt ───────────────────
 
 const EYE_POSITIONS = {
@@ -328,6 +377,7 @@ const EYE_POSITIONS = {
   mushroom_imp: { lx: 18, rx: 30, ey: 32, r: 4 },
   baby_zombie:  { lx: 16, rx: 28, ey: 13, r: 3 },
   snake:        { lx: 19, rx: 27, ey: 10, r: 2 },
+  ghost_wisp:   { lx: 21, rx: 29, ey: 21, r: 3 },
 }
 
 function drawHurtEyes(ctx, size, pos) {

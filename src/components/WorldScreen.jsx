@@ -8,7 +8,7 @@ import {
   T, canMove, getExitAt,
   EXIT_DIR_NAME, getEntryPosition,
 } from '../lib/tileEngine.js'
-import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies } from '../lib/tileMaps.js'
+import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies, spawnMazeContents } from '../lib/tileMaps.js'
 import { useWorldGameLoop } from '../hooks/useWorldGameLoop.js'
 import { getBattleSubject } from '../lib/battleSubject.js'
 import useBattleTrigger from '../hooks/useBattleTrigger.js'
@@ -84,6 +84,8 @@ export default function WorldScreen({ navigate }) {
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
   const mazePortalPosRef = useRef(null)
+  const mazeOpenCellsRef = useRef([])
+  const mazeExitPosRef   = useRef(null)
   const fogOverlayRef    = useRef(null)
   const torchRingRef     = useRef(null)
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
@@ -132,7 +134,10 @@ export default function WorldScreen({ navigate }) {
         ? getEntryPosition(tileMap, fromExitType)
         : { col: 10, row: 13 })
     } else if (id === 'MAZE') {
-      tileMap = generateMazeMap()
+      const mazeGen = generateMazeMap()
+      tileMap = mazeGen.map
+      mazeOpenCellsRef.current = mazeGen.openCells
+      mazeExitPosRef.current   = mazeGen.exitPos
       startPos = forcedStart ?? { col: 1, row: 13 }
     } else {
       tileMap = generateScreenMap(id, wLevel)
@@ -192,28 +197,38 @@ export default function WorldScreen({ navigate }) {
       return
     }
 
-    const defs = screenId === 'MAZE' ? [] : getScreenEnemies(screenId, wLevel)
-    enemiesRef.current = defs.map((def, i) => ({
-      id:           `${screenId}_${i}`,
-      type:         def.type,
-      col:          def.col,
-      row:          def.row,
-      dir:          def.type === 'bouncy_slime' ? 'up'
-                  : def.type === 'egg_pawn'     ? 'down'
-                  : def.type === 'fox_kit'      ? 'right'
-                  : 'none',
-      timer:        i * 17,
-      rngSeed:      (i * 37 + 11) % 97,
-      woken:        false,
-      isAggro:      false,
-      aggroTimer:   0,
-      defeated:     false,
-      respawnTimer: 0,
-      dead:         false,
-      deathTimer:   0,
-      opacity:      1,
-    }))
-    chestsRef.current = screenId === 'MAZE' ? [] : spawnChests(tileMapRef.current, defs)
+    if (screenId === 'MAZE') {
+      const { chests, enemies } = spawnMazeContents(
+        mazeOpenCellsRef.current,
+        mazeExitPosRef.current ? { col: 1, row: 13 } : { col: 1, row: 13 },
+        mazeExitPosRef.current ?? { col: 18, row: 1 },
+      )
+      chestsRef.current  = chests
+      enemiesRef.current = enemies
+    } else {
+      const defs = getScreenEnemies(screenId, wLevel)
+      enemiesRef.current = defs.map((def, i) => ({
+        id:           `${screenId}_${i}`,
+        type:         def.type,
+        col:          def.col,
+        row:          def.row,
+        dir:          def.type === 'bouncy_slime' ? 'up'
+                    : def.type === 'egg_pawn'     ? 'down'
+                    : def.type === 'fox_kit'      ? 'right'
+                    : 'none',
+        timer:        i * 17,
+        rngSeed:      (i * 37 + 11) % 97,
+        woken:        false,
+        isAggro:      false,
+        aggroTimer:   0,
+        defeated:     false,
+        respawnTimer: 0,
+        dead:         false,
+        deathTimer:   0,
+        opacity:      1,
+      }))
+      chestsRef.current = spawnChests(tileMapRef.current, defs)
+    }
     // Apply death animation for the enemy that was just defeated in battle
     try {
       const lb = JSON.parse(sessionStorage.getItem('kq_last_battle') || 'null')
@@ -481,7 +496,7 @@ export default function WorldScreen({ navigate }) {
     canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
     battlePendingRef, battleDispatchedRef, triggerBattleRef,
     eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
-    fogOverlayRef, torchRingRef,
+    fogOverlayRef, torchRingRef, mazeExitPosRef,
   })
 
   // ── Boss defeat → tier advance ────────────────────────────────────────────────

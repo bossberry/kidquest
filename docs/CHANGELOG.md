@@ -1,5 +1,32 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: maze chests, ghost_wisp enemies, single exit portal
+
+### src/config/enemyConfig.js
+- Added `ghost_wisp` (hp:30, atk:3, def:0, subject:null) — maze-exclusive
+
+### src/lib/drawEnemy.js
+- Added `_ghostWisp()` pixel art sprite (48-grid, semi-transparent blob with glowing tail)
+- Added `ghost_wisp` to DRAW_FNS and EYE_POSITIONS
+
+### src/lib/tileMaps.js
+- `generateMazeMap()` return shape changed from plain array to `{ map, openCells, entryPos, exitPos }`; `openCells` collected during carving; single EXIT_N at [1][18] replaces old 3-exit layout
+- Added `spawnMazeContents(openCells, entryPos, exitPos)` — returns 2–3 chests + 3–4 ghost_wisp enemies on safe tiles
+
+### src/components/WorldScreen.jsx
+- Added `mazeOpenCellsRef` + `mazeExitPosRef` refs
+- `initScreen` MAZE branch destructures new return shape; stores openCells + exitPos in refs
+- `spawnMazeContents` imported and used for MAZE screen-init; non-MAZE path unchanged
+- `mazeExitPosRef` passed to `useWorldGameLoop`
+
+### src/hooks/useWorldGameLoop.js
+- Added `mazeExitPosRef` to hook signature
+- Added `ghost_wisp` AI case: slow random drift (timer≥70), never chases
+- `renderEnemies` gains `frame` param; ghost_wisp gets vertical bob + purple glow
+- Maze exit portal rendered via `drawMazePortal` when `screenIdRef.current === 'MAZE'`
+
+---
+
 ## 2026-06-19 — fix: replace canvas fog-of-war with DOM CSS-mask overlay
 
 ### src/lib/worldDrawHelpers.js

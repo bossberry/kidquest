@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
@@ -339,6 +339,24 @@ function SubjectLevelProgress({ subjectLevels, subjectSessionStreak, levelMaster
   )
 }
 
+function StageIcon({ egg, stage, size }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const seed = getCreatureSeed(egg)
+    const baseStats = egg.eggStats ?? egg.stats ?? {}
+    drawCreature(canvas, seed, { ...baseStats, evoStage: stage })
+  }, [egg, stage])
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size} height={size}
+      style={{ imageRendering: 'pixelated', display: 'block' }}
+    />
+  )
+}
+
 function CreatureJourney({ egg, currentTier }) {
   const evo   = egg.evoStage ?? 'baby'
   const level = egg.battleLevel ?? 1
@@ -377,9 +395,9 @@ function CreatureJourney({ egg, currentTier }) {
   }
 
   const stages = [
-    { stage: 'baby',  emoji: '🥚', label: 'Baby'  },
-    { stage: 'teen',  emoji: '🐉', label: 'Teen'  },
-    { stage: 'final', emoji: '✨', label: 'Final' },
+    { stage: 'baby',  label: 'Baby'  },
+    { stage: 'teen',  label: 'Teen'  },
+    { stage: 'final', label: 'Final' },
   ]
 
   const stageStatus = (idx) => idx < evoIndex ? 'done' : idx === evoIndex ? 'current' : 'locked'
@@ -406,12 +424,11 @@ function CreatureJourney({ egg, currentTier }) {
                     : 'rgba(255,255,255,0.05)',
                   border: status === 'current' ? '3px solid #EF9F27' : status === 'done' ? '2px solid #4acd4a' : '2px solid rgba(255,255,255,0.1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: status === 'current' ? 21 : 17,
-                  margin: '0 auto 4px',
+                  margin: '0 auto 4px', overflow: 'hidden',
                   opacity: status === 'locked' ? 0.35 : 1,
                   filter: status === 'locked' ? 'grayscale(0.6)' : 'none',
                 }}>
-                  {s.emoji}
+                  <StageIcon egg={egg} stage={s.stage} size={status === 'current' ? 40 : 30} />
                 </div>
                 <div style={{
                   fontFamily: 'var(--font-pixel)', fontSize: status === 'current' ? 9 : 8,
@@ -449,9 +466,11 @@ function CreatureJourney({ egg, currentTier }) {
             }} />
             <div style={{
               position: 'absolute', left: `${progressPct}%`, top: '50%',
-              transform: 'translate(-50%, -50%)', fontSize: 14, transition: 'left 0.6s ease',
+              transform: 'translate(-50%, -50%)', transition: 'left 0.6s ease',
+              width: 18, height: 18, borderRadius: '50%', overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.3)',
             }}>
-              {stages[evoIndex + 1]?.emoji}
+              {stages[evoIndex + 1] && <StageIcon egg={egg} stage={stages[evoIndex + 1].stage} size={16} />}
             </div>
           </div>
           <div style={{

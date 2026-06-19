@@ -13,6 +13,7 @@ import EggPopup from './components/EggPopup.jsx'
 import HatchOverlay from './components/HatchOverlay.jsx'
 import LevelUpCutscene from './components/LevelUpCutscene.jsx'
 import LoginModal from './components/LoginModal.jsx'
+import ResetPasswordModal from './components/ResetPasswordModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
@@ -62,6 +63,7 @@ export default function App() {
       )}
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ResetPasswordModal />
 
       {/* Screens */}
       {screen === 'home' && (

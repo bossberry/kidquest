@@ -84,6 +84,8 @@ export default function WorldScreen({ navigate }) {
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
   const mazePortalPosRef = useRef(null)
+  const fogOverlayRef    = useRef(null)
+  const torchRingRef     = useRef(null)
   const [slotMachineOpen, setSlotMachineOpen] = useState(false)
   const [bossConfirm, setBossConfirm] = useState(false)
   const [mazeConfirm, setMazeConfirm] = useState(false)
@@ -479,6 +481,7 @@ export default function WorldScreen({ navigate }) {
     canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
     battlePendingRef, battleDispatchedRef, triggerBattleRef,
     eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
+    fogOverlayRef, torchRingRef,
   })
 
   // ── Boss defeat → tier advance ────────────────────────────────────────────────
@@ -532,6 +535,40 @@ export default function WorldScreen({ navigate }) {
         height={viewSize.h}
         style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated' }}
       />
+
+      {/* Maze fog-of-war overlay — DOM div with CSS mask so the center is truly transparent */}
+      {screenId === 'MAZE' && (
+        <div
+          ref={fogOverlayRef}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 2,
+            background: 'rgba(8,4,14,0.97)',
+            WebkitMaskImage: 'radial-gradient(circle 80px at 50% 50%, transparent 0%, transparent 60%, rgba(0,0,0,0.6) 88%, black 100%)',
+            maskImage: 'radial-gradient(circle 80px at 50% 50%, transparent 0%, transparent 60%, rgba(0,0,0,0.6) 88%, black 100%)',
+          }}
+        />
+      )}
+
+      {/* Torch ring — warm glow at the edge of the lit circle, updated every frame */}
+      {screenId === 'MAZE' && (
+        <div
+          ref={torchRingRef}
+          style={{
+            position: 'absolute',
+            width: 130, height: 130,
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            zIndex: 3,
+            border: '6px solid rgba(255,190,100,0.35)',
+            boxShadow: '0 0 24px 6px rgba(255,170,80,0.25)',
+            transform: 'translate(-50%, -50%)',
+            left: 0, top: 0,
+          }}
+        />
+      )}
 
       {/* Sky tint — changes with subject level (morning/afternoon/sunset/night) */}
       {(() => {

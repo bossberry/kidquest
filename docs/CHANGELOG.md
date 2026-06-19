@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — fix: replace canvas fog-of-war with DOM CSS-mask overlay
+
+### src/lib/worldDrawHelpers.js
+- Removed `drawMazeFog()` entirely (was using destination-out canvas compositing which produced unreliable results)
+
+### src/hooks/useWorldGameLoop.js
+- Removed `drawMazeFog` from import
+- Added `fogOverlayRef`, `torchRingRef` to hook signature
+- In loop(): when MAZE, updates `fogOverlayRef.current.style.WebkitMaskImage` + `maskImage` with flickering `radial-gradient` each frame; updates `torchRingRef.current.style.left/top/width/height` for animated warm ring
+
+### src/components/WorldScreen.jsx
+- Added `fogOverlayRef` + `torchRingRef` ref declarations
+- Added fog overlay `<div>` (z-index 2, CSS mask background) + torch ring `<div>` (z-index 3, amber border + box-shadow) — both conditionally rendered when `screenId === 'MAZE'`
+- Passed `fogOverlayRef`, `torchRingRef` to `useWorldGameLoop`
+
+---
+
 ## 2026-06-19 — feat: replace maze exit-routing with a glowing purple portal object
 
 ### src/lib/state.js

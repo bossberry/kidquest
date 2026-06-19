@@ -115,49 +115,6 @@ export function drawMazePortal(ctx, x, y, frame) {
   }
 }
 
-// ── Fog-of-war (maze only) ───────────────────────────────────────────────────
-// Solid darkness over the whole canvas, punched through with a flickering
-// circular light radius centered on the player. No memory of lit areas.
-export function drawMazeFog(ctx, playerPx, playerPy, frame, canvasW, canvasH) {
-  const cx = playerPx + TILE / 2
-  const cy = playerPy + TILE / 2
-
-  // Candle-like flicker: two overlapping sines at different speeds/phases
-  const flicker = Math.sin(frame * 0.15) * 3 + Math.sin(frame * 0.37 + 1.3) * 2
-  const radius = 58 + flicker
-
-  // Step 1: fill entire canvas with solid darkness
-  ctx.save()
-  ctx.fillStyle = 'rgba(8,4,14,0.96)'
-  ctx.fillRect(0, 0, canvasW, canvasH)
-  ctx.restore()
-
-  // Step 2: punch a fully-transparent hole through the darkness using
-  // destination-out. Full erasure through 55% of radius, soft feather only near edge.
-  ctx.save()
-  ctx.globalCompositeOperation = 'destination-out'
-  const eraseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
-  eraseGrad.addColorStop(0,    'rgba(0,0,0,1)')
-  eraseGrad.addColorStop(0.55, 'rgba(0,0,0,1)')
-  eraseGrad.addColorStop(0.85, 'rgba(0,0,0,0.6)')
-  eraseGrad.addColorStop(1,    'rgba(0,0,0,0)')
-  ctx.fillStyle = eraseGrad
-  ctx.beginPath()
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-
-  // Step 3: warm torch-light tint as a thin ring near the edge only —
-  // NOT a filled disc, so it can't re-darken the transparent center.
-  ctx.save()
-  ctx.globalCompositeOperation = 'source-over'
-  ctx.strokeStyle = `rgba(255,180,90,${0.25 + Math.max(0, flicker) * 0.03})`
-  ctx.lineWidth = 8
-  ctx.beginPath()
-  ctx.arc(cx, cy, radius * 0.78, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.restore()
-}
 
 export function getOwlLines(name) {
   return [

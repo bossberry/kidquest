@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { T, canMove, getCamera, renderMap, renderPlayer } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
-import { drawChest, drawPlayerGlow, drawMazeFog, drawMazePortal } from '../lib/worldDrawHelpers.js'
+import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const TILE = 16
@@ -19,6 +19,7 @@ export function useWorldGameLoop({
   canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
   eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
+  fogOverlayRef, torchRingRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -333,9 +334,22 @@ export function useWorldGameLoop({
       const playerGlowX = Math.round(g.displayX * TILE - camX)
       const playerGlowY = Math.round(g.displayY * TILE - camY)
       if (screenIdRef?.current === 'MAZE') {
-        // Fog-of-war: darkness with a flickering torch-light radius, drawn before
-        // the player sprite so the player stays crisp on top of the lit circle.
-        drawMazeFog(ctx, playerGlowX, playerGlowY, g.frame, vw, vh)
+        // Fog is a DOM overlay div — update its CSS mask + torch ring position every frame
+        if (fogOverlayRef?.current) {
+          const flicker = Math.sin(g.frame * 0.15) * 6 + Math.sin(g.frame * 0.37 + 1.3) * 4
+          const radius = 78 + flicker
+          const mask = `radial-gradient(circle ${radius}px at ${playerGlowX}px ${playerGlowY}px, transparent 0%, transparent 60%, rgba(0,0,0,0.6) 88%, black 100%)`
+          fogOverlayRef.current.style.WebkitMaskImage = mask
+          fogOverlayRef.current.style.maskImage = mask
+        }
+        if (torchRingRef?.current) {
+          const flicker2 = Math.sin(g.frame * 0.15) * 6 + Math.sin(g.frame * 0.37 + 1.3) * 4
+          const ringSize = 130 + flicker2 * 1.5
+          torchRingRef.current.style.left   = `${playerGlowX}px`
+          torchRingRef.current.style.top    = `${playerGlowY}px`
+          torchRingRef.current.style.width  = `${ringSize}px`
+          torchRingRef.current.style.height = `${ringSize}px`
+        }
       } else {
         drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
       }

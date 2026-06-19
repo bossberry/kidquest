@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Cloud-sync conflict resolution: timestamps instead of rounds:**
+- Built: `defaultState()` now includes `lastSavedAt: Date.now()`. `saveState()` stamps `{ ...s, lastSavedAt: Date.now() }` on every save before writing to localStorage and pushing to Supabase — so `state_json` in the cloud always carries the timestamp too. Both conflict-resolution sites updated: `loadState().then()` block and `SIGNED_IN` block now compare `lastSavedAt` (if present on either side); fall back to `rounds` comparison only when both sides lack a timestamp (old saves). The "cloud has creatures but local is empty" unconditional override in SIGNED_IN is preserved.
+- Not finished: nothing
+- Blockers/risks found: none — `ACTIONS.INIT` reducer uses `{ ...defaultState(), ...action.payload, ... }` so `lastSavedAt` from payload is preserved on dispatch
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Logout button in ProfileModal:**
 - Built: ProfileModal now imports `supabase` and `useEffect`. On open, calls `supabase.auth.getUser()` and stores email in `userEmail` state. When `userEmail` is set, renders a separator + current-account email label + "ออกจากระบบ" button (red outline, disabled during `loggingOut`). Button calls `supabase.auth.signOut()` then `onClose()`. No SIGNED_OUT handler in StateContext — intentional: in-session state is preserved after logout; cloud sync disconnects until next login.
 - Not finished: nothing

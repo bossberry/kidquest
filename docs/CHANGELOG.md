@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — fix: cloud-sync conflict resolution uses timestamps instead of rounds counter
+
+### src/lib/state.js
+- Added `lastSavedAt: Date.now()` to `defaultState()`
+- `saveState()` now stamps `{ ...s, lastSavedAt: Date.now() }` before writing to localStorage and syncing to Supabase — timestamp flows into `state_json` automatically
+
+### src/context/StateContext.jsx
+- `loadState().then()`: replaced `rounds` comparison with `lastSavedAt` comparison; falls back to `rounds` only if both sides have `lastSavedAt === 0` (pre-existing old saves)
+- `SIGNED_IN` block: same timestamp logic; unconditional "cloud has creatures, local empty" override retained
+- Log messages updated to show ISO timestamps instead of round counts
+
+---
+
 ## 2026-06-19 — feat: logout button in ProfileModal
 
 ### src/components/ProfileModal.jsx

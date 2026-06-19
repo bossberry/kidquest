@@ -345,96 +345,132 @@ function CreatureJourney({ egg, currentTier }) {
   const bond  = egg.bondMeter ?? 0
   const req   = PROGRESSION_MAP.evoRequirements
   const EVO_ORDER = { baby: 0, teen: 1, final: 2 }
+  const evoIndex = EVO_ORDER[evo]
 
-  const steps = [
-    {
-      id: 'teen',
-      label: 'วิวัฒนาการ → Teen',
-      done: EVO_ORDER[evo] >= 1,
-      ready: level >= req.teen.minBattleLevel && currentTier >= req.teen.minTier,
-      needs: [
-        level < req.teen.minBattleLevel && `Lv ${level}/${req.teen.minBattleLevel}`,
-        currentTier < req.teen.minTier  && `Tier ${currentTier}/${req.teen.minTier}`,
-      ].filter(Boolean),
-    },
-    {
-      id: 'final',
-      label: 'วิวัฒนาการ → Final',
-      done: evo === 'final',
-      ready: level >= req.final.minBattleLevel && currentTier >= req.final.minTier && bond >= req.final.minBond,
-      needs: [
-        level < req.final.minBattleLevel && `Lv ${level}/${req.final.minBattleLevel}`,
-        currentTier < req.final.minTier  && `Tier ${currentTier}/${req.final.minTier}`,
-        bond < req.final.minBond         && `Bond ${bond}/${req.final.minBond}`,
-      ].filter(Boolean),
-    },
+  const nextStep = evo === 'final' ? null : evo === 'teen' ? 'final' : 'teen'
+  const nextReq  = nextStep ? req[nextStep] : null
+
+  // Progress % = bottleneck stat (the one furthest from done drives the bar)
+  let progressPct = 100
+  let primaryLabel = ''
+  let remainingText = ''
+  if (nextStep === 'teen') {
+    const levelPct = Math.min(100, (level / req.teen.minBattleLevel) * 100)
+    const tierPct  = Math.min(100, (currentTier / req.teen.minTier) * 100)
+    progressPct = Math.min(levelPct, tierPct)
+    primaryLabel = 'กำลังมุ่งสู่ Teen'
+    const levelsLeft = Math.max(0, req.teen.minBattleLevel - level)
+    remainingText = levelsLeft > 0
+      ? `เลเวล ${level}/${req.teen.minBattleLevel} · ตอบถูกอีก ~${levelsLeft * 8} ข้อ ก็เลื่อนขั้น!`
+      : `รอเลื่อนชั้นเรียนถึง Tier ${req.teen.minTier} เพื่อวิวัฒนาการ!`
+  } else if (nextStep === 'final') {
+    const levelPct = Math.min(100, (level / req.final.minBattleLevel) * 100)
+    const tierPct  = Math.min(100, (currentTier / req.final.minTier) * 100)
+    const bondPct  = Math.min(100, (bond / req.final.minBond) * 100)
+    progressPct = Math.min(levelPct, tierPct, bondPct)
+    primaryLabel = 'กำลังมุ่งสู่ Final'
+    const levelsLeft = Math.max(0, req.final.minBattleLevel - level)
+    const bondLeft = Math.max(0, req.final.minBond - bond)
+    if (levelsLeft > 0) remainingText = `เลเวล ${level}/${req.final.minBattleLevel} · ตอบถูกอีก ~${levelsLeft * 8} ข้อ!`
+    else if (bondLeft > 0) remainingText = `ผูกพัน ${bond}/${req.final.minBond} · เล่นกับมันที่บ้านอีกหน่อย!`
+    else remainingText = `รอเลื่อนชั้นเรียนถึง Tier ${req.final.minTier}!`
+  }
+
+  const stages = [
+    { stage: 'baby',  emoji: '🥚', label: 'Baby'  },
+    { stage: 'teen',  emoji: '🐉', label: 'Teen'  },
+    { stage: 'final', emoji: '✨', label: 'Final' },
   ]
 
+  const stageStatus = (idx) => idx < evoIndex ? 'done' : idx === evoIndex ? 'current' : 'locked'
+
   return (
-    <div style={{ marginTop:10, padding:'8px 10px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', width:'100%' }}>
-      <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,255,255,0.25)', marginBottom:6, letterSpacing:1 }}>
-        JOURNEY AHEAD
-      </div>
-      {steps.map(step => (
-        <div key={step.id} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-          <div style={{
-            fontSize:11,
-            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.2)',
-          }}>{step.done ? '✅' : step.ready ? '⚡' : '○'}</div>
-          <div style={{
-            flex:1, fontFamily:'var(--font-thai)', fontSize:10,
-            color: step.done ? '#44ee44' : step.ready ? '#EF9F27' : 'rgba(255,255,255,0.4)',
-          }}>
-            {step.label}
-          </div>
-          {!step.done && step.needs.length > 0 && (
-            <div style={{ fontFamily:'var(--font-pixel)', fontSize:7, color:'rgba(255,100,100,0.5)', textAlign:'right' }}>
-              {step.needs.join(' · ')}
-            </div>
-          )}
-        </div>
-      ))}
-      <div style={{ marginTop:8, display:'flex', gap:8, alignItems:'flex-end', justifyContent:'center' }}>
-        {[
-          { stage:'baby',  label:'Baby',  scale:0.6 },
-          { stage:'teen',  label:'Teen',  scale:0.8 },
-          { stage:'final', label:'Final', scale:1.0 },
-        ].map(({ stage, label, scale }) => {
-          const isDone    = EVO_ORDER[evo] > EVO_ORDER[stage]
-          const isCurrent = evo === stage
-          const isFuture  = EVO_ORDER[evo] < EVO_ORDER[stage]
-          const size = Math.round(48 * scale)
+    <div style={{
+      marginTop: 10, padding: '14px 14px', background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)', width: '100%', boxSizing: 'border-box',
+    }}>
+      {/* 3-stage journey map */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 14 }}>
+        {stages.map((s, i) => {
+          const status = stageStatus(i)
+          const isLast = i === stages.length - 1
           return (
-            <div key={stage} style={{
-              display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-              opacity: isFuture ? 0.3 : 1,
-              position:'relative',
-            }}>
-              {isCurrent && (
-                <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'#EF9F27', marginBottom:2 }}>NOW</div>
-              )}
-              {isDone && (
-                <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'#44ee44', marginBottom:2 }}>✓</div>
-              )}
-              <canvas
-                ref={r => { if (r) drawCreature(r, getCreatureSeed({ ...egg, evoStage: stage }), { ...(egg.eggStats ?? {}), evoStage: stage }) }}
-                width={size} height={size}
-                style={{
-                  imageRendering:'pixelated',
-                  filter: isFuture ? 'grayscale(1) brightness(0.4)' : isCurrent ? 'drop-shadow(0 0 4px #EF9F27)' : 'none',
-                  border: isCurrent ? '1px solid #EF9F27' : '1px solid rgba(255,255,255,0.08)',
-                }}
-              />
-              <div style={{
-                fontFamily:'var(--font-pixel)', fontSize:6,
-                color: isCurrent ? '#EF9F27' : isDone ? '#44ee44' : 'rgba(255,255,255,0.2)',
-              }}>
-                {label.toUpperCase()}
+            <React.Fragment key={s.stage}>
+              <div style={{ flex: '0 0 auto', textAlign: 'center', width: status === 'current' ? 60 : 50 }}>
+                <div style={{
+                  width: status === 'current' ? 48 : 38,
+                  height: status === 'current' ? 48 : 38,
+                  borderRadius: '50%',
+                  background: status === 'done' ? 'rgba(74,205,74,0.25)'
+                    : status === 'current' ? 'rgba(239,159,39,0.3)'
+                    : 'rgba(255,255,255,0.05)',
+                  border: status === 'current' ? '3px solid #EF9F27' : status === 'done' ? '2px solid #4acd4a' : '2px solid rgba(255,255,255,0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: status === 'current' ? 21 : 17,
+                  margin: '0 auto 4px',
+                  opacity: status === 'locked' ? 0.35 : 1,
+                  filter: status === 'locked' ? 'grayscale(0.6)' : 'none',
+                }}>
+                  {s.emoji}
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-pixel)', fontSize: status === 'current' ? 9 : 8,
+                  color: status === 'done' ? '#4acd4a' : status === 'current' ? '#EF9F27' : 'rgba(255,255,255,0.3)',
+                }}>
+                  {s.label}
+                </div>
               </div>
-            </div>
+              {!isLast && (
+                <div style={{
+                  flex: 1, height: 3, borderRadius: 2,
+                  background: i < evoIndex ? '#4acd4a' : i === evoIndex ? '#EF9F27' : 'rgba(255,255,255,0.08)',
+                }} />
+              )}
+            </React.Fragment>
           )
         })}
       </div>
+
+      {/* Animated progress bar for the next milestone */}
+      {nextStep && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+            <span style={{ fontFamily: 'var(--font-thai)', fontWeight: 600, color: '#fff' }}>{primaryLabel}</span>
+            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{Math.round(progressPct)}%</span>
+          </div>
+          <div style={{
+            position: 'relative', height: 22, background: 'rgba(0,0,0,0.4)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0, width: `${progressPct}%`,
+              background: 'linear-gradient(90deg, #d97f1a, #EF9F27)',
+              borderRadius: 6, transition: 'width 0.6s ease',
+            }} />
+            <div style={{
+              position: 'absolute', left: `${progressPct}%`, top: '50%',
+              transform: 'translate(-50%, -50%)', fontSize: 14, transition: 'left 0.6s ease',
+            }}>
+              {stages[evoIndex + 1]?.emoji}
+            </div>
+          </div>
+          <div style={{
+            textAlign: 'center', marginTop: 7, fontFamily: 'var(--font-thai)', fontSize: 11,
+            color: 'rgba(255,255,255,0.5)',
+          }}>
+            {remainingText}
+          </div>
+        </div>
+      )}
+
+      {!nextStep && (
+        <div style={{
+          textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12,
+          fontFamily: 'var(--font-thai)', fontSize: 13, color: '#FFD700',
+        }}>
+          ✨ วิวัฒนาการครบขั้นสุดท้ายแล้ว! ✨
+        </div>
+      )}
     </div>
   )
 }

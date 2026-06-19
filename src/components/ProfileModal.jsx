@@ -1,12 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { GRADE_LABELS } from '../config/gameConfig.js'
+import { supabase } from '../lib/supabase.js'
 
 export default function ProfileModal({ open, onClose }) {
   const { state, dispatch } = useAppState()
   const [name, setName] = useState(state.name || '')
   const [grade, setGrade] = useState(state.grade ?? 0)
+  const [userEmail, setUserEmail] = useState(null)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    if (!supabase || !open) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null)
+    })
+  }, [open])
 
   if (!open) return null
 
@@ -15,6 +25,19 @@ export default function ProfileModal({ open, onClose }) {
     if (!trimmed) return
     dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, grade } })
     onClose()
+  }
+
+  const handleLogout = async () => {
+    if (!supabase) return
+    setLoggingOut(true)
+    try {
+      await supabase.auth.signOut()
+      onClose()
+    } catch (e) {
+      console.log('[KQ:logout] failed:', e.message)
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   return createPortal(
@@ -64,8 +87,29 @@ export default function ProfileModal({ open, onClose }) {
         >บันทึก ✅</button>
         <button
           onClick={onClose}
-          style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', padding:6 }}
+          style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', padding:6, marginBottom: userEmail ? 4 : 0 }}
         >ข้ามไปก่อน</button>
+
+        {/* Logout — only shown when actually logged in */}
+        {userEmail && (
+          <div style={{ borderTop:'1px solid var(--border)', marginTop:10, paddingTop:14 }}>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:8, textAlign:'center', fontFamily:'Mitr,sans-serif' }}>
+              เข้าสู่ระบบด้วย {userEmail}
+            </div>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              style={{
+                width:'100%', background:'transparent', border:'1px solid var(--red)',
+                color:'var(--red)', borderRadius:10, padding:11,
+                fontFamily:'Mitr,sans-serif', fontSize:13, fontWeight:600,
+                cursor:'pointer', opacity: loggingOut ? 0.6 : 1,
+              }}
+            >
+              {loggingOut ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}
+            </button>
+          </div>
+        )}
       </div>
     </div>,
     document.body

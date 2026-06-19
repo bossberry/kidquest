@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — fix: mirror/hint battle item now shows visible hint UI in all input modes
+
+### src/hooks/useBattleCombat.js
+- Added `setTimeoutHintActive` to destructured params
+- `hint` effect: calls `setTimeoutHintActive?.(true)` unconditionally — drives gold tile highlight (wordbuild/sequence), `revealDigit` display (numpad), and choice elimination (choice/fillgap/visualdiscrim) through the same state that the time-based system uses
+- Updated log messages to match actual visible behavior (removed misleading "ตัวแรกคือ..." text that was never shown)
+
+### src/games/MoveSelectBattleMode.jsx
+- Passes `setTimeoutHintActive` to `useBattleCombat`
+
+---
+
 ## 2026-06-19 — feat: time-based auto-hint for all battle input modes
 
 ### src/games/MoveSelectBattleMode.jsx

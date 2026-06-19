@@ -243,6 +243,7 @@ export default function MoveSelectBattleMode({
     setAttackLabel, setMissCard, setEggHitFlash, setEggAnimClass,
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
+    setTimeoutHintActive,
     localCreatureHP, itemUsed, victoryMode,
   })
 

@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Fix mirror/hint item to show visible hint UI in all input modes:**
+- Built: `setTimeoutHintActive` added as param to `useBattleCombat.js` and passed from the `useBattleCombat` call in MoveSelectBattleMode. `hint` effect branch now calls `setTimeoutHintActive?.(true)` unconditionally before all per-mode branches — this causes the same gold tile highlight (wordbuild/sequence), revealDigit display (numpad), and choice elimination (choice/fillgap/visualdiscrim) that the time-based system already drives. Log messages updated to match the new visible behavior. Memory card remains hint-less by design. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Time-based auto-hint for all input modes:**
 - Built: `timeoutHintActive` state + `timeoutHintTimerRef` + `HINT_DELAY_MS` map in MoveSelectBattleMode. Timer effect (dep: `[cur]`) resets on each new question and schedules auto-hint after mode-specific delay; callback guards `!lockedRef.current && !victoryMode && !battleOverRef.current`. Choice/fillgap/visualdiscrim: separate effect (dep: `[timeoutHintActive]`) auto-eliminates 2 wrong choices (skips if already eliminated by item). Numpad: `revealDigit={timeoutHintActive ? String(q.answer)[0] : null}` prop passed to NumpadInput; rendered as "💡 ตัวแรกคือ X" text below display. Wordbuild/sequence: `showWordbuildHint`/`showSequenceHint` now OR'd with `timeoutHintActive`. Memory card: skipped entirely. Build: 0 errors.
 - Not finished: nothing

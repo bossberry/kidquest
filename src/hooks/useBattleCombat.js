@@ -33,6 +33,7 @@ export function useBattleCombat(params) {
     setAttackLabel, setMissCard, setEggHitFlash, setEggAnimClass,
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
+    setTimeoutHintActive,
     // values needed for read-only checks
     localCreatureHP, itemUsed, victoryMode,
   } = params
@@ -327,11 +328,13 @@ export function useBattleCombat(params) {
         setTimeout(() => mountedRef.current && showVictory(), 700)
       }
     } else if (effect === 'hint') {
+      // Force the same visible hint UI the time-based system uses
+      setTimeoutHintActive?.(true)
+
       if (q?.inputMode === 'numpad') {
-        setBattleLog(`กระจก! คำตอบ ${q.answer < 10 ? 'เป็นเลขตัวเดียว' : `เริ่มด้วย ${String(q.answer)[0]}`}`)
+        setBattleLog(`กระจก! คำตอบเริ่มด้วย ${String(q.answer)[0]}`)
       } else if (q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence') {
-        const target = q.inputMode === 'wordbuild' ? (q.chars?.[0] ?? '') : (q.sequenceChars?.[0] ?? '')
-        setBattleLog(`กระจก! ตัวแรกคือ "${target}"`)
+        setBattleLog('กระจก! ดูตัวที่กระพริบทองนะ!')
       } else if (q?.inputMode === 'memory') {
         setBattleLog('กระจก! ใบ้ไม่ได้ในโหมดนี้ แต่ได้พลังใจ! 💪')
       } else if (q?.choices) {

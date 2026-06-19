@@ -228,6 +228,16 @@ export default function MoveSelectBattleMode({
     if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
   }, [cur])
 
+  // Time-based auto-hint — declared here so setTimeoutHintActive is in scope
+  // when passed to useBattleCombat below (avoids temporal dead zone crash)
+  const [timeoutHintActive, setTimeoutHintActive] = useState(false)
+  const timeoutHintTimerRef = useRef(null)
+
+  const HINT_DELAY_MS = {
+    choice: 4000, numpad: 5000, fillgap: 4000, visualdiscrim: 4000,
+    wordbuild: 6000, sequence: 6000,
+  }
+
   const { fireHit, fireMiss, showVictory, useBattleItem } = useBattleCombat({
     q, cur, total, subject, isWorldBattle, isBoss, isBossBattle,
     enemy, enemyData, creature, creatureStats,
@@ -295,15 +305,6 @@ export default function MoveSelectBattleMode({
   // Input mode hint eligibility (mastery < 0.5 → show hint)
   const wordbuildMastery  = state.inputModeMastery?.wordbuild ?? 0
   const sequenceMastery   = state.inputModeMastery?.sequence  ?? 0
-
-  // Time-based auto-hint: fires after a per-mode delay if player hasn't answered
-  const [timeoutHintActive, setTimeoutHintActive] = useState(false)
-  const timeoutHintTimerRef = useRef(null)
-
-  const HINT_DELAY_MS = {
-    choice: 4000, numpad: 5000, fillgap: 4000, visualdiscrim: 4000,
-    wordbuild: 6000, sequence: 6000,
-  }
 
   useEffect(() => {
     setTimeoutHintActive(false)

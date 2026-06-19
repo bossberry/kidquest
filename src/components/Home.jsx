@@ -10,6 +10,7 @@ import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from 
 import { drawItem } from '../lib/itemArt.js'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
+import { PROGRESSION_MAP } from '../config/gameConfig.js'
 import { supabase } from '../lib/supabase.js'
 import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
@@ -63,6 +64,34 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
       : state.hatchedEggs?.[0]
   }, [state.party, state.hatchedEggs]) // eslint-disable-line
   const activeEgg = (state.hatchedEggs ?? []).find(e => e.id === state.party?.[0]) ?? state.hatchedEggs?.[0]
+
+  const compactEvoInfo = (() => {
+    if (!activeEgg) return null
+    const evo = activeEgg.evoStage ?? 'baby'
+    if (evo === 'final') return null
+    const level = activeEgg.battleLevel ?? 1
+    const bond  = activeEgg.bondMeter ?? 0
+    const tier  = state.grade ?? 0
+    const req   = PROGRESSION_MAP.evoRequirements
+    const nextStage = evo === 'teen' ? 'final' : 'teen'
+    const nextReq = req[nextStage]
+    let pct
+    if (nextStage === 'teen') {
+      pct = Math.min(
+        (level / nextReq.minBattleLevel) * 100,
+        (tier / nextReq.minTier) * 100,
+      )
+    } else {
+      pct = Math.min(
+        (level / nextReq.minBattleLevel) * 100,
+        (tier / nextReq.minTier) * 100,
+        (bond / nextReq.minBond) * 100,
+      )
+    }
+    pct = Math.max(0, Math.min(100, pct))
+    return { pct: Math.round(pct), nextStage }
+  })()
+
   const readyToHatch      = state.readyToHatch && (state.hatchedEggs?.length ?? 0) === 0
   const boostActive       = (state.xpBoostEnd || 0) > Date.now()
 
@@ -264,6 +293,40 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
           </button>
         </div>
       </div>
+
+      {/* Compact evolution progress — thin status row, hidden when creature is fully evolved or absent */}
+      {compactEvoInfo && (
+        <div style={{
+          width: '100%', maxWidth: 480, padding: '4px 20px 6px',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--px-darkest)',
+          borderBottom: '1px solid var(--px-border)',
+          flexShrink: 0,
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-pixel)', fontSize: 7,
+            color: 'rgba(255,255,255,0.4)', flexShrink: 0, whiteSpace: 'nowrap',
+          }}>
+            → {compactEvoInfo.nextStage === 'final' ? 'Final' : 'Teen'}
+          </div>
+          <div style={{
+            flex: 1, height: 6, background: '#050a05',
+            border: '1px solid var(--px-border)', borderRadius: 3, overflow: 'hidden',
+          }}>
+            <div style={{
+              width: `${compactEvoInfo.pct}%`, height: '100%',
+              background: 'linear-gradient(90deg, #d97f1a, #EF9F27)',
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-pixel)', fontSize: 7,
+            color: '#EF9F27', flexShrink: 0,
+          }}>
+            {compactEvoInfo.pct}%
+          </div>
+        </div>
+      )}
 
       {/* Egg zone */}
       <div style={{

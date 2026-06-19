@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Maze portal object replaces exit-routing-override:**
+- Built: `mazePortal: { screenId, col, row }` added to defaultState() in state.js (random screen on first install; persists to localStorage). New actions: SPAWN_MAZE_PORTAL, SPAWN_MAZE_PORTAL_RESOLVED, ENTER_MAZE. CLEAR_MAZE now respawns a new portal rather than setting mazeCleared. INCREMENT_BATTLE_WINS: removed shouldSpawnMaze + secretMapExpiry logic. SET_WORLD_LEVEL + DEFEAT_BOSS: removed secretMapExpiry. WorldScreen: `mazePortalPosRef` holds resolved tile position (stable once resolved, persisted via SPAWN_MAZE_PORTAL_RESOLVED); portal position resolved in [screenId] effect; tryMove checks portal collision → mazeConfirm dialog; `confirmEnterMaze` transitions to MAZE screen; old routing overrides (connects.S='MAZE', connects.W='MAZE') and forcedStart MAZE branch removed; secretMapExpiry useEffects removed; countdown banner removed. worldDrawHelpers.js: drawMazePortal() — pulsing purple rings + orbiting sparkle particles. useWorldGameLoop: renders portal via drawMazePortal if mazePortalPosRef.current is set. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none. Existing localStorage: `secretMapExpiry` field is harmless legacy data — no migration needed since all code reading it was removed.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-18 — MAZE fog-of-war rendering:**
 - Built: `drawMazeFog()` exported from worldDrawHelpers.js — fills canvas with near-black, punches lit circle via destination-out radial gradient, adds warm candle tint overlay. Flicker = `sin(frame×0.15)×3 + sin(frame×0.37+1.3)×2` (two sines avoid mechanical feel). `screenIdRef` added as new param to `useWorldGameLoop`; WorldScreen.jsx passes it. RAF loop checks `screenIdRef?.current === 'MAZE'`; MAZE uses fog, all other screens use normal `drawPlayerGlow`. Fog drawn before player sprite so sprite renders crisp on top of lit area. Build: 0 errors.
 - Not finished: nothing

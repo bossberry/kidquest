@@ -1,5 +1,37 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: replace maze exit-routing with a glowing purple portal object
+
+### src/lib/state.js
+- Added `mazePortal: { screenId: random, col: null, row: null }` to `defaultState()`
+- Removed `secretMapExpiry: null` from defaultState
+
+### src/context/StateContext.jsx
+- New actions: `SPAWN_MAZE_PORTAL`, `SPAWN_MAZE_PORTAL_RESOLVED`, `ENTER_MAZE`
+- `INCREMENT_BATTLE_WINS`: removed `shouldSpawnMaze` condition and `secretMapExpiry` spread
+- `SET_WORLD_LEVEL`: removed `secretMapExpiry: null`; added `mazePortal` reset to new random screen
+- `DEFEAT_BOSS`: removed `secretMapExpiry: null`
+- `CLEAR_MAZE`: now spawns a new portal on a random screen instead of setting `mazeCleared: true`
+- New reducer cases: `SPAWN_MAZE_PORTAL` (random screen, col/row null), `SPAWN_MAZE_PORTAL_RESOLVED` (persists resolved position), `ENTER_MAZE` (sets mazeActive: true)
+
+### src/lib/worldDrawHelpers.js
+- Added `drawMazePortal(ctx, x, y, frame)`: pulsing purple concentric rings + swirling core + 3 orbiting sparkle particles
+
+### src/hooks/useWorldGameLoop.js
+- Added `mazePortalPosRef` param; imported `drawMazePortal`
+- Renders portal (if `mazePortalPosRef.current` is set) after chests, before player glow/fog
+
+### src/components/WorldScreen.jsx
+- Added `mazePortalPosRef = useRef(null)` and `mazeConfirm` state; removed `mazeTimerTick` state
+- Screen-setup `[screenId]` effect: resolves portal tile position (reuses stored col/row on revisit, finds random grass candidate on first visit and dispatches `SPAWN_MAZE_PORTAL_RESOLVED`); sets null for BOSS/MAZE/wrong-screen cases
+- `handleExit`: removed `if (curState.mazeActive && ...)` routing overrides; removed `forcedStart` MAZE special-case
+- `tryMove`: added portal collision check → `setMazeConfirm(true)`
+- Added `confirmEnterMaze` (fade transition to MAZE + dispatch ENTER_MAZE) and `declineEnterMaze`
+- Removed two `secretMapExpiry` useEffects and the countdown ticker
+- Removed old "Maze notification" countdown banner JSX
+- Added mazeConfirm confirm dialog (🌀 purple-bordered, "ประตูมิติลึกลับ" / ยังก่อน / เข้าไปสำรวจ!)
+- Passes `mazePortalPosRef` to `useWorldGameLoop`
+
 ## 2026-06-18 — feat: maze fog-of-war with flickering torch-light radius
 
 ### src/lib/worldDrawHelpers.js

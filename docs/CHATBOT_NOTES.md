@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Time-based auto-hint for all input modes:**
+- Built: `timeoutHintActive` state + `timeoutHintTimerRef` + `HINT_DELAY_MS` map in MoveSelectBattleMode. Timer effect (dep: `[cur]`) resets on each new question and schedules auto-hint after mode-specific delay; callback guards `!lockedRef.current && !victoryMode && !battleOverRef.current`. Choice/fillgap/visualdiscrim: separate effect (dep: `[timeoutHintActive]`) auto-eliminates 2 wrong choices (skips if already eliminated by item). Numpad: `revealDigit={timeoutHintActive ? String(q.answer)[0] : null}` prop passed to NumpadInput; rendered as "💡 ตัวแรกคือ X" text below display. Wordbuild/sequence: `showWordbuildHint`/`showSequenceHint` now OR'd with `timeoutHintActive`. Memory card: skipped entirely. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Maze chests + ghost_wisp enemies + single exit portal:**
 - Built: `ghost_wisp` added to enemyConfig.js (hp:30, atk:3, def:0, subject:null). `_ghostWisp()` sprite + EYE_POSITIONS entry in drawEnemy.js. `generateMazeMap()` return shape changed to `{ map, openCells, entryPos, exitPos }` — all call sites in WorldScreen updated. Old 3-exit tile placement replaced with single EXIT_N at col 18, row 1 (top-right). `spawnMazeContents()` added to tileMaps.js — places 2–3 chests + 3–4 ghost_wisps on safe open tiles. WorldScreen wires MAZE branch: `mazeOpenCellsRef` + `mazeExitPosRef` refs; MAZE uses `spawnMazeContents`, non-MAZE still uses `getScreenEnemies` + `spawnChests`. `useWorldGameLoop`: ghost_wisp AI case (timer≥70, random drift, never chases); `renderEnemies` gains `frame` param + ghost bob+glow; exit portal rendered via `drawMazePortal` when `screenIdRef.current === 'MAZE'`. Build: 0 errors.
 - Not finished: nothing

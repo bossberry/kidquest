@@ -7,7 +7,7 @@ import { playTone } from '../../lib/audio.js'
  * with the parsed integer when confirmed, or onSubmit(null) is never called —
  * confirm is disabled until at least one digit is entered.
  */
-export default function NumpadInput({ onSubmit, disabled, resetKey }) {
+export default function NumpadInput({ onSubmit, disabled, resetKey, revealDigit }) {
   const [digits, setDigits] = useState('')
 
   // Reset entered digits whenever a new question loads
@@ -58,6 +58,14 @@ export default function NumpadInput({ onSubmit, disabled, resetKey }) {
       }}>
         {digits || '?'}
       </div>
+      {revealDigit != null && (
+        <div style={{
+          fontFamily: 'var(--font-thai)', fontSize: 11,
+          color: '#FFD700', marginTop: 4,
+        }}>
+          💡 ตัวแรกคือ {revealDigit}
+        </div>
+      )}
 
       {/* Numpad grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 56px)', gap:8 }}>

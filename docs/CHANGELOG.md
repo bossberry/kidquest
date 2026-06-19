@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: time-based auto-hint for all battle input modes
+
+### src/games/MoveSelectBattleMode.jsx
+- Added `timeoutHintActive` state, `timeoutHintTimerRef`, `HINT_DELAY_MS` thresholds
+- Timer effect (dep `[cur]`): resets on each question, schedules hint after mode delay; callback guards against post-answer fires
+- Auto-eliminate effect (dep `[timeoutHintActive]`): for choice/fillgap/visualdiscrim, eliminates 2 wrong choices
+- `showWordbuildHint` and `showSequenceHint` now OR'd with `timeoutHintActive`
+- Passes `revealDigit` prop to NumpadInput when timeout-hint is active
+
+### src/components/battle/NumpadInput.jsx
+- Added `revealDigit` prop; renders "💡 ตัวแรกคือ X" hint text below digit display when set
+
+---
+
 ## 2026-06-19 — feat: maze chests, ghost_wisp enemies, single exit portal
 
 ### src/config/enemyConfig.js

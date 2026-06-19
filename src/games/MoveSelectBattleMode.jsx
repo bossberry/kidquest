@@ -294,8 +294,47 @@ export default function MoveSelectBattleMode({
   // Input mode hint eligibility (mastery < 0.5 → show hint)
   const wordbuildMastery  = state.inputModeMastery?.wordbuild ?? 0
   const sequenceMastery   = state.inputModeMastery?.sequence  ?? 0
-  const showWordbuildHint = wordbuildMastery < 0.5
-  const showSequenceHint  = sequenceMastery  < 0.5
+
+  // Time-based auto-hint: fires after a per-mode delay if player hasn't answered
+  const [timeoutHintActive, setTimeoutHintActive] = useState(false)
+  const timeoutHintTimerRef = useRef(null)
+
+  const HINT_DELAY_MS = {
+    choice: 4000, numpad: 5000, fillgap: 4000, visualdiscrim: 4000,
+    wordbuild: 6000, sequence: 6000,
+  }
+
+  useEffect(() => {
+    setTimeoutHintActive(false)
+    clearTimeout(timeoutHintTimerRef.current)
+    if (q?.inputMode === 'memory') return
+    const mode = q?.inputMode || 'choice'
+    const delay = HINT_DELAY_MS[mode] ?? 4000
+    timeoutHintTimerRef.current = setTimeout(() => {
+      if (mountedRef.current && !lockedRef.current && !victoryMode && !battleOverRef.current) {
+        setTimeoutHintActive(true)
+      }
+    }, delay)
+    return () => clearTimeout(timeoutHintTimerRef.current)
+  }, [cur]) // eslint-disable-line
+
+  // Auto-eliminate 2 wrong choices on timeout (choice/fillgap/visualdiscrim modes)
+  useEffect(() => {
+    if (!timeoutHintActive) return
+    if (q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild' ||
+        q?.inputMode === 'sequence' || q?.inputMode === 'memory') return
+    if (!q?.choices) return
+    if (eliminatedChoices.length > 0) return
+    const wrongIdxs = q.choices
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => c !== q.answer)
+      .map(({ i }) => i)
+    const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
+    setEliminated(toElim)
+  }, [timeoutHintActive]) // eslint-disable-line
+
+  const showWordbuildHint = wordbuildMastery < 0.5 || timeoutHintActive
+  const showSequenceHint  = sequenceMastery  < 0.5 || timeoutHintActive
 
   // Derived
   const hpPct              = (enemyHP / maxHP) * 100
@@ -734,6 +773,7 @@ export default function MoveSelectBattleMode({
           {q?.inputMode === 'numpad' ? (
             <NumpadInput
               resetKey={cur}
+              revealDigit={timeoutHintActive ? String(q.answer)[0] : null}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(value) => {
                 if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return

@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Password reset flow:**
+- Built: LoginModal now has 3 modes ('login'/'forgot'/'sent'). 'forgot' mode renders an email field + "ส่งลิงก์รีเซ็ตรหัสผ่าน" button that calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin/?reset=1 })`, transitions to 'sent' confirmation screen on success. New `ResetPasswordModal` component (src/components/ResetPasswordModal.jsx) mounts at app root, subscribes to `supabase.auth.onAuthStateChange`, shows on `PASSWORD_RECOVERY` event — two password inputs + confirm-match validation, calls `supabase.auth.updateUser({ password })`, shows success screen then closes. Mounted unconditionally in App.jsx alongside LoginModal/ProfileModal.
+- Not finished: nothing
+- Blockers/risks found: none — renders null until `PASSWORD_RECOVERY` fires, so zero cost when inactive
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — CreatureJourney stage icons replaced with actual creature sprites:**
 - Built: Added `StageIcon` component (canvas + useEffect) to Collection.jsx — calls `drawCreature(canvas, seed, { ...baseStats, evoStage: stage })` with per-icon stage override. Added `useEffect` to React import. Replaced emoji in 3-stage circle icons with `<StageIcon egg={egg} stage={s.stage} size={40|30} />` inside `overflow:hidden` circles. Removed `emoji` field from `stages` array. Progress-bar moving marker updated from `stages[i].emoji` text to an 18×18 rounded `<StageIcon size={16} />` showing the upcoming stage. Build: 0 errors.
 - Not finished: nothing

@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: password reset flow
+
+### src/components/LoginModal.jsx
+- Added `mode` state ('login' | 'forgot' | 'sent'); login screen unchanged
+- "ลืมรหัสผ่าน?" link below password field switches to 'forgot' mode
+- 'forgot' mode: email field + send-link button calls `supabase.auth.resetPasswordForEmail` with `redirectTo: origin/?reset=1`
+- 'sent' mode: confirmation screen showing the destination email address
+
+### src/components/ResetPasswordModal.jsx (new file)
+- Mounts silently at app root; subscribes to `supabase.auth.onAuthStateChange`
+- Becomes visible only on `PASSWORD_RECOVERY` event (user clicked email link)
+- Two password inputs with length ≥6 and match validation; calls `supabase.auth.updateUser({ password })`
+- Success screen with close button
+
+### src/App.jsx
+- Added `import ResetPasswordModal` and `<ResetPasswordModal />` alongside always-mounted modals
+
+---
+
 ## 2026-06-19 — feat: CreatureJourney stage icons use actual player creature sprites
 
 ### src/components/Collection.jsx

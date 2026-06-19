@@ -1,5 +1,16 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: CreatureJourney stage icons use actual player creature sprites
+
+### src/components/Collection.jsx
+- Added `StageIcon` helper component: renders a canvas with `drawCreature()` called with `evoStage` overridden to `baby`/`teen`/`final`
+- Replaced emoji (🥚/🐉/✨) inside the 3-stage circle icons with `<StageIcon>` — size 40px for current stage, 30px for others; circles have `overflow:hidden`
+- Removed `emoji` field from `stages` array entirely
+- Progress-bar moving marker replaced: was `stages[i].emoji` text, now an 18×18 `overflow:hidden` rounded div containing `<StageIcon size={16} />`
+- Added `useEffect` to React import (required by StageIcon)
+
+---
+
 ## 2026-06-19 — fix: mirror/hint battle item now shows visible hint UI in all input modes
 
 ### src/hooks/useBattleCombat.js

@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — CreatureJourney stage icons replaced with actual creature sprites:**
+- Built: Added `StageIcon` component (canvas + useEffect) to Collection.jsx — calls `drawCreature(canvas, seed, { ...baseStats, evoStage: stage })` with per-icon stage override. Added `useEffect` to React import. Replaced emoji in 3-stage circle icons with `<StageIcon egg={egg} stage={s.stage} size={40|30} />` inside `overflow:hidden` circles. Removed `emoji` field from `stages` array. Progress-bar moving marker updated from `stages[i].emoji` text to an 18×18 rounded `<StageIcon size={16} />` showing the upcoming stage. Build: 0 errors.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Fix mirror/hint item to show visible hint UI in all input modes:**
 - Built: `setTimeoutHintActive` added as param to `useBattleCombat.js` and passed from the `useBattleCombat` call in MoveSelectBattleMode. `hint` effect branch now calls `setTimeoutHintActive?.(true)` unconditionally before all per-mode branches — this causes the same gold tile highlight (wordbuild/sequence), revealDigit display (numpad), and choice elimination (choice/fillgap/visualdiscrim) that the time-based system already drives. Log messages updated to match the new visible behavior. Memory card remains hint-less by design. Build: 0 errors.
 - Not finished: nothing

@@ -901,10 +901,18 @@ export function StateProvider({ children }) {
       // Run merge on remote data so Supabase state gets cleaned up too
       const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1
       const remoteFinal = remoteNeedsMerge ? _mergeAllCreaturesIntoOne(remote) : remote
-      if ((remoteFinal.rounds || 0) >= (cur.rounds || 0)) {
+
+      const remoteTime = remoteFinal.lastSavedAt ?? 0
+      const localTime  = cur.lastSavedAt ?? 0
+      // Prefer timestamp comparison; fall back to rounds only if neither side has a timestamp
+      const remoteWins = (remoteTime > 0 || localTime > 0)
+        ? remoteTime >= localTime
+        : (remoteFinal.rounds || 0) >= (cur.rounds || 0)
+
+      if (remoteWins) {
         dispatch({ type: ACTIONS.INIT, payload: remoteFinal })
       } else {
-        console.log('[KQ:load] remote behind local (remote rounds:', remoteFinal.rounds, 'local:', cur.rounds, ') — keeping local, pushing to cloud')
+        console.log('[KQ:load] remote behind local (remote savedAt:', new Date(remoteTime).toISOString(), 'local:', new Date(localTime).toISOString(), ') — keeping local, pushing to cloud')
         syncToSupabase(cur)
       }
     })
@@ -952,16 +960,23 @@ export function StateProvider({ children }) {
               const cur = stateRef.current
               const hasLocalCreatures = (cur.hatchedEggs?.length ?? 0) > 0
               const hasCloudCreatures = (remote.hatchedEggs?.length ?? 0) > 0
-              // Always restore from cloud if local is empty but cloud has data
-              const cloudWins = hasCloudCreatures && !hasLocalCreatures
-                || (remote.rounds || 0) >= (cur.rounds || 0)
+
+              const remoteTime = remote.lastSavedAt ?? 0
+              const localTime  = cur.lastSavedAt ?? 0
+              const timestampSaysCloudWins = (remoteTime > 0 || localTime > 0)
+                ? remoteTime >= localTime
+                : (remote.rounds || 0) >= (cur.rounds || 0)
+
+              // Always restore from cloud if local is empty but cloud has data (unconditional override)
+              const cloudWins = (hasCloudCreatures && !hasLocalCreatures) || timestampSaysCloudWins
+
               if (cloudWins) {
-                console.log('[KQ:auth] cloud wins (remote rounds:', remote.rounds, ', hasCreatures:', hasCloudCreatures, ') → dispatch INIT')
+                console.log('[KQ:auth] cloud wins (remote savedAt:', new Date(remoteTime).toISOString(), ', hasCreatures:', hasCloudCreatures, ') → dispatch INIT')
                 localStorage.setItem(KEY, JSON.stringify(remote))
                 dispatch({ type: ACTIONS.INIT, payload: remote })
               } else {
                 // Local is ahead (user played before auth resolved) → push local up, keep in-memory state
-                console.log('[KQ:auth] local is ahead (local rounds:', cur.rounds, 'remote:', remote.rounds, ') → pushing local to cloud')
+                console.log('[KQ:auth] local is ahead (local savedAt:', new Date(localTime).toISOString(), 'remote:', new Date(remoteTime).toISOString(), ') → pushing local to cloud')
                 localStorage.setItem(KEY, JSON.stringify(cur))
                 await syncToSupabase(cur)
               }

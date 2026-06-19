@@ -72,6 +72,7 @@ export function defaultState() {
     pendingLevelUp: null,
     pendingRewards: [],
     inputModeMastery: { wordbuild: 0, sequence: 0 },
+    lastSavedAt: Date.now(),
   }
 }
 
@@ -336,6 +337,7 @@ export async function syncToSupabase(s) {
 }
 
 export function saveState(s) {
-  localStorage.setItem(KEY, JSON.stringify(s))
-  syncToSupabase(s)
+  const withTimestamp = { ...s, lastSavedAt: Date.now() }
+  localStorage.setItem(KEY, JSON.stringify(withTimestamp))
+  syncToSupabase(withTimestamp)
 }

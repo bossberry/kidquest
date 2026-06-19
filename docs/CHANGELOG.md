@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-19 — feat: logout button in ProfileModal
+
+### src/components/ProfileModal.jsx
+- Added `supabase` import and `useEffect`; on modal open calls `supabase.auth.getUser()` to populate `userEmail` state
+- When `userEmail` is non-null: renders separator, current-account label ("เข้าสู่ระบบด้วย email@..."), and red-outline "ออกจากระบบ" button
+- Button calls `supabase.auth.signOut()` then closes the modal; shows "กำลังออกจากระบบ..." and is disabled during the request
+- Guest users (no Supabase session) see no change — the logout section is hidden entirely
+
+---
+
 ## 2026-06-19 — feat: password reset flow
 
 ### src/components/LoginModal.jsx

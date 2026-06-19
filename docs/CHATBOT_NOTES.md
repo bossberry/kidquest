@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-19 — Logout button in ProfileModal:**
+- Built: ProfileModal now imports `supabase` and `useEffect`. On open, calls `supabase.auth.getUser()` and stores email in `userEmail` state. When `userEmail` is set, renders a separator + current-account email label + "ออกจากระบบ" button (red outline, disabled during `loggingOut`). Button calls `supabase.auth.signOut()` then `onClose()`. No SIGNED_OUT handler in StateContext — intentional: in-session state is preserved after logout; cloud sync disconnects until next login.
+- Not finished: nothing
+- Blockers/risks found: StateContext has no SIGNED_OUT handler (confirmed via grep) — correct behavior for this app since localStorage is always-on and local progress should survive logout
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Password reset flow:**
 - Built: LoginModal now has 3 modes ('login'/'forgot'/'sent'). 'forgot' mode renders an email field + "ส่งลิงก์รีเซ็ตรหัสผ่าน" button that calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin/?reset=1 })`, transitions to 'sent' confirmation screen on success. New `ResetPasswordModal` component (src/components/ResetPasswordModal.jsx) mounts at app root, subscribes to `supabase.auth.onAuthStateChange`, shows on `PASSWORD_RECOVERY` event — two password inputs + confirm-match validation, calls `supabase.auth.updateUser({ password })`, shows success screen then closes. Mounted unconditionally in App.jsx alongside LoginModal/ProfileModal.
 - Not finished: nothing

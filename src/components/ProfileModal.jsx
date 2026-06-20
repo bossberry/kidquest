@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { GRADE_LABELS } from '../config/gameConfig.js'
 import { supabase } from '../lib/supabase.js'
+import { defaultState, KEY } from '../lib/state.js'
 
 export default function ProfileModal({ open, onClose }) {
   const { state, dispatch } = useAppState()
@@ -33,6 +34,12 @@ export default function ProfileModal({ open, onClose }) {
     setLoggingOut(true)
     try {
       await supabase.auth.signOut()
+      // Fully wipe local state so the next person on this device starts fresh —
+      // signOut() only clears the Supabase session, it does NOT touch the
+      // in-memory React state or localStorage, which would otherwise leave
+      // the previous child's creatures/items/progress visible.
+      localStorage.removeItem(KEY)
+      dispatch({ type: ACTIONS.INIT, payload: defaultState() })
       onClose()
     } catch (e) {
       console.log('[KQ:logout] failed:', e.message)

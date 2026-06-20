@@ -18,6 +18,7 @@ import ProfileModal from './components/ProfileModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
 import { supabase } from './lib/supabase.js'
+import SaveStatusIndicator from './components/SaveStatusIndicator.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -80,6 +81,7 @@ export default function App() {
   return (
     <>
       {/* Global overlays (always mounted) */}
+      <SaveStatusIndicator />
       <XPToast />
       <ItemToast />
       <ConfettiLayer />

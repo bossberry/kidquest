@@ -4,10 +4,21 @@ import { determineElement, calcEvoStage } from './creatureSystem.js'
 import { generateCreatureName } from './creatureGenerator.js'
 
 export const KEY = 'kq_state'
+export const STATE_VERSION = 1
+
+const saveStatusListeners = new Set()
+export function onSaveStatusChange(fn) {
+  saveStatusListeners.add(fn)
+  return () => saveStatusListeners.delete(fn)
+}
+function emitSaveStatus(status) {
+  saveStatusListeners.forEach(fn => fn(status))
+}
 
 export function defaultState() {
   return {
     name: 'โชแปง', grade: 0,
+    stateVersion: STATE_VERSION,
     schoolGrade: null, // parent-entered actual school grade (e.g. 'ป.1') — purely informational, NEVER read by game progression logic (creature tier/stats/evolution still use `grade`, which is auto-advanced by SET_SUBJECT_LEVEL)
     gender: 'unspecified', // 'male' | 'female' | 'unspecified' — used for stats and future gendered content/item variants (not yet wired into any gating logic)
     xpThai: 0, xpEng: 0, xpMath: 0,
@@ -246,6 +257,61 @@ export function _mergeAllCreaturesIntoOne(state) {
   }
 }
 
+/**
+ * resolveSync — single source of truth for deciding whether local or remote
+ * state should win when both exist. Used by both the initial-load path and
+ * the SIGNED_IN auth-change path.
+ */
+export function resolveSync(local, remote) {
+  const hasLocalCreatures = (local?.hatchedEggs?.length ?? 0) > 0
+  const hasRemoteCreatures = (remote?.hatchedEggs?.length ?? 0) > 0
+
+  if (hasRemoteCreatures && !hasLocalCreatures) {
+    return { winner: remote, remoteWon: true, reason: 'remote has creatures, local is empty' }
+  }
+
+  const remoteTime = remote?.lastSavedAt ?? 0
+  const localTime = local?.lastSavedAt ?? 0
+  const remoteWon = (remoteTime > 0 || localTime > 0)
+    ? remoteTime >= localTime
+    : (remote?.rounds || 0) >= (local?.rounds || 0)
+
+  return {
+    winner: remoteWon ? remote : local,
+    remoteWon,
+    reason: remoteWon
+      ? `remote savedAt ${new Date(remoteTime).toISOString()} >= local ${new Date(localTime).toISOString()}`
+      : `local savedAt ${new Date(localTime).toISOString()} > remote ${new Date(remoteTime).toISOString()}`,
+  }
+}
+
+/**
+ * migrateStateShape — ensures an old/incomplete saved state has every field
+ * defaultState() defines, including nested object fields merged key-by-key.
+ * Prevents new sub-keys inside existing objects from silently going missing
+ * on old saves that were written before those keys existed.
+ */
+export function migrateStateShape(saved) {
+  if (!saved) return defaultState()
+  const base = defaultState()
+  const merged = { ...base, ...saved }
+
+  const nestedObjectFields = [
+    'homeItems', 'battleItems', 'activeBoosts', 'thaiMastery',
+    'subjectLevels', 'levelMastery', 'shopV1', 'responseTimeLogs',
+    'subjectSessionStreak', 'subjectLevelFloor', 'inputModeMastery',
+    'mazePortal',
+  ]
+  for (const field of nestedObjectFields) {
+    if (base[field] && typeof base[field] === 'object' && !Array.isArray(base[field])) {
+      merged[field] = { ...base[field], ...(saved[field] || {}) }
+    }
+  }
+
+  merged.stateVersion = STATE_VERSION
+  return merged
+}
+
 function _migrateEggs(s) {
   if (!Array.isArray(s.hatchedEggs) || !s.hatchedEggs.length) return s
   let dirty = false
@@ -284,10 +350,11 @@ export async function loadState() {
           .single()
         if (data?.state_json) {
           console.log('[KQ:load] cloud has data → using cloud')
-          let migrated = _migrateEggs(data.state_json)
+          let migrated = migrateStateShape(data.state_json)
+          migrated = _migrateEggs(migrated)
           migrated = _migrateBattleStats(migrated)
           if (migrated !== data.state_json) {
-            console.log('[KQ:load] migrating cloud eggs')
+            console.log('[KQ:load] migrating cloud state shape/eggs')
             syncToSupabase(migrated)
           }
           localStorage.setItem(KEY, JSON.stringify(migrated))
@@ -308,7 +375,8 @@ export async function loadState() {
   } catch (e) {
     s = defaultState()
   }
-  let migrated = _migrateEggs(s)
+  let migrated = migrateStateShape(s)
+  migrated = _migrateEggs(migrated)
   migrated = _migrateBattleStats(migrated)
   if (migrated !== s) {
     console.log('[KQ:load] migrated', s.hatchedEggs?.length, 'eggs → saving')
@@ -321,9 +389,9 @@ export async function loadState() {
 // Push any state object to Supabase (used by StateContext on SIGNED_IN)
 export async function syncToSupabase(s) {
   try {
-    if (!supabase) { console.log('[KQ:sync] no client'); return }
+    if (!supabase) { console.log('[KQ:sync] no client'); emitSaveStatus('offline'); return }
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { console.log('[KQ:sync] no user'); return }
+    if (!user) { console.log('[KQ:sync] no user'); emitSaveStatus('offline'); return }
     console.log('[KQ:sync] pushing state for', user.email, '— xpThai:', s.xpThai, 'rounds:', s.rounds)
     const { error } = await supabase.from('eggs').upsert({
       user_id: user.id,
@@ -331,15 +399,17 @@ export async function syncToSupabase(s) {
       state_json: s,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' })
-    if (error) console.log('[KQ:sync] upsert error:', error.message)
-    else console.log('[KQ:sync] ✓ done')
+    if (error) { console.log('[KQ:sync] upsert error:', error.message); emitSaveStatus('error') }
+    else { console.log('[KQ:sync] ✓ done'); emitSaveStatus('saved') }
   } catch (e) {
     console.log('[KQ:sync] failed:', e.message)
+    emitSaveStatus('error')
   }
 }
 
 export function saveState(s) {
   const withTimestamp = { ...s, lastSavedAt: Date.now() }
   localStorage.setItem(KEY, JSON.stringify(withTimestamp))
+  emitSaveStatus('saving')
   syncToSupabase(withTimestamp)
 }

@@ -1,6 +1,6 @@
 // StateContext.jsx — global state store (useReducer + Context). Single source of truth for all game state; persists to localStorage and Supabase.
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
-import { KEY, defaultState, loadState, saveState, syncToSupabase, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
+import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
@@ -907,17 +907,11 @@ export function StateProvider({ children }) {
       const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1
       const remoteFinal = remoteNeedsMerge ? _mergeAllCreaturesIntoOne(remote) : remote
 
-      const remoteTime = remoteFinal.lastSavedAt ?? 0
-      const localTime  = cur.lastSavedAt ?? 0
-      // Prefer timestamp comparison; fall back to rounds only if neither side has a timestamp
-      const remoteWins = (remoteTime > 0 || localTime > 0)
-        ? remoteTime >= localTime
-        : (remoteFinal.rounds || 0) >= (cur.rounds || 0)
-
-      if (remoteWins) {
-        dispatch({ type: ACTIONS.INIT, payload: remoteFinal })
+      const { winner, remoteWon, reason } = resolveSync(cur, remoteFinal)
+      console.log('[KQ:load]', remoteWon ? 'remote wins' : 'local wins', '—', reason)
+      if (remoteWon) {
+        dispatch({ type: ACTIONS.INIT, payload: winner })
       } else {
-        console.log('[KQ:load] remote behind local (remote savedAt:', new Date(remoteTime).toISOString(), 'local:', new Date(localTime).toISOString(), ') — keeping local, pushing to cloud')
         syncToSupabase(cur)
       }
     })
@@ -963,25 +957,12 @@ export function StateProvider({ children }) {
             if (row?.state_json) {
               const remote = row.state_json
               const cur = stateRef.current
-              const hasLocalCreatures = (cur.hatchedEggs?.length ?? 0) > 0
-              const hasCloudCreatures = (remote.hatchedEggs?.length ?? 0) > 0
-
-              const remoteTime = remote.lastSavedAt ?? 0
-              const localTime  = cur.lastSavedAt ?? 0
-              const timestampSaysCloudWins = (remoteTime > 0 || localTime > 0)
-                ? remoteTime >= localTime
-                : (remote.rounds || 0) >= (cur.rounds || 0)
-
-              // Always restore from cloud if local is empty but cloud has data (unconditional override)
-              const cloudWins = (hasCloudCreatures && !hasLocalCreatures) || timestampSaysCloudWins
-
-              if (cloudWins) {
-                console.log('[KQ:auth] cloud wins (remote savedAt:', new Date(remoteTime).toISOString(), ', hasCreatures:', hasCloudCreatures, ') → dispatch INIT')
-                localStorage.setItem(KEY, JSON.stringify(remote))
-                dispatch({ type: ACTIONS.INIT, payload: remote })
+              const { winner, remoteWon, reason } = resolveSync(cur, remote)
+              console.log('[KQ:auth]', remoteWon ? 'cloud wins' : 'local is ahead', '—', reason)
+              if (remoteWon) {
+                localStorage.setItem(KEY, JSON.stringify(winner))
+                dispatch({ type: ACTIONS.INIT, payload: winner })
               } else {
-                // Local is ahead (user played before auth resolved) → push local up, keep in-memory state
-                console.log('[KQ:auth] local is ahead (local savedAt:', new Date(localTime).toISOString(), 'remote:', new Date(remoteTime).toISOString(), ') → pushing local to cloud')
                 localStorage.setItem(KEY, JSON.stringify(cur))
                 await syncToSupabase(cur)
               }

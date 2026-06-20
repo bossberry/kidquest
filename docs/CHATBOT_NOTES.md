@@ -1,5 +1,15 @@
 # CHATBOT_NOTES.md — Phase 1: Friend Code System
 
+## Claude Code Handoff
+_(Claude Code appends here after each session)_
+
+**2026-06-20 — Phase 1.1 — Unified Friends screen + Mystery Adventurers tab:**
+- Built: FriendsScreen.jsx fully rewritten. Tab bar reduced from 4 → 2 tabs (เพื่อน / ผู้คนอื่นๆ). FriendsTab: single scrollable page loading all data in parallel (Promise.all: friendships + ensure_friend_code + my_friends); pending requests section only renders when requests.length > 0 (no empty state); My Code / Add Friend / Friends list sections always shown. All RPC calls, message logic, and error handling preserved unchanged from Phase 1. MysteryTab: calls get_mystery_adventurers({ p_limit: 8 }) on mount; 8 adventurer cards with display_name + ⚔️ icon (player/bot look identical); "ท้าเล่น" = mock toast for 3s (no backend call); "🔄 สับใหม่" button re-calls RPC. Toast is fixed-positioned at top:60, zIndex:9999.
+- Not finished: nothing
+- Blockers/risks found: get_mystery_adventurers return shape assumed as array of { display_name, source } — source field intentionally ignored in rendering
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **Status:** Database migration is DONE and deployed to production Supabase project `kidquest`.
 **Your job:** Implement the React frontend that calls these existing tables/functions. Do NOT write any SQL or modify the database — it's already live.
 

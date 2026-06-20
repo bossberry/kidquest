@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: unify friends screen + add Mystery Adventurers tab (mock challenge UI)
+
+### src/components/FriendsScreen.jsx
+- **Part A — Unified Friends tab**: collapsed 4 separate tabs into one scrollable page with sections in order: pending requests (conditional — not rendered when empty), My Code, Add Friend, My Friends list. All existing RPC calls and message logic preserved unchanged.
+- All data loaded in parallel via `Promise.all` (friendships + ensure_friend_code + my_friends) on a single `loadAll` callback; respond actions re-trigger `loadAll` to refresh requests and friends in one shot.
+- **Part B — Mystery Adventurers tab ("ผู้คนอื่นๆ")**: calls `supabase.rpc('get_mystery_adventurers', { p_limit: 8 })` on mount; shows adventurer cards with `display_name` + generic ⚔️ icon (no visual distinction between source: 'player'/'bot'). "ท้าเล่น" button is a mock — shows fixed-position toast "ส่งคำท้า [name] แล้ว! รอสักครู่นะ..." for 3s, no backend call. "🔄 สับใหม่" button re-calls the RPC to reshuffle.
+- Tab bar reduced from 4 tabs to 2 (เพื่อน / ผู้คนอื่นๆ)
+
+---
+
 ## 2026-06-20 — feat: Phase 1 Friend Code System frontend (4 screens)
 
 ### src/components/FriendsScreen.jsx (new)

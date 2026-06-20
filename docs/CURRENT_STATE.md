@@ -5,14 +5,12 @@ _Last updated: 2026-06-20_
 
 ## Live Systems
 
-### Friend Code System (Phase 1)
-- `FriendsScreen.jsx`: 4-tab screen reachable from BottomNav "เพื่อน" tab
-  - **My Code**: `ensure_friend_code(p_user_id)` → displays code as "ABC-DEF", clipboard copy
-  - **Add Friend**: 6-char input → `send_friend_request(p_code)`, 4 kid-safe error states
-  - **Requests**: query `friendships` (target=me, pending) + join `eggs` for names → Accept/Reject via `respond_friend_request`
-  - **Friends**: query `my_friends` view (RLS-scoped); empty state if none
-- BottomNav: 4th tab added (green dot, "เพื่อน")
-- Out of scope (Phase 2+): friend battles, chat, remove-friend, leaderboards
+### Friend Code System (Phase 1.1)
+- `FriendsScreen.jsx`: 2-tab screen reachable from BottomNav "เพื่อน" tab
+  - **เพื่อน tab** (unified scroll): pending requests (conditional, no empty state) → My Code ("ABC-DEF" + copy) → Add Friend (6-char input + `send_friend_request`) → My Friends list (from `my_friends` view). All loaded in parallel via `Promise.all` on mount.
+  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards (display_name + ⚔️ icon, player/bot indistinguishable). "ท้าเล่น" = mock 3s toast, no backend. "🔄 สับใหม่" re-calls RPC.
+- BottomNav: 4th tab (green dot, "เพื่อน")
+- Out of scope (Phase 2+): real challenge backend, friend battles, chat, remove-friend, leaderboards
 
 ### Egg System
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change)

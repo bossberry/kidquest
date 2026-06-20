@@ -72,6 +72,7 @@ _Last updated: 2026-06-20_
 
 ## Done (major systems)
 
+- [x] **Phase 1.1 Friend Code System** — FriendsScreen.jsx: 2-tab layout (เพื่อน unified scroll + ผู้คนอื่นๆ mystery tab); get_mystery_adventurers RPC; mock challenge toast (2026-06-20)
 - [x] **Phase 1 Friend Code System** — FriendsScreen.jsx (4 tabs: My Code / Add / Requests / List); BottomNav 4th tab; Supabase RPCs wired (ensure_friend_code, send_friend_request, respond_friend_request, my_friends view) (2026-06-20)
 - [x] Adaptive difficulty system: auto level-up (3 streak ≥80%) + silent level-down (<50%) + LevelUpCutscene + map sky tint by level (2026-06-16)
 - [x] Unified progression via PROGRESSION_MAP: tier advance → grade/readyToHatch; calcEvoStage reads thresholds; CreatureJourney roadmap in Collection (2026-06-16)

@@ -5,7 +5,6 @@ export function getCreatureSeed(egg) {
   return hash((s.name||'') + (s.grade||0)) ^ hash('' + (s.dow||0) + (s.month||1) + (s.day||1) + (s.hour||12))
 }
 
-// ─── Element palettes (3–4 variants each) ────────────────────────────────────
 const PALETTES = {
   fire: [
     { p:'#E24B4A', l:'#F09977', d:'#C23A30', a:'#EF9F27' },
@@ -82,368 +81,394 @@ function makeR(ctx, P, ox, oy) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// FURRED — quadruped mammal (Bulbasaur/Eevee proportion)
+// ─────────────────────────────────────────────────────────────────────────────
+// FURRED
 //
-// Silhouette cues: WIDE body filling ~10 of 12 columns; FOUR legs in
-// two separate pairs with visible belly gap; TRIANGULAR EARS above head.
-// The 4-leg stance is the primary visual differentiator from all other types.
-// ═══════════════════════════════════════════════════════════════════
+// Focal feature: BIG ROUND HEAD + EAR BUMPS (the head IS the creature).
+// Head occupies top 50% at baby, 42% at teen. Body is NARROWER than head
+// to emphasise the dome silhouette. 4 stub legs visible at bottom.
+//
+// Eyes: 2×2 round dark squares with white shine (the standard chibi eye).
+// Accent: used only for mane shimmer at final. Everywhere else: p / l / d.
+//
+// Evolution: stub tail → ruff collar + bigger tail → full mane frame
+// ─────────────────────────────────────────────────────────────────────────────
 
 function drawFurredBaby(r, c) {
-  // Triangular ears — two distinct points above head
-  r(3,0,1,1, c.d); r(8,0,1,1, c.d)
-  r(2,1,2,2, c.d); r(8,1,2,2, c.d)
-  r(3,1,1,2, c.l); r(9,1,1,2, c.l)
-  // Head — wide (8 of 12 cols)
-  r(2,2,8,3, c.l)
-  r(3,3,1,1,'#1A1A2C'); r(7,3,1,1,'#1A1A2C')
-  r(5,4,2,1, c.d)
-  r(2,4,1,1, c.a, 0.5); r(9,4,1,1, c.a, 0.5)
-  // Body — 10 wide (wider than head → quadruped proportion)
-  r(1,5,10,3, c.p)
-  r(3,6,6,1, c.l, 0.38)
-  // Stub tail
-  r(10,6,2,1, c.p); r(11,5,1,2, c.d)
-  // FOUR LEGS in two pairs with belly gap (belly at x=5-6 stays clear)
-  r(1,8,2,3, c.d); r(3,8,2,3, c.d)
-  r(7,8,2,3, c.d); r(9,8,2,3, c.d)
-  r(1,10,2,1, c.d, 0.65); r(3,10,2,1, c.d, 0.65)
-  r(7,10,2,1, c.d, 0.65); r(9,10,2,1, c.d, 0.65)
+  // EARS — two bumps above head (the silhouette cue that reads immediately)
+  r(1,0,2,3, c.d)                       // left ear (2 wide × 3 tall)
+  r(2,0,1,2, c.l)                       // inner ear light
+  r(9,0,2,3, c.d)                       // right ear
+  r(9,0,1,2, c.l)                       // inner ear light
+
+  // HEAD — big dome, 8 wide (y=2–5). 4 rows = 33% of canvas,
+  // but ears extend the head region to y=0–5 = 50%.
+  r(2,2,8,4, c.l)
+  r(3,3,2,2, c.d)                       // left eye (2×2)
+  r(3,3,1,1,'#ffffff')                  // eye shine
+  r(7,3,2,2, c.d)                       // right eye
+  r(7,3,1,1,'#ffffff')
+  r(5,5,2,1, c.d)                       // nose
+
+  // BODY — 6 wide (narrower than 8-wide head — emphasises dome proportion)
+  r(3,6,6,3, c.p)
+  r(4,7,4,1, c.l, 0.35)                // belly tint
+  r(9,7,1,2, c.d)                       // stub tail
+
+  // LEGS — 4 thin stubs so quadruped reads at a glance
+  r(2,9,1,3, c.d); r(4,9,1,3, c.d)    // left pair
+  r(7,9,1,3, c.d); r(9,9,1,3, c.d)    // right pair
+  r(2,11,2,1, c.d, 0.55); r(4,11,2,1, c.d, 0.55)   // left paws
+  r(7,11,2,1, c.d, 0.55); r(9,11,2,1, c.d, 0.55)   // right paws
 }
 
 function drawFurredTeen(r, c) {
-  // Taller sharper ears
-  r(3,0,1,1, c.d); r(8,0,1,1, c.d)
-  r(2,0,2,3, c.d); r(8,0,2,3, c.d)
-  r(3,0,1,2, c.l); r(9,0,1,2, c.l)
-  // Head
-  r(2,2,8,3, c.l)
-  r(3,3,2,1,'#1A1A2C'); r(7,3,2,1,'#1A1A2C')
+  // EARS — shorter (2 rows vs 3): proportion shift toward adult
+  r(1,0,2,2, c.d); r(2,0,1,1, c.l)
+  r(9,0,2,2, c.d); r(9,0,1,1, c.l)
+
+  // HEAD — starts one row lower (y=1–4). Head region now y=0–4 = 42%.
+  r(2,1,8,4, c.l)
+  r(3,2,2,2, c.d); r(3,2,1,1,'#ffffff')
+  r(7,2,2,2, c.d); r(7,2,1,1,'#ffffff')
   r(5,4,2,1, c.d)
-  // Shoulder mane tufts (teen signature feature)
-  r(0,5,2,3, c.d, 0.55); r(10,5,2,3, c.d, 0.55)
-  // Body — full 12 wide
-  r(0,5,12,3, c.p)
-  r(2,6,8,1, c.l, 0.32)
-  // Bushy tail
-  r(10,6,2,2, c.p); r(11,5,1,4, c.d); r(11,4,1,1, c.a)
-  // Four legs, slightly thicker
-  r(0,8,3,3, c.d); r(3,8,2,3, c.d)
-  r(7,8,2,3, c.d); r(9,8,3,3, c.d)
-  r(0,10,3,1, c.d, 0.65); r(3,10,2,1, c.d, 0.65)
-  r(7,10,2,1, c.d, 0.65); r(9,10,3,1, c.d, 0.65)
+
+  // RUFF — the ONE new feature at teen: a band wider than both head and body
+  r(1,5,10,1, c.d)                      // ruff (10 wide, wider than 8-wide head)
+  r(2,5,8,1, c.l, 0.32)                // ruff highlight
+
+  // BODY — 4 rows (was 3 at baby: body grew)
+  r(3,6,6,4, c.p)
+  r(4,7,4,2, c.l, 0.32)
+  r(9,8,2,2, c.d)                       // larger tail (2 wide)
+
+  // LEGS — 2 rows only (body fills more canvas = more adult)
+  r(2,10,2,2, c.d); r(5,10,2,2, c.d)   // left pair (2 wide each)
+  r(7,10,2,2, c.d); r(9,10,2,2, c.d)   // right pair
 }
 
 function drawFurredFinal(r, c) {
-  // Full mane — radiates from head (final signature feature)
-  r(1,0,10,3, c.d)
-  r(2,0,8,2, c.a, 0.42)
-  r(0,2,3,5, c.d); r(9,2,3,5, c.d)
-  // Ears within mane
-  r(3,0,2,2, c.d); r(7,0,2,2, c.d)
-  // Head — regal
-  r(3,2,6,3, c.l)
-  r(3,3,2,1, c.a); r(7,3,2,1, c.a)
-  r(5,4,2,1, c.d)
-  // Body — massive, full 12 wide
-  r(0,5,12,5, c.p)
-  r(3,6,6,3, c.d)
-  r(4,7,4,1, c.a, 0.4)
-  // Long tail
-  r(10,7,2,3, c.p); r(11,5,1,5, c.d); r(11,4,1,1, c.a)
-  // Four thick legs
-  r(0,10,3,2, c.d); r(3,10,2,2, c.d)
-  r(7,10,2,2, c.d); r(9,10,3,2, c.d)
-  r(0,11,3,1, c.d, 0.7); r(3,11,2,1, c.d, 0.7)
-  r(7,11,2,1, c.d, 0.7); r(9,11,3,1, c.d, 0.7)
+  // MANE — the final signature. Full-width dark frame at canvas edges,
+  // making the head region span the entire 12-column width.
+  r(0,0,12,1, c.d)                      // crown row (full width)
+  r(0,0,12,1, c.a, 0.28)               // accent shimmer on crown
+  r(0,1,2,5, c.d)                       // left mane column
+  r(10,1,2,5, c.d)                      // right mane column
+
+  // HEAD — inside the mane frame, y=1–5
+  r(2,1,8,5, c.l)
+  r(3,2,2,2, c.d); r(3,2,1,1, c.a)    // eyes: accent shine (regal glow)
+  r(7,2,2,2, c.d); r(7,2,1,1, c.a)
+  r(5,5,2,1, c.d)
+
+  // BODY — large, with mane draping down the sides
+  r(2,6,8,4, c.p)
+  r(0,6,2,4, c.d, 0.35)               // mane drape left
+  r(10,6,2,4, c.d, 0.35)              // mane drape right
+  r(4,7,4,2, c.l, 0.3)
+  r(10,8,2,3, c.d)                     // thick tail
+
+  // LEGS — thick paws (y=10–11 only: body is dominant)
+  r(2,10,3,2, c.d)                     // left paw (3 wide)
+  r(7,10,3,2, c.d)                     // right paw
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// WINGED — avian / dragon (Charmander→Charizard proportion)
+// ─────────────────────────────────────────────────────────────────────────────
+// WINGED
 //
-// Silhouette cues: NARROW upright body (4 wide vs furred's 10+);
-// BIPEDAL (2 legs only); BEAK below head; tail extends to one side.
-// Wings evolve: tiny nubs → folded buds → fully spread wingspan.
-// Draw order rule: body first, beak drawn AFTER so it sits on top.
-// ═══════════════════════════════════════════════════════════════════
+// Focal feature: THE WINGS — every other element is kept simple so wings read.
+// Head is 6 wide (narrower than furred's 8). Eyes sit HIGH on the face (avian).
+// No ears: smooth dome top, which silhouette-reads as "not furred" instantly.
+// Body stays narrow (4 wide) at all stages — wings handle the width.
+//
+// Accent (a): wing interior only, so the wings pop in colour from the body.
+// Evolution: shoulder nubs → folded wings (acc colour) → fully spread
+// ─────────────────────────────────────────────────────────────────────────────
 
 function drawWingedBaby(r, c) {
-  // Head — narrow, 4 wide (centred at x=4-7)
-  r(4,0,4,3, c.l)
-  r(4,1,1,1,'#1A1A2C'); r(7,1,1,1,'#1A1A2C')
-  // Tiny wing nubs (barely visible — hatchling shoulder bumps)
-  r(2,4,2,2, c.d, 0.65); r(8,4,2,2, c.d, 0.65)
-  // Body FIRST — NARROW, tall, bipedal (4 wide vs furred's 10+)
-  r(4,3,4,7, c.p)
-  r(5,4,2,5, c.l, 0.42)
-  // Beak drawn AFTER body so it appears on top at head-neck junction
-  r(5,3,2,1, c.d)
-  r(6,4,1,1, c.d)
-  // Simple tail (right of body)
-  r(8,7,2,3, c.d); r(9,6,1,4, c.d); r(9,5,1,1, c.a)
-  // TWO LEGS ONLY (bipedal — key difference from 4-legged furred)
-  r(5,9,1,3, c.d); r(6,9,1,3, c.d)
-  r(4,11,1,1,c.d); r(5,11,1,1,c.d); r(6,11,1,1,c.d); r(7,11,1,1,c.d)
+  // HEAD — 6 wide, smooth dome top (NO ear bumps = instant non-furred read)
+  // y=0–5 = 50% of canvas height.
+  r(3,0,6,6, c.l)
+  // Eyes HIGH on face (y=1–2): avian proportion
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')
+  r(5,4,2,1, c.d)                       // small beak/mouth
+
+  // BODY — 4 wide: narrow upright silhouette (taper from 6-wide head)
+  r(4,6,4,4, c.p)
+  r(5,7,2,2, c.l, 0.35)
+
+  // WING NUBS — barely there (hatchling shoulder bumps)
+  r(2,7,2,2, c.d, 0.7)                  // left nub
+  r(8,7,2,2, c.d, 0.7)                  // right nub
+
+  r(8,8,1,3, c.d)                        // thin tail
+
+  // 2 LEGS (bipedal: the leg-count difference from furred's 4 is a silhouette cue)
+  r(5,10,1,2, c.d); r(6,10,1,2, c.d)
+  r(4,11,1,1, c.d); r(5,11,2,1, c.d); r(6,11,2,1, c.d); r(7,11,1,1, c.d)
 }
 
 function drawWingedTeen(r, c) {
-  // Small crest starts
-  r(5,0,2,1, c.d)
-  // Head (same narrow 4 wide)
-  r(4,1,4,3, c.l)
-  r(4,2,1,1,'#1A1A2C'); r(7,2,1,1,'#1A1A2C')
-  // FOLDED WING BUDS — clearly visible, teen signature feature
-  r(1,4,3,5, c.d); r(8,4,3,5, c.d)
-  r(1,5,2,4, c.a, 0.5); r(9,5,2,4, c.a, 0.5)
-  // Body (draw before beak)
+  // HEAD — y=0–4, same 6 wide. Head region shrinks to 42%.
+  r(3,0,6,5, c.l)
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')
+  r(5,4,2,1, c.d)
+
+  // FOLDED WINGS — the ONE new feature at teen. Accent interior makes them pop.
+  // Folded shape: tall and narrow against the body sides.
+  r(0,4,3,6, c.d)                        // left wing outline (x=0–2, y=4–9)
+  r(1,5,2,4, c.a, 0.55)                  // left wing interior (accent!)
+  r(9,4,3,6, c.d)                        // right wing outline
+  r(9,5,2,4, c.a, 0.55)                  // right wing interior
+
+  // BODY — between wings, same 4 wide
   r(4,4,4,6, c.p)
-  r(5,5,2,4, c.l, 0.38)
-  // Beak drawn AFTER body
-  r(5,4,2,1, c.d); r(6,5,1,1, c.d)
-  // Longer tail
-  r(9,7,3,4, c.d); r(10,6,2,4, c.d); r(11,5,1,5, c.d); r(11,4,1,1, c.a)
-  // Two legs
-  r(5,10,1,2, c.d); r(6,10,1,2, c.d)
-  r(4,11,1,1,c.d); r(5,11,2,1,c.d); r(7,11,2,1,c.d); r(8,11,1,1,c.d)
+  r(5,5,2,4, c.l, 0.35)
+  r(8,8,2,4, c.d)                         // longer tail (2 wide)
+
+  r(5,10,1,2, c.d); r(6,10,1,2, c.d)     // 2 legs
+  r(4,11,1,1, c.d); r(5,11,2,1, c.d); r(6,11,2,1, c.d); r(7,11,1,1, c.d)
 }
 
 function drawWingedFinal(r, c) {
-  // Head crest
-  r(5,0,3,1, c.d); r(6,0,1,2, c.a)
-  // Head (narrow, centred)
-  r(4,1,4,3, c.l)
-  r(4,2,2,1, c.a); r(8,2,1,1, c.a)
-  // WINGS FULLY SPREAD — spans full canvas width (final signature)
-  r(0,2,4,7, c.d); r(8,2,4,7, c.d)
-  r(0,3,3,6, c.a, 0.48)
-  r(9,3,3,6, c.a, 0.48)
-  r(0,2,1,1, c.a); r(11,2,1,1, c.a)
-  // Body between wings (draw after wings)
-  r(4,4,4,6, c.p)
-  r(5,5,2,4, c.l, 0.35)
-  // Beak drawn AFTER body+wings
-  r(5,4,2,1, c.d); r(5,5,2,1, c.a)
-  // Long dramatic tail
-  r(8,8,4,4, c.d); r(9,7,3,4, c.d); r(10,5,2,6, c.d); r(11,4,1,7, c.a)
-  // Two legs
+  // HEAD — y=0–3, 6 wide. Head region 33%: most adult proportion.
+  r(3,0,6,4, c.l)
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')
+  r(5,3,2,2, c.d)                          // beak more prominent at final (2 rows)
+
+  // WINGS FULLY SPREAD — dominant at final, spans full canvas width.
+  // The body becomes visually secondary to the wings.
+  r(0,2,4,7, c.d)                           // left wing (x=0–3, y=2–8)
+  r(0,3,3,5, c.a, 0.55)                     // left interior (accent)
+  r(0,2,1,1, c.a)                            // left wingtip accent
+  r(8,2,4,7, c.d)                            // right wing
+  r(9,3,3,5, c.a, 0.55)                     // right interior
+  r(11,2,1,1, c.a)                           // right wingtip accent
+
+  // BODY — narrow pillar between wings
+  r(4,3,4,7, c.p)
+  r(5,4,2,5, c.l, 0.35)
+  r(8,8,4,4, c.d)                            // long tail (spreads toward bottom-right)
+
   r(5,10,1,2, c.d); r(6,10,1,2, c.d)
-  r(4,11,1,1,c.d); r(5,11,2,1,c.d); r(7,11,2,1,c.d); r(8,11,1,1,c.d)
+  r(4,11,1,1, c.d); r(5,11,2,1, c.d); r(6,11,2,1, c.d); r(7,11,1,1, c.d)
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SCALED — compact reptile (Squirtle proportion)
+// ─────────────────────────────────────────────────────────────────────────────
+// SCALED
 //
-// Silhouette cues: ROUND compact body; DORSAL RIDGE (not triangular
-// ears); SLIT EYES (not round); ARM STUBS on body sides + only 2
-// bottom legs; visible tail from the very first stage.
-// ═══════════════════════════════════════════════════════════════════
+// Focal feature: THE TAIL — it grows in length and accent intensity stage by stage.
+// Head has a FLAT TOP (no ears) + side frills (protrude sideways, not upward).
+// Eyes are SLIT pupils (1×2 vertical) vs furred/winged's 2×2 round squares.
+// These three cues (flat top, side frills, slit eyes) make baby SCALED visually
+// distinct from baby FURRED even though both have wide 8-column heads.
+//
+// Accent (a): tail tip only — so the eye goes straight to the tail.
+// Evolution: no accent tail → accent tip appears → large bold accent tail
+// ─────────────────────────────────────────────────────────────────────────────
 
 function drawScaledBaby(r, c) {
-  // Dorsal ridge — NOT ears. This is the #1 visual cue vs furred.
-  r(4,0,4,2, c.a)
-  r(3,1,6,1, c.d, 0.5)
-  // Head (similar width but no ear bumps = different silhouette)
-  r(2,2,8,3, c.l)
-  // SLIT EYES — vertical pupils, distinguishes from furred/winged
-  r(3,3,2,1, c.l); r(7,3,2,1, c.l)
-  r(4,3,1,1,'#1A1A2C'); r(8,3,1,1,'#1A1A2C')
-  r(5,4,2,1, c.d)
-  // Body — round and compact
-  r(1,5,10,3, c.p)
-  r(3,6,6,1, c.l, 0.28)
-  // ARM STUBS on body sides (not bottom legs — Squirtle-style)
-  r(0,5,1,3, c.d); r(11,5,1,3, c.d)
-  // Scale texture
-  r(3,5,1,1,c.d,0.42); r(6,5,1,1,c.d,0.42); r(9,5,1,1,c.d,0.42)
-  // Short tail (visible from baby)
-  r(10,6,2,2, c.p); r(11,5,1,3, c.d); r(11,4,1,1, c.a)
-  // TWO short bottom legs (shorter+fewer than furred's four legs)
-  r(2,8,3,2, c.d); r(7,8,3,2, c.d)
-  r(2,9,3,1, c.d, 0.6); r(7,9,3,1, c.d, 0.6)
+  // HEAD — 8 wide, FLAT TOP (no bumps at y=0: completely different from furred)
+  r(2,0,8,6, c.l)
+  // SIDE FRILLS — protrude sideways at mid-head (not upward like ears)
+  r(0,3,2,2, c.d)                        // left frill
+  r(10,3,2,2, c.d)                       // right frill
+  // SLIT EYES — 1 wide × 2 tall (vs furred's 2×2 round square)
+  r(4,2,1,2, c.d)                        // left slit
+  r(7,2,1,2, c.d)                        // right slit
+  r(5,5,2,1, c.d)                        // snout
+
+  // BODY — compact and round (6 wide)
+  r(3,6,6,4, c.p)
+  r(4,7,4,2, c.l, 0.3)
+
+  // TAIL — the focal feature, small at baby (no accent yet)
+  r(9,7,1,4, c.d)                         // tail (1 wide × 4 rows)
+
+  r(3,10,2,2, c.d); r(7,10,2,2, c.d)     // 2 short legs
 }
 
 function drawScaledTeen(r, c) {
-  // Frills grow onto SIDES of head (teen signature feature)
-  r(0,2,2,3, c.a); r(10,2,2,3, c.a)
-  r(0,2,1,3, c.d); r(11,2,1,3, c.d)
-  // Head
-  r(2,2,8,3, c.l)
-  r(3,3,2,1, c.l); r(7,3,2,1, c.l)
-  r(4,3,1,1,'#1A1A2C'); r(8,3,1,1,'#1A1A2C')
+  // HEAD — y=0–4, same 8 wide. Head region shrinks to 42%.
+  r(2,0,8,5, c.l)
+  // FRILLS GROW — 3 wide (was 2) and taller (y=2–5, was y=3–4): the one new feature
+  r(0,2,3,4, c.d)                         // left frill (bigger)
+  r(9,2,3,4, c.d)                         // right frill
+  r(4,2,1,2, c.d); r(7,2,1,2, c.d)       // slit eyes
   r(5,4,2,1, c.d)
-  // Body
-  r(1,5,10,4, c.p)
-  r(3,6,6,2, c.l, 0.25)
-  // Arm stubs (larger)
-  r(0,5,1,4, c.d); r(11,5,1,4, c.d)
-  // Scale rows (more prominent)
-  r(2,5,2,1,c.d,0.42); r(5,5,2,1,c.d,0.42); r(8,5,2,1,c.d,0.42)
-  r(3,7,2,1,c.d,0.38); r(6,7,2,1,c.d,0.38); r(9,7,2,1,c.d,0.38)
-  // Longer tail
-  r(10,7,2,3, c.p); r(11,6,1,4, c.d); r(11,5,1,1, c.a)
-  // Two short legs
-  r(2,9,3,2, c.d); r(7,9,3,2, c.d)
-  r(2,10,3,1, c.d, 0.6); r(7,10,3,1, c.d, 0.6)
+
+  r(3,5,6,5, c.p)
+  r(4,6,4,3, c.l, 0.3)
+
+  // TAIL — longer (2 wide × 5 rows) and ACCENT TIP now appears
+  r(9,7,2,5, c.d)                          // tail body (2 wide)
+  r(9,10,2,2, c.a)                         // accent tip (eye goes here!)
+
+  r(3,10,2,2, c.d); r(7,10,2,2, c.d)
 }
 
 function drawScaledFinal(r, c) {
-  // LARGE DRAMATIC FRILLS — final signature (much bigger than teen)
-  r(0,0,3,5, c.a); r(9,0,3,5, c.a)
-  r(0,0,2,4, c.d, 0.62); r(10,0,2,4, c.d, 0.62)
-  // Head
-  r(3,1,6,4, c.l)
-  r(3,2,2,1, c.a); r(7,2,2,1, c.a)
-  r(4,4,4,1, c.d)
-  // Armored body
+  // FRILLS — very large at final (3 wide, taller than head itself)
+  r(0,0,3,6, c.d)                          // left frill (taller than head)
+  r(9,0,3,6, c.d)                          // right frill
+
+  // HEAD — y=0–3, 6 wide (adult proportions: head region 33%)
+  r(3,0,6,4, c.l)
+  r(4,1,1,2, c.d); r(7,1,1,2, c.d)        // slit eyes
+  r(5,3,2,1, c.d)                           // snout
+
+  // BODY — large (8 wide)
   r(2,4,8,6, c.p)
-  r(4,5,4,4, c.d)
-  r(5,6,2,2, c.a, 0.38)
-  // Scale armor rows
-  r(2,4,2,1,c.d); r(5,4,2,1,c.d); r(8,4,2,1,c.d)
-  r(3,6,2,1,c.d); r(6,6,2,1,c.d); r(9,6,2,1,c.d)
-  r(2,8,2,1,c.d); r(5,8,2,1,c.d); r(8,8,2,1,c.d)
-  // Long serrated tail
-  r(10,7,2,4, c.d); r(11,6,1,5, c.a); r(11,5,1,1, c.d)
-  r(11,7,1,1, c.d, 0.5); r(11,9,1,1, c.d, 0.5)
-  // TWO powerful legs (not four — dragon vs furred)
-  r(2,10,3,2, c.d); r(7,10,3,2, c.d)
-  r(1,11,2,1,c.d); r(3,11,2,1,c.d)
-  r(7,11,2,1,c.d); r(9,11,2,1,c.d)
-  // Forked tongue drawn LAST (over chest armor so it is visible)
-  r(5,5,1,2, c.a); r(6,5,1,2, c.a)
+  r(4,5,4,4, c.l, 0.28)
+
+  // TAIL — THE focal feature at its maximum. Bold accent dominates lower right.
+  r(10,6,2,6, c.d)                          // tail body (2 wide × 6 rows)
+  r(10,8,2,4, c.a)                          // large accent block (4 rows — unmissable)
+
+  r(3,10,3,2, c.d); r(7,10,3,2, c.d)       // 2 thick legs
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// CHITIN — insect (3-segment stacking body)
+// ─────────────────────────────────────────────────────────────────────────────
+// CHITIN
 //
-// Silhouette cues: THREE STACKED SEGMENTS at all stages (head=small,
-// thorax=medium, abdomen=LARGEST at bottom). ANTENNAE (thin vertical
-// lines, never round ears). LEGS ONLY from thorax, never head/abdomen.
-// This stacked proportion is unique — no other type has it.
-// ═══════════════════════════════════════════════════════════════════
+// Focal feature: THREE STACKED SEGMENTS, widths 4 → 6 → 8.
+// This inverted-pyramid stacking is immediately readable in silhouette
+// and is unique to this type — no other type has it.
+//
+// Antennae: single-pixel-wide lines (vs furred's 2-wide ear blocks).
+// Compound eyes: bulge 1 pixel BEYOND head width on each side.
+// Legs: only from thorax, pointing sideways.
+//
+// Accent (a): wing feature only — nothing at baby, buds at teen, spread at final.
+// Evolution: 4 legs → 6 legs + accent wing buds → 6 legs + full accent wings + pincers
+// ─────────────────────────────────────────────────────────────────────────────
 
 function drawChitinBaby(r, c) {
-  // Antennae — thin lines pointing up (NOT triangular ears)
-  r(4,0,1,3, c.d); r(7,0,1,3, c.d)
-  r(3,0,2,1, c.a); r(7,0,2,1, c.a)
-  // SEGMENT 1: HEAD — smallest, 4 wide (y=2-3)
-  r(4,2,4,2, c.l)
-  // Compound eyes bulge slightly beyond head
-  r(3,3,2,1, c.a); r(7,3,2,1, c.a)
-  r(3,3,1,1,'#1A1A2C'); r(8,3,1,1,'#1A1A2C')
-  // SEGMENT 2: THORAX — medium, 6 wide (y=4-6)
-  r(3,4,6,3, c.p)
-  r(4,4,1,1, c.d); r(7,4,1,1, c.d)           // mandibles below head
-  // 4 legs from thorax ONLY
-  r(1,4,2,1, c.d); r(9,4,2,1, c.d)
-  r(0,5,3,1, c.d); r(9,5,3,1, c.d)
-  r(0,5,1,2, c.d); r(11,5,1,2, c.d)
-  // SEGMENT 3: ABDOMEN — LARGEST, 8 wide (y=7-10)
-  r(2,7,8,4, c.d)
-  r(3,7,6,4, c.p, 0.62)
-  r(2,9,8,1, c.a, 0.42)
-  r(3,7,6,1, c.l, 0.38)
+  // ANTENNAE — single-pixel-wide (thin, not ear-like at all)
+  r(4,0,1,2, c.d); r(3,0,2,1, c.d)       // left antenna + knob
+  r(7,0,1,2, c.d); r(7,0,2,1, c.d)       // right antenna + knob
+
+  // SEGMENT 1: HEAD — 4 wide (x=4–7), y=2–4
+  r(4,2,4,3, c.l)
+  // Compound eyes BULGE to x=3 and x=8 (beyond 4-wide head — insect cue)
+  r(3,3,2,1, c.d)                          // left compound eye (x=3–4)
+  r(7,3,2,1, c.d)                          // right compound eye (x=7–8)
+  r(4,4,2,1, c.d)                          // mandibles
+
+  // SEGMENT 2: THORAX — 6 wide (x=3–8), y=5–7
+  r(3,5,6,3, c.p)
+  // 4 legs from thorax sides (2 per side)
+  r(1,5,2,1, c.d); r(0,6,3,1, c.d)        // left pair
+  r(9,5,2,1, c.d); r(9,6,3,1, c.d)        // right pair
+
+  // SEGMENT 3: ABDOMEN — 8 wide (x=2–9), y=8–11. WIDEST = reads as biggest.
+  r(2,8,8,4, c.d)                           // abdomen outline
+  r(3,8,6,4, c.p)                           // interior fill (1px dark border shows)
+  r(3,10,6,1, c.l, 0.4)                    // highlight band (no accent yet at baby)
 }
 
 function drawChitinTeen(r, c) {
-  // Longer antennae
-  r(4,0,1,4, c.d); r(7,0,1,4, c.d)
-  r(3,0,2,1, c.a); r(7,0,2,1, c.a)
-  r(3,1,1,1, c.d); r(8,1,1,1, c.d)
-  // SEGMENT 1: HEAD (y=3-4)
-  r(3,3,6,2, c.l)
-  r(3,4,2,1, c.a); r(7,4,2,1, c.a)
-  r(3,4,1,1,'#1A1A2C'); r(8,4,1,1,'#1A1A2C')
-  // SEGMENT 2: THORAX — wider now, 8 wide (y=5-7)
-  r(2,5,8,3, c.p)
-  r(4,5,1,1, c.d); r(7,5,1,1, c.d)           // mandibles
-  // WING BUDS — teen signature feature
-  r(0,5,2,2, c.a, 0.65); r(10,5,2,2, c.a, 0.65)
-  // 6 LEGS (more than baby's 4)
-  r(0,5,2,1, c.d); r(10,5,2,1, c.d)
-  r(0,6,2,1, c.d); r(10,6,2,1, c.d)
-  r(1,7,2,1, c.d); r(9,7,2,1, c.d)
-  // Joint
-  r(2,7,8,1, c.l, 0.35)
-  // SEGMENT 3: ABDOMEN — larger and longer (y=8-11)
+  r(4,0,1,2, c.d); r(3,0,2,1, c.d)
+  r(7,0,1,2, c.d); r(7,0,2,1, c.d)
+
+  // HEAD — same size/position
+  r(4,2,4,3, c.l)
+  r(3,3,2,1, c.d); r(7,3,2,1, c.d)
+  r(4,4,2,1, c.d)
+
+  // WING BUDS — the ONE new feature at teen. Accent colour makes them unmissable.
+  r(1,4,2,3, c.a, 0.8)                      // left wing bud (accent!)
+  r(9,4,2,3, c.a, 0.8)                      // right wing bud
+  r(1,4,1,3, c.d, 0.4)                      // bud outline
+
+  // THORAX — same 6 wide
+  r(3,5,6,3, c.p)
+  // 6 LEGS (3 pairs — more than baby's 4)
+  r(1,5,2,1, c.d); r(0,6,3,1, c.d); r(1,7,2,1, c.d)   // left 3 legs
+  r(9,5,2,1, c.d); r(9,6,3,1, c.d); r(9,7,2,1, c.d)   // right 3 legs
+
+  // ABDOMEN — same 8 wide but 1 row taller (y=8–11 = 4 rows)
   r(2,8,8,4, c.d)
-  r(3,8,6,4, c.p, 0.62)
-  r(2,10,8,1, c.a, 0.45)
-  r(3,8,6,1, c.l, 0.35)
+  r(3,8,6,4, c.p)
+  r(3,10,6,1, c.l, 0.4)
 }
 
 function drawChitinFinal(r, c) {
-  // Dramatic antennae
-  r(3,0,1,3, c.d); r(8,0,1,3, c.d)
-  r(2,0,3,1, c.a); r(8,0,3,1, c.a)
-  r(2,1,2,1, c.d); r(8,1,2,1, c.d)
-  // SEGMENT 1: HEAD (y=2-4)
-  r(3,2,6,3, c.l)
-  r(3,3,2,2, c.a); r(7,3,2,2, c.a)           // massive 2×2 compound eyes
-  r(3,3,1,1,'#1A1A2C'); r(8,3,1,1,'#1A1A2C')
-  // SEGMENT 2: THORAX (y=5-7)
-  r(2,5,8,3, c.p)
-  // WINGS FULLY SPREAD — final signature, spans full canvas
-  r(0,4,2,5, c.a, 0.5); r(10,4,2,5, c.a, 0.5)
-  r(0,5,1,4, c.d, 0.28); r(11,5,1,4, c.d, 0.28)
-  // LARGE PINCERS drawn AFTER wings (appear on top)
-  r(1,4,3,2, c.d); r(8,4,3,2, c.d)
-  r(1,5,2,1, c.a); r(9,5,2,1, c.a)
-  r(4,5,1,1, c.d); r(7,5,1,1, c.d)           // mandibles
-  // 6 legs
-  r(0,5,2,1, c.d); r(10,5,2,1, c.d)
-  r(0,6,2,1, c.d); r(10,6,2,1, c.d)
-  r(1,7,2,1, c.d); r(9,7,2,1, c.d)
-  // Joint
-  r(2,7,8,1, c.l, 0.38)
-  // SEGMENT 3: ABDOMEN — largest, prominent rings (y=8-11)
+  r(4,0,1,2, c.d); r(3,0,2,1, c.d)
+  r(7,0,1,2, c.d); r(7,0,2,1, c.d)
+
+  // HEAD — same
+  r(4,2,4,3, c.l)
+  r(3,3,2,1, c.d); r(7,3,2,1, c.d)
+
+  // PINCERS — new at final (extend from head sides at jaw level)
+  r(2,4,2,2, c.d)                            // left pincer
+  r(8,4,2,2, c.d)                            // right pincer
+
+  // WINGS FULLY SPREAD — the final signature.
+  // Accent interior spans y=3–8 on both sides.
+  r(0,3,3,6, c.d)                            // left wing outline
+  r(0,4,2,4, c.a, 0.6)                       // left wing interior (accent!)
+  r(9,3,3,6, c.d)                            // right wing outline
+  r(10,4,2,4, c.a, 0.6)                      // right wing interior
+
+  // THORAX
+  r(3,5,6,3, c.p)
+  r(1,5,2,1, c.d); r(0,6,3,1, c.d); r(1,7,2,1, c.d)
+  r(9,5,2,1, c.d); r(9,6,3,1, c.d); r(9,7,2,1, c.d)
+
+  // ABDOMEN — same proportions, accent ring now visible
   r(2,8,8,4, c.d)
-  r(3,8,6,4, c.p, 0.65)
-  r(2,9,8,1, c.a, 0.5)
-  r(2,11,8,1, c.a, 0.35)
-  r(3,8,6,1, c.l, 0.4)
+  r(3,8,6,4, c.p)
+  r(2,10,8,1, c.a, 0.55)                     // accent ring (secondary accent use — abdomen)
 }
 
 // ─── Pattern overlays ─────────────────────────────────────────────────────────
 function drawSpots(r, bodyType, stage, c) {
-  const a = 0.42
+  const a = 0.38
   if (bodyType === 'furred') {
-    if (stage === 'baby')  { r(4,6,1,1,c.d,a); r(7,6,1,1,c.d,a); r(5,7,1,1,c.d,a) }
-    if (stage === 'teen')  { r(3,6,1,1,c.d,a); r(6,6,1,1,c.d,a); r(8,6,1,1,c.d,a); r(5,7,1,1,c.d,a) }
-    if (stage === 'final') { r(3,6,1,1,c.d,a); r(6,6,1,1,c.d,a); r(9,6,1,1,c.d,a); r(4,8,1,1,c.d,a); r(8,8,1,1,c.d,a) }
+    if (stage === 'baby')  { r(4,7,1,1,c.d,a); r(7,7,1,1,c.d,a); r(5,8,1,1,c.d,a) }
+    if (stage === 'teen')  { r(3,7,1,1,c.d,a); r(6,7,1,1,c.d,a); r(8,7,1,1,c.d,a) }
+    if (stage === 'final') { r(3,7,1,1,c.d,a); r(6,7,1,1,c.d,a); r(9,7,1,1,c.d,a); r(4,9,1,1,c.d,a); r(7,9,1,1,c.d,a) }
   } else if (bodyType === 'winged') {
-    if (stage === 'baby')  { r(5,5,1,1,c.d,a); r(6,6,1,1,c.d,a) }
-    if (stage === 'teen')  { r(5,5,1,1,c.d,a); r(6,6,1,1,c.d,a); r(5,7,1,1,c.d,a) }
-    if (stage === 'final') { r(5,5,1,1,c.d,a); r(6,6,1,1,c.d,a); r(5,7,1,1,c.d,a); r(6,8,1,1,c.d,a) }
+    if (stage === 'baby')  { r(5,7,1,1,c.d,a); r(6,8,1,1,c.d,a) }
+    if (stage === 'teen')  { r(5,6,1,1,c.d,a); r(5,8,1,1,c.d,a); r(6,7,1,1,c.d,a) }
+    if (stage === 'final') { r(5,5,1,1,c.d,a); r(5,7,1,1,c.d,a); r(6,6,1,1,c.d,a); r(6,8,1,1,c.d,a) }
   } else if (bodyType === 'scaled') {
-    if (stage === 'baby')  { r(4,6,1,1,c.a,a); r(7,6,1,1,c.a,a) }
-    if (stage === 'teen')  { r(4,6,1,1,c.a,a); r(7,6,1,1,c.a,a); r(5,8,1,1,c.a,a) }
-    if (stage === 'final') { r(5,6,1,1,c.a,a); r(7,6,1,1,c.a,a); r(5,8,1,1,c.a,a); r(7,8,1,1,c.a,a) }
+    if (stage === 'baby')  { r(5,7,1,1,c.a,a); r(7,8,1,1,c.a,a) }
+    if (stage === 'teen')  { r(5,7,1,1,c.a,a); r(7,7,1,1,c.a,a); r(5,9,1,1,c.a,a) }
+    if (stage === 'final') { r(4,6,1,1,c.a,a); r(6,6,1,1,c.a,a); r(5,8,1,1,c.a,a); r(7,8,1,1,c.a,a) }
   } else {
-    if (stage === 'baby')  { r(5,8,1,1,c.a,a); r(7,9,1,1,c.a,a) }
-    if (stage === 'teen')  { r(5,9,1,1,c.a,a); r(7,9,1,1,c.a,a); r(6,10,1,1,c.a,a) }
-    if (stage === 'final') { r(5,9,1,1,c.a,a); r(7,9,1,1,c.a,a); r(6,10,1,1,c.a,a); r(4,10,1,1,c.a,a) }
+    if (stage === 'baby')  { r(5,9,1,1,c.a,a); r(7,10,1,1,c.a,a) }
+    if (stage === 'teen')  { r(4,9,1,1,c.a,a); r(6,9,1,1,c.a,a); r(5,10,1,1,c.a,a) }
+    if (stage === 'final') { r(4,9,1,1,c.a,a); r(6,9,1,1,c.a,a); r(4,11,1,1,c.a,a); r(7,11,1,1,c.a,a) }
   }
 }
 
 function drawStripes(r, bodyType, stage, c) {
-  if (bodyType === 'chitin') {
-    if (stage === 'baby')  { r(3,8,6,1,c.a,0.42) }
-    if (stage === 'teen')  { r(3,9,6,1,c.a,0.42); r(3,11,6,1,c.a,0.3) }
-    if (stage === 'final') { r(3,9,6,1,c.a,0.45); r(3,11,6,1,c.a,0.35) }
+  if (bodyType === 'furred') {
+    if (stage === 'baby')  { r(3,7,6,1,c.d,0.22); r(3,8,6,1,c.d,0.22) }
+    if (stage === 'teen')  { r(3,7,6,1,c.d,0.22); r(3,9,6,1,c.d,0.22) }
+    if (stage === 'final') { r(2,7,8,1,c.d,0.22); r(2,9,8,1,c.d,0.22) }
   } else if (bodyType === 'winged') {
-    if (stage === 'baby')  { r(4,5,4,1,c.d,0.28); r(4,7,4,1,c.d,0.28) }
-    if (stage === 'teen')  { r(4,5,4,1,c.d,0.28); r(4,7,4,1,c.d,0.28); r(4,9,4,1,c.d,0.28) }
-    if (stage === 'final') { r(4,5,4,1,c.d,0.28); r(4,7,4,1,c.d,0.28); r(4,8,4,1,c.d,0.28) }
+    if (stage === 'baby')  { r(4,7,4,1,c.d,0.25) }
+    if (stage === 'teen')  { r(4,6,4,1,c.d,0.25); r(4,8,4,1,c.d,0.25) }
+    if (stage === 'final') { r(4,5,4,1,c.d,0.25); r(4,7,4,1,c.d,0.25); r(4,9,4,1,c.d,0.25) }
+  } else if (bodyType === 'scaled') {
+    if (stage === 'baby')  { r(3,7,6,1,c.d,0.22); r(3,9,6,1,c.d,0.22) }
+    if (stage === 'teen')  { r(3,6,6,1,c.d,0.22); r(3,8,6,1,c.d,0.22) }
+    if (stage === 'final') { r(2,5,8,1,c.d,0.22); r(2,7,8,1,c.d,0.22); r(2,9,8,1,c.d,0.22) }
   } else {
-    if (stage === 'baby')  { r(2,6,8,1,c.d,0.26); r(2,8,8,1,c.d,0.26) }
-    if (stage === 'teen')  { r(1,6,10,1,c.d,0.26); r(1,8,10,1,c.d,0.26) }
-    if (stage === 'final') { r(1,6,10,1,c.d,0.26); r(1,8,10,1,c.d,0.26); r(1,10,10,1,c.d,0.26) }
+    if (stage === 'baby')  { r(3,9,6,1,c.a,0.35) }
+    if (stage === 'teen')  { r(3,9,6,1,c.a,0.35); r(3,11,6,1,c.a,0.28) }
+    if (stage === 'final') { r(2,9,8,1,c.a,0.4); r(2,11,8,1,c.a,0.3) }
   }
 }
 
-// ─── Main export — 12×12 grid for ALL stages ─────────────────────────────────
+// ─── Main export — 12×12 grid, all stages ─────────────────────────────────────
 export function drawCreature(canvas, seed, stats) {
   const W = canvas.width, H = canvas.height
   const ctx = canvas.getContext('2d')
@@ -461,7 +486,6 @@ export function drawCreature(canvas, seed, stats) {
   const PATTERNS   = ['none', 'none', 'spots', 'stripes']
   const pattern    = PATTERNS[Math.floor(rng() * 4)]
 
-  // 12×12 for all stages — proportion/silhouette does the work, not pixel count
   const P  = Math.floor(Math.min(W, H) / 12)
   const ox = Math.floor((W - P * 12) / 2)
   const oy = Math.floor((H - P * 12) / 2)

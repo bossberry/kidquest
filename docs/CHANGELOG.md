@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: redesign creature silhouettes using chibi pixel-art proportion principles (head ratio, color economy, single focal feature)
+
+### src/lib/creatureAlgorithm.js
+- Round 4 redesign — all 12 draw functions rewritten using 5 chibi pixel-art principles
+- FURRED: head 8-wide, body only 6-wide (head wider = chibi dome reads instantly); ears are 2×3 blocks above the head dome; focal feature = the head shape itself; mane crown added at final with accent shimmer; 4 stub legs
+- WINGED: smooth dome top (no ears = immediate contrast vs furred); head 6-wide; eyes positioned at y=1–2 (avian/high); body only 4-wide (narrow upright pillar); wings are THE focal feature: shoulder nubs at baby → folded accent wings at teen → fully spread accent wings at final spanning canvas edges; 2 legs (bipedal)
+- SCALED: flat-top head (no bumps), side frills protrude sideways (not upward); SLIT EYES = 1×2 vertical blocks (vs other types' 2×2 round); tail is THE focal feature: 1-wide/no-accent at baby → 2-wide/accent-tip at teen → 3-wide/large-accent at final
+- CHITIN: 3-band stacked structure at 4→6→8 column widths (readable in silhouette alone); antennae are single-pixel-wide lines (not ear blocks); compound eyes bulge 1px beyond head; accent = wings only (nothing at baby, wing buds at teen, full spread at final + accent rings on abdomen)
+- Pattern overlays (spots/stripes) coordinates updated to match new body layouts
+
+---
+
 ## 2026-06-20 — fix: redesign creature silhouettes within original 12x12 grid using Pokemon-style proportion differentiation
 
 ### src/lib/creatureAlgorithm.js

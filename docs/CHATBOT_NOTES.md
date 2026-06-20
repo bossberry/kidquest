@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — creatureAlgorithm.js silhouette redesign (round 4 — chibi pixel-art principles):**
+- Built: Full rewrite of all 12 draw functions using chibi pixel-art proportion principles. FURRED: BIG ROUND HEAD is the focal feature — head 8-wide, ears add 3 rows above; body NARROWER (6-wide) than head to emphasise chibi dome; 4 stub legs; mane crown at final with accent shimmer. WINGED: no ears (smooth dome top), head 6-wide (narrower than furred), eyes HIGH on face (avian), body only 4-wide; wing focal feature grows: shoulder nubs → folded wings in accent colour → fully spread accent wings spanning canvas edges; 2 legs only (bipedal). SCALED: flat-top head (no bumps), side frills protrude sideways, SLIT EYES (1×2 vertical vs 2×2 round), tail IS the focal feature — tiny with no accent at baby → accent tip at teen → large 3-row bold accent block at final. CHITIN: 3-band stacked structure (4→6→8 wide) at all stages; antennae single-pixel thin; compound eyes bulge 1px beyond head width; accent used for wings only — absent at baby, wing buds at teen, full spread wings at final with accent ring on abdomen. Pattern overlays (spots/stripes) updated to match new body layouts.
+- Not finished: nothing
+- Blockers/risks found: none — visual test recommended in browser with seeds 3=furred, 17=winged, 33=scaled, 49=chitin
+- Ready to start next: Phase 4 NPC System (5 NPCs: Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole)
+- Needs Chatbot decision first: none
+
 **2026-06-20 — creatureAlgorithm.js silhouette redesign (round 3 — Pokémon-proportion):**
 - Built: Reverted all stages to 12×12 grid (removed 16×16 final). Redesigned all 12 draw functions using proportion-based differentiation. FURRED: wide quadruped (10-12 wide body, 4-leg pairs with belly gap, triangular ears; baby=stub tail, teen=shoulder mane tufts, final=mane crown). WINGED: narrow bipedal (4 wide body, 2 legs only, beak, tail extending right; baby=tiny wing nubs, teen=folded wing buds, final=wings spread to canvas edges). SCALED: round compact (Squirtle proportion, dorsal ridge above head instead of ears, slit eyes, arm stubs + 2 bottom legs; baby=small frill, teen=head-side frills, final=large dramatic corner frills). CHITIN: 3 stacked segments (head smallest→thorax medium→abdomen largest; antennae always, legs from thorax only; baby=4 legs, teen=6 legs+wing buds, final=full wings+pincers). Draw order fixed: beak and tongue drawn AFTER body so they appear on top.
 - Not finished: nothing

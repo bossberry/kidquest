@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { TH_ALPHA, EN_ALPHA, LEVELS, shuffle } from '../config/gameConfig.js'
 import { playSFX, playTone } from '../lib/audio.js'
 import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
+import { drawItem } from '../lib/itemArt.js'
 
 // ── Question generators ───────────────────────────────────────────────────────
 
@@ -54,6 +55,22 @@ const ITEM_LABELS = {
 const ITEM_COLORS = {
   food:'#8B4513', ribbon:'#FF1493', shoes:'#EF9F27', rainbow_star:'#FF88FF',
   scroll:'#e8c040', thunder:'#66aaff', gem:'#cc44cc', mirror:'#44cccc', clover:'#44cc44',
+}
+
+function RewardIcon({ itemKey, size = 64 }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    drawItem(canvas, itemKey)
+  }, [itemKey])
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size} height={size}
+      style={{ imageRendering: 'pixelated', display: 'block' }}
+    />
+  )
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -265,11 +282,7 @@ export default function TreasureSlot({ onClose, onReward, subject='thai' }) {
             transition: `transform 0.5s ease ${i*0.15}s, opacity 0.5s ease ${i*0.15}s`,
           }}>
             <div style={{ filter:`drop-shadow(0 0 12px ${ITEM_COLORS[r.key] ?? '#fff'})` }}>
-              <canvas
-                ref={ref => { if(ref) import('../lib/itemArt.js').then(({drawItem})=>drawItem(ref,r.key)) }}
-                width={64} height={64}
-                style={{ imageRendering:'pixelated', display:'block' }}
-              />
+              <RewardIcon itemKey={r.key} size={64} />
             </div>
             <div style={{
               fontFamily:'var(--font-thai)', fontSize:13,

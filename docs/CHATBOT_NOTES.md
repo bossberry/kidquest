@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-20 — TreasureSlot reward icon render fix:**
+- Built: replaced `ref={ref => import('../lib/itemArt.js').then(({drawItem})=>drawItem(ref,r.key))}` (race-prone) with static import + `RewardIcon` sub-component (useEffect/useRef, same pattern as Collection.jsx StageIcon). Only one file had this pattern.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Interactive pre-login backdrop:**
 - Built: `LoginBackdrop.jsx` — tappable creatures with squish (80% chance, `playCreatureTapSFX`) or evolve (40% chance, temp evoStage advance + `playTone('stageUp')`) reactions; `_bgmLogin` 8-note major-scale melody loop added to existing BGM_TRACKS system; `startBGM()` export calls `_bgmLogin(getACtx())` on mount, `stopBGM()` on unmount; `playCreatureTapSFX()` standalone export with freq sweep chirp. `App.jsx` — `showLoginModal` state added; not-logged-in render now shows backdrop + LoginModal only when `showLoginModal=true` (no longer auto-blocking). `LoginModal.jsx` — `✕` close button added (absolute top-right, only when `!mandatory`); `.px-auth-sheet` given `position:relative`. `setSoundOn`/`toggleSound` updated to call `stopBGM(0)` when muting.
 - Not finished: nothing

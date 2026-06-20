@@ -1,5 +1,15 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: TreasureSlot reward icons not rendering (dynamic import race in canvas ref)
+
+### src/components/TreasureSlot.jsx
+- Added static `import { drawItem } from '../lib/itemArt.js'` at top of file
+- Added `RewardIcon` sub-component (useEffect + useRef, same pattern as Collection.jsx's StageIcon) to draw item icons stably
+- Replaced inline `ref={ref => { if(ref) import('../lib/itemArt.js').then(...)}}` canvas with `<RewardIcon itemKey={r.key} size={64} />`
+- No other files used the same anti-pattern (grep confirmed only one occurrence)
+
+---
+
 ## 2026-06-20 — feat: interactive pre-login backdrop — tappable creatures, start button, BGM + SFX
 
 ### src/lib/audio.js

@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-20 — Sequencing mode speaks actual letter order:**
+- Built: `genSequenceQ` now accepts `isThai` flag; `spokenOrder = correctOrder.join(', ')` embedded into `instructionTh`/`instructionEn`; both Thai (TH_ALPHA) and English (EN_ALPHA) call sites updated. TTS playback and onSpeak replay already work via existing `instructionTh/En` fallback — no MoveSelectBattleMode changes.
+- Not finished: nothing
+- Blockers/risks found: Thai consonant TTS pronunciation quality is browser/OS-dependent; comma-join gives pause but phonetic names (e.g. "กอไก่") would require a full 44-item mapping — not added per task spec.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Save-status toast scoped to intentional actions only:**
 - Built: `saveState` and `syncToSupabase` both take optional `{ notify = false }` second arg; all existing callers default to silent. `ProfileModal.handleSave` explicitly passes `{ notify: true }` with a manually-constructed `updatedState` object (bypasses React update timing). OnboardingModal left silent per spec — screen transition is sufficient feedback there.
 - Not finished: nothing

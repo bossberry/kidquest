@@ -40,19 +40,24 @@ const WORLD_ENEMY_NAMES = {
 
 // ── Question generators ────────────────────────────────────────────────────────
 
-function genSequenceQ(alphaList) {
+function genSequenceQ(alphaList, isThai) {
   const runLen = Math.random() < 0.5 ? 3 : 4
   const maxStart = alphaList.length - runLen
   const start = Math.floor(Math.random() * (maxStart + 1))
   const run = alphaList.slice(start, start + runLen)
   const correctOrder = run.map(item => item.char ?? item.letter)
+  const spokenOrder = correctOrder.join(', ')
   return {
     isSequence: true,
     inputMode: 'sequence',
     sequenceChars: correctOrder,
     ttsWord: null,
-    instructionTh: 'แตะตัวอักษรให้เรียงตามลำดับ',
-    instructionEn: 'Tap the letters in the correct order',
+    instructionTh: isThai
+      ? `เรียงตามลำดับนี้ ${spokenOrder}`
+      : 'แตะตัวอักษรให้เรียงตามลำดับ',
+    instructionEn: !isThai
+      ? `Tap them in this order: ${spokenOrder}`
+      : 'Tap the letters in the correct order',
   }
 }
 
@@ -173,7 +178,7 @@ function genThaiMoveQ(lv) {
 
   // 15% chance for levels 1-4 to be a letter-sequencing question instead
   if (id <= 4 && Math.random() < 0.15) {
-    return genSequenceQ(TH_ALPHA)
+    return genSequenceQ(TH_ALPHA, true)
   }
   // 10% chance for levels 1-2 to be a fill-the-gap question
   if (id <= 2 && Math.random() < 0.10) {
@@ -232,7 +237,7 @@ function genEngMoveQ(lv) {
 
   // 15% chance across ALL English levels to be a letter-sequencing question
   if (Math.random() < 0.15) {
-    return genSequenceQ(EN_ALPHA)
+    return genSequenceQ(EN_ALPHA, false)
   }
   // 10% chance across ALL English levels to be a fill-the-gap question
   if (Math.random() < 0.10) {

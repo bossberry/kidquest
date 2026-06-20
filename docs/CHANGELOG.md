@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: sequencing mode speaks the correct letter order instead of a generic instruction
+
+### src/components/WorldBattle.jsx
+- `genSequenceQ(alphaList, isThai)` — added `isThai` param; builds `spokenOrder = correctOrder.join(', ')` (e.g. "ก, ข, ค" or "Q, R, S") and embeds it in the instruction strings
+- Thai: `instructionTh = "เรียงตามลำดับนี้ ก, ข, ค"` → TTS speaks the actual letter sequence
+- English: `instructionEn = "Tap them in this order: Q, R, S"` → TTS speaks the actual letter sequence
+- Call site in `genThaiMoveQ`: `genSequenceQ(TH_ALPHA, true)` 
+- Call site in `genEngMoveQ`: `genSequenceQ(EN_ALPHA, false)`
+- TTS playback path (MoveSelectBattleMode `instructionTh/En` fallback) and onSpeak replay already handle the dynamic strings — no other files changed
+- Note: single Thai consonant pronunciation quality varies by browser/OS TTS engine; comma-join gives natural pauses; no phonetic mapping added (would require all 44 consonant names)
+
+---
+
 ## 2026-06-20 — feat: save-status toast only fires for intentional user saves, not background auto-save
 
 ### src/lib/state.js

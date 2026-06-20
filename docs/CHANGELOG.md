@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: mandatory onboarding flow for new accounts
+
+### src/lib/state.js
+- `defaultState().name` changed from `'โชแปง'` to `''` — new accounts no longer inherit a hardcoded Thai name; empty name is also the signal used to trigger onboarding
+
+### src/components/OnboardingModal.jsx (new)
+- Mandatory first-time setup: name input + school-grade grid (stores label string) + gender 3-button picker
+- All fields start unset; submit button disabled until all three are filled (gender must be actively tapped, even to choose 'ไม่ระบุ')
+- No skip button, no click-outside dismiss
+- Dispatches `SET_PROFILE({ name, schoolGrade, gender })` on submit; App.jsx gate resolves automatically when `state.name` becomes non-empty
+
+### src/App.jsx
+- Added `OnboardingModal` import
+- Gate: `const needsOnboarding = !state.name || state.name.trim() === ''` inserted between the login gate and main return
+- Existing accounts with any name set are unaffected
+
+---
+
 ## 2026-06-20 — feat: resolveSync, stateVersion deep migration, SaveStatusIndicator
 
 ### src/lib/state.js

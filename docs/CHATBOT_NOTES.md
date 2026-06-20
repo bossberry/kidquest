@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Mandatory onboarding for new accounts:**
+- Built: `defaultState().name` changed from `'โชแปง'` to `''` (root fix). New `OnboardingModal.jsx` — name input + school-grade grid (stores label string) + gender 3-button picker; all start null/empty; submit disabled until all three are filled; dispatches `SET_PROFILE` on submit; no skip/dismiss possible. App.jsx: added `OnboardingModal` import; `needsOnboarding = !state.name || state.name.trim() === ''` gate inserted between login gate and main return; resolves automatically when SET_PROFILE sets a real name.
+- Not finished: existing 'โชแปง' accounts bypass onboarding intentionally (only new signups hit it)
+- Blockers/risks found: none — SET_PROFILE reducer already handles `{ name, schoolGrade, gender }` correctly from earlier work; verified with grep
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — resolveSync, stateVersion/deep migration, SaveStatusIndicator:**
 - Built: state.js: added `STATE_VERSION = 1`, `stateVersion` in `defaultState()`, module-level `saveStatusListeners` + `onSaveStatusChange` + `emitSaveStatus`. New `resolveSync(local, remote)` — unconditional "remote has creatures, local empty" override, then timestamp comparison, fallback to `rounds`. New `migrateStateShape(saved)` — shallow-merges defaultState() onto old save, then deep-merges 12 known nested-object fields to backfill new sub-keys. Both `loadState()` paths now call `migrateStateShape` first. `saveState()` emits 'saving'; `syncToSupabase()` emits 'saved'/'error'/'offline'. StateContext: import updated to include `resolveSync`; both conflict sites replaced with single `resolveSync()` call. New `SaveStatusIndicator.jsx` (fixed bottom-right, fades 'saved' after 2.5s, 'error'/'offline' stay visible). Mounted in App.jsx inside the main (post-auth) render.
 - Not finished: nothing

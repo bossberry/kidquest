@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — creatureAlgorithm.js silhouette redesign (round 2):**
+- Built: Fundamentally different architecture per body type. FURRED = 4-legged quadruped stance (4 legs in two pairs with belly gap). WINGED = wings dominate width (canvas-edge to canvas-edge on final), beak, 2 taloned feet, fan tail feathers. SCALED = HORIZONTAL for baby/teen (head left, tail right, frills on left edge, horizontal body — completely unique orientation vs other types); final is standing 2-legged serpent dragon. CHITIN = 3 stacked segments where abdomen is LARGEST (true insect proportion), thin antennae, legs radiate from thorax. Final stage uses 16×16 grid for more detail. Squint test passes — all 4 types readable in silhouette alone.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — creatureAlgorithm.js full visual redesign:**
 - Built: 4 body types (`furred`/`winged`/`scaled`/`chitin`) × 3 stages = 12 hand-placed silhouettes on 12×12 pixel grid. 20 palette variants across 6 elements (3–4 per element). Pattern overlay system: `none`/`spots`/`stripes` (50%/25%/25%). All driven by `prng(seed)` — 3 consecutive draws: palette index → body type → pattern. `COLORS` → `PALETTES` (array-of-objects per element). `getElement()`, `getCreatureSeed()`, `drawCreature()` signature all unchanged. Visually reviewed in browser — 4 body types clearly distinct (furred=cat ears, winged=wing protrusions+beak, scaled=side frills+tongue, chitin=antennae+segmented). Stage evolution (baby→teen→final) clearly readable.
 - Not finished: nothing

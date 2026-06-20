@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: distinct body-type silhouettes + majestic final-stage creature designs
+
+### src/lib/creatureAlgorithm.js
+- Complete silhouette redesign: each body type now has a fundamentally different architecture
+- FURRED: 4 visible legs (2 pairs with belly gap — back-outer + front-inner), triangular pointy ears, wide quadruped body
+- WINGED: wings are widest element (span canvas edge to edge), narrow body, triangular beak, 2 talon feet with spread, fan-shaped tail feathers (not round curl)
+- SCALED: HORIZONTAL orientation for baby/teen (head on left, tail curling up on right, frills on left edge, tiny legs at belly bottom); final stands upright as 2-legged armored dragon
+- CHITIN: 3 visually distinct stacked segments (head=smallest, thorax=medium with legs, abdomen=largest at bottom), thin antennae pointing up, legs radiate from thorax sides (4 legs baby, 6 legs teen/final)
+- Final stage now uses 16×16 grid (vs 12×12 for baby/teen) for more silhouette complexity
+- FURRED final: lion-king with mane radiating out, glowing eyes, massive chest plate, 4 thick legs + paws
+- WINGED final: phoenix/storm dragon, wings span full 16px width, dramatic tail fan, long beak
+- SCALED final: standing serpent dragon, long head with dramatic frills + horns, armored scale rows, serrated coiling tail
+- CHITIN final: titan beetle/mantis, wings spread full width, 6 legs, large pincers, 3-segment abdomen with rings
+- Pattern overlays (spots/stripes) only applied to baby/teen; final stages rely on their own detail work
+
+---
+
 ## 2026-06-20 — feat: modular creature body types + expanded palettes + patterns, seed-driven
 
 ### src/lib/creatureAlgorithm.js

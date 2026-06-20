@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: gender field in child profile
+
+### src/lib/state.js
+- Added `gender: 'unspecified'` to `defaultState()` with comment noting future gendered content/item gating (not yet implemented)
+
+### src/context/StateContext.jsx
+- `SET_PROFILE` reducer now reads and spreads `gender` from payload
+
+### src/components/ProfileModal.jsx
+- Added `gender` state (initialised from `state.gender`); included in `handleSave` dispatch
+- 3-option selector (👦 ชาย / 👧 หญิง / 🌟 ไม่ระบุ) inserted between grade grid and save button
+
+---
+
 ## 2026-06-19 — fix: cloud-sync conflict resolution uses timestamps instead of rounds counter
 
 ### src/lib/state.js

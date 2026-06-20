@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Gender field in profile:**
+- Built: `gender: 'unspecified'` added to `defaultState()` in state.js with comment noting future use. `SET_PROFILE` reducer updated to spread `gender` from payload. ProfileModal: `gender` state initialised from `state.gender`, included in `handleSave` dispatch, 3-button selector (👦 ชาย / 👧 หญิง / 🌟 ไม่ระบุ) inserted between grade grid and save button — matching existing grade-button styling.
+- Not finished: actually using gender to differentiate content/items (separate future task)
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-19 — Cloud-sync conflict resolution: timestamps instead of rounds:**
 - Built: `defaultState()` now includes `lastSavedAt: Date.now()`. `saveState()` stamps `{ ...s, lastSavedAt: Date.now() }` on every save before writing to localStorage and pushing to Supabase — so `state_json` in the cloud always carries the timestamp too. Both conflict-resolution sites updated: `loadState().then()` block and `SIGNED_IN` block now compare `lastSavedAt` (if present on either side); fall back to `rounds` comparison only when both sides lack a timestamp (old saves). The "cloud has creatures but local is empty" unconditional override in SIGNED_IN is preserved.
 - Not finished: nothing

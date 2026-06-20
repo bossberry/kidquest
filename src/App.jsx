@@ -17,6 +17,7 @@ import ResetPasswordModal from './components/ResetPasswordModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
+import { supabase } from './lib/supabase.js'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -26,6 +27,8 @@ export default function App() {
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const { state, dispatch } = useAppState()
 
   useEffect(() => {
@@ -38,6 +41,18 @@ export default function App() {
     dispatch({ type: ACTIONS.CLEAR_EVO_NOTICE })
   }, [state.pendingEvoNotice]) // eslint-disable-line
 
+  useEffect(() => {
+    if (!supabase) { setAuthChecked(true); return }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session)
+      setAuthChecked(true)
+    })
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session)
+    })
+    return () => data?.subscription?.unsubscribe()
+  }, [])
+
   useEffect(() => { initVoices() }, [])
   useEffect(() => { setSoundOn(soundOn) }, [soundOn])
 
@@ -45,6 +60,21 @@ export default function App() {
     if (to === 'home') dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
     setScreen(to)
     setEggPopupOpen(false)
+  }
+
+  if (!authChecked) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg)', color: 'var(--muted)', fontFamily: 'Mitr,sans-serif', fontSize: 14,
+      }}>
+        กำลังโหลด...
+      </div>
+    )
+  }
+
+  if (!isLoggedIn) {
+    return <LoginModal open={true} onClose={() => {}} mandatory />
   }
 
   return (

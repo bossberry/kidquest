@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
 
-export default function LoginModal({ open, onClose }) {
+export default function LoginModal({ open, onClose, mandatory }) {
   const [mode, setMode] = useState('login') // 'login' | 'forgot' | 'sent'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,14 +65,14 @@ export default function LoginModal({ open, onClose }) {
   }
 
   return createPortal(
-    <div className="auth-overlay show" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="auth-overlay show" onClick={e => { if (!mandatory && e.target === e.currentTarget) onClose() }}>
       <div className="auth-sheet">
         <div style={{ width:40, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 18px' }} />
 
         {mode === 'login' && (
           <>
             <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>เข้าสู่ระบบ</div>
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>login เพื่อ sync ข้อมูลข้ามอุปกรณ์ · ยังไม่ login ก็เล่นได้ปกติ</div>
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น</div>
             <input className="auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
             <input className="auth-input" type="password" placeholder="Password (อย่างน้อย 6 ตัว)" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
             <button
@@ -86,7 +86,6 @@ export default function LoginModal({ open, onClose }) {
               <button onClick={handleSignIn} disabled={loading} style={{ flex:1, background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Login</button>
               <button onClick={handleSignUp} disabled={loading} style={{ flex:1, background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Sign Up</button>
             </div>
-            <button onClick={onClose} style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', marginTop:10, padding:6 }}>ข้ามไปก่อน (guest mode)</button>
           </>
         )}
 

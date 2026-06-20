@@ -1,5 +1,17 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: show active creature + full stats on Mystery Adventurers cards
+
+### src/components/FriendsScreen.jsx
+- `RARITY` constant: 5-tier color map (common/uncommon/rare/epic/legendary) — border, background, text, optional glow — keyed by lowercase label
+- `RarityBadge`: inline span with per-rarity border + bg + glow; used on cards and in modal
+- `StatBar`: reuses `.px-hp-bar-outer`/`.px-hp-bar-inner` CSS classes; label (pixel font) + filled bar + numeric value; per-stat colors (HP green, ATK red, DEF blue2, SPD yellow)
+- `AdventurerModal` (createPortal): opens on "ดูสเตตัส" tap; shows 72px emoji avatar with rarity-colored border, creature_name + RarityBadge, masked display_name, 4 StatBars (HP/300, ATK/80, DEF/60, SPD/300), "⚔️ ท้าเล่น" mock button (closes modal + fires 3s toast)
+- Adventurer card updated: rarity-colored border/glow per tier; 48×48 emoji avatar box; creature_name + badge + display_name info column; "ดูสเตตัส" button replaces inline "ท้าเล่น"
+- player/bot distinction: intentionally absent — identical layout for both source values
+
+---
+
 ## 2026-06-20 — feat: unify friends screen + add Mystery Adventurers tab (mock challenge UI)
 
 ### src/components/FriendsScreen.jsx

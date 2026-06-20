@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Phase 1.1b — Mystery Adventurers: creature stats + rarity cards:**
+- Built: `RARITY` 5-tier color map; `RarityBadge` component (rarity-colored border/bg/glow); `StatBar` component (reuses `.px-hp-bar-outer/.px-hp-bar-inner` CSS, pixel font label, numeric value). `AdventurerModal` (createPortal): opens on "ดูสเตตัส" tap; 72px emoji avatar with rarity border; creature_name + badge; masked display_name; 4 stat bars with fixed max refs (HP/300, ATK/80, DEF/60, SPD/300); "ท้าเล่น" closes modal + fires 3s toast. Card updated: rarity-colored border + optional glow; 48×48 emoji avatar; creature_name + badge + display_name info; "ดูสเตตัส" button. source field intentionally ignored — player/bot cards look identical.
+- Not finished: nothing
+- Blockers/risks found: stat max reference values (HP 300, ATK 80, DEF 60, SPD 300) are estimates — Chatbot should confirm if bar scaling looks wrong with real data
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Phase 1.1 — Unified Friends screen + Mystery Adventurers tab:**
 - Built: FriendsScreen.jsx fully rewritten. Tab bar reduced from 4 → 2 tabs (เพื่อน / ผู้คนอื่นๆ). FriendsTab: single scrollable page loading all data in parallel (Promise.all: friendships + ensure_friend_code + my_friends); pending requests section only renders when requests.length > 0 (no empty state); My Code / Add Friend / Friends list sections always shown. All RPC calls, message logic, and error handling preserved unchanged from Phase 1. MysteryTab: calls get_mystery_adventurers({ p_limit: 8 }) on mount; 8 adventurer cards with display_name + ⚔️ icon (player/bot look identical); "ท้าเล่น" = mock toast for 3s (no backend call); "🔄 สับใหม่" button re-calls RPC. Toast is fixed-positioned at top:60, zIndex:9999.
 - Not finished: nothing

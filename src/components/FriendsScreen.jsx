@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
@@ -257,13 +258,112 @@ function FriendsTab({ userId }) {
   )
 }
 
+// ─── Rarity helpers ───────────────────────────────────────────────────────────
+
+const RARITY = {
+  common:    { color: '#aaaaaa', bg: 'rgba(170,170,170,0.10)', border: 'rgba(170,170,170,0.35)', glow: null },
+  uncommon:  { color: '#44aaff', bg: 'rgba(68,170,255,0.10)',  border: 'rgba(68,170,255,0.45)',  glow: null },
+  rare:      { color: '#bb55ff', bg: 'rgba(187,85,255,0.10)',  border: 'rgba(187,85,255,0.45)',  glow: null },
+  epic:      { color: '#ff9900', bg: 'rgba(255,153,0,0.10)',   border: 'rgba(255,153,0,0.50)',   glow: null },
+  legendary: { color: '#ffd700', bg: 'rgba(255,215,0,0.12)',   border: '#ffd700',                glow: '0 0 8px rgba(255,215,0,0.45)' },
+}
+
+function rarityKey(label) {
+  return (label || 'common').toLowerCase().replace(/\s/g, '')
+}
+
+function RarityBadge({ label }) {
+  const s = RARITY[rarityKey(label)] ?? RARITY.common
+  return (
+    <span style={{
+      ...FONT_TH, fontSize: 10, fontWeight: 700, color: s.color,
+      background: s.bg, border: `1px solid ${s.border}`,
+      padding: '2px 7px', boxShadow: s.glow ?? 'none', flexShrink: 0,
+    }}>
+      {label || 'Common'}
+    </span>
+  )
+}
+
+function StatBar({ label, value, max, color }) {
+  const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)))
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ ...FONT_PX, fontSize: 7, color: 'rgba(255,255,255,0.5)', width: 26, textAlign: 'right', flexShrink: 0 }}>
+        {label}
+      </div>
+      <div className="px-hp-bar-outer" style={{ flex: 1 }}>
+        <div className="px-hp-bar-inner" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <div style={{ ...FONT_PX, fontSize: 8, color: 'rgba(255,255,255,0.75)', width: 28, textAlign: 'right', flexShrink: 0 }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+// ─── Adventurer stats modal ────────────────────────────────────────────────────
+
+function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
+  const s = RARITY[rarityKey(a.rarity_label)] ?? RARITY.common
+  return createPortal(
+    <div className="auth-overlay show" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="px-auth-sheet" style={{ maxWidth: 340 }}>
+        {/* Close */}
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 10, right: 10,
+          background: 'none', border: 'none', cursor: 'pointer',
+          ...FONT_PX, fontSize: 12, color: 'var(--px-light)', padding: 4,
+          WebkitTapHighlightColor: 'transparent',
+        }}>✕</button>
+
+        {/* Creature avatar */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+          <div style={{
+            width: 72, height: 72, background: 'var(--px-black)',
+            border: `2px solid ${s.border}`, boxShadow: s.glow ? `4px 4px 0 var(--px-black), ${s.glow}` : '4px 4px 0 var(--px-black)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 40 }}>{a.creature_emoji ?? '❓'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{ ...FONT_TH, fontSize: 15, fontWeight: 700, color: 'var(--px-light)' }}>
+              {a.creature_name ?? 'สัตว์ลึกลับ'}
+            </div>
+            <RarityBadge label={a.rarity_label} />
+          </div>
+          <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.5 }}>
+            {a.display_name ?? 'นักผจญภัยลึกลับ'}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          <StatBar label="HP"  value={a.hp  ?? 0} max={300} color="var(--px-green)"  />
+          <StatBar label="ATK" value={a.atk ?? 0} max={80}  color="var(--px-red)"   />
+          <StatBar label="DEF" value={a.def ?? 0} max={60}  color="var(--px-blue2)" />
+          <StatBar label="SPD" value={a.spd ?? 0} max={300} color="var(--px-yellow)"/>
+        </div>
+
+        <button onClick={() => onChallenge(a.display_name)}
+          className="px-btn px-btn-purple"
+          style={{ width: '100%', ...FONT_TH, fontSize: 14, textTransform: 'none', letterSpacing: 0 }}>
+          ⚔️ ท้าเล่น
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 // ─── Mystery Adventurers tab ───────────────────────────────────────────────────
 
 function MysteryTab() {
-  const [adventurers, setAdventurers] = useState([])
-  const [loading, setLoading]         = useState(true)
-  const [toastMsg, setToastMsg]       = useState(null)
-  const toastTimerRef                 = useRef(null)
+  const [adventurers, setAdventurers]   = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [selected, setSelected]         = useState(null)
+  const [toastMsg, setToastMsg]         = useState(null)
+  const toastTimerRef                   = useRef(null)
 
   const load = useCallback(async () => {
     if (!supabase) { setLoading(false); return }
@@ -277,6 +377,7 @@ function MysteryTab() {
   useEffect(() => () => clearTimeout(toastTimerRef.current), [])
 
   const handleChallenge = (name) => {
+    setSelected(null)
     clearTimeout(toastTimerRef.current)
     setToastMsg(`ส่งคำท้า${name ? ` ${name}` : ''}แล้ว! รอสักครู่นะ...`)
     toastTimerRef.current = setTimeout(() => setToastMsg(null), 3000)
@@ -296,6 +397,14 @@ function MysteryTab() {
         </div>
       )}
 
+      {selected && (
+        <AdventurerModal
+          adventurer={selected}
+          onChallenge={handleChallenge}
+          onClose={() => setSelected(null)}
+        />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ ...FONT_TH, fontSize: 12, color: 'var(--px-yellow)', fontWeight: 700 }}>🌐 ผู้คนอื่นๆ</div>
         <button onClick={load} disabled={loading}
@@ -310,31 +419,51 @@ function MysteryTab() {
         <EmptyState emoji="🌐" text="ไม่มีผู้คนให้แสดงตอนนี้" />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {adventurers.map((a, i) => (
-            <div key={i} style={{
-              background: 'var(--px-dark)', border: '2px solid var(--px-border)',
-              boxShadow: '3px 3px 0 var(--px-black)', padding: '12px 14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {adventurers.map((a, i) => {
+            const s = RARITY[rarityKey(a.rarity_label)] ?? RARITY.common
+            return (
+              <div key={i} style={{
+                background: 'var(--px-dark)',
+                border: `2px solid ${s.border}`,
+                boxShadow: s.glow ? `3px 3px 0 var(--px-black), ${s.glow}` : '3px 3px 0 var(--px-black)',
+                padding: '12px 14px',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                {/* Creature emoji avatar */}
                 <div style={{
-                  width: 36, height: 36, background: 'var(--px-mid)',
-                  border: '2px solid var(--px-border)',
+                  width: 48, height: 48, flexShrink: 0,
+                  background: 'var(--px-black)', border: `2px solid ${s.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <span style={{ fontSize: 18 }}>⚔️</span>
+                  <span style={{ fontSize: 28 }}>{a.creature_emoji ?? '❓'}</span>
                 </div>
-                <span style={{ ...FONT_TH, fontSize: 14, color: 'var(--px-light)', fontWeight: 600 }}>
-                  {a.display_name ?? 'นักผจญภัยลึกลับ'}
-                </span>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ ...FONT_TH, fontSize: 13, color: 'var(--px-light)', fontWeight: 700 }}>
+                      {a.creature_name ?? 'สัตว์ลึกลับ'}
+                    </span>
+                    <RarityBadge label={a.rarity_label} />
+                  </div>
+                  <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.55 }}>
+                    {a.display_name ?? 'นักผจญภัยลึกลับ'}
+                  </div>
+                </div>
+
+                {/* View stats button */}
+                <button onClick={() => setSelected(a)}
+                  style={{
+                    flexShrink: 0, ...FONT_TH, fontSize: 11, cursor: 'pointer',
+                    background: 'transparent', border: '2px solid var(--px-border)',
+                    color: 'var(--px-light)', padding: '7px 10px',
+                    boxShadow: '2px 2px 0 var(--px-black)', whiteSpace: 'nowrap',
+                  }}>
+                  ดูสเตตัส
+                </button>
               </div>
-              <button onClick={() => handleChallenge(a.display_name)}
-                className="px-btn px-btn-purple"
-                style={{ ...FONT_TH, fontSize: 12, textTransform: 'none', letterSpacing: 0, padding: '8px 14px' }}>
-                ท้าเล่น
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

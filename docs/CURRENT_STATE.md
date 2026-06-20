@@ -8,7 +8,7 @@ _Last updated: 2026-06-20_
 ### Friend Code System (Phase 1.1)
 - `FriendsScreen.jsx`: 2-tab screen reachable from BottomNav "เพื่อน" tab
   - **เพื่อน tab** (unified scroll): pending requests (conditional, no empty state) → My Code ("ABC-DEF" + copy) → Add Friend (6-char input + `send_friend_request`) → My Friends list (from `my_friends` view). All loaded in parallel via `Promise.all` on mount.
-  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards with creature_emoji avatar, creature_name, RarityBadge (5 tiers: common/uncommon/rare/epic/legendary with distinct border colors/glow). "ดูสเตตัส" opens portal modal with 4 StatBars (HP/ATK/DEF/SPD) + "ท้าเล่น" mock (3s toast, no backend). "🔄 สับใหม่" re-calls RPC. player/bot visually identical.
+  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards with real `drawCreature` pixel-art canvas (64×64 on card, 192×192 in modal), creature_name label, RarityBadge (5 tiers). Element derived via `ELEMENT_STATS` reverse-map (no changes to creatureAlgorithm.js). "ดูสเตตัส" opens portal modal with canvas + 4 StatBars (HP/ATK/DEF/SPD) + "ท้าเล่น" mock (3s toast). "🔄 สับใหม่" re-calls RPC. player/bot visually identical.
 - BottomNav: 4th tab (green dot, "เพื่อน")
 - Out of scope (Phase 2+): real challenge backend, friend battles, chat, remove-friend, leaderboards
 

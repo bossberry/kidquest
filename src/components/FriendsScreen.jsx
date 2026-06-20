@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
+import { drawCreature } from '../lib/creatureAlgorithm.js'
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -317,14 +318,15 @@ function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
           WebkitTapHighlightColor: 'transparent',
         }}>✕</button>
 
-        {/* Creature avatar */}
+        {/* Creature canvas */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <div style={{
-            width: 72, height: 72, background: 'var(--px-black)',
-            border: `2px solid ${s.border}`, boxShadow: s.glow ? `4px 4px 0 var(--px-black), ${s.glow}` : '4px 4px 0 var(--px-black)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--px-black)',
+            border: `2px solid ${s.border}`,
+            boxShadow: s.glow ? `4px 4px 0 var(--px-black), ${s.glow}` : '4px 4px 0 var(--px-black)',
+            lineHeight: 0,
           }}>
-            <span style={{ fontSize: 40 }}>{a.creature_emoji ?? '❓'}</span>
+            <CreatureCanvas seed={a.creature_seed} element={a.element} evoStage={a.evo_stage} size={192} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ ...FONT_TH, fontSize: 15, fontWeight: 700, color: 'var(--px-light)' }}>
@@ -429,13 +431,12 @@ function MysteryTab() {
                 padding: '12px 14px',
                 display: 'flex', alignItems: 'center', gap: 12,
               }}>
-                {/* Creature emoji avatar */}
+                {/* Creature pixel-art avatar */}
                 <div style={{
-                  width: 48, height: 48, flexShrink: 0,
-                  background: 'var(--px-black)', border: `2px solid ${s.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, background: 'var(--px-black)',
+                  border: `2px solid ${s.border}`, lineHeight: 0,
                 }}>
-                  <span style={{ fontSize: 28 }}>{a.creature_emoji ?? '❓'}</span>
+                  <CreatureCanvas seed={a.creature_seed} element={a.element} evoStage={a.evo_stage} size={64} />
                 </div>
 
                 {/* Info */}
@@ -467,6 +468,37 @@ function MysteryTab() {
         </div>
       )}
     </div>
+  )
+}
+
+// ─── Creature canvas helpers ───────────────────────────────────────────────────
+
+// Reverse-maps element name → placeholder stats that make getElement() return
+// that exact element, without modifying creatureAlgorithm.js.
+const ELEMENT_STATS = {
+  shadow:  { xpThai: 20,  xpMath: 20,  xpEng: 20,  acc: 70, streak: 10 }, // streak ≥ 7
+  nature:  { xpThai: 20,  xpMath: 20,  xpEng: 20,  acc: 90, streak: 0  }, // acc ≥ 85
+  fire:    { xpThai: 100, xpMath: 20,  xpEng: 20,  acc: 70, streak: 0  }, // xpThai dominant
+  water:   { xpThai: 20,  xpMath: 100, xpEng: 20,  acc: 70, streak: 0  }, // xpMath dominant
+  thunder: { xpThai: 20,  xpMath: 20,  xpEng: 100, acc: 70, streak: 0  }, // xpEng dominant
+  light:   { xpThai: 33,  xpMath: 33,  xpEng: 34,  acc: 70, streak: 0  }, // no dominant (<0.45)
+}
+
+function elementToStats(element, evoStage) {
+  const base = ELEMENT_STATS[element] ?? ELEMENT_STATS.light
+  return { ...base, evoStage: evoStage ?? 'baby' }
+}
+
+function CreatureCanvas({ seed, element, evoStage, size }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    drawCreature(canvas, Number(seed), elementToStats(element, evoStage))
+  }, [seed, element, evoStage])
+  return (
+    <canvas ref={canvasRef} width={size} height={size}
+      style={{ imageRendering: 'pixelated', display: 'block' }} />
   )
 }
 

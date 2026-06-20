@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Phase 1.1c — Mystery Adventurers: real procedural creature rendering:**
+- Built: `ELEMENT_STATS` reverse-map (6 entries) + `elementToStats(element, evoStage)` — derives placeholder xp/acc/streak values that route `getElement()` to the correct element without touching `creatureAlgorithm.js`. Used option (a) as specified. `CreatureCanvas` component (canvas + useEffect) calls `drawCreature(canvas, Number(seed), elementToStats(...))`. Card: 64×64 canvas replaces emoji placeholder. Modal: 192×192 canvas replaces emoji placeholder. Both still show creature_name text label. No changes to any lib file.
+- Not finished: nothing
+- Blockers/risks found: creature_seed from Supabase is a bigint — `Number(seed)` coerces it safely for values within 32-bit range (hash function output); no precision loss expected
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Phase 1.1b — Mystery Adventurers: creature stats + rarity cards:**
 - Built: `RARITY` 5-tier color map; `RarityBadge` component (rarity-colored border/bg/glow); `StatBar` component (reuses `.px-hp-bar-outer/.px-hp-bar-inner` CSS, pixel font label, numeric value). `AdventurerModal` (createPortal): opens on "ดูสเตตัส" tap; 72px emoji avatar with rarity border; creature_name + badge; masked display_name; 4 stat bars with fixed max refs (HP/300, ATK/80, DEF/60, SPD/300); "ท้าเล่น" closes modal + fires 3s toast. Card updated: rarity-colored border + optional glow; 48×48 emoji avatar; creature_name + badge + display_name info; "ดูสเตตัส" button. source field intentionally ignored — player/bot cards look identical.
 - Not finished: nothing

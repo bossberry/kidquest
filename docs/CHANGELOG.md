@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: render real procedural pixel-art creatures on Mystery Adventurers cards
+
+### src/components/FriendsScreen.jsx
+- Added `import { drawCreature } from '../lib/creatureAlgorithm.js'`
+- `ELEMENT_STATS`: reverse-maps 6 element names → placeholder `{xpThai, xpMath, xpEng, acc, streak}` objects that make `getElement()` return the correct element without modifying `creatureAlgorithm.js`. Logic verified against each branch: shadow (streak≥7), nature (acc≥85), fire/water/thunder (dominant subject ≥45%), light (no dominant)
+- `elementToStats(element, evoStage)`: merges base stats with `evoStage` field
+- `CreatureCanvas({ seed, element, evoStage, size })`: canvas + `useEffect` that calls `drawCreature(canvas, Number(seed), elementToStats(element, evoStage))`; `imageRendering: pixelated`
+- Card: replaced 48×48 emoji placeholder with `<CreatureCanvas size={64} />` inside rarity-bordered box
+- Modal: replaced 72×72 emoji placeholder with `<CreatureCanvas size={192} />` inside rarity-bordered box
+- `creature_emoji` and `creature_name` text labels unchanged; no modification to `creatureAlgorithm.js`
+
+---
+
 ## 2026-06-20 — feat: show active creature + full stats on Mystery Adventurers cards
 
 ### src/components/FriendsScreen.jsx

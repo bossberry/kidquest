@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Logout now fully clears local state:**
+- Built: `handleLogout` in ProfileModal now imports `defaultState` and `KEY` from `state.js`; after `supabase.auth.signOut()`, calls `localStorage.removeItem(KEY)` then `dispatch({ type: ACTIONS.INIT, payload: defaultState() })` before closing the modal. Verified: `SIGNED_OUT` handler absent in StateContext (no risk of re-populating from stale closure). INIT reducer confirmed to be `{ ...defaultState(), ...action.payload, ... }` — clean wipe guaranteed.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Gender field in profile:**
 - Built: `gender: 'unspecified'` added to `defaultState()` in state.js with comment noting future use. `SET_PROFILE` reducer updated to spread `gender` from payload. ProfileModal: `gender` state initialised from `state.gender`, included in `handleSave` dispatch, 3-button selector (👦 ชาย / 👧 หญิง / 🌟 ไม่ระบุ) inserted between grade grid and save button — matching existing grade-button styling.
 - Not finished: actually using gender to differentiate content/items (separate future task)

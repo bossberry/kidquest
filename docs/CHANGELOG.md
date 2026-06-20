@@ -1,5 +1,13 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: logout fully clears local game state
+
+### src/components/ProfileModal.jsx
+- Added imports: `defaultState`, `KEY` from `../lib/state.js`
+- `handleLogout`: after `supabase.auth.signOut()`, now calls `localStorage.removeItem(KEY)` then `dispatch(ACTIONS.INIT, defaultState())` before closing — ensures no previous child's data remains in memory or on disk
+
+---
+
 ## 2026-06-20 — feat: gender field in child profile
 
 ### src/lib/state.js

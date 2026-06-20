@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Separate schoolGrade from game-progression grade:**
+- Built: `schoolGrade: null` added to `defaultState()` (purely informational, never read by game logic). `SET_PROFILE` reducer now updates `schoolGrade` (not `grade`) — `state.grade` is now exclusively auto-advanced by `SET_SUBJECT_LEVEL`. ProfileModal: `grade` state → `schoolGrade` state (stores the label string like 'ป.1', not an index); grade selector compares `schoolGrade === label`; section label updated to "ระดับชั้นเรียนจริง" + subtitle "สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม". Scanned all `state.grade` usages — all remaining usages are legitimate game-tier reads (evo calc, tier, egg algorithm), none needed switching to `schoolGrade`.
+- Not finished: nothing
+- Blockers/risks found: none — no migration needed; existing players see no grade selected in ProfileModal until they pick one; game progression continues unaffected
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Logout now fully clears local state:**
 - Built: `handleLogout` in ProfileModal now imports `defaultState` and `KEY` from `state.js`; after `supabase.auth.signOut()`, calls `localStorage.removeItem(KEY)` then `dispatch({ type: ACTIONS.INIT, payload: defaultState() })` before closing the modal. Verified: `SIGNED_OUT` handler absent in StateContext (no risk of re-populating from stale closure). INIT reducer confirmed to be `{ ...defaultState(), ...action.payload, ... }` — clean wipe guaranteed.
 - Not finished: nothing

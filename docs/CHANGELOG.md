@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: separate parent-entered schoolGrade from game-progression grade
+
+### src/lib/state.js
+- Added `schoolGrade: null` to `defaultState()` — purely informational parent-input field, never read by game mechanics
+
+### src/context/StateContext.jsx
+- `SET_PROFILE` reducer: reads/writes `schoolGrade` instead of `grade` — `state.grade` is now exclusively owned by `SET_SUBJECT_LEVEL` auto-progression
+
+### src/components/ProfileModal.jsx
+- `grade` state replaced with `schoolGrade` (stores the label string, e.g. `'ป.1'`, not an index)
+- Grade-button grid now compares `schoolGrade === label` and calls `setSchoolGrade(label)`
+- Section heading changed to "ระดับชั้นเรียนจริง" with subtitle "สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม"
+- `handleSave` dispatches `{ name, schoolGrade, gender }` — no `grade` in payload
+
+---
+
 ## 2026-06-20 — fix: logout fully clears local game state
 
 ### src/components/ProfileModal.jsx

@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-20 — Save-status toast scoped to intentional actions only:**
+- Built: `saveState` and `syncToSupabase` both take optional `{ notify = false }` second arg; all existing callers default to silent. `ProfileModal.handleSave` explicitly passes `{ notify: true }` with a manually-constructed `updatedState` object (bypasses React update timing). OnboardingModal left silent per spec — screen transition is sufficient feedback there.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — TreasureSlot reward icon render fix:**
 - Built: replaced `ref={ref => import('../lib/itemArt.js').then(({drawItem})=>drawItem(ref,r.key))}` (race-prone) with static import + `RewardIcon` sub-component (useEffect/useRef, same pattern as Collection.jsx StageIcon). Only one file had this pattern.
 - Not finished: nothing

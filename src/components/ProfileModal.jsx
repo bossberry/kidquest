@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { GRADE_LABELS } from '../config/gameConfig.js'
 import { supabase } from '../lib/supabase.js'
-import { defaultState, KEY } from '../lib/state.js'
+import { defaultState, KEY, saveState } from '../lib/state.js'
 
 const TITLE_STYLE = {
   fontFamily: 'var(--font-thai)',
@@ -54,7 +54,9 @@ export default function ProfileModal({ open, onClose }) {
   const handleSave = () => {
     const trimmed = name.trim()
     if (!trimmed) return
+    const updatedState = { ...state, name: trimmed, schoolGrade, gender }
     dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, schoolGrade, gender } })
+    saveState(updatedState, { notify: true })
     onClose()
   }
 

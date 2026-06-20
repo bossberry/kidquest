@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: save-status toast only fires for intentional user saves, not background auto-save
+
+### src/lib/state.js
+- `saveState(s, { notify = false } = {})` — added optional `notify` flag; `emitSaveStatus('saving')` only fires when `notify: true`
+- `syncToSupabase(s, { notify = false } = {})` — same pattern; offline/saved/error status only emitted when `notify: true`
+- All existing callers (debounced auto-save in StateContext line 882, SIGNED_IN sync at lines 915/967/972, migration syncs in loadState) pass no second arg → silent by default
+
+### src/components/ProfileModal.jsx
+- Added `saveState` to import from state.js
+- `handleSave` now constructs `updatedState = { ...state, name, schoolGrade, gender }` and calls `saveState(updatedState, { notify: true })` immediately after dispatch, showing the "บันทึกแล้ว" toast tied to this intentional action
+- OnboardingModal left silent (auto-save handles it; the game screen transition provides sufficient user feedback)
+
+---
+
 ## 2026-06-20 — fix: TreasureSlot reward icons not rendering (dynamic import race in canvas ref)
 
 ### src/components/TreasureSlot.jsx

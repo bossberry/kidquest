@@ -387,11 +387,11 @@ export async function loadState() {
 }
 
 // Push any state object to Supabase (used by StateContext on SIGNED_IN)
-export async function syncToSupabase(s) {
+export async function syncToSupabase(s, { notify = false } = {}) {
   try {
-    if (!supabase) { console.log('[KQ:sync] no client'); emitSaveStatus('offline'); return }
+    if (!supabase) { console.log('[KQ:sync] no client'); if (notify) emitSaveStatus('offline'); return }
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { console.log('[KQ:sync] no user'); emitSaveStatus('offline'); return }
+    if (!user) { console.log('[KQ:sync] no user'); if (notify) emitSaveStatus('offline'); return }
     console.log('[KQ:sync] pushing state for', user.email, '— xpThai:', s.xpThai, 'rounds:', s.rounds)
     const { error } = await supabase.from('eggs').upsert({
       user_id: user.id,
@@ -399,17 +399,17 @@ export async function syncToSupabase(s) {
       state_json: s,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' })
-    if (error) { console.log('[KQ:sync] upsert error:', error.message); emitSaveStatus('error') }
-    else { console.log('[KQ:sync] ✓ done'); emitSaveStatus('saved') }
+    if (error) { console.log('[KQ:sync] upsert error:', error.message); if (notify) emitSaveStatus('error') }
+    else { console.log('[KQ:sync] ✓ done'); if (notify) emitSaveStatus('saved') }
   } catch (e) {
     console.log('[KQ:sync] failed:', e.message)
-    emitSaveStatus('error')
+    if (notify) emitSaveStatus('error')
   }
 }
 
-export function saveState(s) {
+export function saveState(s, { notify = false } = {}) {
   const withTimestamp = { ...s, lastSavedAt: Date.now() }
   localStorage.setItem(KEY, JSON.stringify(withTimestamp))
-  emitSaveStatus('saving')
-  syncToSupabase(withTimestamp)
+  if (notify) emitSaveStatus('saving')
+  syncToSupabase(withTimestamp, { notify })
 }

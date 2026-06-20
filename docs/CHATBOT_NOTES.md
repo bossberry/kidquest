@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — resolveSync, stateVersion/deep migration, SaveStatusIndicator:**
+- Built: state.js: added `STATE_VERSION = 1`, `stateVersion` in `defaultState()`, module-level `saveStatusListeners` + `onSaveStatusChange` + `emitSaveStatus`. New `resolveSync(local, remote)` — unconditional "remote has creatures, local empty" override, then timestamp comparison, fallback to `rounds`. New `migrateStateShape(saved)` — shallow-merges defaultState() onto old save, then deep-merges 12 known nested-object fields to backfill new sub-keys. Both `loadState()` paths now call `migrateStateShape` first. `saveState()` emits 'saving'; `syncToSupabase()` emits 'saved'/'error'/'offline'. StateContext: import updated to include `resolveSync`; both conflict sites replaced with single `resolveSync()` call. New `SaveStatusIndicator.jsx` (fixed bottom-right, fades 'saved' after 2.5s, 'error'/'offline' stay visible). Mounted in App.jsx inside the main (post-auth) render.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Mandatory auth gate:**
 - Built: App.jsx: added `supabase` import, `authChecked`/`isLoggedIn` state, auth-check effect (`getSession` + `onAuthStateChange`). Before main return: shows "กำลังโหลด..." until `authChecked`, then renders `<LoginModal open mandatory onClose={noop} />` if not logged in; the `onAuthStateChange` listener flips `isLoggedIn` on SIGNED_IN, automatically replacing the gate with the full app. LoginModal: added `mandatory` prop, removed skip button entirely, updated subtitle to "เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น", overlay click-outside disabled when `mandatory`. Signup still shows email-confirm message and stays on the gate (correct — user must confirm email then return to log in).
 - Not finished: nothing

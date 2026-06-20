@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: resolveSync, stateVersion deep migration, SaveStatusIndicator
+
+### src/lib/state.js
+- Added `STATE_VERSION = 1` constant; `stateVersion` field in `defaultState()`
+- Added `onSaveStatusChange` / `emitSaveStatus` module-level listener system
+- Added `resolveSync(local, remote)` — single source of truth for conflict resolution: unconditional "remote has creatures, local empty" override; timestamp comparison; `rounds` fallback for pre-timestamp saves
+- Added `migrateStateShape(saved)` — shallow-merges defaultState onto old save, then deep-merges 12 nested-object fields to backfill new sub-keys without destroying existing values
+- Both paths in `loadState()` now run `migrateStateShape` before `_migrateEggs` / `_migrateBattleStats`
+- `saveState()` emits `'saving'` before `syncToSupabase`; `syncToSupabase()` emits `'saved'`/`'error'`/`'offline'`
+
+### src/context/StateContext.jsx
+- Import updated to include `resolveSync`
+- Initial-load conflict block replaced with `resolveSync(cur, remoteFinal)`
+- SIGNED_IN conflict block replaced with `resolveSync(cur, remote)` — same logic, no duplication
+
+### src/components/SaveStatusIndicator.jsx (new)
+- Subscribes to `onSaveStatusChange`; renders a fixed bottom-right badge
+- 'saved' auto-fades after 2.5s; 'error' / 'offline' stay visible
+
+### src/App.jsx
+- Added `SaveStatusIndicator` import and render inside main app return (post-auth gate)
+
+---
+
 ## 2026-06-20 — feat: mandatory auth gate — no more guest mode
 
 ### src/App.jsx

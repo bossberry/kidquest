@@ -160,7 +160,7 @@ export function useWorldGameLoop({
             break
           }
           case 'baby_zombie': {
-            if (ne.timer >= 6 && !saiyanActive) {
+            if (ne.timer >= 12 && !saiyanActive) {
               ne.timer = 0
               const gc2 = gameRef.current
               if (gc2) {

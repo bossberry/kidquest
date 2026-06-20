@@ -8,6 +8,7 @@ export default function ProfileModal({ open, onClose }) {
   const { state, dispatch } = useAppState()
   const [name, setName] = useState(state.name || '')
   const [grade, setGrade] = useState(state.grade ?? 0)
+  const [gender, setGender] = useState(state.gender ?? 'unspecified')
   const [userEmail, setUserEmail] = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -23,7 +24,7 @@ export default function ProfileModal({ open, onClose }) {
   const handleSave = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, grade } })
+    dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, grade, gender } })
     onClose()
   }
 
@@ -77,6 +78,36 @@ export default function ProfileModal({ open, onClose }) {
                 transition:'all .15s',
               }}
             >{label}</button>
+          ))}
+        </div>
+
+        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 8px', fontFamily:'Mitr,sans-serif' }}>เพศ</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginBottom:20 }}>
+          {[
+            { value: 'male',        label: 'ชาย',    emoji: '👦' },
+            { value: 'female',      label: 'หญิง',    emoji: '👧' },
+            { value: 'unspecified', label: 'ไม่ระบุ', emoji: '🌟' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setGender(opt.value)}
+              style={{
+                padding:'10px 4px',
+                borderRadius:10,
+                border: gender === opt.value ? '2px solid var(--purple)' : '2px solid var(--border)',
+                background: gender === opt.value ? 'var(--purple-l)' : 'var(--card)',
+                color: gender === opt.value ? 'var(--purple-d)' : 'var(--muted)',
+                fontFamily:'Mitr,sans-serif',
+                fontSize:12,
+                fontWeight: gender === opt.value ? 700 : 400,
+                cursor:'pointer',
+                transition:'all .15s',
+                display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+              }}
+            >
+              <span style={{ fontSize:20 }}>{opt.emoji}</span>
+              {opt.label}
+            </button>
           ))}
         </div>
 

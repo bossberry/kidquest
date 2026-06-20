@@ -466,8 +466,13 @@ function reducer(state, action) {
       return { ...state, foundationComplete: true }
 
     case ACTIONS.SET_PROFILE: {
-      const { name, grade } = action.payload
-      return { ...state, name: name || state.name, grade: grade ?? state.grade }
+      const { name, grade, gender } = action.payload
+      return {
+        ...state,
+        name: name || state.name,
+        grade: grade ?? state.grade,
+        gender: gender ?? state.gender,
+      }
     }
 
     case ACTIONS.UPDATE_SHOP_V1: {

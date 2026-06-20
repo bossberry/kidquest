@@ -8,6 +8,7 @@ export const KEY = 'kq_state'
 export function defaultState() {
   return {
     name: 'โชแปง', grade: 0,
+    gender: 'unspecified', // 'male' | 'female' | 'unspecified' — used for stats and future gendered content/item variants (not yet wired into any gating logic)
     xpThai: 0, xpEng: 0, xpMath: 0,
     streak: 0, rounds: 0, badges: 0,
     eggDow: new Date().getDay(),

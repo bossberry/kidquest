@@ -466,11 +466,11 @@ function reducer(state, action) {
       return { ...state, foundationComplete: true }
 
     case ACTIONS.SET_PROFILE: {
-      const { name, grade, gender } = action.payload
+      const { name, schoolGrade, gender } = action.payload
       return {
         ...state,
         name: name || state.name,
-        grade: grade ?? state.grade,
+        schoolGrade: schoolGrade ?? state.schoolGrade,
         gender: gender ?? state.gender,
       }
     }

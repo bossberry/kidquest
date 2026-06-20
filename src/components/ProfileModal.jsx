@@ -8,7 +8,7 @@ import { defaultState, KEY } from '../lib/state.js'
 export default function ProfileModal({ open, onClose }) {
   const { state, dispatch } = useAppState()
   const [name, setName] = useState(state.name || '')
-  const [grade, setGrade] = useState(state.grade ?? 0)
+  const [schoolGrade, setSchoolGrade] = useState(state.schoolGrade)
   const [gender, setGender] = useState(state.gender ?? 'unspecified')
   const [userEmail, setUserEmail] = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -25,7 +25,7 @@ export default function ProfileModal({ open, onClose }) {
   const handleSave = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, grade, gender } })
+    dispatch({ type: ACTIONS.SET_PROFILE, payload: { name: trimmed, schoolGrade, gender } })
     onClose()
   }
 
@@ -66,21 +66,22 @@ export default function ProfileModal({ open, onClose }) {
           autoComplete="off"
         />
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 8px', fontFamily:'Mitr,sans-serif' }}>ระดับชั้น</div>
+        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 4px', fontFamily:'Mitr,sans-serif' }}>ระดับชั้นเรียนจริง</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:8, fontFamily:'Mitr,sans-serif' }}>สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:20 }}>
-          {GRADE_LABELS.map((label, idx) => (
+          {GRADE_LABELS.map((label) => (
             <button
-              key={idx}
-              onClick={() => setGrade(idx)}
+              key={label}
+              onClick={() => setSchoolGrade(label)}
               style={{
                 padding:'8px 4px',
                 borderRadius:10,
-                border: grade === idx ? '2px solid var(--purple)' : '2px solid var(--border)',
-                background: grade === idx ? 'var(--purple-l)' : 'var(--card)',
-                color: grade === idx ? 'var(--purple-d)' : 'var(--muted)',
+                border: schoolGrade === label ? '2px solid var(--purple)' : '2px solid var(--border)',
+                background: schoolGrade === label ? 'var(--purple-l)' : 'var(--card)',
+                color: schoolGrade === label ? 'var(--purple-d)' : 'var(--muted)',
                 fontFamily:'Mitr,sans-serif',
                 fontSize:12,
-                fontWeight: grade === idx ? 700 : 400,
+                fontWeight: schoolGrade === label ? 700 : 400,
                 cursor:'pointer',
                 transition:'all .15s',
               }}

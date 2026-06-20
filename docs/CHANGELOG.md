@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: Phase 1 Friend Code System frontend (4 screens)
+
+### src/components/FriendsScreen.jsx (new)
+- 4-tab pixel-art screen: My Code / เพิ่มเพื่อน / คำขอ / เพื่อน
+- **MyCodeTab**: calls `supabase.rpc('ensure_friend_code', { p_user_id })` on mount, displays code as "ABC-DEF" in yellow pixel font, clipboard copy button
+- **AddFriendTab**: 6-char auto-uppercase input, calls `supabase.rpc('send_friend_request', { p_code })`, handles "already friends / not found / self / error" with Thai kid-safe messages
+- **RequestsTab**: queries `friendships` (target_id=user, status=pending), joins `eggs` to get requester names, Accept/Reject via `supabase.rpc('respond_friend_request', { p_friendship_id, p_accept })`, reloads after response
+- **FriendsListTab**: queries `my_friends` view (RLS-scoped), shows friend names; empty state if none
+
+### src/components/BottomNav.jsx
+- Added 4th tab "เพื่อน" (green `#44cc88` dot) linking to screen `'friends'`
+
+### src/App.jsx
+- Import `FriendsScreen`; added `{screen === 'friends' && <FriendsScreen />}` render branch
+
+---
+
 ## 2026-06-20 — feat: sequencing mode speaks the correct letter order instead of a generic instruction
 
 ### src/components/WorldBattle.jsx

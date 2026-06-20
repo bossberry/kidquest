@@ -21,6 +21,7 @@ import { supabase } from './lib/supabase.js'
 import SaveStatusIndicator from './components/SaveStatusIndicator.jsx'
 import OnboardingModal from './components/OnboardingModal.jsx'
 import LoginBackdrop from './components/LoginBackdrop.jsx'
+import FriendsScreen from './components/FriendsScreen.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -144,6 +145,7 @@ export default function App() {
       )}
       {screen === 'world' && <WorldScreen navigate={navigate} />}
       {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
+      {screen === 'friends' && <FriendsScreen />}
 
       {/* Party select overlay — shown when a battle is pending but no creature chosen yet */}
       {state.pendingBattle && !state.battleCreatureId && (

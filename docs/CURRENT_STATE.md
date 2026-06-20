@@ -1,9 +1,18 @@
 # Current State — KidQuest
-_Last updated: 2026-06-16_
+_Last updated: 2026-06-20_
 
 ---
 
 ## Live Systems
+
+### Friend Code System (Phase 1)
+- `FriendsScreen.jsx`: 4-tab screen reachable from BottomNav "เพื่อน" tab
+  - **My Code**: `ensure_friend_code(p_user_id)` → displays code as "ABC-DEF", clipboard copy
+  - **Add Friend**: 6-char input → `send_friend_request(p_code)`, 4 kid-safe error states
+  - **Requests**: query `friendships` (target=me, pending) + join `eggs` for names → Accept/Reject via `respond_friend_request`
+  - **Friends**: query `my_friends` view (RLS-scoped); empty state if none
+- BottomNav: 4th tab added (green dot, "เพื่อน")
+- Out of scope (Phase 2+): friend battles, chat, remove-friend, leaderboards
 
 ### Egg System
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change)

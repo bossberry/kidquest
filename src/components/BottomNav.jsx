@@ -19,6 +19,11 @@ export default function BottomNav({ current, navigate }) {
         <span style={{ fontFamily:'var(--font-thai)', fontSize:11 }}>รีพอร์ต</span>
         <div className="px-nav-dot"></div>
       </button>
+      <button className={`px-nav-item${current === 'friends' ? ' active' : ''}`} onClick={() => navigate('friends')}>
+        <div style={{ width:18, height:18, background:'#44cc88', margin:'0 auto 2px', border:'2px solid rgba(0,0,0,0.3)' }} />
+        <span style={{ fontFamily:'var(--font-thai)', fontSize:11 }}>เพื่อน</span>
+        <div className="px-nav-dot"></div>
+      </button>
     </nav>
   )
 }

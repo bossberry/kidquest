@@ -1,5 +1,32 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — style: restyle LoginModal, ProfileModal, OnboardingModal to pixel-art design system
+
+### src/styles.css
+- Added `.px-auth-sheet` — `px-darkest` background, `px-border` border, 4px pixel shadow, square corners, `slideUp` animation
+- Added `.px-auth-input` — `px-black` background, `px-border` border, `px-white` text, `var(--font-thai)`, inset shadow; focus → `px-yellow` border; placeholder → `px-light` at 0.6 opacity
+
+### src/components/LoginModal.jsx
+- `auth-sheet` → `px-auth-sheet`; `auth-input` → `px-auth-input`
+- Handle bar: `var(--border)` → `var(--px-border)`, `borderRadius:0`
+- All three mode titles: `var(--font-thai)`, `px-yellow`, pixel `textShadow`
+- Subtitles and body text: `var(--font-thai)`, `px-light`
+- "ลืมรหัสผ่าน?" link: `var(--font-pixel)`, `px-blue2`, 8px, no underline
+- Login button: `px-btn`; Sign Up button: `px-btn px-btn-purple` — both `flex:1`
+- "ส่งลิงก์รีเซ็ตรหัสผ่าน" / "ปิดหน้านี้": `px-btn` with `var(--font-thai)` override
+- `msgColor` initial: `var(--red)` → `var(--px-red)`; success: `var(--green-d)` → `var(--px-green2)`
+- Sent mode: email highlighted in `px-yellow` instead of plain bold
+
+### src/components/ProfileModal.jsx
+- Same `auth-sheet` → `px-auth-sheet`, `auth-input` → `px-auth-input` swap
+- Grade and gender toggle buttons: selected = `px-yellow` border + `px-mid` bg; unselected = `px-border` + `px-dark` bg
+- Save button: `px-btn` with `var(--font-thai)` override; "ข้ามไปก่อน": `px-light`
+- Logout section: `px-border` separator; logout button uses `2px solid var(--px-red)` with `px-black` pixel shadow
+
+### src/components/OnboardingModal.jsx
+- Identical sheet/input/toggle-button pixel restyle as ProfileModal
+- Submit button: `px-btn` with `var(--font-thai)` override, opacity 0.5 when disabled
+
 ## 2026-06-20 — feat: LoginBackdrop — decorative pre-login screen
 
 ### src/components/LoginBackdrop.jsx (new)

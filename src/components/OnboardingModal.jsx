@@ -9,11 +9,35 @@ const GENDER_OPTIONS = [
   { value: 'unspecified', label: 'ไม่ระบุ', emoji: '🌟' },
 ]
 
-/**
- * OnboardingModal — mandatory first-time setup shown right after a new
- * account's first login. Forces name + schoolGrade + gender to be actively
- * chosen before the app is usable. Cannot be skipped or dismissed.
- */
+const TITLE_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 18,
+  fontWeight: 700,
+  color: 'var(--px-yellow)',
+  textShadow: '2px 2px 0 var(--px-darkest)',
+  marginBottom: 6,
+}
+const LABEL_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 13,
+  color: 'var(--px-light)',
+  fontWeight: 600,
+}
+
+function toggleBtn(selected) {
+  return {
+    padding: '8px 4px',
+    border: selected ? '2px solid var(--px-yellow)' : '2px solid var(--px-border)',
+    background: selected ? 'var(--px-mid)' : 'var(--px-dark)',
+    color: selected ? 'var(--px-yellow)' : 'var(--px-light)',
+    fontFamily: 'var(--font-thai)',
+    fontSize: 12,
+    fontWeight: selected ? 700 : 400,
+    cursor: 'pointer',
+    boxShadow: selected ? '2px 2px 0 var(--px-black)' : 'none',
+  }
+}
+
 export default function OnboardingModal() {
   const { dispatch } = useAppState()
   const [name, setName] = useState('')
@@ -29,14 +53,14 @@ export default function OnboardingModal() {
 
   return createPortal(
     <div className="auth-overlay show">
-      <div className="auth-sheet">
-        <div style={{ width:40, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 18px' }} />
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>👋 ยินดีต้อนรับ!</div>
-        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>มาตั้งค่าโปรไฟล์ลูกกันก่อนเริ่มเล่น</div>
+      <div className="px-auth-sheet">
+        <div style={{ width: 40, height: 4, background: 'var(--px-border)', borderRadius: 0, margin: '0 auto 18px' }} />
+        <div style={TITLE_STYLE}>👋 ยินดีต้อนรับ!</div>
+        <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: 'var(--px-light)', marginBottom: 18 }}>มาตั้งค่าโปรไฟล์ลูกกันก่อนเริ่มเล่น</div>
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, marginBottom:6, fontFamily:'Mitr,sans-serif' }}>ชื่อลูก</div>
+        <div style={{ ...LABEL_STYLE, marginBottom: 6 }}>ชื่อลูก</div>
         <input
-          className="auth-input"
+          className="px-auth-input"
           type="text"
           placeholder="เช่น น้องแก้ม, มิน, ดีน..."
           value={name}
@@ -45,50 +69,27 @@ export default function OnboardingModal() {
           autoComplete="off"
         />
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 4px', fontFamily:'Mitr,sans-serif' }}>ระดับชั้นเรียนจริง</div>
-        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:8, fontFamily:'Mitr,sans-serif' }}>สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:20 }}>
+        <div style={{ ...LABEL_STYLE, margin: '14px 0 4px' }}>ระดับชั้นเรียนจริง</div>
+        <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: 'var(--px-light)', opacity: 0.7, marginBottom: 8 }}>สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 20 }}>
           {GRADE_LABELS.map((label) => (
             <button
               key={label}
               onClick={() => setSchoolGrade(label)}
-              style={{
-                padding:'8px 4px',
-                borderRadius:10,
-                border: schoolGrade === label ? '2px solid var(--purple)' : '2px solid var(--border)',
-                background: schoolGrade === label ? 'var(--purple-l)' : 'var(--card)',
-                color: schoolGrade === label ? 'var(--purple-d)' : 'var(--muted)',
-                fontFamily:'Mitr,sans-serif',
-                fontSize:12,
-                fontWeight: schoolGrade === label ? 700 : 400,
-                cursor:'pointer',
-                transition:'all .15s',
-              }}
+              style={toggleBtn(schoolGrade === label)}
             >{label}</button>
           ))}
         </div>
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 8px', fontFamily:'Mitr,sans-serif' }}>เพศ</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginBottom:20 }}>
+        <div style={{ ...LABEL_STYLE, margin: '14px 0 8px' }}>เพศ</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 20 }}>
           {GENDER_OPTIONS.map(opt => (
             <button
               key={opt.value}
               onClick={() => setGender(opt.value)}
-              style={{
-                padding:'10px 4px',
-                borderRadius:10,
-                border: gender === opt.value ? '2px solid var(--purple)' : '2px solid var(--border)',
-                background: gender === opt.value ? 'var(--purple-l)' : 'var(--card)',
-                color: gender === opt.value ? 'var(--purple-d)' : 'var(--muted)',
-                fontFamily:'Mitr,sans-serif',
-                fontSize:12,
-                fontWeight: gender === opt.value ? 700 : 400,
-                cursor:'pointer',
-                transition:'all .15s',
-                display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-              }}
+              style={{ ...toggleBtn(gender === opt.value), padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
             >
-              <span style={{ fontSize:20 }}>{opt.emoji}</span>
+              <span style={{ fontSize: 20 }}>{opt.emoji}</span>
               {opt.label}
             </button>
           ))}
@@ -97,12 +98,8 @@ export default function OnboardingModal() {
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          style={{
-            width:'100%', background:'var(--purple)', color:'#fff', border:'none',
-            borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15,
-            fontWeight:600, cursor: canSubmit ? 'pointer' : 'not-allowed',
-            opacity: canSubmit ? 1 : 0.5,
-          }}
+          className="px-btn"
+          style={{ width: '100%', fontFamily: 'var(--font-thai)', fontSize: 14, textTransform: 'none', letterSpacing: 0, opacity: canSubmit ? 1 : 0.5 }}
         >เริ่มเล่นกันเลย! 🎉</button>
       </div>
     </div>,

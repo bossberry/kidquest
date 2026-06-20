@@ -5,6 +5,35 @@ import { GRADE_LABELS } from '../config/gameConfig.js'
 import { supabase } from '../lib/supabase.js'
 import { defaultState, KEY } from '../lib/state.js'
 
+const TITLE_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 18,
+  fontWeight: 700,
+  color: 'var(--px-yellow)',
+  textShadow: '2px 2px 0 var(--px-darkest)',
+  marginBottom: 6,
+}
+const LABEL_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 13,
+  color: 'var(--px-light)',
+  fontWeight: 600,
+}
+
+function toggleBtn(selected) {
+  return {
+    padding: '8px 4px',
+    border: selected ? '2px solid var(--px-yellow)' : '2px solid var(--px-border)',
+    background: selected ? 'var(--px-mid)' : 'var(--px-dark)',
+    color: selected ? 'var(--px-yellow)' : 'var(--px-light)',
+    fontFamily: 'var(--font-thai)',
+    fontSize: 12,
+    fontWeight: selected ? 700 : 400,
+    cursor: 'pointer',
+    boxShadow: selected ? '2px 2px 0 var(--px-black)' : 'none',
+  }
+}
+
 export default function ProfileModal({ open, onClose }) {
   const { state, dispatch } = useAppState()
   const [name, setName] = useState(state.name || '')
@@ -50,14 +79,14 @@ export default function ProfileModal({ open, onClose }) {
 
   return createPortal(
     <div className="auth-overlay show" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="auth-sheet">
-        <div style={{ width:40, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 18px' }} />
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>👤 โปรไฟล์ลูก</div>
-        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>ตั้งชื่อและระดับชั้นของลูก</div>
+      <div className="px-auth-sheet">
+        <div style={{ width: 40, height: 4, background: 'var(--px-border)', borderRadius: 0, margin: '0 auto 18px' }} />
+        <div style={TITLE_STYLE}>👤 โปรไฟล์ลูก</div>
+        <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: 'var(--px-light)', marginBottom: 18 }}>ตั้งชื่อและระดับชั้นของลูก</div>
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, marginBottom:6, fontFamily:'Mitr,sans-serif' }}>ชื่อลูก</div>
+        <div style={{ ...LABEL_STYLE, marginBottom: 6 }}>ชื่อลูก</div>
         <input
-          className="auth-input"
+          className="px-auth-input"
           type="text"
           placeholder="เช่น โชแปง, น้องแก้ม, มิน..."
           value={name}
@@ -66,31 +95,20 @@ export default function ProfileModal({ open, onClose }) {
           autoComplete="off"
         />
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 4px', fontFamily:'Mitr,sans-serif' }}>ระดับชั้นเรียนจริง</div>
-        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:8, fontFamily:'Mitr,sans-serif' }}>สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:20 }}>
+        <div style={{ ...LABEL_STYLE, margin: '14px 0 4px' }}>ระดับชั้นเรียนจริง</div>
+        <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: 'var(--px-light)', opacity: 0.7, marginBottom: 8 }}>สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 20 }}>
           {GRADE_LABELS.map((label) => (
             <button
               key={label}
               onClick={() => setSchoolGrade(label)}
-              style={{
-                padding:'8px 4px',
-                borderRadius:10,
-                border: schoolGrade === label ? '2px solid var(--purple)' : '2px solid var(--border)',
-                background: schoolGrade === label ? 'var(--purple-l)' : 'var(--card)',
-                color: schoolGrade === label ? 'var(--purple-d)' : 'var(--muted)',
-                fontFamily:'Mitr,sans-serif',
-                fontSize:12,
-                fontWeight: schoolGrade === label ? 700 : 400,
-                cursor:'pointer',
-                transition:'all .15s',
-              }}
+              style={toggleBtn(schoolGrade === label)}
             >{label}</button>
           ))}
         </div>
 
-        <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, margin:'14px 0 8px', fontFamily:'Mitr,sans-serif' }}>เพศ</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginBottom:20 }}>
+        <div style={{ ...LABEL_STYLE, margin: '14px 0 8px' }}>เพศ</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 20 }}>
           {[
             { value: 'male',        label: 'ชาย',    emoji: '👦' },
             { value: 'female',      label: 'หญิง',    emoji: '👧' },
@@ -99,21 +117,9 @@ export default function ProfileModal({ open, onClose }) {
             <button
               key={opt.value}
               onClick={() => setGender(opt.value)}
-              style={{
-                padding:'10px 4px',
-                borderRadius:10,
-                border: gender === opt.value ? '2px solid var(--purple)' : '2px solid var(--border)',
-                background: gender === opt.value ? 'var(--purple-l)' : 'var(--card)',
-                color: gender === opt.value ? 'var(--purple-d)' : 'var(--muted)',
-                fontFamily:'Mitr,sans-serif',
-                fontSize:12,
-                fontWeight: gender === opt.value ? 700 : 400,
-                cursor:'pointer',
-                transition:'all .15s',
-                display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-              }}
+              style={{ ...toggleBtn(gender === opt.value), padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
             >
-              <span style={{ fontSize:20 }}>{opt.emoji}</span>
+              <span style={{ fontSize: 20 }}>{opt.emoji}</span>
               {opt.label}
             </button>
           ))}
@@ -122,27 +128,35 @@ export default function ProfileModal({ open, onClose }) {
         <button
           onClick={handleSave}
           disabled={!name.trim()}
-          style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5, marginBottom:8 }}
+          className="px-btn"
+          style={{ width: '100%', fontFamily: 'var(--font-thai)', fontSize: 14, textTransform: 'none', letterSpacing: 0, opacity: name.trim() ? 1 : 0.5, marginBottom: 8 }}
         >บันทึก ✅</button>
         <button
           onClick={onClose}
-          style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', padding:6, marginBottom: userEmail ? 4 : 0 }}
+          style={{ width: '100%', background: 'none', border: 'none', color: 'var(--px-light)', fontFamily: 'var(--font-thai)', fontSize: 13, cursor: 'pointer', padding: 6, marginBottom: userEmail ? 4 : 0 }}
         >ข้ามไปก่อน</button>
 
         {/* Logout — only shown when actually logged in */}
         {userEmail && (
-          <div style={{ borderTop:'1px solid var(--border)', marginTop:10, paddingTop:14 }}>
-            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:8, textAlign:'center', fontFamily:'Mitr,sans-serif' }}>
+          <div style={{ borderTop: '1px solid var(--px-border)', marginTop: 10, paddingTop: 14 }}>
+            <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: 'var(--px-light)', marginBottom: 8, textAlign: 'center', opacity: 0.8 }}>
               เข้าสู่ระบบด้วย {userEmail}
             </div>
             <button
               onClick={handleLogout}
               disabled={loggingOut}
               style={{
-                width:'100%', background:'transparent', border:'1px solid var(--red)',
-                color:'var(--red)', borderRadius:10, padding:11,
-                fontFamily:'Mitr,sans-serif', fontSize:13, fontWeight:600,
-                cursor:'pointer', opacity: loggingOut ? 0.6 : 1,
+                width: '100%',
+                background: 'transparent',
+                border: '2px solid var(--px-red)',
+                color: 'var(--px-red)',
+                padding: 11,
+                fontFamily: 'var(--font-thai)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '2px 2px 0 var(--px-black)',
+                opacity: loggingOut ? 0.6 : 1,
               }}
             >
               {loggingOut ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}

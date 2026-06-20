@@ -37,6 +37,8 @@ _Last updated: 2026-06-16_
 - [x] **Word-building (tap-to-spell) input mode for Thai battles** — 50/50 random alternation for levels 2–4; WordBuildInput.jsx in battle/; levels 1 and 5 unchanged ✅
 - [x] **Numpad input mode for math battles** — 50/50 random alternation; NumpadInput.jsx in battle/; TEACH_INTRO unchanged (safe — isFirstLevel=false always in world battle) ✅
 
+- [x] **Pixel-art modal restyling** — LoginModal, ProfileModal, OnboardingModal now use `px-auth-sheet`/`px-auth-input`/`px-btn` instead of mismatched rounded Mitr/Fredoka-One styles ✅
+
 - [ ] **Phase 4: NPC System** — 5 NPCs (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole). Per-NPC: dialogue lines, gift on first talk, repeat-visit dialogue. Use `SCREEN_NPCS` config in `tileMaps.js`.
 - [ ] **Creature names per element** — `CREATURE_NAME_SUGGESTIONS[element]` in `creatureSystem.js` — 5 Thai names per element (30 total). Used in HatchOverlay tap-to-name phase.
 - [ ] **Thai content expansion** — Levels 6–8: fruits/everyday objects, short phrases, simple sentences (อนุบาล → early ป.1 content)

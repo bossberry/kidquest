@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-20 — Pixel-art modal restyling:**
+- Built: `styles.css` — added `.px-auth-sheet` (darkest bg, border shadow, square, slideUp) + `.px-auth-input` (black bg, border, focus yellow, placeholder light). `LoginModal.jsx` — all three modes (login/forgot/sent) restyled: titles use `var(--font-thai)` + `px-yellow` + textShadow; inputs `px-auth-input`; Login/SignUp use `px-btn`/`px-btn-purple` (flex:1); "ลืมรหัสผ่าน?" uses `var(--font-pixel)` + `px-blue2` 8px; action buttons `px-btn` with Thai font override; msgColor updated to `px-red`/`px-green2`. `ProfileModal.jsx` + `OnboardingModal.jsx` — identical sheet/input swap; grade/gender toggle buttons use `px-yellow`/`px-mid`/`px-border`/`px-dark` pixel pattern; save/submit use `px-btn` with Thai font override; logout uses `2px solid px-red` with pixel shadow.
+- Not finished: nothing
+- Blockers/risks found: `var(--font-pixel)` (Press Start 2P) doesn't cover Thai glyphs — Thai-language buttons use `var(--font-thai)` override to avoid missing glyphs; English-only buttons (Login, Sign Up) use pixel font naturally.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Mandatory onboarding for new accounts:**
 - Built: `defaultState().name` changed from `'โชแปง'` to `''` (root fix). New `OnboardingModal.jsx` — name input + school-grade grid (stores label string) + gender 3-button picker; all start null/empty; submit disabled until all three are filled; dispatches `SET_PROFILE` on submit; no skip/dismiss possible. App.jsx: added `OnboardingModal` import; `needsOnboarding = !state.name || state.name.trim() === ''` gate inserted between login gate and main return; resolves automatically when SET_PROFILE sets a real name.
 - Not finished: existing 'โชแปง' accounts bypass onboarding intentionally (only new signups hit it)

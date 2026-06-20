@@ -154,9 +154,25 @@ _Last updated: 2026-06-16_
 ### Persistence & Auth
 - localStorage key `kq_state` — always-on, written every state change
 - Supabase `eggs` table: `user_id, child_name, state_json, updated_at`
-- Guest mode: full functionality without login
+- **Mandatory login** — app fully blocked behind email/password auth; no guest mode
+- **Onboarding gate** — new accounts must set name + schoolGrade + gender before app is accessible; `state.name === ''` is the trigger
+- `state.schoolGrade` — parent-entered label string (e.g. "ป.1"), informational only, does not affect game progression
+- `state.gender` — `'male' | 'female' | 'unspecified'`
+- `state.stateVersion` — schema version (currently 1); `migrateStateShape()` deep-merges new nested fields on load
+- `state.lastSavedAt` — timestamp used for cloud conflict resolution (replaces `rounds` counter)
+- `resolveSync(local, remote)` — single source of truth for cloud conflict resolution in `state.js`
+- `SaveStatusIndicator.jsx` — fixed bottom-right badge showing saving/saved/error/offline via pub/sub (`onSaveStatusChange`)
+- Logout: `supabase.auth.signOut()` + `localStorage.removeItem(KEY)` + `dispatch(INIT, defaultState())` — fully clears local state
 - `_migrateBattleStats()` backfills all new fields for legacy eggs on load
 - One-time migration flags: `_subjectLevelCalibrated` (recalibrate subjectLevels from levelMastery), `_itemsMigrated` (additive items→homeItems/battleItems merge), `_evoRechecked` (recheck all creature evoStage on load)
+
+### Auth UI
+- `LoginBackdrop.jsx` — animated gradient backdrop with 9 floating creature sprites behind login
+- `LoginModal.jsx` — email/password login + sign-up + forgot-password flow; `mandatory` prop disables dismiss; pixel-art styling
+- `ResetPasswordModal.jsx` — catches `PASSWORD_RECOVERY` Supabase event; two-field password reset
+- `OnboardingModal.jsx` — name + schoolGrade + gender picker; cannot be skipped; pixel-art styling
+- `ProfileModal.jsx` — name/grade/gender edit + logout; pixel-art styling
+- All three modals use `px-auth-sheet` / `px-auth-input` / `px-btn` from the pixel CSS system
 
 ### Config Architecture (2026-06-16 refactor)
 `gameConfig.js` is a barrel re-exporting from focused split files. All existing imports unchanged.
@@ -171,7 +187,7 @@ _Last updated: 2026-06-16_
 ### Visual System
 - Pixel font: Press Start 2P (EN/numbers), Sarabun (Thai), Mitr/Fredoka One (headings)
 - 16-color pixel palette + CSS variable library (`--px-*`) in `styles.css`
-- Pixel class library: `px-box`, `px-btn`, `px-hp-bar`, `px-answer-card`, `px-dialogue`, etc.
+- Pixel class library: `px-box`, `px-btn`, `px-hp-bar`, `px-answer-card`, `px-dialogue`, `px-auth-sheet`, `px-auth-input`, etc.
 - `image-rendering: pixelated` on all `img,canvas`; square corners everywhere
 
 ---

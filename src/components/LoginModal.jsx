@@ -2,12 +2,33 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
 
+const TITLE_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 18,
+  fontWeight: 700,
+  color: 'var(--px-yellow)',
+  textShadow: '2px 2px 0 var(--px-darkest)',
+  marginBottom: 6,
+}
+const SUBTITLE_STYLE = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 13,
+  color: 'var(--px-light)',
+  marginBottom: 18,
+}
+const BTN_THAI = {
+  fontFamily: 'var(--font-thai)',
+  fontSize: 14,
+  textTransform: 'none',
+  letterSpacing: 0,
+}
+
 export default function LoginModal({ open, onClose, mandatory }) {
   const [mode, setMode] = useState('login') // 'login' | 'forgot' | 'sent'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState('')
-  const [msgColor, setMsgColor] = useState('var(--red)')
+  const [msgColor, setMsgColor] = useState('var(--px-red)')
   const [loading, setLoading] = useState(false)
 
   if (!open) return null
@@ -26,7 +47,7 @@ export default function LoginModal({ open, onClose, mandatory }) {
       setMsg(''); onClose()
     } catch (e) {
       setMsg('Login ไม่สำเร็จ: ' + (e.message === 'Invalid login credentials' ? 'email หรือ password ไม่ถูกต้อง' : e.message || 'ลองอีกครั้ง'))
-      setMsgColor('var(--red)')
+      setMsgColor('var(--px-red)')
     } finally { setLoading(false) }
   }
 
@@ -39,11 +60,11 @@ export default function LoginModal({ open, onClose, mandatory }) {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
       setMsg('✅ สมัครสำเร็จ! กรุณายืนยัน email ของคุณ')
-      setMsgColor('var(--green-d)')
+      setMsgColor('var(--px-green2)')
       setTimeout(onClose, 2000)
     } catch (e) {
       setMsg('Sign up ไม่สำเร็จ: ' + (e.message || 'ลองอีกครั้ง'))
-      setMsgColor('var(--red)')
+      setMsgColor('var(--px-red)')
     } finally { setLoading(false) }
   }
 
@@ -60,45 +81,45 @@ export default function LoginModal({ open, onClose, mandatory }) {
       setMsg('')
     } catch (e) {
       setMsg('ส่งอีเมลไม่สำเร็จ: ' + (e.message || 'ลองอีกครั้ง'))
-      setMsgColor('var(--red)')
+      setMsgColor('var(--px-red)')
     } finally { setLoading(false) }
   }
 
   return createPortal(
     <div className="auth-overlay show" onClick={e => { if (!mandatory && e.target === e.currentTarget) onClose() }}>
-      <div className="auth-sheet">
-        <div style={{ width:40, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 18px' }} />
+      <div className="px-auth-sheet">
+        <div style={{ width: 40, height: 4, background: 'var(--px-border)', borderRadius: 0, margin: '0 auto 18px' }} />
 
         {mode === 'login' && (
           <>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>เข้าสู่ระบบ</div>
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น</div>
-            <input className="auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
-            <input className="auth-input" type="password" placeholder="Password (อย่างน้อย 6 ตัว)" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
+            <div style={TITLE_STYLE}>เข้าสู่ระบบ</div>
+            <div style={SUBTITLE_STYLE}>เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น</div>
+            <input className="px-auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+            <input className="px-auth-input" type="password" placeholder="Password (อย่างน้อย 6 ตัว)" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
             <button
-              onClick={() => { setMode('forgot'); setMsg(''); }}
-              style={{ background:'none', border:'none', color:'var(--purple)', fontFamily:'Mitr,sans-serif', fontSize:12, cursor:'pointer', padding:'4px 0 10px', textAlign:'left', textDecoration:'underline' }}
+              onClick={() => { setMode('forgot'); setMsg('') }}
+              style={{ background: 'none', border: 'none', color: 'var(--px-blue2)', fontFamily: 'var(--font-pixel)', fontSize: 8, letterSpacing: 1, cursor: 'pointer', padding: '4px 0 10px', textAlign: 'left' }}
             >
               ลืมรหัสผ่าน?
             </button>
-            <div style={{ fontSize:12, color:msgColor, marginBottom:8, minHeight:18 }}>{msg}</div>
+            <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: msgColor, marginBottom: 8, minHeight: 18 }}>{msg}</div>
             <div className="auth-btn-row">
-              <button onClick={handleSignIn} disabled={loading} style={{ flex:1, background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Login</button>
-              <button onClick={handleSignUp} disabled={loading} style={{ flex:1, background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1 }}>Sign Up</button>
+              <button onClick={handleSignIn} disabled={loading} className="px-btn" style={{ flex: 1, opacity: loading ? 0.6 : 1 }}>Login</button>
+              <button onClick={handleSignUp} disabled={loading} className="px-btn px-btn-purple" style={{ flex: 1, opacity: loading ? 0.6 : 1 }}>Sign Up</button>
             </div>
           </>
         )}
 
         {mode === 'forgot' && (
           <>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:20, color:'var(--text)', marginBottom:4 }}>ลืมรหัสผ่าน</div>
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:18 }}>กรอก email ที่ใช้สมัคร เราจะส่งลิงก์ไปให้ตั้งรหัสผ่านใหม่</div>
-            <input className="auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
-            <div style={{ fontSize:12, color:msgColor, marginBottom:8, minHeight:18 }}>{msg}</div>
-            <button onClick={handleSendReset} disabled={loading} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading ? 0.6 : 1, marginBottom:8 }}>
+            <div style={TITLE_STYLE}>ลืมรหัสผ่าน</div>
+            <div style={SUBTITLE_STYLE}>กรอก email ที่ใช้สมัคร เราจะส่งลิงก์ไปให้ตั้งรหัสผ่านใหม่</div>
+            <input className="px-auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+            <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: msgColor, marginBottom: 8, minHeight: 18 }}>{msg}</div>
+            <button onClick={handleSendReset} disabled={loading} className="px-btn" style={{ ...BTN_THAI, width: '100%', opacity: loading ? 0.6 : 1, marginBottom: 8 }}>
               ส่งลิงก์รีเซ็ตรหัสผ่าน
             </button>
-            <button onClick={resetToLoginMode} style={{ width:'100%', background:'none', border:'none', color:'var(--muted)', fontFamily:'Mitr,sans-serif', fontSize:13, cursor:'pointer', padding:6 }}>
+            <button onClick={resetToLoginMode} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--px-light)', fontFamily: 'var(--font-thai)', fontSize: 13, cursor: 'pointer', padding: 6 }}>
               ← กลับไปหน้า login
             </button>
           </>
@@ -106,12 +127,12 @@ export default function LoginModal({ open, onClose, mandatory }) {
 
         {mode === 'sent' && (
           <>
-            <div style={{ fontSize:36, textAlign:'center', marginBottom:8 }}>📧</div>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'var(--text)', textAlign:'center', marginBottom:8 }}>ส่งอีเมลแล้ว!</div>
-            <div style={{ fontSize:13, color:'var(--muted)', textAlign:'center', marginBottom:18 }}>
-              เช็คอีเมล <b>{email}</b> แล้วกดลิงก์เพื่อตั้งรหัสผ่านใหม่
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 8 }}>📧</div>
+            <div style={{ ...TITLE_STYLE, textAlign: 'center' }}>ส่งอีเมลแล้ว!</div>
+            <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: 'var(--px-light)', textAlign: 'center', marginBottom: 18 }}>
+              เช็คอีเมล <b style={{ color: 'var(--px-yellow)' }}>{email}</b> แล้วกดลิงก์เพื่อตั้งรหัสผ่านใหม่
             </div>
-            <button onClick={() => { resetToLoginMode(); onClose(); }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:15, fontWeight:600, cursor:'pointer' }}>
+            <button onClick={() => { resetToLoginMode(); onClose() }} className="px-btn" style={{ ...BTN_THAI, width: '100%' }}>
               ปิดหน้านี้
             </button>
           </>

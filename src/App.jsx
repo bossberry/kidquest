@@ -19,6 +19,7 @@ import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toast
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
 import { supabase } from './lib/supabase.js'
 import SaveStatusIndicator from './components/SaveStatusIndicator.jsx'
+import OnboardingModal from './components/OnboardingModal.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -76,6 +77,11 @@ export default function App() {
 
   if (!isLoggedIn) {
     return <LoginModal open={true} onClose={() => {}} mandatory />
+  }
+
+  const needsOnboarding = !state.name || state.name.trim() === ''
+  if (needsOnboarding) {
+    return <OnboardingModal />
   }
 
   return (

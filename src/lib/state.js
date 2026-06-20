@@ -17,7 +17,7 @@ function emitSaveStatus(status) {
 
 export function defaultState() {
   return {
-    name: 'โชแปง', grade: 0,
+    name: '', grade: 0,
     stateVersion: STATE_VERSION,
     schoolGrade: null, // parent-entered actual school grade (e.g. 'ป.1') — purely informational, NEVER read by game progression logic (creature tier/stats/evolution still use `grade`, which is auto-advanced by SET_SUBJECT_LEVEL)
     gender: 'unspecified', // 'male' | 'female' | 'unspecified' — used for stats and future gendered content/item variants (not yet wired into any gating logic)

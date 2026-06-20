@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — LoginBackdrop (decorative pre-login screen):**
+- Built: `LoginBackdrop.jsx` — `makeFloatingCreatures(9)` generates random seeds/stats/positions/timing once per mount (via `useRef` to survive re-renders). Each creature gets a biased xp split so all 6 elements appear naturally. Three CSS `@keyframes` (`kq-float-0/1/2`) cycle through with per-creature duration (6–12s) and negative delay (-8–0s) to desync them. `FloatingCreature` renders a canvas via `drawCreature(seed, stats)` in `useEffect`. Backdrop sits at `zIndex:0`; LoginModal's `auth-overlay` sits above it at higher z. Verified: `drawCreature` only reads `evoStage`/`xpThai`/`xpMath`/`xpEng`/`acc`/`streak` from stats — all supplied by the backdrop.
+- Not finished: nothing
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Mandatory onboarding for new accounts:**
 - Built: `defaultState().name` changed from `'โชแปง'` to `''` (root fix). New `OnboardingModal.jsx` — name input + school-grade grid (stores label string) + gender 3-button picker; all start null/empty; submit disabled until all three are filled; dispatches `SET_PROFILE` on submit; no skip/dismiss possible. App.jsx: added `OnboardingModal` import; `needsOnboarding = !state.name || state.name.trim() === ''` gate inserted between login gate and main return; resolves automatically when SET_PROFILE sets a real name.
 - Not finished: existing 'โชแปง' accounts bypass onboarding intentionally (only new signups hit it)

@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: LoginBackdrop — decorative pre-login screen
+
+### src/components/LoginBackdrop.jsx (new)
+- Colorful gradient (warm orange/yellow → cool blue/purple) with 9 floating creature sprites
+- Creatures generated once per mount via `useRef`; random seeds, element-biased stats, evoStage mix
+- Three CSS float animations (`kq-float-0/1/2`) with per-creature duration/delay to avoid sync
+- Uses real `drawCreature()` renderer — sprites look identical to in-game creatures
+- `zIndex: 0`; LoginModal overlay renders on top at its own z-level
+
+### src/App.jsx
+- Not-logged-in return now renders `<LoginBackdrop />` + `<LoginModal mandatory />` together
+
+---
+
 ## 2026-06-20 — feat: mandatory onboarding flow for new accounts
 
 ### src/lib/state.js

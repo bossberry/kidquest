@@ -9,6 +9,13 @@ _Written by: Claude Chatbot | For: Claude Code_
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — Mandatory auth gate:**
+- Built: App.jsx: added `supabase` import, `authChecked`/`isLoggedIn` state, auth-check effect (`getSession` + `onAuthStateChange`). Before main return: shows "กำลังโหลด..." until `authChecked`, then renders `<LoginModal open mandatory onClose={noop} />` if not logged in; the `onAuthStateChange` listener flips `isLoggedIn` on SIGNED_IN, automatically replacing the gate with the full app. LoginModal: added `mandatory` prop, removed skip button entirely, updated subtitle to "เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น", overlay click-outside disabled when `mandatory`. Signup still shows email-confirm message and stays on the gate (correct — user must confirm email then return to log in).
+- Not finished: nothing
+- Blockers/risks found: Home.jsx's `onOpenLogin` button now only reachable for already-logged-in users (rare/redundant) but harmless to leave in place
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Separate schoolGrade from game-progression grade:**
 - Built: `schoolGrade: null` added to `defaultState()` (purely informational, never read by game logic). `SET_PROFILE` reducer now updates `schoolGrade` (not `grade`) — `state.grade` is now exclusively auto-advanced by `SET_SUBJECT_LEVEL`. ProfileModal: `grade` state → `schoolGrade` state (stores the label string like 'ป.1', not an index); grade selector compares `schoolGrade === label`; section label updated to "ระดับชั้นเรียนจริง" + subtitle "สำหรับเก็บข้อมูลเท่านั้น ไม่กระทบการเล่นเกม". Scanned all `state.grade` usages — all remaining usages are legitimate game-tier reads (evo calc, tier, egg algorithm), none needed switching to `schoolGrade`.
 - Not finished: nothing

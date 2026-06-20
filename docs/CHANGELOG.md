@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: mandatory auth gate — no more guest mode
+
+### src/App.jsx
+- Added `supabase` import
+- Added `authChecked` / `isLoggedIn` state
+- Added auth effect: `getSession()` on mount to set initial state; `onAuthStateChange` listener to react to login/logout events
+- Before main return: shows loading spinner until `authChecked`; renders mandatory `<LoginModal>` while not logged in; `onAuthStateChange` SIGNED_IN event flips `isLoggedIn` and automatically shows the full app
+
+### src/components/LoginModal.jsx
+- Added `mandatory` prop; overlay click-outside disabled when `mandatory`
+- Removed "ข้ามไปก่อน (guest mode)" skip button entirely
+- Updated description text to "เข้าสู่ระบบหรือสมัครสมาชิกเพื่อเริ่มเล่น"
+
+---
+
 ## 2026-06-20 — fix: separate parent-entered schoolGrade from game-progression grade
 
 ### src/lib/state.js

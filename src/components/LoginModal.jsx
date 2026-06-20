@@ -89,6 +89,17 @@ export default function LoginModal({ open, onClose, mandatory }) {
     <div className="auth-overlay show" onClick={e => { if (!mandatory && e.target === e.currentTarget) onClose() }}>
       <div className="px-auth-sheet">
         <div style={{ width: 40, height: 4, background: 'var(--px-border)', borderRadius: 0, margin: '0 auto 18px' }} />
+        {!mandatory && (
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', top: 12, right: 12,
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-pixel)', fontSize: 14, color: 'var(--px-light)',
+              padding: 4, WebkitTapHighlightColor: 'transparent',
+            }}
+          >✕</button>
+        )}
 
         {mode === 'login' && (
           <>

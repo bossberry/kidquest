@@ -610,7 +610,7 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 .px-btn-dark{background:var(--px-dark);border-color:var(--px-border)}
 
 /* Pixel auth sheet + inputs */
-.px-auth-sheet{background:var(--px-darkest);border:3px solid var(--px-border);box-shadow:4px 4px 0 var(--px-black);width:100%;max-width:480px;padding:20px 18px 28px;border-radius:0;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+.px-auth-sheet{background:var(--px-darkest);border:3px solid var(--px-border);box-shadow:4px 4px 0 var(--px-black);width:100%;max-width:480px;padding:20px 18px 28px;border-radius:0;animation:slideUp .3s cubic-bezier(.4,0,.2,1);position:relative}
 .px-auth-input{width:100%;border:2px solid var(--px-border);border-radius:0;padding:11px 12px;font-family:var(--font-thai);font-size:14px;color:var(--px-white);background:var(--px-black);margin-bottom:10px;box-sizing:border-box;box-shadow:inset 1px 1px 0 var(--px-darkest)}
 .px-auth-input:focus{outline:none;border-color:var(--px-yellow)}
 .px-auth-input::placeholder{color:var(--px-light);opacity:0.6}

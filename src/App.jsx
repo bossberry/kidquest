@@ -32,6 +32,7 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const { state, dispatch } = useAppState()
 
   useEffect(() => {
@@ -79,8 +80,12 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <>
-        <LoginBackdrop />
-        <LoginModal open={true} onClose={() => {}} mandatory />
+        <LoginBackdrop onStartTap={() => setShowLoginModal(true)} />
+        <LoginModal
+          open={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          mandatory={false}
+        />
       </>
     )
   }

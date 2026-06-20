@@ -16,6 +16,13 @@ _(Claude Code appends here after each session)_
 - Ready to start next: Phase 4 NPC System
 - Needs Chatbot decision first: none
 
+**2026-06-20 — Interactive pre-login backdrop:**
+- Built: `LoginBackdrop.jsx` — tappable creatures with squish (80% chance, `playCreatureTapSFX`) or evolve (40% chance, temp evoStage advance + `playTone('stageUp')`) reactions; `_bgmLogin` 8-note major-scale melody loop added to existing BGM_TRACKS system; `startBGM()` export calls `_bgmLogin(getACtx())` on mount, `stopBGM()` on unmount; `playCreatureTapSFX()` standalone export with freq sweep chirp. `App.jsx` — `showLoginModal` state added; not-logged-in render now shows backdrop + LoginModal only when `showLoginModal=true` (no longer auto-blocking). `LoginModal.jsx` — `✕` close button added (absolute top-right, only when `!mandatory`); `.px-auth-sheet` given `position:relative`. `setSoundOn`/`toggleSound` updated to call `stopBGM(0)` when muting.
+- Not finished: nothing
+- Blockers/risks found: `startBGM()` bypasses the suspended-ctx guard in `playBGM()` by directly calling `getACtx()` (which resumes) then inlining the track start — safe because `_bgmLogin` uses setTimeout(100ms) for first note, giving ctx time to resume.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Pixel-art modal restyling:**
 - Built: `styles.css` — added `.px-auth-sheet` (darkest bg, border shadow, square, slideUp) + `.px-auth-input` (black bg, border, focus yellow, placeholder light). `LoginModal.jsx` — all three modes (login/forgot/sent) restyled: titles use `var(--font-thai)` + `px-yellow` + textShadow; inputs `px-auth-input`; Login/SignUp use `px-btn`/`px-btn-purple` (flex:1); "ลืมรหัสผ่าน?" uses `var(--font-pixel)` + `px-blue2` 8px; action buttons `px-btn` with Thai font override; msgColor updated to `px-red`/`px-green2`. `ProfileModal.jsx` + `OnboardingModal.jsx` — identical sheet/input swap; grade/gender toggle buttons use `px-yellow`/`px-mid`/`px-border`/`px-dark` pixel pattern; save/submit use `px-btn` with Thai font override; logout uses `2px solid px-red` with pixel shadow.
 - Not finished: nothing

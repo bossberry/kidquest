@@ -1,5 +1,31 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: interactive pre-login backdrop — tappable creatures, start button, BGM + SFX
+
+### src/lib/audio.js
+- Added `_bgmLogin(ctx)` track: 8-note C-major melody (triangle) + alternating bass (sine), loops via `bgmTimers` using the existing scheduler pattern; registered in `BGM_TRACKS` as `'login'`
+- Added `startBGM()` export: stops any current BGM, starts the login track directly (bypasses suspended-ctx guard by calling `getACtx()` first)
+- Added `playCreatureTapSFX()` export: random-pitch chirp sweep 400–1100 Hz over 150ms
+- `setSoundOn()` and `toggleSound()` now call `stopBGM(0)` when muting
+
+### src/components/LoginBackdrop.jsx
+- Creatures are now tappable: 60% squish (scale 0.8,1.2 + `playCreatureTapSFX`), 40% evolve (advance evoStage + `playTone('stageUp')`), both revert after 450ms
+- BGM starts on mount (`startBGM()`), stops on unmount (`stopBGM()`)
+- Central pixel-art sword "เริ่มเล่น!" start button (absolute centered), calls `onStartTap` prop
+- `onTapped` callback removed (creatures handle reactions internally)
+
+### src/App.jsx
+- Added `showLoginModal` state (default `false`)
+- Not-logged-in render: backdrop shows always; LoginModal only shown when `showLoginModal=true`; `mandatory={false}` so the X button and click-outside close work
+
+### src/components/LoginModal.jsx
+- Added ✕ close button (absolute top-right, `position:absolute`), only rendered when `!mandatory`
+
+### src/styles.css
+- `.px-auth-sheet` — added `position:relative` to anchor the absolute-positioned ✕ button
+
+---
+
 ## 2026-06-20 — style: restyle LoginModal, ProfileModal, OnboardingModal to pixel-art design system
 
 ### src/styles.css

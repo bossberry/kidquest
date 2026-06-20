@@ -6,6 +6,7 @@ let currentPhonicsAudio = null
 export function setSoundOn(v) {
   _soundOn = v
   if (!v && window.speechSynthesis) window.speechSynthesis.cancel()
+  if (!v) stopBGM(0)
 }
 export function getSoundOn() { return _soundOn }
 
@@ -19,6 +20,7 @@ export function toggleSound(btn) {
   _soundOn = !_soundOn
   if (btn) { btn.textContent = _soundOn ? '🔊' : '🔇'; btn.style.opacity = _soundOn ? '1' : '.5' }
   if (!_soundOn && window.speechSynthesis) window.speechSynthesis.cancel()
+  if (!_soundOn) stopBGM(0)
   return _soundOn
 }
 
@@ -382,7 +384,45 @@ function _bgmVictory(ctx) {
   return [] // one-shot, no sustained nodes
 }
 
-const BGM_TRACKS = { home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victory: _bgmVictory }
+function _bgmLogin(ctx) {
+  const nodes = []
+  const MELODY = [
+    { f: 523, d: 0.35 }, { f: 587, d: 0.35 }, { f: 659, d: 0.35 }, { f: 523, d: 0.35 },
+    { f: 659, d: 0.35 }, { f: 784, d: 0.5  }, { f: 659, d: 0.35 }, { f: 523, d: 0.5  },
+  ]
+  const BASS = [
+    { f: 130, d: 0.7 }, { f: 165, d: 0.7 }, { f: 196, d: 0.7 }, { f: 165, d: 0.7 },
+  ]
+  let mi = 0, bi = 0
+  const tick = () => {
+    if (bgmNodes !== nodes) return
+    const note = MELODY[mi % MELODY.length]
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'triangle'; o.frequency.value = note.f
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.03)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + note.d)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + note.d + 0.02)
+    if (mi % 2 === 0) {
+      const bn = BASS[bi % BASS.length]
+      const bo = ctx.createOscillator(), bg = ctx.createGain()
+      bo.type = 'sine'; bo.frequency.value = bn.f
+      bg.gain.setValueAtTime(0, ctx.currentTime)
+      bg.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.03)
+      bg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + bn.d)
+      bo.connect(bg); bg.connect(ctx.destination)
+      bo.start(ctx.currentTime); bo.stop(ctx.currentTime + bn.d + 0.02)
+      bi++
+    }
+    mi++
+    bgmTimers.push(setTimeout(tick, note.d * 1000))
+  }
+  bgmTimers.push(setTimeout(tick, 100))
+  return nodes
+}
+
+const BGM_TRACKS = { home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victory: _bgmVictory, login: _bgmLogin }
 
 export function playBGM(track) {
   stopBGM(0)
@@ -410,6 +450,27 @@ export function stopBGM(fadeMs = 200) {
     })
   }
   bgmNodes = []
+}
+
+export function startBGM() {
+  stopBGM(0)
+  if (!_soundOn) return
+  try { bgmNodes = _bgmLogin(getACtx()) || [] } catch(e) {}
+}
+
+export function playCreatureTapSFX() {
+  if (!_soundOn) return
+  try {
+    const ctx = getACtx()
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(ctx.destination)
+    o.type = 'sine'
+    o.frequency.setValueAtTime(400 + Math.random() * 200, ctx.currentTime)
+    o.frequency.exponentialRampToValueAtTime(800 + Math.random() * 300, ctx.currentTime + 0.08)
+    g.gain.setValueAtTime(0.15, ctx.currentTime)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.16)
+  } catch(e) {}
 }
 
 // SFX dictionary ───────────────────────────────────────────────────────────────

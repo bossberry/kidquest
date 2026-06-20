@@ -167,8 +167,8 @@ _Last updated: 2026-06-16_
 - One-time migration flags: `_subjectLevelCalibrated` (recalibrate subjectLevels from levelMastery), `_itemsMigrated` (additive items→homeItems/battleItems merge), `_evoRechecked` (recheck all creature evoStage on load)
 
 ### Auth UI
-- `LoginBackdrop.jsx` — animated gradient backdrop with 9 floating creature sprites behind login
-- `LoginModal.jsx` — email/password login + sign-up + forgot-password flow; `mandatory` prop disables dismiss; pixel-art styling
+- `LoginBackdrop.jsx` — interactive animated gradient backdrop: 9 tappable creature sprites (squish or temporary evolve on tap), looping 8-note BGM via `startBGM()`/`stopBGM()`, central pixel-art sword "เริ่มเล่น!" start button that opens LoginModal via `onStartTap` prop
+- `LoginModal.jsx` — email/password login + sign-up + forgot-password flow; `mandatory` prop disables dismiss + hides ✕ button; pixel-art styling
 - `ResetPasswordModal.jsx` — catches `PASSWORD_RECOVERY` Supabase event; two-field password reset
 - `OnboardingModal.jsx` — name + schoolGrade + gender picker; cannot be skipped; pixel-art styling
 - `ProfileModal.jsx` — name/grade/gender edit + logout; pixel-art styling

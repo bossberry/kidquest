@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { drawCreature } from '../lib/creatureAlgorithm.js'
+import { startBGM, stopBGM, playCreatureTapSFX, playTone } from '../lib/audio.js'
 
 const EVO_STAGES = ['baby', 'teen', 'final']
 
@@ -28,46 +29,76 @@ function makeFloatingCreatures(count) {
   })
 }
 
+// Cycles forward through evo stages so repeated taps stay fun.
+function nextStage(stage) {
+  const idx = EVO_STAGES.indexOf(stage)
+  return EVO_STAGES[(idx + 1) % EVO_STAGES.length]
+}
+
 function FloatingCreature({ c }) {
   const canvasRef = useRef(null)
+  const [reaction, setReaction] = useState(null) // null | 'squish' | 'evolve'
+  const [displayStats, setDisplayStats] = useState(c.stats)
+  const revertTimerRef = useRef(null)
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    drawCreature(canvas, c.seed, c.stats)
-  }, [c])
+    drawCreature(canvas, c.seed, displayStats)
+  }, [c, displayStats])
+
+  const handleTap = () => {
+    const doEvolve = Math.random() < 0.4
+    if (doEvolve) {
+      setReaction('evolve')
+      setDisplayStats(prev => ({ ...prev, evoStage: nextStage(prev.evoStage) }))
+      playTone('stageUp')
+    } else {
+      setReaction('squish')
+      playCreatureTapSFX()
+    }
+    clearTimeout(revertTimerRef.current)
+    revertTimerRef.current = setTimeout(() => setReaction(null), 450)
+  }
+
+  useEffect(() => () => clearTimeout(revertTimerRef.current), [])
 
   return (
     <div
+      onClick={handleTap}
       style={{
         position: 'absolute',
         left: `${c.left}%`,
         top: `${c.top}%`,
-        animation: `kq-float-${c.id % 3} ${c.duration}s ease-in-out infinite`,
+        animation: reaction ? 'none' : `kq-float-${c.id % 3} ${c.duration}s ease-in-out infinite`,
         animationDelay: `${c.delay}s`,
-        opacity: 0.85,
-        pointerEvents: 'none',
+        opacity: 0.9,
+        cursor: 'pointer',
+        transform: reaction === 'squish' ? 'scale(0.8, 1.2)' : reaction === 'evolve' ? 'scale(1.3)' : undefined,
+        transition: reaction ? 'transform 0.2s ease' : undefined,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <canvas
         ref={canvasRef}
         width={c.size}
         height={c.size}
-        style={{ imageRendering: 'pixelated', display: 'block' }}
+        style={{ imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }}
       />
     </div>
   )
 }
 
-/**
- * LoginBackdrop — purely decorative background behind the mandatory login
- * screen. Renders randomly-generated creature sprites floating over a bright
- * gradient, using the same drawCreature() renderer as the real game.
- */
-export default function LoginBackdrop() {
+export default function LoginBackdrop({ onStartTap }) {
   const creaturesRef = useRef(null)
   if (!creaturesRef.current) {
     creaturesRef.current = makeFloatingCreatures(9)
   }
+
+  useEffect(() => {
+    startBGM()
+    return () => stopBGM()
+  }, [])
 
   return (
     <div style={{
@@ -89,7 +120,42 @@ export default function LoginBackdrop() {
           50%      { transform: translate(6px, -18px) rotate(2deg); }
         }
       `}</style>
-      {creaturesRef.current.map(c => <FloatingCreature key={c.id} c={c} />)}
+
+      {creaturesRef.current.map(c => (
+        <FloatingCreature key={c.id} c={c} />
+      ))}
+
+      {/* Central pixel-art start button */}
+      <button
+        onClick={onStartTap}
+        style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'var(--px-darkest)',
+          border: '3px solid var(--px-yellow)',
+          boxShadow: '4px 4px 0 var(--px-black)',
+          borderRadius: 0,
+          padding: '18px 28px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <svg width="32" height="32" viewBox="0 0 16 16" style={{ imageRendering: 'pixelated' }}>
+          <rect x="7" y="1" width="2" height="8" fill="#d8d8e8" />
+          <rect x="6" y="1" width="1" height="1" fill="#fff" />
+          <rect x="5" y="8" width="6" height="2" fill="#8a6020" />
+          <rect x="6" y="10" width="4" height="1" fill="#5a3a10" />
+          <rect x="7" y="10" width="2" height="5" fill="#3a2a10" />
+        </svg>
+        <div style={{
+          fontFamily: 'var(--font-pixel)', fontSize: 11,
+          color: 'var(--px-yellow)', textShadow: '2px 2px 0 var(--px-black)',
+          letterSpacing: 1, textTransform: 'uppercase',
+        }}>
+          เริ่มเล่น!
+        </div>
+      </button>
     </div>
   )
 }

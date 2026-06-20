@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-20 — creatureAlgorithm.js full visual redesign:**
+- Built: 4 body types (`furred`/`winged`/`scaled`/`chitin`) × 3 stages = 12 hand-placed silhouettes on 12×12 pixel grid. 20 palette variants across 6 elements (3–4 per element). Pattern overlay system: `none`/`spots`/`stripes` (50%/25%/25%). All driven by `prng(seed)` — 3 consecutive draws: palette index → body type → pattern. `COLORS` → `PALETTES` (array-of-objects per element). `getElement()`, `getCreatureSeed()`, `drawCreature()` signature all unchanged. Visually reviewed in browser — 4 body types clearly distinct (furred=cat ears, winged=wing protrusions+beak, scaled=side frills+tongue, chitin=antennae+segmented). Stage evolution (baby→teen→final) clearly readable.
+- Not finished: nothing
+- Blockers/risks found: prng(seed) with small sequential seeds (1–16) clusters to furred body type. Real creature seeds are hash-of-name×date so they span 32-bit space — distribution is fine in practice. Test seeds needed to be chosen from different clusters to verify all 4 types.
+- Ready to start next: Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-20 — Phase 1.1c — Mystery Adventurers: real procedural creature rendering:**
 - Built: `ELEMENT_STATS` reverse-map (6 entries) + `elementToStats(element, evoStage)` — derives placeholder xp/acc/streak values that route `getElement()` to the correct element without touching `creatureAlgorithm.js`. Used option (a) as specified. `CreatureCanvas` component (canvas + useEffect) calls `drawCreature(canvas, Number(seed), elementToStats(...))`. Card: 64×64 canvas replaces emoji placeholder. Modal: 192×192 canvas replaces emoji placeholder. Both still show creature_name text label. No changes to any lib file.
 - Not finished: nothing

@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — feat: modular creature body types + expanded palettes + patterns, seed-driven
+
+### src/lib/creatureAlgorithm.js
+- Full redesign of drawing system — seed now drives visual variation via `prng(seed)` (XorShift32)
+- 4 body types: `furred` (round ears, 4 legs, tail), `winged` (beak + wing protrusions + tail feathers), `scaled` (side frills + slit eyes + forked tongue), `chitin` (antennae + compound eyes + segmented body)
+- 12 distinct silhouettes: 4 body types × 3 stages (baby/teen/final), each hand-placed on 12×12 pixel grid
+- 3–4 hand-tuned palette variants per element (20 total): fire×4, water×3, thunder×3, nature×4, shadow×3, light×4
+- Pattern overlays: `none` (50%), `spots` (25%), `stripes` (25%) — body-type-aware positions
+- `PALETTES` replaces single-variant `COLORS` map
+- `prng()` added (same XorShift32 as `eggAlgorithm.js`) — body type, palette variant, pattern all deterministic per seed
+- All public API unchanged: `getCreatureSeed()`, `getCreatureName()`, `drawCreature()` signature preserved
+- `getElement()` unchanged (locked)
+
+---
+
 ## 2026-06-20 — feat: render real procedural pixel-art creatures on Mystery Adventurers cards
 
 ### src/components/FriendsScreen.jsx

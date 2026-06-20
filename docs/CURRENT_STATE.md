@@ -25,7 +25,8 @@ _Last updated: 2026-06-20_
 ### Creature System
 - **Pixel art rendering** — `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — **single source of truth for all screens**
   - Used by: Home.jsx (large 160px + party bar), HomeBackground.jsx (walking sprites), Collection.jsx (90px cards), PartySelect.jsx (56px), MoveSelectBattleMode.jsx (world battles), BattleScreen.jsx, EggMemory.jsx, WorldScreen.jsx (player sprite via `window.__kq_activeCreatureSeed/Stats` globals)
-  - 12×12 pixel grid, 6 elements × 3 evo stages (baby/teen/final)
+  - 12×12 pixel grid for ALL stages (baby/teen/final — reverted from 16×16 final). Proportion/silhouette differentiation within 12×12 (Pokémon-style): furred=wide 4-legged quadruped, winged=narrow 2-legged bipedal with growing wings, scaled=round body with dorsal frill+slit eyes, chitin=3 stacked segments with antennae
+  - 6 elements × 3 evo stages (baby/teen/final)
 - **DNA beauty layer** — `drawCreature.js` + `CreatureCanvas.jsx` — used by HatchOverlay only
 - `src/lib/creatureSystem.js`: `determineElement()`, `calcEvoStage()`, `CREATURE_ELEMENT_COLORS`, `CREATURE_ELEMENT_NAMES_TH`, `EVO_STAGE_LABELS_TH`
 - `src/lib/creatureGenerator.js`: `buildCreatureDNA()`, `buildVoiceProfile()`, `generateCreatureName()`

@@ -1,5 +1,20 @@
 # Changelog — KidQuest
 
+## 2026-06-20 — fix: redesign creature silhouettes within original 12x12 grid using Pokemon-style proportion differentiation
+
+### src/lib/creatureAlgorithm.js
+- All stages (baby/teen/final) now use the same 12×12 grid — reverts 16×16 final-stage grid from previous pass
+- Silhouette differentiation is now proportion-based (Pokémon-style) not resolution-based:
+  - FURRED: WIDE quadruped body (10-12 of 12 cols), FOUR legs in two visible pairs with belly gap, TRIANGULAR EARS above head. Bulbasaur/Eevee proportion. Baby=stub tail, Teen=shoulder mane tufts, Final=full mane crown radiating from head
+  - WINGED: NARROW upright body (4 of 12 cols), BIPEDAL (2 legs only), BEAK pointing down, tail extending right. Charmander/Charizard proportion. Baby=tiny wing nubs, Teen=folded wing buds (clearly visible), Final=full wingspan spread to canvas edges
+  - SCALED: ROUND compact body (Squirtle-like), DORSAL RIDGE (not ears) above head, SLIT EYES (vertical pupils), ARM STUBS on body sides + 2 bottom legs. Baby=small dorsal frill, Teen=head frills on sides, Final=large dramatic frills spanning top corners
+  - CHITIN: THREE STACKED SEGMENTS visible at all stages (head=smallest, thorax=medium, abdomen=LARGEST), thin ANTENNAE (not ears), legs from thorax only. Baby=4 legs, Teen=6 legs + wing buds, Final=full spread wings + large pincers
+- Beak draw-order fixed: body drawn first, beak drawn after so it appears on top
+- Tongue on SCALED final drawn last (over chest armor so it is visible)
+- Pattern overlays (spots/stripes) updated to work with new body layouts
+
+---
+
 ## 2026-06-20 — fix: distinct body-type silhouettes + majestic final-stage creature designs
 
 ### src/lib/creatureAlgorithm.js

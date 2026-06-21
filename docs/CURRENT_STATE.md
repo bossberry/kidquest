@@ -26,6 +26,7 @@ _Last updated: 2026-06-20_
 - **Pixel art rendering** — `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — **single source of truth for all screens**
   - Used by: Home.jsx (large 160px + party bar), HomeBackground.jsx (walking sprites), Collection.jsx (90px cards), PartySelect.jsx (56px), MoveSelectBattleMode.jsx (world battles), BattleScreen.jsx, EggMemory.jsx, WorldScreen.jsx (player sprite via `window.__kq_activeCreatureSeed/Stats` globals)
   - 12×12 pixel grid for ALL stages (baby/teen/final). Chibi pixel-art principles: furred=big 8-wide head (body narrower at 6-wide), no-ear dome winged head (6-wide) with high eyes and growing accent wings, scaled=flat-top head+slit eyes+side frills+accent tail-tip focal feature, chitin=3-band 4→6→8 wide stacked segments+thin antennae+compound eye bulge+accent wings only
+  - **Baby-stage quality pass (Pokémon-reference informed)**: all 4 baby types now have (1) 1px dark outline via shell-then-fill draw order, (2) head-to-body shoulder bridge (furred/winged) or continuous outline (scaled/chitin), (3) diagonal stair-step pixels on tails and wing nubs, (4) 2×2 eyes with 1px white '#ffffff' highlight at upper-left corner
   - 6 elements × 3 evo stages (baby/teen/final)
 - **DNA beauty layer** — `drawCreature.js` + `CreatureCanvas.jsx` — used by HatchOverlay only
 - `src/lib/creatureSystem.js`: `determineElement()`, `calcEvoStage()`, `CREATURE_ELEMENT_COLORS`, `CREATURE_ELEMENT_NAMES_TH`, `EVO_STAGE_LABELS_TH`

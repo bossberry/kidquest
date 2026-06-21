@@ -95,32 +95,38 @@ function makeR(ctx, P, ox, oy) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawFurredBaby(r, c) {
-  // TRIANGULAR EARS — pointed single-pixel tip above 2-wide base.
-  // This upward-pointing triangle is the fastest silhouette cue for "mammal".
-  r(3,0,1,1, c.d)                      // left ear tip  (1 px)
-  r(2,1,2,1, c.d)                      // left ear base (2 px)
-  r(3,1,1,1, c.l)                      // inner ear
-  r(8,0,1,1, c.d)                      // right ear tip
-  r(8,1,2,1, c.d)                      // right ear base
-  r(8,1,1,1, c.l)                      // inner ear
+  // ── EARS: triangular points (3-px dark tip row merges into head shell at y=1) ──
+  r(2,0,3,1, c.d); r(3,0,1,1, c.l)        // left ear: dark+inner
+  r(7,0,3,1, c.d); r(8,0,1,1, c.l)        // right ear: dark+inner
 
-  // HEAD — biggest and roundest of all 4 types (8 wide, y=2–5).
-  // Ears extend the visible head region to y=0–5 = 50% of canvas.
-  r(2,2,8,4, c.l)
-  r(3,3,2,2, c.d); r(3,3,1,1,'#ffffff')   // left eye (2×2 round + shine)
-  r(7,3,2,2, c.d); r(7,3,1,1,'#ffffff')   // right eye
-  r(5,5,2,1, c.d)                          // nose
+  // ── HEAD: 10×5 dark shell → 8×3 light fill (1px outline all around) ──
+  r(1,1,10,5, c.d)                          // head dark shell (ear bases at y=1, chin at y=5)
+  r(2,2,8,3, c.l)                           // head light fill (y=2–4, x=2–9)
+  r(3,2,2,2, c.d); r(3,2,1,1,'#ffffff')    // left eye 2×2 + white shine
+  r(7,2,2,2, c.d); r(7,2,1,1,'#ffffff')    // right eye
+  r(5,4,2,1, c.d)                           // nose
+  // y=5 = solid dark chin row (bottom of head shell, no fill = natural neck line)
 
-  // BODY — squat puffball (6 wide, only 3 rows — most compact body of all 4)
-  r(3,6,6,3, c.p)
-  r(4,7,4,1, c.l, 0.3)                // belly
-  r(9,7,2,2, c.d)                     // tail stub (right side)
+  // ── SHOULDER BRIDGE: same width as head, body color (zero visible seam) ──
+  r(1,6,1,1, c.d); r(10,6,1,1, c.d)        // dark side pillars at y=6
+  r(2,6,8,1, c.p)                           // primary fill = same x-extent as head interior
 
-  // 4 THIN LEGS — quadruped silhouette, contrast vs winged's 2 legs
-  r(3,9,1,3, c.d); r(5,9,1,3, c.d)   // left pair
-  r(6,9,1,3, c.d); r(8,9,1,3, c.d)   // right pair
-  r(2,11,2,1, c.d,0.5); r(4,11,2,1,c.d,0.5)   // front paws
-  r(6,11,2,1, c.d,0.5); r(8,11,2,1,c.d,0.5)   // back paws
+  // ── BODY: steps in 1px each side vs shoulder (diagonal shoulder transition) ──
+  r(2,7,8,3, c.d)                           // body dark shell (x=2–9, y=7–9)
+  r(3,7,6,2, c.p)                           // body fill y=7–8 (y=9 stays all-dark = clean floor)
+  r(4,8,4,1, c.l, 0.35)                     // belly highlight
+
+  // ── TAIL: diagonal arc — x=9 at y=6, steps right to x=10 at y=7 ──
+  r(9,6,3,1, c.d)                           // tail dark start (x=9–11, y=6)
+  r(10,7,2,1, c.d)                          // tail dark step (x=10–11, y=7, shifted 1px right)
+  r(10,6,1,1, c.p)                          // tail fill y=6
+  r(10,7,1,1, c.p)                          // tail fill y=7
+
+  // ── 4 THIN LEGS (quadruped) ──
+  r(3,10,1,2, c.d); r(5,10,1,2, c.d)       // left pair
+  r(6,10,1,2, c.d); r(8,10,1,2, c.d)       // right pair
+  r(2,11,2,1, c.d,0.6); r(4,11,2,1,c.d,0.6)   // paws L
+  r(6,11,2,1, c.d,0.6); r(8,11,2,1,c.d,0.6)   // paws R
 }
 
 function drawFurredTeen(r, c) {
@@ -187,31 +193,32 @@ function drawFurredFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawWingedBaby(r, c) {
-  // HEAD — 6 wide, smooth DOME TOP (no ear bumps at all = #1 non-furred cue).
-  // Eyes sit HIGH at y=1–2 (avian proportion).
-  r(3,0,6,6, c.l)
-  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')   // left eye (high on face)
-  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')   // right eye
-  r(5,5,2,1, c.d)                          // beak at base of head
+  // ── HEAD: 8×6 dark shell → 6×4 light fill (smooth dome top, no ear bumps) ──
+  r(2,0,8,6, c.d)                           // head dark shell (y=0 = dome; y=5 = chin/beak)
+  r(3,1,6,4, c.l)                           // head light fill (y=1–4, x=3–8)
+  // Eyes HIGH at y=1–2 (avian) — 2×2 dark + white shine
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')    // left eye + shine
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')    // right eye + shine
+  // y=5 = solid dark chin/beak row (bottom of head shell, no fill)
 
-  // BODY — narrow upright pillar (4 wide, x=4–7)
-  r(4,6,4,4, c.p)
-  r(5,7,2,2, c.l, 0.3)
+  // ── BODY: steps in 1px each side from head (diagonal shoulder transition) ──
+  r(3,6,6,4, c.d)                           // body dark shell (x=3–8, y=6–9)
+  r(4,6,4,3, c.p)                           // body fill (y=6–8; y=9 stays dark = floor)
+  r(5,7,2,1, c.l, 0.35)                     // belly
 
-  // WING NUBS — triangular proto-wing buds at shoulder level.
-  // Shape: 2 wide at attachment (top), tapers to 1 pixel at bottom tip.
-  // Dark outer-edge line makes them read as separate features, not body noise.
-  r(2,6,2,2, c.p)   // left nub body (2×2 at shoulder)
-  r(2,8,1,1, c.p)   // left nub tip  (1×1 tapered)
-  r(1,6,1,3, c.d)   // left outer edge (dark = silhouette readable on any bg)
-  r(8,6,2,2, c.p)   // right nub body
-  r(9,8,1,1, c.p)   // right nub tip
-  r(10,6,1,3, c.d)  // right outer edge
+  // ── WING NUBS: diagonal taper — 2-wide at top, 1-wide at tip (stair step) ──
+  r(0,6,3,3, c.d)                           // left nub dark block (x=0–2, y=6–8)
+  r(1,6,2,2, c.p)                           // left fill: 2 wide at y=6–7
+  r(2,8,1,1, c.p)                           // left tip: 1 wide at y=8 (left edge steps right)
+  r(9,6,3,3, c.d)                           // right nub dark block (x=9–11, y=6–8)
+  r(9,6,2,2, c.p)                           // right fill: 2 wide at y=6–7
+  r(9,8,1,1, c.p)                           // right tip: 1 wide at y=8 (right edge steps left)
 
-  // Small tail stub
-  r(7,9,2,2, c.d)
+  // ── TAIL: diagonal arc at bottom-right ──
+  r(8,8,3,2, c.d)                           // tail dark (x=8–10, y=8–9)
+  r(9,8,1,2, c.p)                           // tail fill
 
-  // 2 LEGS ONLY (bipedal — leg-count is its own silhouette cue vs furred's 4)
+  // ── 2 LEGS ONLY (bipedal) ──
   r(5,10,1,2, c.d); r(6,10,1,2, c.d)
   r(4,11,1,1, c.d); r(5,11,2,1, c.d); r(6,11,2,1, c.d); r(7,11,1,1, c.d)
 }
@@ -278,29 +285,29 @@ function drawWingedFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawScaledBaby(r, c) {
-  // HEAD — 6 wide, FLAT TOP (zero protrusions above y=0 = instant non-furred read).
-  // Same 6 width as winged but distinguished by: frills SIDEWAYS, SLIT eyes, flat top.
-  r(3,0,6,4, c.l)
-  // SIDE FRILLS — two small stubs protruding LEFT and RIGHT at head mid-height.
-  // Direction (sideways vs upward ears) is the clearest squint-test cue.
-  r(1,1,2,2, c.d)   // left frill  (x=1–2, adjacent to head at x=3)
-  r(9,1,2,2, c.d)   // right frill (x=9–10, adjacent to head at x=8)
-  // SLIT EYES — 1 wide × 2 tall vertical slits (vs 2×2 round square of other types)
-  r(4,1,1,2, c.d)   // left slit
-  r(7,1,1,2, c.d)   // right slit
-  r(5,3,2,1, c.d)   // snout
+  // ── HEAD: 6×4 dark shell → 4×2 light fill (flat top at y=0, zero upward bumps) ──
+  r(3,0,6,4, c.d)                           // head dark shell (x=3–8, y=0–3; flat dome)
+  r(4,1,4,2, c.l)                           // head light fill (x=4–7, y=1–2)
+  // Side frills: dark 2×2 blocks left and right (outward cue vs furred's upward ears)
+  r(1,1,2,2, c.d)                           // left frill (x=1–2, adjacent to head x=3)
+  r(9,1,2,2, c.d)                           // right frill (x=9–10)
+  // Slit eyes: 1-wide × 2-tall (drawn after fill → overwrite with dark; not round 2×2)
+  r(4,1,1,2, c.d)                           // left slit (leftmost fill pixel)
+  r(7,1,1,2, c.d)                           // right slit
+  // y=3 = solid dark chin row (bottom of head shell, no fill)
 
-  // BODY — same width as head, but TALLER (5 rows vs furred's 3 stubby rows).
-  // This taller body gives the elongated-reptile silhouette even at baby size.
-  r(3,4,6,5, c.p)
-  r(4,5,4,3, c.l, 0.25)   // belly
+  // ── BODY: same x-range as head → continuous outline; taller = elongated reptile ──
+  r(3,4,6,5, c.d)                           // body dark shell (x=3–8, y=4–8; same x as head)
+  r(4,4,4,4, c.p)                           // body fill (x=4–7, y=4–7; y=8 stays dark)
+  r(5,5,2,2, c.l, 0.28)                     // belly highlight
 
-  // TAIL — 1-wide line running down the right side (no accent yet at baby)
-  r(9,5,1,5, c.d)   // tail (1×5, sticks out past body-right at x=9)
+  // ── TAIL: 1-px column (y=5–7), diagonal bend 1 step right to x=10 (y=8–10) ──
+  r(9,5,1,3, c.d)                           // tail upper (x=9, y=5–7)
+  r(10,8,1,3, c.d)                          // tail bend (x=10, y=8–10; 1-px diagonal step)
 
-  // LEGS — 2 pairs of short stubs
-  r(3,9,2,2, c.d)   // left legs
-  r(7,9,2,2, c.d)   // right legs
+  // ── LEGS: 2 short stubs ──
+  r(3,9,2,2, c.d)                           // left leg (x=3–4, y=9–10)
+  r(7,9,2,2, c.d)                           // right leg (x=7–8, y=9–10)
 }
 
 function drawScaledTeen(r, c) {
@@ -359,30 +366,29 @@ function drawScaledFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawChitinBaby(r, c) {
-  // ANTENNAE — single-pixel stems (3 rows tall, thin lines vs furred's 2-wide ear blocks).
-  // Knob bends OUTWARD at the tip — left bends left, right bends right.
-  r(4,0,1,3, c.d); r(3,0,2,1, c.d)   // left: stem (x=4, y=0–2) + knob (x=3–4, y=0)
-  r(7,0,1,3, c.d); r(7,0,2,1, c.d)   // right: stem (x=7, y=0–2) + knob (x=7–8, y=0)
+  // ANTENNAE — 1-px stems (3 rows), knobs bend outward
+  r(4,0,1,3, c.d); r(3,0,2,1, c.d)         // left: stem x=4 + knob (x=3–4, y=0)
+  r(7,0,1,3, c.d); r(7,0,2,1, c.d)         // right: stem x=7 + knob (x=7–8, y=0)
 
-  // SEGMENT 1: HEAD — 4 wide (x=4–7), y=3–5.
-  // Narrowest segment = angular geometry, not organic roundness.
-  r(4,3,4,3, c.l)
-  // Compound eyes BULGE 1px beyond head on each side (x=3 and x=8)
-  r(3,4,2,1, c.d)   // left compound eye  (x=3–4)
-  r(7,4,2,1, c.d)   // right compound eye (x=7–8)
-  r(4,5,2,1, c.d)   // mandibles
+  // ── SEGMENT 1: HEAD — 4-wide fill (x=4–7) inside 6-wide dark shell (x=3–8) ──
+  r(3,3,6,3, c.d)                           // head dark shell (y=3–5; chin at y=5)
+  r(4,3,4,2, c.l)                           // head light fill (y=3–4; y=5 stays dark)
+  // Compound eyes: 1×2 protrusions at x=2 and x=9 — truly OUTSIDE the dark shell
+  r(2,3,1,2, c.d)                           // left compound eye (x=2, y=3–4; outside shell)
+  r(9,3,1,2, c.d)                           // right compound eye (x=9, y=3–4)
 
-  // SEGMENT 2: THORAX — 6 wide (x=3–8), y=6–8. Steps out 1px each side from head.
-  r(3,6,6,3, c.p)
-  // Horizontal legs — 1-px-tall lines pointing SIDEWAYS (vs winged's downward legs)
-  r(1,6,2,1, c.d); r(0,7,3,1, c.d)   // left leg pair
-  r(9,6,2,1, c.d); r(9,7,3,1, c.d)   // right leg pair
+  // ── SEGMENT 2: THORAX — 6-wide fill (x=3–8) inside 8-wide dark shell (x=2–9) ──
+  r(2,6,8,3, c.d)                           // thorax dark shell (steps out 1px each side vs head)
+  r(3,6,6,2, c.p)                           // thorax fill (y=6–7; y=8 stays dark = bottom border)
+  // Horizontal legs (sideways 1-px lines — only from thorax)
+  r(0,6,2,1, c.d); r(0,7,3,1, c.d)         // left pair
+  r(10,6,2,1, c.d); r(9,7,3,1, c.d)        // right pair
 
-  // SEGMENT 3: ABDOMEN — 8 wide (x=2–9), y=9–11. Steps out 1px each side from thorax.
-  // Widths: 4 → 6 → 8 — this stacking is unique to chitin and reads in silhouette alone.
-  r(2,9,8,3, c.d)          // dark outline (1px border shows around interior)
-  r(3,9,6,3, c.p)          // primary fill
-  r(3,10,6,1, c.l, 0.4)   // highlight band
+  // ── SEGMENT 3: ABDOMEN — 8-wide fill (x=2–9) inside 10-wide dark shell (x=1–10) ──
+  // Width progression: 4→6→8 fill, 6→8→10 shell. Reads as inverted-pyramid insect.
+  r(1,9,10,3, c.d)                          // abdomen dark shell (steps out 1px each side vs thorax)
+  r(2,9,8,2, c.p)                           // abdomen fill (y=9–10; y=11 stays dark = bottom border)
+  r(3,10,6,1, c.l, 0.4)                     // highlight band
 }
 
 function drawChitinTeen(r, c) {
@@ -453,7 +459,7 @@ function drawSpots(r, bodyType, stage, c) {
     if (stage === 'teen')  { r(5,6,1,1,c.d,a); r(5,8,1,1,c.d,a); r(6,7,1,1,c.d,a) }
     if (stage === 'final') { r(5,5,1,1,c.d,a); r(5,7,1,1,c.d,a); r(6,6,1,1,c.d,a); r(6,8,1,1,c.d,a) }
   } else if (bodyType === 'scaled') {
-    if (stage === 'baby')  { r(5,7,1,1,c.a,a); r(7,8,1,1,c.a,a) }
+    if (stage === 'baby')  { r(5,6,1,1,c.a,a); r(6,5,1,1,c.a,a) }
     if (stage === 'teen')  { r(5,7,1,1,c.a,a); r(7,7,1,1,c.a,a); r(5,9,1,1,c.a,a) }
     if (stage === 'final') { r(4,6,1,1,c.a,a); r(6,6,1,1,c.a,a); r(5,8,1,1,c.a,a); r(7,8,1,1,c.a,a) }
   } else {
@@ -473,7 +479,7 @@ function drawStripes(r, bodyType, stage, c) {
     if (stage === 'teen')  { r(4,6,4,1,c.d,0.25); r(4,8,4,1,c.d,0.25) }
     if (stage === 'final') { r(4,5,4,1,c.d,0.25); r(4,7,4,1,c.d,0.25); r(4,9,4,1,c.d,0.25) }
   } else if (bodyType === 'scaled') {
-    if (stage === 'baby')  { r(3,7,6,1,c.d,0.22); r(3,9,6,1,c.d,0.22) }
+    if (stage === 'baby')  { r(4,6,4,1,c.d,0.22); r(4,5,4,1,c.d,0.22) }
     if (stage === 'teen')  { r(3,6,6,1,c.d,0.22); r(3,8,6,1,c.d,0.22) }
     if (stage === 'final') { r(2,5,8,1,c.d,0.22); r(2,7,8,1,c.d,0.22); r(2,9,8,1,c.d,0.22) }
   } else {

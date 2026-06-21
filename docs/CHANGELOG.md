@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-21 — fix: add outline, organic curves, diagonal limb pixels, and eye highlights to baby-stage creatures (Pokemon-reference-informed)
+
+### src/lib/creatureAlgorithm.js
+- All 4 baby draw functions redesigned with Pokémon-reference quality techniques
+- **Dark outline**: every shape drawn as dark shell first, then fill on top → 1px dark border all around every body region
+- **Head-to-body flow**: FURRED — 10-wide dark head shell flows into matching-width shoulder bridge row (primary color), then body steps in 1px each side (diagonal shoulder, no hard box seam); WINGED — 8-wide head shell steps to 6-wide body shell at y=6 (1px per side = diagonal shoulder); SCALED — head and body share same x-range (x=3–8) → outline runs continuously from top to bottom, color change (light→primary) marks the transition; CHITIN — segment widths widen via 6→8→10 dark shells so each segment visually widens below the one above
+- **Diagonal pixels**: FURRED tail = 2-row stair-step (x=9 at y=6, x=10 at y=7); WINGED wing nubs = 3×3 dark block + fill tapers from 2-wide (y=6–7) to 1-wide (y=8) left/right edge steps; SCALED tail = straight column (y=5–7) then 1-px right-shift diagonal bend (y=8–10)
+- **Eyes**: all baby eyes are 2×2 dark block with explicit 1×1 white '#ffffff' pixel at upper-left corner (x,y position)
+- **Chitin**: compound eye protrusions moved to x=2 and x=9 (1×2 tall, truly outside the 6-wide head dark shell at x=3–8); segment fill widths 4→6→8; segment shell widths 6→8→10; abdomen fills y=9–10 only (y=11 stays solid dark = bottom border)
+- Scaled baby spot/stripe pattern overlay coordinates updated (old positions landed on solid-dark border row y=8 and leg zone y=9)
+
+### public/creature-baby-test.html
+- Updated to match new baby draw function implementations
+- Updated squint-test description text with all 4 type cues
+
+---
+
 ## 2026-06-20 — fix: redesign creature silhouettes using chibi pixel-art proportion principles (head ratio, color economy, single focal feature)
 
 ### src/lib/creatureAlgorithm.js

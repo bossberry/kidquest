@@ -95,31 +95,32 @@ function makeR(ctx, P, ox, oy) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawFurredBaby(r, c) {
-  // EARS — two bumps above head (the silhouette cue that reads immediately)
-  r(1,0,2,3, c.d)                       // left ear (2 wide × 3 tall)
-  r(2,0,1,2, c.l)                       // inner ear light
-  r(9,0,2,3, c.d)                       // right ear
-  r(9,0,1,2, c.l)                       // inner ear light
+  // TRIANGULAR EARS — pointed single-pixel tip above 2-wide base.
+  // This upward-pointing triangle is the fastest silhouette cue for "mammal".
+  r(3,0,1,1, c.d)                      // left ear tip  (1 px)
+  r(2,1,2,1, c.d)                      // left ear base (2 px)
+  r(3,1,1,1, c.l)                      // inner ear
+  r(8,0,1,1, c.d)                      // right ear tip
+  r(8,1,2,1, c.d)                      // right ear base
+  r(8,1,1,1, c.l)                      // inner ear
 
-  // HEAD — big dome, 8 wide (y=2–5). 4 rows = 33% of canvas,
-  // but ears extend the head region to y=0–5 = 50%.
+  // HEAD — biggest and roundest of all 4 types (8 wide, y=2–5).
+  // Ears extend the visible head region to y=0–5 = 50% of canvas.
   r(2,2,8,4, c.l)
-  r(3,3,2,2, c.d)                       // left eye (2×2)
-  r(3,3,1,1,'#ffffff')                  // eye shine
-  r(7,3,2,2, c.d)                       // right eye
-  r(7,3,1,1,'#ffffff')
-  r(5,5,2,1, c.d)                       // nose
+  r(3,3,2,2, c.d); r(3,3,1,1,'#ffffff')   // left eye (2×2 round + shine)
+  r(7,3,2,2, c.d); r(7,3,1,1,'#ffffff')   // right eye
+  r(5,5,2,1, c.d)                          // nose
 
-  // BODY — 6 wide (narrower than 8-wide head — emphasises dome proportion)
+  // BODY — squat puffball (6 wide, only 3 rows — most compact body of all 4)
   r(3,6,6,3, c.p)
-  r(4,7,4,1, c.l, 0.35)                // belly tint
-  r(9,7,1,2, c.d)                       // stub tail
+  r(4,7,4,1, c.l, 0.3)                // belly
+  r(9,7,2,2, c.d)                     // tail stub (right side)
 
-  // LEGS — 4 thin stubs so quadruped reads at a glance
-  r(2,9,1,3, c.d); r(4,9,1,3, c.d)    // left pair
-  r(7,9,1,3, c.d); r(9,9,1,3, c.d)    // right pair
-  r(2,11,2,1, c.d, 0.55); r(4,11,2,1, c.d, 0.55)   // left paws
-  r(7,11,2,1, c.d, 0.55); r(9,11,2,1, c.d, 0.55)   // right paws
+  // 4 THIN LEGS — quadruped silhouette, contrast vs winged's 2 legs
+  r(3,9,1,3, c.d); r(5,9,1,3, c.d)   // left pair
+  r(6,9,1,3, c.d); r(8,9,1,3, c.d)   // right pair
+  r(2,11,2,1, c.d,0.5); r(4,11,2,1,c.d,0.5)   // front paws
+  r(6,11,2,1, c.d,0.5); r(8,11,2,1,c.d,0.5)   // back paws
 }
 
 function drawFurredTeen(r, c) {
@@ -186,25 +187,31 @@ function drawFurredFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawWingedBaby(r, c) {
-  // HEAD — 6 wide, smooth dome top (NO ear bumps = instant non-furred read)
-  // y=0–5 = 50% of canvas height.
+  // HEAD — 6 wide, smooth DOME TOP (no ear bumps at all = #1 non-furred cue).
+  // Eyes sit HIGH at y=1–2 (avian proportion).
   r(3,0,6,6, c.l)
-  // Eyes HIGH on face (y=1–2): avian proportion
-  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')
-  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')
-  r(5,4,2,1, c.d)                       // small beak/mouth
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')   // left eye (high on face)
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')   // right eye
+  r(5,5,2,1, c.d)                          // beak at base of head
 
-  // BODY — 4 wide: narrow upright silhouette (taper from 6-wide head)
+  // BODY — narrow upright pillar (4 wide, x=4–7)
   r(4,6,4,4, c.p)
-  r(5,7,2,2, c.l, 0.35)
+  r(5,7,2,2, c.l, 0.3)
 
-  // WING NUBS — barely there (hatchling shoulder bumps)
-  r(2,7,2,2, c.d, 0.7)                  // left nub
-  r(8,7,2,2, c.d, 0.7)                  // right nub
+  // WING NUBS — triangular proto-wing buds at shoulder level.
+  // Shape: 2 wide at attachment (top), tapers to 1 pixel at bottom tip.
+  // Dark outer-edge line makes them read as separate features, not body noise.
+  r(2,6,2,2, c.p)   // left nub body (2×2 at shoulder)
+  r(2,8,1,1, c.p)   // left nub tip  (1×1 tapered)
+  r(1,6,1,3, c.d)   // left outer edge (dark = silhouette readable on any bg)
+  r(8,6,2,2, c.p)   // right nub body
+  r(9,8,1,1, c.p)   // right nub tip
+  r(10,6,1,3, c.d)  // right outer edge
 
-  r(8,8,1,3, c.d)                        // thin tail
+  // Small tail stub
+  r(7,9,2,2, c.d)
 
-  // 2 LEGS (bipedal: the leg-count difference from furred's 4 is a silhouette cue)
+  // 2 LEGS ONLY (bipedal — leg-count is its own silhouette cue vs furred's 4)
   r(5,10,1,2, c.d); r(6,10,1,2, c.d)
   r(4,11,1,1, c.d); r(5,11,2,1, c.d); r(6,11,2,1, c.d); r(7,11,1,1, c.d)
 }
@@ -271,24 +278,29 @@ function drawWingedFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawScaledBaby(r, c) {
-  // HEAD — 8 wide, FLAT TOP (no bumps at y=0: completely different from furred)
-  r(2,0,8,6, c.l)
-  // SIDE FRILLS — protrude sideways at mid-head (not upward like ears)
-  r(0,3,2,2, c.d)                        // left frill
-  r(10,3,2,2, c.d)                       // right frill
-  // SLIT EYES — 1 wide × 2 tall (vs furred's 2×2 round square)
-  r(4,2,1,2, c.d)                        // left slit
-  r(7,2,1,2, c.d)                        // right slit
-  r(5,5,2,1, c.d)                        // snout
+  // HEAD — 6 wide, FLAT TOP (zero protrusions above y=0 = instant non-furred read).
+  // Same 6 width as winged but distinguished by: frills SIDEWAYS, SLIT eyes, flat top.
+  r(3,0,6,4, c.l)
+  // SIDE FRILLS — two small stubs protruding LEFT and RIGHT at head mid-height.
+  // Direction (sideways vs upward ears) is the clearest squint-test cue.
+  r(1,1,2,2, c.d)   // left frill  (x=1–2, adjacent to head at x=3)
+  r(9,1,2,2, c.d)   // right frill (x=9–10, adjacent to head at x=8)
+  // SLIT EYES — 1 wide × 2 tall vertical slits (vs 2×2 round square of other types)
+  r(4,1,1,2, c.d)   // left slit
+  r(7,1,1,2, c.d)   // right slit
+  r(5,3,2,1, c.d)   // snout
 
-  // BODY — compact and round (6 wide)
-  r(3,6,6,4, c.p)
-  r(4,7,4,2, c.l, 0.3)
+  // BODY — same width as head, but TALLER (5 rows vs furred's 3 stubby rows).
+  // This taller body gives the elongated-reptile silhouette even at baby size.
+  r(3,4,6,5, c.p)
+  r(4,5,4,3, c.l, 0.25)   // belly
 
-  // TAIL — the focal feature, small at baby (no accent yet)
-  r(9,7,1,4, c.d)                         // tail (1 wide × 4 rows)
+  // TAIL — 1-wide line running down the right side (no accent yet at baby)
+  r(9,5,1,5, c.d)   // tail (1×5, sticks out past body-right at x=9)
 
-  r(3,10,2,2, c.d); r(7,10,2,2, c.d)     // 2 short legs
+  // LEGS — 2 pairs of short stubs
+  r(3,9,2,2, c.d)   // left legs
+  r(7,9,2,2, c.d)   // right legs
 }
 
 function drawScaledTeen(r, c) {
@@ -347,27 +359,30 @@ function drawScaledFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawChitinBaby(r, c) {
-  // ANTENNAE — single-pixel-wide (thin, not ear-like at all)
-  r(4,0,1,2, c.d); r(3,0,2,1, c.d)       // left antenna + knob
-  r(7,0,1,2, c.d); r(7,0,2,1, c.d)       // right antenna + knob
+  // ANTENNAE — single-pixel stems (3 rows tall, thin lines vs furred's 2-wide ear blocks).
+  // Knob bends OUTWARD at the tip — left bends left, right bends right.
+  r(4,0,1,3, c.d); r(3,0,2,1, c.d)   // left: stem (x=4, y=0–2) + knob (x=3–4, y=0)
+  r(7,0,1,3, c.d); r(7,0,2,1, c.d)   // right: stem (x=7, y=0–2) + knob (x=7–8, y=0)
 
-  // SEGMENT 1: HEAD — 4 wide (x=4–7), y=2–4
-  r(4,2,4,3, c.l)
-  // Compound eyes BULGE to x=3 and x=8 (beyond 4-wide head — insect cue)
-  r(3,3,2,1, c.d)                          // left compound eye (x=3–4)
-  r(7,3,2,1, c.d)                          // right compound eye (x=7–8)
-  r(4,4,2,1, c.d)                          // mandibles
+  // SEGMENT 1: HEAD — 4 wide (x=4–7), y=3–5.
+  // Narrowest segment = angular geometry, not organic roundness.
+  r(4,3,4,3, c.l)
+  // Compound eyes BULGE 1px beyond head on each side (x=3 and x=8)
+  r(3,4,2,1, c.d)   // left compound eye  (x=3–4)
+  r(7,4,2,1, c.d)   // right compound eye (x=7–8)
+  r(4,5,2,1, c.d)   // mandibles
 
-  // SEGMENT 2: THORAX — 6 wide (x=3–8), y=5–7
-  r(3,5,6,3, c.p)
-  // 4 legs from thorax sides (2 per side)
-  r(1,5,2,1, c.d); r(0,6,3,1, c.d)        // left pair
-  r(9,5,2,1, c.d); r(9,6,3,1, c.d)        // right pair
+  // SEGMENT 2: THORAX — 6 wide (x=3–8), y=6–8. Steps out 1px each side from head.
+  r(3,6,6,3, c.p)
+  // Horizontal legs — 1-px-tall lines pointing SIDEWAYS (vs winged's downward legs)
+  r(1,6,2,1, c.d); r(0,7,3,1, c.d)   // left leg pair
+  r(9,6,2,1, c.d); r(9,7,3,1, c.d)   // right leg pair
 
-  // SEGMENT 3: ABDOMEN — 8 wide (x=2–9), y=8–11. WIDEST = reads as biggest.
-  r(2,8,8,4, c.d)                           // abdomen outline
-  r(3,8,6,4, c.p)                           // interior fill (1px dark border shows)
-  r(3,10,6,1, c.l, 0.4)                    // highlight band (no accent yet at baby)
+  // SEGMENT 3: ABDOMEN — 8 wide (x=2–9), y=9–11. Steps out 1px each side from thorax.
+  // Widths: 4 → 6 → 8 — this stacking is unique to chitin and reads in silhouette alone.
+  r(2,9,8,3, c.d)          // dark outline (1px border shows around interior)
+  r(3,9,6,3, c.p)          // primary fill
+  r(3,10,6,1, c.l, 0.4)   // highlight band
 }
 
 function drawChitinTeen(r, c) {
@@ -465,6 +480,36 @@ function drawStripes(r, bodyType, stage, c) {
     if (stage === 'baby')  { r(3,9,6,1,c.a,0.35) }
     if (stage === 'teen')  { r(3,9,6,1,c.a,0.35); r(3,11,6,1,c.a,0.28) }
     if (stage === 'final') { r(2,9,8,1,c.a,0.4); r(2,11,8,1,c.a,0.3) }
+  }
+}
+
+// ─── Dev test helper — force a specific bodyType + element combination ────────
+export function drawCreatureDirect(canvas, bodyType, el, stage = 'baby') {
+  const W = canvas.width, H = canvas.height
+  const ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, W, H)
+  const palettes = PALETTES[el] || PALETTES.light
+  const c = palettes[0]
+  const P  = Math.floor(Math.min(W, H) / 12)
+  const ox = Math.floor((W - P * 12) / 2)
+  const oy = Math.floor((H - P * 12) / 2)
+  const r  = makeR(ctx, P, ox, oy)
+  if (bodyType === 'furred') {
+    if (stage === 'final') drawFurredFinal(r, c)
+    else if (stage === 'teen') drawFurredTeen(r, c)
+    else drawFurredBaby(r, c)
+  } else if (bodyType === 'winged') {
+    if (stage === 'final') drawWingedFinal(r, c)
+    else if (stage === 'teen') drawWingedTeen(r, c)
+    else drawWingedBaby(r, c)
+  } else if (bodyType === 'scaled') {
+    if (stage === 'final') drawScaledFinal(r, c)
+    else if (stage === 'teen') drawScaledTeen(r, c)
+    else drawScaledBaby(r, c)
+  } else {
+    if (stage === 'final') drawChitinFinal(r, c)
+    else if (stage === 'teen') drawChitinTeen(r, c)
+    else drawChitinBaby(r, c)
   }
 }
 

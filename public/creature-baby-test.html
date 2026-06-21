@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Creature Baby Silhouette Test — KidQuest</title>
+<style>
+  body { background: #f4f0e8; font-family: monospace; padding: 24px; }
+  h1   { font-size: 14px; margin: 0 0 4px; }
+  p    { font-size: 11px; margin: 0 0 20px; color: #666; }
+  .grid { display: grid; grid-template-columns: 60px repeat(6, 1fr); gap: 6px; max-width: 900px; }
+  .col-label { font-size: 10px; text-align: center; padding: 4px 0; font-weight: bold; color: #555; }
+  .row-label { font-size: 10px; writing-mode: vertical-rl; text-align: center; display: flex;
+               align-items: center; justify-content: center; font-weight: bold; color: #333; }
+  .cell { background: white; border: 1px solid #ccc; display: flex; flex-direction: column;
+          align-items: center; padding: 6px 4px 2px; }
+  canvas { image-rendering: pixelated; display: block; }
+  .cell-label { font-size: 8px; color: #888; margin-top: 2px; }
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 12px; font-weight: bold; margin: 0 0 8px; color: #333; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 24px 0; }
+</style>
+</head>
+<body>
+<h1>Creature Baby Silhouette Test — KidQuest Dev</h1>
+<p>Squint test: cover the colors mentally — can you tell all 4 body types apart from silhouette alone?<br>
+   Furred = round dome + upward triangular ears. &nbsp;Winged = smooth dome + sideways wing nubs + 2 legs.<br>
+   Scaled = flat top + sideways frills + slit eyes + tall body. &nbsp;Chitin = 3 stacked segments (4→6→8 wide) + thin antennae.</p>
+
+<div class="section">
+  <div class="section-title">BABY STAGE — all 4 body types × 6 elements (24 combinations)</div>
+  <div class="grid" id="grid-baby"></div>
+</div>
+
+<hr>
+<div class="section">
+  <div class="section-title">SILHOUETTE CHECK — same shapes, grey fill only</div>
+  <div class="grid" id="grid-silhouette"></div>
+</div>
+
+<script>
+// ─── Palettes (first variant per element) ────────────────────────────────────
+const PALETTES = {
+  fire:    { p:'#E24B4A', l:'#F09977', d:'#C23A30', a:'#EF9F27' },
+  water:   { p:'#378ADD', l:'#85B7EB', d:'#185FA5', a:'#B5D4F4' },
+  thunder: { p:'#EF9F27', l:'#FAC775', d:'#BA7517', a:'#FFFFFF' },
+  nature:  { p:'#639922', l:'#97C459', d:'#3B6D11', a:'#C0DD97' },
+  shadow:  { p:'#534AB7', l:'#7F77DD', d:'#3C3489', a:'#AFA9EC' },
+  light:   { p:'#EF9F27', l:'#FAC775', d:'#BA7517', a:'#FAEEDA' },
+}
+
+// ─── Silhouette palette (everything maps to grey) ────────────────────────────
+const GREY = { p:'#888', l:'#aaa', d:'#555', a:'#bbb' }
+
+// ─── makeR helper ─────────────────────────────────────────────────────────────
+function makeR(ctx, P) {
+  return (x, y, w, h, color, alpha = 1) => {
+    if (alpha < 1) { ctx.save(); ctx.globalAlpha = alpha }
+    ctx.fillStyle = color
+    ctx.fillRect(x * P, y * P, w * P, h * P)
+    if (alpha < 1) ctx.restore()
+  }
+}
+
+// ─── FURRED BABY ─────────────────────────────────────────────────────────────
+function drawFurredBaby(r, c) {
+  // TRIANGULAR EARS — pointed single-pixel tip above 2-wide base
+  r(3,0,1,1, c.d)
+  r(2,1,2,1, c.d)
+  r(3,1,1,1, c.l)
+  r(8,0,1,1, c.d)
+  r(8,1,2,1, c.d)
+  r(8,1,1,1, c.l)
+
+  // HEAD — widest of all 4 types (8 wide, y=2-5)
+  r(2,2,8,4, c.l)
+  r(3,3,2,2, c.d); r(3,3,1,1,'#ffffff')
+  r(7,3,2,2, c.d); r(7,3,1,1,'#ffffff')
+  r(5,5,2,1, c.d)
+
+  // BODY — squat puffball (6 wide, 3 rows — most compact body)
+  r(3,6,6,3, c.p)
+  r(4,7,4,1, c.l, 0.3)
+  r(9,7,2,2, c.d)   // tail stub
+
+  // 4 THIN LEGS (quadruped)
+  r(3,9,1,3, c.d); r(5,9,1,3, c.d)
+  r(6,9,1,3, c.d); r(8,9,1,3, c.d)
+  r(2,11,2,1, c.d,0.5); r(4,11,2,1,c.d,0.5)
+  r(6,11,2,1, c.d,0.5); r(8,11,2,1,c.d,0.5)
+}
+
+// ─── WINGED BABY ─────────────────────────────────────────────────────────────
+function drawWingedBaby(r, c) {
+  // HEAD — 6 wide, smooth dome top (no ear bumps). Eyes HIGH at y=1-2 (avian).
+  r(3,0,6,6, c.l)
+  r(4,1,2,2, c.d); r(4,1,1,1,'#ffffff')
+  r(6,1,2,2, c.d); r(6,1,1,1,'#ffffff')
+  r(5,5,2,1, c.d)   // beak
+
+  // BODY — narrow upright pillar (4 wide, x=4-7)
+  r(4,6,4,4, c.p)
+  r(5,7,2,2, c.l, 0.3)
+
+  // WING NUBS — triangular buds (2×2 at shoulder, 1×1 tapered tip)
+  r(2,6,2,2, c.p)
+  r(2,8,1,1, c.p)
+  r(1,6,1,3, c.d)   // left outer edge
+  r(8,6,2,2, c.p)
+  r(9,8,1,1, c.p)
+  r(10,6,1,3, c.d)  // right outer edge
+
+  // Tail stub
+  r(7,9,2,2, c.d)
+
+  // 2 LEGS ONLY (bipedal)
+  r(5,10,1,2, c.d); r(6,10,1,2, c.d)
+  r(4,11,1,1,c.d); r(5,11,2,1,c.d); r(6,11,2,1,c.d); r(7,11,1,1,c.d)
+}
+
+// ─── SCALED BABY ─────────────────────────────────────────────────────────────
+function drawScaledBaby(r, c) {
+  // HEAD — 6 wide, FLAT TOP (no protrusions above y=0)
+  r(3,0,6,4, c.l)
+  // SIDE FRILLS — sideways at y=1-2 (direction contrast vs ears-pointing-up)
+  r(1,1,2,2, c.d)   // left frill
+  r(9,1,2,2, c.d)   // right frill
+  // SLIT EYES — 1×2 vertical (vs round 2×2 of furred/winged)
+  r(4,1,1,2, c.d)
+  r(7,1,1,2, c.d)
+  r(5,3,2,1, c.d)   // snout
+
+  // BODY — taller than furred's 3 rows (5 rows = elongated reptile feel)
+  r(3,4,6,5, c.p)
+  r(4,5,4,3, c.l, 0.25)
+
+  // TAIL — 1-wide line down the right side
+  r(9,5,1,5, c.d)
+
+  // LEGS — 2 pairs of short stubs
+  r(3,9,2,2, c.d)
+  r(7,9,2,2, c.d)
+}
+
+// ─── CHITIN BABY ─────────────────────────────────────────────────────────────
+function drawChitinBaby(r, c) {
+  // ANTENNAE — 1px stems, 3 rows tall, knob bends outward
+  r(4,0,1,3, c.d); r(3,0,2,1, c.d)   // left
+  r(7,0,1,3, c.d); r(7,0,2,1, c.d)   // right
+
+  // SEGMENT 1: HEAD — 4 wide (x=4-7), y=3-5
+  r(4,3,4,3, c.l)
+  // Compound eyes bulge 1px beyond head on each side
+  r(3,4,2,1, c.d)   // left (x=3-4)
+  r(7,4,2,1, c.d)   // right (x=7-8)
+  r(4,5,2,1, c.d)   // mandibles
+
+  // SEGMENT 2: THORAX — 6 wide (x=3-8), y=6-8
+  r(3,6,6,3, c.p)
+  // Horizontal legs from thorax sides
+  r(1,6,2,1, c.d); r(0,7,3,1, c.d)   // left
+  r(9,6,2,1, c.d); r(9,7,3,1, c.d)   // right
+
+  // SEGMENT 3: ABDOMEN — 8 wide (x=2-9), y=9-11. 4→6→8 widths read as insect.
+  r(2,9,8,3, c.d)
+  r(3,9,6,3, c.p)
+  r(3,10,6,1, c.l, 0.4)
+}
+
+// ─── Render grid ─────────────────────────────────────────────────────────────
+const ELEMENTS   = ['fire','water','thunder','nature','shadow','light']
+const BODY_TYPES = ['furred','winged','scaled','chitin']
+const DRAW_FNS   = { furred: drawFurredBaby, winged: drawWingedBaby, scaled: drawScaledBaby, chitin: drawChitinBaby }
+const SIZE = 96
+const P    = Math.floor(SIZE / 12)  // 8px per cell
+
+function renderGrid(containerId, useSilhouette) {
+  const grid = document.getElementById(containerId)
+
+  // Corner spacer
+  grid.appendChild(Object.assign(document.createElement('div'), {}))
+
+  // Column headers
+  ELEMENTS.forEach(el => {
+    const d = document.createElement('div')
+    d.className = 'col-label'
+    d.textContent = el.toUpperCase()
+    grid.appendChild(d)
+  })
+
+  BODY_TYPES.forEach(bodyType => {
+    // Row label
+    const rl = document.createElement('div')
+    rl.className = 'row-label'
+    rl.textContent = bodyType.toUpperCase()
+    grid.appendChild(rl)
+
+    ELEMENTS.forEach(el => {
+      const cell = document.createElement('div')
+      cell.className = 'cell'
+
+      const canvas = document.createElement('canvas')
+      canvas.width  = SIZE
+      canvas.height = SIZE
+      canvas.style.width  = SIZE + 'px'
+      canvas.style.height = SIZE + 'px'
+
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, SIZE, SIZE)
+
+      const c = useSilhouette ? GREY : PALETTES[el]
+      const r = makeR(ctx, P)
+      DRAW_FNS[bodyType](r, c)
+
+      const label = document.createElement('div')
+      label.className = 'cell-label'
+      label.textContent = bodyType + '/' + el
+
+      cell.appendChild(canvas)
+      cell.appendChild(label)
+      grid.appendChild(cell)
+    })
+  })
+}
+
+renderGrid('grid-baby', false)
+renderGrid('grid-silhouette', true)
+</script>
+</body>
+</html>

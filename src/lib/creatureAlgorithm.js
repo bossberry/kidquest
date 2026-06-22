@@ -95,32 +95,33 @@ function makeR(ctx, P, ox, oy) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawFurredBaby(r, c) {
-  // EARS: 2-wide × 3-tall rectangular blocks straight up — unmistakable furred identifier
-  // (was 3×1 horizontal strip — barely visible; now proper tall blocks like Pikachu ears)
-  r(2, 0, 2, 3, c.d)           // left ear block
-  r(3, 0, 1, 2, c.l)           // left inner strip (lighter)
-  r(8, 0, 2, 3, c.d)           // right ear block
-  r(8, 0, 1, 2, c.l)           // right inner strip
+  // EARS: 2×2 square blocks at head corners (Minecraft pig/sheep ear style)
+  r(2, 0, 2, 2, c.d)
+  r(8, 0, 2, 2, c.d)
 
-  // HEAD: 10-wide × 5-tall dark shell; ears+head = top 58% of sprite height
-  r(1, 2, 10, 5, c.d)          // head dark shell
-  r(2, 3, 8, 3, c.l)           // head light fill
-  r(3, 3, 2, 2, c.d)           // left eye (2×2 block)
-  r(3, 3, 1, 1, '#ffffff')     // left shine
-  r(7, 3, 2, 2, c.d)           // right eye
-  r(7, 3, 1, 1, '#ffffff')     // right shine
-  r(5, 5, 2, 1, c.d)           // nose
+  // HEAD: large 10×5 face block — face dominates sprite (Minecraft mob style)
+  r(1, 2, 10, 5, c.d)
+  r(2, 2, 8, 4, c.l)
 
-  // BODY: 6-wide × 3-tall — clearly narrower than 10-wide head (chibi proportion)
-  r(3, 7, 6, 3, c.d)           // body dark shell
-  r(4, 7, 4, 2, c.p)           // body fill
-  r(5, 8, 2, 1, c.l)           // belly highlight
+  // EYES: 2×2 dark blocks with shine
+  r(3, 3, 2, 2, c.d)
+  r(3, 3, 1, 1, '#ffffff')
+  r(7, 3, 2, 2, c.d)
+  r(7, 3, 1, 1, '#ffffff')
 
-  // TAIL: flat 3×2 rectangle attached at body right — no staircase diagonal
-  r(9, 7, 3, 2, c.d)           // tail block
-  r(10, 7, 1, 1, c.p)          // tail fill pixel
+  // SNOUT: 4×2 rectangular block — furred identifier (Minecraft pig snout)
+  r(4, 5, 4, 2, c.p)
+  r(4, 6, 1, 1, c.d)
+  r(6, 6, 1, 1, c.d)
 
-  // LEGS: 4 stubs (1-wide × 2-tall each), clearly separated — quadruped read
+  // BODY: simple rectangle block
+  r(3, 7, 6, 3, c.d)
+  r(4, 7, 4, 2, c.p)
+
+  // TAIL: small 2×2 block at body right
+  r(9, 7, 2, 2, c.d)
+
+  // LEGS: 4 stubs (quadruped)
   r(3, 10, 1, 2, c.d)
   r(5, 10, 1, 2, c.d)
   r(7, 10, 1, 2, c.d)
@@ -191,33 +192,35 @@ function drawFurredFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawWingedBaby(r, c) {
-  // HEAD: 8-wide × 6-tall smooth dome — NO ear bumps (key silhouette diff from furred)
-  r(2, 0, 8, 6, c.d)           // head dark shell
-  r(3, 1, 6, 4, c.l)           // head light fill
-  r(4, 1, 2, 2, c.d)           // left eye (positioned high, avian)
+  // HEAD: 8×6 block (smooth top — no ear bumps, unlike furred's corner ear blocks)
+  r(2, 0, 8, 6, c.d)
+  r(3, 1, 6, 4, c.l)
+
+  // CREST: accent bar at head top (chicken comb — the winged top-of-head identifier)
+  r(4, 0, 4, 1, c.a)
+
+  // EYES: 2×2 blocks high on face (avian position)
+  r(4, 1, 2, 2, c.d)
   r(4, 1, 1, 1, '#ffffff')
-  r(6, 1, 2, 2, c.d)           // right eye
+  r(6, 1, 2, 2, c.d)
   r(6, 1, 1, 1, '#ffffff')
 
-  // BODY: 6-wide × 4-tall narrow body (wings carry the width)
-  r(3, 6, 6, 4, c.d)           // body dark shell
-  r(4, 6, 4, 3, c.p)           // body fill
-  r(5, 7, 2, 1, c.l)           // belly
+  // BEAK: small accent block at face bottom (Minecraft chicken beak — winged identifier)
+  r(5, 5, 2, 1, c.a)
 
-  // WINGS: 3-wide × 4-tall rectangular blocks — the unmistakable winged identifier
-  // Pure rectangle fills, consistent width throughout — no staircase taper
-  r(0, 6, 3, 4, c.d)           // left wing shell (3×4 block)
-  r(1, 6, 2, 4, c.p)           // left wing fill (2-wide throughout, no taper)
-  r(9, 6, 3, 4, c.d)           // right wing shell (3×4 block)
-  r(9, 6, 2, 4, c.p)           // right wing fill (2-wide throughout, no taper)
+  // BODY: narrow 4×4 block (body secondary — wings carry the width)
+  r(4, 6, 4, 4, c.d)
+  r(5, 6, 2, 3, c.p)
 
-  // LEGS: 2 stubs only (bipedal — another silhouette diff from furred's 4)
+  // WINGS: 4×4 panels spanning to canvas edges (Minecraft bird wing style)
+  r(0, 6, 4, 4, c.d)
+  r(1, 6, 3, 3, c.p)
+  r(8, 6, 4, 4, c.d)
+  r(8, 6, 3, 3, c.p)
+
+  // LEGS: 2 thin stubs (bipedal — vs furred's 4 legs)
   r(5, 10, 1, 2, c.d)
   r(6, 10, 1, 2, c.d)
-  r(4, 11, 1, 1, c.d)
-  r(5, 11, 2, 1, c.d)
-  r(6, 11, 2, 1, c.d)
-  r(7, 11, 1, 1, c.d)
 }
 
 function drawWingedTeen(r, c) {
@@ -282,30 +285,29 @@ function drawWingedFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawScaledBaby(r, c) {
-  // HEAD: 8-wide × 5-tall flat-top shell (bigger than before: 42% height for baby)
-  r(2, 0, 8, 5, c.d)           // head dark shell (x=2-9, flat top — no upward bumps)
-  r(3, 1, 6, 3, c.l)           // head light fill
-  // SIDE FRILLS: 2×3 blocks extending sideways from head — the outward cue vs furred's upward ears
-  r(0, 1, 2, 3, c.d)           // left frill (x=0-1, y=1-3; 2 wide × 3 tall)
-  r(10, 1, 2, 3, c.d)          // right frill (x=10-11, y=1-3)
-  // SLIT EYES: 1-wide × 2-tall — reads reptilian vs furred's round 2×2 blocks
+  // SIDE FRILLS: 2×3 blocks at extreme edges — scaled identifier (protrude outward, vs furred's upward corner ears)
+  r(0, 0, 2, 3, c.d)
+  r(10, 0, 2, 3, c.d)
+
+  // HEAD: 8×4 flat block between frills (flat top = no ear bumps, horizontal proportion = reptilian)
+  r(2, 0, 8, 4, c.d)
+  r(3, 0, 6, 3, c.l)
+
+  // EYES: 1×2 SLIT pupils (thin vertical — reptile vs furred/winged 2×2 round blocks)
   r(4, 1, 1, 2, c.d)
   r(7, 1, 1, 2, c.d)
-  r(5, 3, 2, 1, c.d)           // snout
 
-  // BODY: 6-wide × 4-tall (same x-range as head = elongated reptile read)
-  r(3, 5, 6, 4, c.d)           // body dark shell (x=3-8, y=5-8)
-  r(4, 5, 4, 3, c.p)           // body fill
-  r(5, 6, 2, 1, c.l)           // belly highlight
+  // BODY: 6×5 block
+  r(3, 4, 6, 5, c.d)
+  r(4, 4, 4, 4, c.p)
 
-  // TAIL: 2-wide × 5-tall vertical rectangle — NO diagonal staircase
-  // (was 1-px column that hopped 1px right — replaced with pure straight block)
-  r(9, 5, 2, 5, c.d)           // tail block (x=9-10, y=5-9)
-  r(10, 5, 1, 4, c.p)          // tail fill
+  // TAIL: 3×3 block extending right — THE scaled identifier (thick block vs furred's tiny nub)
+  r(9, 5, 3, 3, c.d)
+  r(10, 5, 1, 2, c.p)
 
-  // LEGS: 2 short stubs (shifted to avoid merging with tail bottom)
-  r(3, 9, 2, 2, c.d)           // left leg
-  r(6, 9, 2, 2, c.d)           // right leg (x=6-7, gap at x=8 separates from tail at x=9)
+  // LEGS: 2 pairs of 2×3 stubs
+  r(3, 9, 2, 3, c.d)
+  r(7, 9, 2, 3, c.d)
 }
 
 function drawScaledTeen(r, c) {
@@ -364,34 +366,34 @@ function drawScaledFinal(r, c) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function drawChitinBaby(r, c) {
-  // ANTENNAE: 1-wide stems (2 rows only — shorter than before so head starts at y=2)
-  // Knobs bend outward at tips for the T-antenna shape
-  r(4, 0, 1, 2, c.d)           // left stem (x=4, y=0-1)
-  r(3, 0, 2, 1, c.d)           // left knob bends left (x=3-4, y=0)
-  r(7, 0, 1, 2, c.d)           // right stem (x=7, y=0-1)
-  r(7, 0, 2, 1, c.d)           // right knob bends right (x=7-8, y=0)
+  // ANTENNAE: 1-wide sticks with T-knobs (thin vs furred's 2-wide ear blocks)
+  r(4, 0, 1, 2, c.d)
+  r(3, 0, 2, 1, c.d)
+  r(7, 0, 1, 2, c.d)
+  r(7, 0, 2, 1, c.d)
 
-  // SEGMENT 1 (HEAD): 6-wide shell starting at y=2 (moved up vs old y=3)
-  r(3, 2, 6, 3, c.d)           // head dark shell (x=3-8, y=2-4)
-  r(4, 2, 4, 2, c.l)           // head fill (y=2-3)
-  // Compound eyes: protrude 1px OUTSIDE the shell — key chitin identifier
-  r(2, 2, 1, 2, c.d)           // left compound eye (x=2 — outside shell x=3)
-  r(9, 2, 1, 2, c.d)           // right compound eye (x=9 — outside shell x=8)
+  // SEGMENT 1 — HEAD: 6×3 block (smallest segment)
+  r(3, 2, 6, 3, c.d)
+  r(4, 2, 4, 2, c.l)
 
-  // SEGMENT 2 (THORAX): 8-wide — 1px wider each side than head (x=3-8 → x=2-9)
-  r(2, 5, 8, 3, c.d)           // thorax dark shell (x=2-9, y=5-7)
-  r(3, 5, 6, 2, c.p)           // thorax fill (y=5-6)
-  // Horizontal legs (sideways from thorax only — not from head or abdomen)
+  // COMPOUND EYES: accent color, protrude outside head (Minecraft spider red-eye style)
+  r(2, 2, 1, 2, c.a)
+  r(9, 2, 1, 2, c.a)
+
+  // SEGMENT 2 — THORAX: 8×3 block (1 wider each side than head)
+  r(2, 5, 8, 3, c.d)
+  r(3, 5, 6, 2, c.p)
+
+  // LEGS: horizontal bars from thorax sides only
   r(0, 5, 2, 1, c.d)
-  r(0, 6, 3, 1, c.d)           // left leg pair
+  r(0, 6, 3, 1, c.d)
   r(10, 5, 2, 1, c.d)
-  r(9, 6, 3, 1, c.d)           // right leg pair
+  r(9, 6, 3, 1, c.d)
 
-  // SEGMENT 3 (ABDOMEN): 10-wide — 1px wider each side than thorax (x=2-9 → x=1-10)
-  // Width progression 6→8→10 shell reads instantly as inverted-pyramid insect silhouette
-  r(1, 8, 10, 4, c.d)          // abdomen dark shell (x=1-10, y=8-11)
-  r(2, 8, 8, 3, c.p)           // abdomen fill (y=8-10)
-  r(3, 9, 6, 1, c.l)           // segment line (1-px color change splitting abdomen)
+  // SEGMENT 3 — ABDOMEN: 10×4 block (widest = inverted-pyramid silhouette)
+  r(1, 8, 10, 4, c.d)
+  r(2, 8, 8, 3, c.p)
+  r(3, 9, 6, 1, c.l)
 }
 
 function drawChitinTeen(r, c) {

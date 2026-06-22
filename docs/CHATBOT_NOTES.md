@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-22 — baby-stage Minecraft voxel/cube aesthetic redesign:**
+- Built: Pivoted all 4 baby draw functions from organic/Pokémon-style curves to Minecraft mob voxel style. Each type now has one unmistakable Minecraft-style face feature: FURRED = large 4×2 pig snout block with 2 nostril dots at face bottom (Minecraft pig); WINGED = 4×1 accent crest bar at face top + 2×1 accent beak at face bottom (Minecraft chicken), wings as 4×4 panels spanning canvas edges; SCALED = 2×3 side frill blocks at extreme head edges (x=0 and x=10) + 1×2 slit pupils + 3×3 tail block (lizard/turtle style); CHITIN = compound eyes in accent color protruding outside head (Minecraft spider red-eye style), three-segment widening body 6→8→10. All shapes are pure flat rectangles, bigger/fewer than before, with face as the dominant feature.
+- Not finished: browser visual test (chrome extension unavailable)
+- Blockers/risks found: none
+- Ready to start next: teen+final stage Minecraft-style pass, or Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-22 — baby-stage silhouette redesign (block-attachment technique, corrected from diagonal-curve approach):**
 - Built: Rewrote all 4 baby-stage draw functions in `creatureAlgorithm.js` using block-attachment silhouette technique derived from Pokémon reference images. Key correction: previous pass wrongly used staircase/diagonal pixels; reference sprites use almost exclusively rectangular blocks with at most 1px step offsets. Per-type changes — FURRED: ears now 2-wide × 3-tall proper ear blocks (was 3×1 thin horizontal bar), head 10-wide with 6-wide body for chibi proportion, tail is flat 3×2 rectangle (was staircase), 4 leg stubs clearly separated. WINGED: wings are pure 3×4 rectangular blocks attached to body sides with consistent 2-wide fill throughout all 4 rows (no taper), 2-stub bipedal legs. SCALED: head enlarged to 8×5 (was 6×4), side frills as 2×3 blocks protruding sideways, tail is straight 2×5 vertical rectangle (no staircase), right leg shifted to x=6 to avoid merging with tail at x=9. CHITIN: antennae shortened to 2 rows (head starts at y=2), compound eyes still protruding 1px outside head shell, 3-segment widening body 6→8→10 intact.
 - Not finished: browser visual test (chrome extension unavailable during session)

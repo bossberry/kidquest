@@ -3072,3 +3072,13 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 - WINGED: wings are pure 3×4 rectangular blocks with consistent 2-wide fill throughout (no taper), 2-stub bipedal legs
 - SCALED: head enlarged to 8×5 (was 6×4), tail is straight 2×5 vertical rectangle (no staircase), right leg shifted to x=6 to avoid merging with tail
 - CHITIN: antennae shortened to 2 rows (head now starts at y=2 instead of y=3), 3-segment widening 6→8→10 intact
+
+## 2026-06-22 — Baby-stage Minecraft voxel/cube aesthetic redesign
+
+### src/lib/creatureAlgorithm.js
+- Pivoted all 4 baby draw functions from organic/Pokémon style to Minecraft mob voxel style
+- All shapes are pure flat rectangles with hard color edges — no curves, no gradients, no diagonals
+- FURRED: 2×2 ear blocks at corners, large 10×5 face, 4×2 pig snout block with nostril dots, 4 stub legs
+- WINGED: 4×1 accent crest at face top, 2×1 accent beak at face bottom, 4×4 wing panels spanning canvas edges, 2 bipedal legs
+- SCALED: 2×3 side frill blocks at extreme head edges (x=0 and x=10), 1×2 slit pupils, 3×3 tail block extending right
+- CHITIN: compound eyes in accent color (Minecraft spider red-eye style), three-segment widening body 6→8→10

@@ -3062,3 +3062,13 @@ evaluates false → PartySelect never renders → player sees nothing after coll
 - New `ResponseSpeed` component: shows avg response time (last 10) and trend vs prior 10 per subject
 - Hidden until ≥5 answers recorded per subject; appears after SubjectReadiness section
 - Supabase persistence is automatic (responseTimeLogs included in state_json)
+
+## 2026-06-22 — Baby-stage silhouette redesign (block-attachment technique)
+
+### src/lib/creatureAlgorithm.js
+- Rewrote all 4 baby-stage draw functions using block-attachment technique derived from Pokémon reference images
+- Correction: prior pass wrongly used staircase/diagonal pixels; reference sprites use rectangular blocks with at most 1px step offsets
+- FURRED: ears now 2×3 tall proper blocks (was 3×1 thin bar), flat 3×2 tail rectangle (no staircase), 4 separated leg stubs
+- WINGED: wings are pure 3×4 rectangular blocks with consistent 2-wide fill throughout (no taper), 2-stub bipedal legs
+- SCALED: head enlarged to 8×5 (was 6×4), tail is straight 2×5 vertical rectangle (no staircase), right leg shifted to x=6 to avoid merging with tail
+- CHITIN: antennae shortened to 2 rows (head now starts at y=2 instead of y=3), 3-segment widening 6→8→10 intact

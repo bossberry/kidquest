@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-22 — baby-stage silhouette redesign (block-attachment technique, corrected from diagonal-curve approach):**
+- Built: Rewrote all 4 baby-stage draw functions in `creatureAlgorithm.js` using block-attachment silhouette technique derived from Pokémon reference images. Key correction: previous pass wrongly used staircase/diagonal pixels; reference sprites use almost exclusively rectangular blocks with at most 1px step offsets. Per-type changes — FURRED: ears now 2-wide × 3-tall proper ear blocks (was 3×1 thin horizontal bar), head 10-wide with 6-wide body for chibi proportion, tail is flat 3×2 rectangle (was staircase), 4 leg stubs clearly separated. WINGED: wings are pure 3×4 rectangular blocks attached to body sides with consistent 2-wide fill throughout all 4 rows (no taper), 2-stub bipedal legs. SCALED: head enlarged to 8×5 (was 6×4), side frills as 2×3 blocks protruding sideways, tail is straight 2×5 vertical rectangle (no staircase), right leg shifted to x=6 to avoid merging with tail at x=9. CHITIN: antennae shortened to 2 rows (head starts at y=2), compound eyes still protruding 1px outside head shell, 3-segment widening body 6→8→10 intact.
+- Not finished: browser visual test (chrome extension unavailable during session)
+- Blockers/risks found: none
+- Ready to start next: teen+final quality pass, or Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-21 — baby-stage quality pass (Pokémon-reference-informed):**
 - Built: All 4 baby draw functions redesigned with reference-quality pixel-art techniques. (1) DARK OUTLINE everywhere — every shape uses "draw dark shell 1px larger, then fill on top" so a 1px dark border appears around every body region. (2) HEAD-TO-BODY FLOW — FURRED: 10-wide head shell → matching-width shoulder bridge row (primary, y=6) → body steps in 1px each side; WINGED: 8-wide head steps to 6-wide body at y=6; SCALED: head and body share same x-range so outline runs continuously; CHITIN: each segment's dark shell is 2px wider than the one above (6→8→10) creating a staircase widening. (3) DIAGONAL PIXELS — FURRED tail = 2-step stair-step arc; WINGED wing nubs = 3×3 dark block with fill tapering from 2-wide to 1-wide (left/right edges step diagonally); SCALED tail = straight column then 1-px rightward bend. (4) EYES — all 4 types now draw 2×2 dark eye block with explicit `r(x,y,1,1,'#ffffff')` white shine at upper-left. Chitin compound eyes moved to x=2/x=9 (1×2 tall, truly outside the head dark shell). Scaled baby spot/stripe overlay coordinates updated (old positions landed on dark-border row y=8 and leg zone y=9).
 - Not finished: teen and final stage quality pass (baby approved first)

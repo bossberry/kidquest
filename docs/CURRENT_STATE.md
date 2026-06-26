@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-20_
+_Last updated: 2026-06-26_
 
 ---
 
@@ -12,15 +12,30 @@ _Last updated: 2026-06-20_
 - BottomNav: 4th tab (green dot, "เพื่อน")
 - Out of scope (Phase 2+): real challenge backend, friend battles, chat, remove-friend, leaderboards
 
-### Egg System
-- Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change)
+### Living Egg System (New renderer — 2026-06-26)
+- `src/egg/` — 8-layer pixel-art egg renderer with full animation support
+  - `eggBaseLayer.js` — round baby sprite (18×18) for ALL stages; `EGG_TINTS` per element; `stageSizeMul` (grows then caps at stage 5); `stageSaturation`
+  - `eggEyeLayer.js` — 4 eye styles (gba/tama/sanrio/summoners); female eyelashes+blush via `gender`; dark-body contrast inversion for shadow
+  - `eggExpressionLayer.js` — 6 moods (normal/happy/sleepy/angry/sad/excited); brows/mouth/cheeks/extras
+  - `eggStageLayer.js` — per-element FX overlay (nature leaf, thunder electric rim, fire particles, water bubbles, light sparkles); mass-body replacements for fire/water/shadow/light (via `drawBodyMass`/`isBodyReplacedBy`)
+  - `eggAuraLayer.js` — 5 rarity aura levels; levels 1-3 element-tinted, level 4 rainbow
+  - `eggRegaliaLayer.js` — element-themed regalia growing with stage: fire/shadow flame horns, light angel halo, thunder Pikachu-tail horns, nature leaf wings; appears at stage 4+ (tier 1)
+  - `eggAnimations.js` — 6 animation states (idle/happy/hurt/attack/sleepy/excited); squash/stretch/rotate pose; ground shadow; red flash overlay
+  - `index.js` — barrel export
+  - `EggCanvas.jsx` — React component, `requestAnimationFrame` loop, DPR-backed canvas, stage 1-9 rendering pipeline
+- `src/components/EggCanvas.jsx` — wrapper reading `eye/gender/element` from `CompanionContext`; accepts legacy `stats={...}` prop (extracts `stats.stage`); all callers unchanged
+- Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change) — still used by minigames (EggRun, EggCatch)
 - 9 display stages (ไข่น้อย → ใกล้ฟักแล้ว!!!), adaptive XP threshold (`120 + n×60`, cap 800)
-- Stage-up celebration: banner overlay + ascending fanfare + confetti burst
-- Per-stage persistent aura via `egg-s0`–`egg-s8` CSS drop-shadow classes
-- `EggCanvas.jsx` wraps `drawEgg` + `pixelateCanvas(canvas, 4)` post-processing
-- Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`: `idle/pet/happy/excited/eating/sleep/relax/reunion`
-- Tap/swipe handlers extracted to `useHomeInteractions.js`: spawnParticles, pet-combo escalation, item effects, creature bond rewards
-- Heartbeat sound on ready-to-hatch; reunion burst on return after >4h
+- Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`
+- Tap/swipe handlers in `useHomeInteractions.js`
+
+### Companion Creation (One-time permanent — 2026-06-26)
+- `companions` Supabase table: `user_id (PK) | eye | gender | element | created_at` — RLS enforced; no UPDATE/DELETE policy = immutable from client
+- `create_companion(p_eye, p_gender, p_element)` RPC — idempotent (ON CONFLICT DO NOTHING); `security definer`
+- `src/context/CompanionContext.jsx` — loads companion on auth; exposes `{ companion, resolved, loading, createCompanion }`
+- `src/components/CompanionCreation.jsx` — blocking overlay (no close, no Esc); live EggCanvas preview + element/eye/gender pickers; Thai UI; confirm dialog "แน่ใจไหม?"
+- App.jsx gate: shown for new players AND existing players with no `companions` row; never shown again after creation
+- Migration SQL: `supabase/migrations/20260626_companions.sql` — **must be run manually in Supabase SQL Editor**
 
 ### Creature System
 - **Pixel art rendering** — `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — **single source of truth for all screens**

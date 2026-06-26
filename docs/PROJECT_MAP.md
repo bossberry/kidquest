@@ -29,13 +29,25 @@ docs/
 ## src/
 ```
 src/
-├── main.jsx           — ReactDOM entry, wraps App in StateProvider
-├── App.jsx            — Screen router (home/game/collection/report) + global overlays
+├── main.jsx           — ReactDOM entry, wraps App in StateProvider + CompanionProvider
+├── App.jsx            — Screen router (home/game/collection/report) + global overlays + companion gate
 ├── styles.css         — All CSS (CSS vars, utility classes, game styles)
 │
 ├── context/
 │   ├── StateContext.jsx    — useReducer + Context, 20+ ACTIONS, Supabase sync (350 lines)
+│   ├── CompanionContext.jsx — companion row (eye/gender/element), loads from Supabase, permanent
 │   └── creatureHelpers.js  — getCreatureForHatch()
+│
+├── egg/                — Living Egg layer system (8 modules)
+│   ├── index.js        — barrel export
+│   ├── EggCanvas.jsx   — Core animated renderer (RAF loop, DPR canvas, 11-step pipeline)
+│   ├── eggBaseLayer.js — EGG_SHAPES.baby sprite, stageSizeMul, stageSaturation, drawEggBody, EGG_TINTS
+│   ├── eggEyeLayer.js  — 4 eye styles (gba/tama/sanrio/summoners), female eyelashes, EYE_STYLE_KEYS
+│   ├── eggExpressionLayer.js — 6 moods, brows/mouth/cheeks
+│   ├── eggStageLayer.js — element FX overlay, drawBodyMass, isBodyReplacedBy, stageToTier, regaliaTier
+│   ├── eggAuraLayer.js — 5 rarity aura levels, element-tinted rings
+│   ├── eggRegaliaLayer.js — per-element regalia growing with stage (tier 1 at stage 4+)
+│   └── eggAnimations.js — 6 anim states, getEggPose, applyEggPose, flashEgg, drawGroundShadow
 │
 ├── config/
 │   ├── gameConfig.js       — barrel re-exporter + remaining content (ITEMS, LEVELS, TEACH_CONTENT, etc.)

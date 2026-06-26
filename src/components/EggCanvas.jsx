@@ -1,35 +1,43 @@
-import React, { useRef, useEffect } from 'react'
-import { drawEgg } from '../lib/eggAlgorithm.js'
+import React from 'react'
+import EggCanvasCore from '../egg/EggCanvas.jsx'
+import { useCompanion } from '../context/CompanionContext.jsx'
 
-function pixelateCanvas(canvas, blockSize) {
-  const ctx = canvas.getContext('2d')
-  const W = canvas.width, H = canvas.height
-  const tmp = document.createElement('canvas')
-  tmp.width  = Math.max(1, Math.ceil(W / blockSize))
-  tmp.height = Math.max(1, Math.ceil(H / blockSize))
-  const tc = tmp.getContext('2d')
-  tc.imageSmoothingEnabled = false
-  tc.drawImage(canvas, 0, 0, tmp.width, tmp.height)
-  ctx.imageSmoothingEnabled = false
-  ctx.clearRect(0, 0, W, H)
-  ctx.drawImage(tmp, 0, 0, W, H)
-}
+/**
+ * App-level EggCanvas wrapper.
+ * Reads eye/gender/element from CompanionContext (permanent companion attributes).
+ * Accepts legacy `stats` prop (extracts stage), or explicit `stage` prop.
+ * All other styling props are passed through to the underlying canvas.
+ */
+export default function EggCanvas({
+  stats,             // legacy { stage, ... }
+  stage,             // explicit override
+  aura = 0,
+  mood = 'normal',
+  anim = 'idle',
+  width = 160,
+  height = 190,
+  className,
+  style,
+  onClick,
+}) {
+  const { resolved } = useCompanion()
 
-export default function EggCanvas({ stats, width = 160, height = 190, className, style, onClick }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    if (ref.current && stats) {
-      drawEgg(ref.current, stats)
-      pixelateCanvas(ref.current, 4)
-    }
-  }, [stats])
+  const resolvedStage = stage ?? stats?.stage ?? 1
+  // Use the smaller dimension to drive basePx; set CSS to the requested width×height
+  const size = Math.min(width, height)
+
   return (
-    <canvas
-      ref={ref}
-      width={width}
-      height={height}
+    <EggCanvasCore
+      element={resolved.element}
+      eye={resolved.eye}
+      gender={resolved.gender}
+      mood={mood}
+      anim={anim}
+      stage={resolvedStage}
+      aura={aura}
+      size={size}
       className={className}
-      style={style}
+      style={{ width, height, ...style }}
       onClick={onClick}
     />
   )

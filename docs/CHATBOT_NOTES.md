@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-26 — Living Egg renderer + one-time Companion Creation:**
+- Built: Full `src/egg/` layer system wired into a new `EggCanvas.jsx` React component (RAF loop, DPR-backed canvas, 11-step compositing pipeline). Created `CompanionContext` (loads `companions` row from Supabase, exposes `resolved`/`loading`/`createCompanion`). Created blocking `CompanionCreation` modal (element × 6, eye × 4 with mini previews, gender × 2; live full preview; confirm dialog; Thai UI). Replaced `src/components/EggCanvas.jsx` with a thin wrapper that reads from CompanionContext and accepts legacy `stats` prop — all existing callers untouched. Added companion gate to `App.jsx` (waits for `companionLoading` before showing loading screen; blocks on `!companion` after onboarding). Wrapped app with `CompanionProvider` in `main.jsx`. Created `supabase/migrations/20260626_companions.sql` with DDL + RLS + `create_companion` RPC.
+- Not finished: Supabase migration NOT yet applied — must be run manually in the Supabase SQL Editor before companion creation works in production.
+- Blockers/risks found: No Supabase CLI available, no service_role key — migration must be pasted and run by hand at https://supabase.com/dashboard/project/dgpsnlkedergkbhqnjpu/sql
+- Ready to start next: Phase 4 NPC System (Prof Owl already wired; add remaining 4 NPCs from SCREEN_NPCS config)
+- Needs Chatbot decision first: none
+
 **2026-06-22 — baby-stage Minecraft voxel/cube aesthetic redesign:**
 - Built: Pivoted all 4 baby draw functions from organic/Pokémon-style curves to Minecraft mob voxel style. Each type now has one unmistakable Minecraft-style face feature: FURRED = large 4×2 pig snout block with 2 nostril dots at face bottom (Minecraft pig); WINGED = 4×1 accent crest bar at face top + 2×1 accent beak at face bottom (Minecraft chicken), wings as 4×4 panels spanning canvas edges; SCALED = 2×3 side frill blocks at extreme head edges (x=0 and x=10) + 1×2 slit pupils + 3×3 tail block (lizard/turtle style); CHITIN = compound eyes in accent color protruding outside head (Minecraft spider red-eye style), three-segment widening body 6→8→10. All shapes are pure flat rectangles, bigger/fewer than before, with face as the dominant feature.
 - Not finished: browser visual test (chrome extension unavailable)

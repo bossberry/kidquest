@@ -1,5 +1,53 @@
 # Changelog — KidQuest
 
+## 2026-06-26 — feat: Living Egg renderer + one-time Companion Creation (eye/gender/element)
+
+### src/egg/EggCanvas.jsx (NEW)
+- Core animated egg renderer using all 8 finalized layer modules
+- `requestAnimationFrame` loop; DPR-backed canvas for crisp gradients (halo/water) + crisp pixel body
+- Compositing order: aura (behind, no pose) → ground shadow → applyEggPose → regalia behind → body → regalia front → eyes → expression → flash → restore
+- Round baby sprite for ALL stages; body grows via `stageSizeMul` (capped at stage 5)
+- Props: `{ element, eye, gender, mood, anim, stage, aura, size }`
+- For replaced bodies (fire/water/shadow/light): `drawBodyMass` instead of solid egg
+- For nature/thunder: `drawEggBody` with `ctx.filter=saturate(X%)` + `drawStageLayer`
+- Female: eyelashes + blush via `gender='female'` passed to `drawEyeLayer`
+- Spinning-water body, Pikachu-tail thunder horns, angel light halo, leaf nature wings all working
+
+### src/components/EggCanvas.jsx (REPLACED)
+- Old: called `drawEgg` from locked `eggAlgorithm.js` with pixelation post-pass
+- New: thin wrapper that reads `eye/gender/element` from `CompanionContext`, accepts legacy `stats={...}` prop (extracts `stats.stage`)
+- All existing callers (BattleMode, DefenseMode, ChaseMode, MoveSelectBattleMode, HatchOverlay, EggPopup, Home, EggRun) work without change
+
+### src/context/CompanionContext.jsx (NEW)
+- Loads `companions` row from Supabase on auth; listens to `onAuthStateChange`
+- Exposes `{ companion, resolved, loading, createCompanion }`
+- `resolved` always has fallback defaults (`fire/gba/male`) so EggCanvas never renders empty
+- `createCompanion` calls `create_companion` RPC; idempotent
+
+### src/components/CompanionCreation.jsx (NEW)
+- Blocking overlay (no close button, no Esc, no backdrop dismiss)
+- Live EggCanvas preview at top (stage 1, idle anim) reflecting current picks in real time
+- Element picker: 6 big buttons (🔥ไฟ/💧น้ำ/⚡สายฟ้า/🌿ไม้/🌑เงา/✨แสง) with element color accents
+- Eye picker: 4 options with mini EggCanvas previews showing the eye style + current element
+- Gender picker: ♂ ชาย / ♀ หญิง (female adds eyelashes in preview)
+- Confirm flow: "ยืนยันคู่หู" → confirm dialog "แน่ใจไหม? เลือกแล้วแก้ไขไม่ได้อีก" → ตกลง / ย้อนกลับ
+- Thai UI: Press Start 2P for headers, Sarabun for Thai text
+
+### src/App.jsx
+- Added `CompanionCreation` to gating flow: shown after onboarding, before main app, if no `companions` row
+- Loading screen waits for BOTH auth AND companion load (prevents flash)
+
+### src/main.jsx
+- Wrapped app with `CompanionProvider` (inside StateProvider)
+
+### supabase/migrations/20260626_companions.sql (NEW)
+- `companions` table: `user_id PK | eye | gender | element | created_at`
+- RLS: select_own + insert_own; NO update/delete = immutable from client
+- `create_companion(p_eye, p_gender, p_element)` RPC: `ON CONFLICT DO NOTHING` + fallback select; `security definer`; revoked from public; granted to authenticated
+- **Must be run manually in Supabase SQL Editor**
+
+---
+
 ## 2026-06-21 — fix: add outline, organic curves, diagonal limb pixels, and eye highlights to baby-stage creatures (Pokemon-reference-informed)
 
 ### src/lib/creatureAlgorithm.js

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppState, ACTIONS } from './context/StateContext.jsx'
+import { useCompanion } from './context/CompanionContext.jsx'
 import { setSoundOn, initVoices, playSFX, playTone } from './lib/audio.js'
 import Home from './components/Home.jsx'
 import Collection from './components/Collection.jsx'
@@ -22,6 +23,7 @@ import SaveStatusIndicator from './components/SaveStatusIndicator.jsx'
 import OnboardingModal from './components/OnboardingModal.jsx'
 import LoginBackdrop from './components/LoginBackdrop.jsx'
 import FriendsScreen from './components/FriendsScreen.jsx'
+import CompanionCreation from './components/CompanionCreation.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -35,6 +37,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const { state, dispatch } = useAppState()
+  const { companion, loading: companionLoading } = useCompanion()
 
   useEffect(() => {
     if (!state.pendingEvoNotice) return
@@ -67,7 +70,7 @@ export default function App() {
     setEggPopupOpen(false)
   }
 
-  if (!authChecked) {
+  if (!authChecked || (isLoggedIn && companionLoading)) {
     return (
       <div style={{
         position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -94,6 +97,12 @@ export default function App() {
   const needsOnboarding = !state.name || state.name.trim() === ''
   if (needsOnboarding) {
     return <OnboardingModal />
+  }
+
+  // Companion creation — shown once for new players or existing players who never chose.
+  // Blocking: cannot be dismissed until completed.
+  if (!companion) {
+    return <CompanionCreation />
   }
 
   return (

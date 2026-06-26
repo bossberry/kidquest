@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-26 (session 2) — Companion egg shown on all screens; name = child's account name:**
+- Built: Replaced `drawCreature` canvas with `EggCanvas` on Home (large display + party bar), Collection (PartyGrid), PartySelect, and Battle (player side). Name `state.name` shown everywhere instead of `creatureName`. Map player sprite: WorldScreen pre-renders companion egg body+eyes to `window.__kq_playerOffscreen` (32×32); `tileEngine.renderPlayer` uses it. Build passes. Deployed to Vercel.
+- Not finished: none — all 5 screens done
+- Blockers/risks found: none
+- Ready to start next: Phase 4 NPC System; or companion aura progression (aura shown based on stage)
+- Needs Chatbot decision first: none
+
 **2026-06-26 — Living Egg renderer + one-time Companion Creation:**
 - Built: Full `src/egg/` layer system wired into a new `EggCanvas.jsx` React component (RAF loop, DPR-backed canvas, 11-step compositing pipeline). Created `CompanionContext` (loads `companions` row from Supabase, exposes `resolved`/`loading`/`createCompanion`). Created blocking `CompanionCreation` modal (element × 6, eye × 4 with mini previews, gender × 2; live full preview; confirm dialog; Thai UI). Replaced `src/components/EggCanvas.jsx` with a thin wrapper that reads from CompanionContext and accepts legacy `stats` prop — all existing callers untouched. Added companion gate to `App.jsx` (waits for `companionLoading` before showing loading screen; blocks on `!companion` after onboarding). Wrapped app with `CompanionProvider` in `main.jsx`. Created `supabase/migrations/20260626_companions.sql` with DDL + RLS + `create_companion` RPC.
 - Not finished: Supabase migration NOT yet applied — must be run manually in the Supabase SQL Editor before companion creation works in production.

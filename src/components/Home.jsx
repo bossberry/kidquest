@@ -8,13 +8,36 @@ import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 import { drawItem } from '../lib/itemArt.js'
-import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { PROGRESSION_MAP } from '../config/gameConfig.js'
 import { supabase } from '../lib/supabase.js'
 import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
 import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
+
+// Map egg XP stage (0–8) to companion aura level (0–4)
+function stageToAura(s) {
+  if (s >= 8) return 4
+  if (s >= 6) return 3
+  if (s >= 4) return 2
+  if (s >= 2) return 1
+  return 0
+}
+// Map CSS-animation state name to EggCanvas anim prop
+function cssAnimToEggAnim(cssAnim) {
+  if (cssAnim === 'sleepy' || cssAnim === 'relax') return 'sleepy'
+  if (cssAnim === 'excited' || cssAnim === 'reunion') return 'excited'
+  if (cssAnim === 'happy-spin' || cssAnim === 'pet') return 'happy'
+  if (cssAnim === 'eat') return 'happy'
+  return 'idle'
+}
+// Map CSS-animation state name to EggCanvas mood prop
+function cssAnimToMood(cssAnim) {
+  if (cssAnim === 'sleepy' || cssAnim === 'relax') return 'sleepy'
+  if (cssAnim === 'excited' || cssAnim === 'reunion') return 'excited'
+  if (cssAnim === 'happy-spin' || cssAnim === 'pet' || cssAnim === 'eat') return 'happy'
+  return 'normal'
+}
 
 const ITEM_DEFS = [
   { key:'food',         label:'น่องไก่',   effect:'HP+100' },
@@ -238,7 +261,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
         }}>
           {eggsHatched === 0
             ? (EGG_STAGE_NAMES[stage] || 'ไข่น้อย')
-            : (activeCreature?.creatureName || activeCreature?.creature?.n || 'เพื่อนของ' + state.name)}
+            : state.name}
         </div>
         {/* Element hint — only when no creature yet */}
         {eggsHatched === 0 && (() => {
@@ -338,12 +361,12 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
         {/* Large creature display — shown when creature exists */}
         {eggsHatched > 0 && activeEgg && (
           <div style={{ textAlign:'center', zIndex:5, display:'flex', flexDirection:'column', alignItems:'center', gap:6, paddingBottom:8 }}>
-            {/* Creature name */}
+            {/* Companion name */}
             <div style={{
               fontFamily:'var(--font-thai)', fontSize:17, fontWeight:700,
               color:'var(--px-yellow)', textShadow:'2px 2px 0 var(--px-darkest)', lineHeight:1.2,
             }}>
-              {activeEgg.creatureName || activeEgg.creature?.n || ('เพื่อนของ' + state.name)}
+              {state.name}
             </div>
             {/* Level badge */}
             <div style={{
@@ -365,28 +388,28 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
                   {bondReaction}
                 </div>
               )}
-              <div style={{
-                filter: saiyanActive
-                  ? undefined
-                  : undefined,
-                animation: saiyanActive ? 'saiyan-pulse 0.5s ease-in-out infinite alternate' : 'none',
-              }}>
-                <canvas
-                  key={activeEgg.id}
-                  ref={r => r && drawCreature(r, getCreatureSeed(activeEgg), { ...(activeEgg?.eggStats ?? {}), evoStage: activeEgg?.evoStage })}
-                  width={160} height={160}
-                  onClick={handleCreatureTap}
-                  onTouchStart={handleCreatureTap}
-                  onTouchMove={handleCreatureSwipe}
-                  style={{
-                    imageRendering:'pixelated', display:'block', margin:'0 auto',
-                    cursor:'pointer',
-                    transform: creatureBounce ? 'scale(1.15)' : 'scale(1)',
-                    transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
-                    filter: saiyanActive
-                      ? 'drop-shadow(0 0 12px #FFD700) drop-shadow(0 0 24px #FF8800) drop-shadow(0 0 36px #FFFF00)'
-                      : 'none',
-                  }}
+              <div
+                onClick={handleCreatureTap}
+                onTouchStart={handleCreatureTap}
+                onTouchMove={handleCreatureSwipe}
+                style={{
+                  cursor:'pointer', display:'inline-block',
+                  transform: creatureBounce ? 'scale(1.15)' : 'scale(1)',
+                  transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
+                  animation: saiyanActive ? 'saiyan-pulse 0.5s ease-in-out infinite alternate' : 'none',
+                  filter: saiyanActive
+                    ? 'drop-shadow(0 0 12px #FFD700) drop-shadow(0 0 24px #FF8800) drop-shadow(0 0 36px #FFFF00)'
+                    : 'none',
+                }}
+              >
+                <EggCanvas
+                  stage={stage}
+                  aura={stageToAura(stage)}
+                  anim={cssAnimToEggAnim(eggAnim)}
+                  mood={cssAnimToMood(eggAnim)}
+                  width={190} height={225}
+                  className={eggGlow ? `egg-glow-${eggGlow}` : undefined}
+                  style={{ display:'block' }}
                 />
               </div>
             </div>
@@ -565,18 +588,18 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
                     transition:'border-color 150ms, box-shadow 150ms',
                   }}
                 >
-                  <canvas
-                    key={`party-${egg.id}`}
-                    ref={r => r && drawCreature(r, getCreatureSeed(egg), { ...(egg?.eggStats ?? {}), evoStage: egg?.evoStage })}
-                    width={56} height={56}
-                    style={{ imageRendering:'pixelated', display:'block' }}
+                  <EggCanvas
+                    stage={stage}
+                    aura={0}
+                    width={56} height={66}
+                    style={{ display:'block' }}
                   />
                   <div style={{
                     fontFamily:'var(--font-thai)', fontSize:7,
                     color: isActive ? '#EF9F27' : 'rgba(255,255,255,0.55)',
                     maxWidth:60, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                   }}>
-                    {egg.creatureName || egg.creature?.n || '?'}
+                    {state.name}
                   </div>
                   <div style={{ fontFamily:'var(--font-pixel)', fontSize:6, color:'rgba(255,255,255,0.35)' }}>
                     Lv.{egg.battleLevel ?? 1}

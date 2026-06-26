@@ -21,6 +21,9 @@ import {
   drawChest, drawPlayerGlow, spawnChests, findSpecials,
   getOwlLines, SIGN_LINES, STAGE_COLORS,
 } from '../lib/worldDrawHelpers.js'
+import { useCompanion } from '../context/CompanionContext.jsx'
+import { EGG_SHAPES, drawEggBody, stageSizeMul } from '../egg/eggBaseLayer.js'
+import { drawEyeLayer } from '../egg/eggEyeLayer.js'
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
@@ -104,6 +107,30 @@ export default function WorldScreen({ navigate }) {
   const eggColor = STAGE_COLORS[eggStatsData?.stage ?? 0] || STAGE_COLORS[0]
   const eggColorRef = useRef(eggColor)
   eggColorRef.current = eggColor
+
+  // Pre-render companion egg to a 32×32 offscreen canvas for the map player sprite.
+  const { resolved: companionResolved } = useCompanion()
+  useEffect(() => {
+    const { element, eye, gender } = companionResolved
+    const SIZE = 32
+    const off = document.createElement('canvas')
+    off.width = SIZE; off.height = SIZE
+    const ctx = off.getContext('2d')
+    const shape = EGG_SHAPES.baby
+    const stage = eggStatsData?.stage ?? 1
+    const basePx = Math.max(1, Math.floor(SIZE / 32))
+    const px = basePx * stageSizeMul(stage)
+    const eggW = shape.w * px
+    const eggH = shape.h * px
+    const cx = SIZE / 2
+    const groundY = SIZE * 0.9
+    const ox = cx - eggW / 2
+    const oy = groundY - eggH
+    drawEggBody(ctx, { element, shape: 'baby', px, ox, oy, gender })
+    drawEyeLayer(ctx, { style: eye, element, px, ox, oy, faceX: shape.crownX, eyeY: shape.eyeY, blink: false, gender })
+    window.__kq_playerOffscreen = off
+    return () => { window.__kq_playerOffscreen = null }
+  }, [companionResolved.element, companionResolved.eye, companionResolved.gender, eggStatsData?.stage]) // eslint-disable-line
 
   const clearedMaps = state.clearedMaps ?? []
   const allMapsCleared = ['NW', 'NE', 'SW', 'SE'].every(s => clearedMaps.includes(s))

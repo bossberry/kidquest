@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { buildLegacyPreviewDNA } from '../lib/creatureGenerator.js'
+import EggCanvas from './EggCanvas.jsx'
 import { drawItem } from '../lib/itemArt.js'
 import CreatureDetailPopup from './CreatureDetailPopup.jsx'
 import { playTone } from '../lib/audio.js'
@@ -11,7 +12,7 @@ import { PROGRESSION_MAP } from '../config/gameConfig.js'
 const creatureName = (egg) => egg.creatureName || egg.creature?.n || 'สัตว์ลึกลับ'
 
 export default function Collection() {
-  const { state, dispatch } = useAppState()
+  const { state, dispatch, eggStatsData } = useAppState()
   const [tab, setTab]         = useState('team')
   const [selectedEgg, setSelectedEgg] = useState(null)
   const handleSelect = (egg, dna) => setSelectedEgg({ egg, dna })
@@ -60,6 +61,8 @@ export default function Collection() {
             subjectLevels={state.subjectLevels}
             subjectSessionStreak={state.subjectSessionStreak}
             levelMastery={state.levelMastery}
+            playerName={state.name}
+            eggStage={eggStatsData?.stage ?? 1}
             onSelect={handleSelect}
             onSetActive={(id) => { playTone('tap'); dispatch({ type: ACTIONS.SET_ACTIVE_CREATURE, payload: { creatureId: id } }) }}
           />
@@ -77,7 +80,7 @@ export default function Collection() {
   )
 }
 
-function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, subjectSessionStreak, levelMastery, onSelect, onSetActive }) {
+function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, subjectSessionStreak, levelMastery, playerName, eggStage, onSelect, onSetActive }) {
   const [activeIdx, setActiveIdx] = useState(0)
   const scrollRef = useRef(null)
 
@@ -172,11 +175,11 @@ function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, sub
                     color:'#EF9F27', marginBottom:6, letterSpacing:1,
                   }}>★ ตัวหลัก</div>
                 )}
-                <canvas
-                  key={egg.id}
-                  ref={r => { if (r) drawCreature(r, getCreatureSeed(egg), egg.eggStats ?? {}) }}
-                  width={140} height={140}
-                  style={{ imageRendering:'pixelated', display:'block', margin:'0 auto 8px' }}
+                <EggCanvas
+                  stage={eggStage ?? 1}
+                  aura={0}
+                  width={140} height={165}
+                  style={{ display:'block', margin:'0 auto 8px' }}
                 />
                 <div style={{
                   fontFamily:'var(--font-thai)', fontSize:16,
@@ -184,8 +187,7 @@ function PartyGrid({ partyCreatures, partySlots, currentTier, subjectLevels, sub
                   display:'flex', alignItems:'center', gap:6, justifyContent:'center',
                   marginBottom:4,
                 }}>
-                  {elColor && <span style={{ display:'inline-block', width:9, height:9, borderRadius:'50%', background:elColor, flexShrink:0 }} />}
-                  {creatureName(egg)}
+                  {playerName}
                 </div>
                 <div style={{ fontFamily:'var(--font-pixel)', fontSize:9, color:'rgba(255,255,255,0.35)', marginBottom:8 }}>
                   Lv.{egg.battleLevel ?? 1}

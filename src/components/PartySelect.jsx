@@ -1,9 +1,9 @@
 import React, { useRef } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
-import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import EggCanvas from './EggCanvas.jsx'
 
 export default function PartySelect({ onSelect, onFlee }) {
-  const { state } = useAppState()
+  const { state, eggStatsData } = useAppState()
 
   // Render-loop safety net: bail out visibly instead of freezing the app.
   const renderCount = useRef(0)
@@ -96,10 +96,11 @@ export default function PartySelect({ onSelect, onFlee }) {
                 boxShadow: fainted ? 'none' : '3px 3px 0 #000',
               }}
             >
-              <canvas
-                ref={r => { if (r) drawCreature(r, getCreatureSeed(c), c.eggStats ?? {}) }}
-                width={56} height={56}
-                style={{ imageRendering:'pixelated', borderRadius:8, display:'block' }}
+              <EggCanvas
+                stage={eggStatsData?.stage ?? 1}
+                aura={0}
+                width={56} height={66}
+                style={{ display:'block' }}
               />
 
               <div style={{
@@ -107,7 +108,7 @@ export default function PartySelect({ onSelect, onFlee }) {
                 color: fainted ? '#555' : 'var(--px-white, #f0f0f0)',
                 textAlign: 'center',
               }}>
-                {c.creature?.n ?? 'สัตว์ลึกลับ'}
+                {state.name}
               </div>
 
               <div style={{

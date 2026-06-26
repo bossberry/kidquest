@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-26_
+_Last updated: 2026-06-26 (session 2)_
 
 ---
 
@@ -23,7 +23,10 @@ _Last updated: 2026-06-26_
   - `eggAnimations.js` — 6 animation states (idle/happy/hurt/attack/sleepy/excited); squash/stretch/rotate pose; ground shadow; red flash overlay
   - `index.js` — barrel export
   - `EggCanvas.jsx` — React component, `requestAnimationFrame` loop, DPR-backed canvas, stage 1-9 rendering pipeline
-- `src/components/EggCanvas.jsx` — wrapper reading `eye/gender/element` from `CompanionContext`; accepts legacy `stats={...}` prop (extracts `stats.stage`); all callers unchanged
+- `src/components/EggCanvas.jsx` — wrapper reading `eye/gender/element` from `CompanionContext`; accepts legacy `stats={...}` prop (extracts `stats.stage`)
+- **All screens now render the companion egg** (not the legacy creature): Home (large display + party bar), Collection (PartyGrid), PartySelect, Battle player side, Map player sprite — all show companion `element/eye/gender` with stage/aura from XP progress
+- **Companion name everywhere** = `state.name` (the child's account name, e.g. โชแปง); no more `creatureName`/`creature.n` shown
+- Map player sprite: WorldScreen pre-renders a 32×32 egg (body + eyes) to `window.__kq_playerOffscreen` on mount; `tileEngine.renderPlayer` uses it first, falls back to `drawCreature` if absent
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change) — still used by minigames (EggRun, EggCatch)
 - 9 display stages (ไข่น้อย → ใกล้ฟักแล้ว!!!), adaptive XP threshold (`120 + n×60`, cap 800)
 - Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`

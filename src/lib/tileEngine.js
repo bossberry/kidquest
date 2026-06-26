@@ -233,6 +233,12 @@ export function renderPlayer(ctx, playerX, playerY, direction, walkFrame, eggCol
   const px = Math.round(playerX * TILE - camX)
   const py = Math.round(playerY * TILE - camY)
 
+  // Prefer a pre-rendered companion egg offscreen canvas set by WorldScreen
+  if (window.__kq_playerOffscreen) {
+    ctx.drawImage(window.__kq_playerOffscreen, px, py, TILE, TILE)
+    return
+  }
+
   const off = getPlayerOff()
   if (off) {
     drawCreature(off, window.__kq_activeCreatureSeed ?? 0, window.__kq_activeCreatureStats ?? {})

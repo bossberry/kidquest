@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { playTone, speakTh, speakEn, playSFX } from '../lib/audio.js'
 import EggCanvas from '../components/EggCanvas.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
 import { useBattleEffects } from '../hooks/useBattleEffects.js'
 import { useBattleCombat } from '../hooks/useBattleCombat.js'
 import { ELEMENTS } from '../config/elementConfig.js'
@@ -348,6 +347,14 @@ export default function MoveSelectBattleMode({
     : victoryMode               ? 'eggBounce .6s ease infinite'
     : nearHatch                 ? 'egg-near-hatch 2s ease-in-out infinite'
     : 'egg-idle 3s ease-in-out infinite'
+  // Map battle state to EggCanvas anim/mood props
+  const companionAnim = eggAnimClass === 'shake' ? 'hurt'
+    : (eggAnimClass === 'lunge' || eggAnimClass === 'charge') ? 'attack'
+    : victoryMode ? 'excited'
+    : 'idle'
+  const companionMood = eggAnimClass === 'shake' ? 'angry'
+    : victoryMode ? 'excited'
+    : 'normal'
   const saiyanActive = (state.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
   useEffect(() => { if (saiyanActive) playTone('ultimate') }, [saiyanActive]) // eslint-disable-line
   const eggFilter = victoryMode         ? 'drop-shadow(0 0 18px gold) brightness(1.25)'
@@ -469,7 +476,7 @@ export default function MoveSelectBattleMode({
           minWidth:140, maxWidth:172, padding:'5px 10px',
         }}>
           <div className="px-name-badge" style={{ marginBottom:5, fontFamily:'var(--font-thai)', fontSize:11, color:'#ffffff', background:'rgba(0,0,0,0.6)' }}>
-            {isWorldBattle ? (creatureName || 'ตัวเอก') : (EGG_STAGE_NAMES?.[eggProgress?.stage ?? 0] || 'ไข่ลึกลับ')}
+            {state.name || 'ตัวเอก'}
           </div>
           <GBHPBar pct={playerHpPct} isPlayer current={_displayPlayerHP} max={_displayMaxPlayerHP} />
         </div>
@@ -483,27 +490,18 @@ export default function MoveSelectBattleMode({
           <div style={{ animation: eggAnim, position:'relative' }}>
             <div style={{ transform: `translateX(${eggAnimClass === 'lunge' ? 22 : 0}px)`, transition:'transform 150ms ease' }}>
               <div ref={eggDivRef}>
-                {isWorldBattle && creature ? (
-                  <canvas
-                    key={creature.id}
-                    ref={r => { if (r) drawCreature(r, getCreatureSeed(creature), creature.eggStats ?? {}) }}
-                    width={96} height={96}
-                    style={{
-                      imageRendering:'pixelated', display:'block',
-                      filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
-                      transform: eggAnimClass === 'shake' ? 'translateX(-8px)' : 'none',
-                      transition:'filter .2s, transform .1s',
-                    }}
-                  />
-                ) : eggStats ? (
-                  <EggCanvas stats={eggStats} width={96} height={112} style={{
+                <EggCanvas
+                  stats={eggStats}
+                  anim={companionAnim}
+                  mood={companionMood}
+                  width={96} height={112}
+                  style={{
                     display:'block',
                     filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
-                    transition:'filter .2s',
-                  }} />
-                ) : (
-                  <div style={{ fontSize:52, lineHeight:1, filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter }}>🥚</div>
-                )}
+                    transform: eggAnimClass === 'shake' ? 'translateX(-8px)' : 'none',
+                    transition:'filter .2s, transform .1s',
+                  }}
+                />
               </div>
             </div>
             {comboDisplay >= 1 && (

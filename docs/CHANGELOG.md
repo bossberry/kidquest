@@ -1,5 +1,28 @@
 # Changelog — KidQuest
 
+## 2026-06-26 (session 2) — feat: companion egg shown on all screens; name shows child's name everywhere
+
+### src/components/Home.jsx
+- Removed `drawCreature`/`getCreatureSeed` imports
+- Added `stageToAura`, `cssAnimToEggAnim`, `cssAnimToMood` helpers
+- Large creature display: `<canvas drawCreature>` → `<EggCanvas stage aura anim mood>`; creature name → `state.name`
+- Header name, party bar name: all → `state.name`; party bar portrait canvas → `<EggCanvas>`
+
+### src/components/Collection.jsx + PartySelect.jsx
+- Companion egg (`<EggCanvas>`) replaces creature canvas in team/party displays
+- Name everywhere → `state.name`
+
+### src/games/MoveSelectBattleMode.jsx
+- Player side: single `<EggCanvas stats anim mood>` always (removed `drawCreature` branch)
+- `companionAnim`/`companionMood` derived from `eggAnimClass` (charge/lunge→attack, shake→hurt, victory→excited)
+- Player name → `state.name`
+
+### src/components/WorldScreen.jsx + src/lib/tileEngine.js
+- WorldScreen pre-renders companion egg to `window.__kq_playerOffscreen` (32×32) using `drawEggBody` + `drawEyeLayer`
+- `tileEngine.renderPlayer` checks `__kq_playerOffscreen` first, falls back to `drawCreature`
+
+---
+
 ## 2026-06-26 — feat: Living Egg renderer + one-time Companion Creation (eye/gender/element)
 
 ### src/egg/EggCanvas.jsx (NEW)

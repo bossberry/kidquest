@@ -72,7 +72,8 @@ _Last updated: 2026-06-22_
 
 ## Done (major systems)
 
-- [x] **Living Egg renderer + Companion Creation** — `src/egg/` 8-layer system (regalia/body-mass/aura/eyes/expression/animations); `EggCanvas.jsx` core + wrapper; `CompanionContext`; one-time blocking `CompanionCreation` modal; `companions` Supabase table + RPC (2026-06-26)
+- [x] **Living Egg renderer + Companion Creation** — `src/egg/` 8-layer system; `CompanionContext`; blocking `CompanionCreation` modal; `companions` Supabase table + RPC (2026-06-26)
+- [x] **Companion egg on all screens** — Home/Collection/PartySelect/Battle/Map all show companion egg; name = `state.name`; `drawCreature` retired from player-side rendering (2026-06-26)
 
 - [x] **Phase 1.1 Friend Code System** — FriendsScreen.jsx: 2-tab layout (เพื่อน unified scroll + ผู้คนอื่นๆ mystery tab); get_mystery_adventurers RPC; mock challenge toast (2026-06-20)
 - [x] **Phase 1 Friend Code System** — FriendsScreen.jsx (4 tabs: My Code / Add / Requests / List); BottomNav 4th tab; Supabase RPCs wired (ensure_friend_code, send_friend_request, respond_friend_request, my_friends view) (2026-06-20)

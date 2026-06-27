@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-26 (session 2)_
+_Last updated: 2026-06-27 (session 3)_
 
 ---
 
@@ -24,9 +24,10 @@ _Last updated: 2026-06-26 (session 2)_
   - `index.js` — barrel export
   - `EggCanvas.jsx` — React component, `requestAnimationFrame` loop, DPR-backed canvas, stage 1-9 rendering pipeline
 - `src/components/EggCanvas.jsx` — wrapper reading `eye/gender/element` from `CompanionContext`; accepts legacy `stats={...}` prop (extracts `stats.stage`)
-- **All screens now render the companion egg** (not the legacy creature): Home (large display + party bar), Collection (PartyGrid), PartySelect, Battle player side, Map player sprite — all show companion `element/eye/gender` with stage/aura from XP progress
+- **All screens now render the companion egg** (not the legacy creature): Home (large display + party bar + background walker), Collection (placeholder), PartySelect, Battle player side, Map player sprite — all show companion `element/eye/gender` with stage/aura from XP progress
 - **Companion name everywhere** = `state.name` (the child's account name, e.g. โชแปง); no more `creatureName`/`creature.n` shown
 - Map player sprite: WorldScreen pre-renders a 32×32 egg (body + eyes) to `window.__kq_playerOffscreen` on mount; `tileEngine.renderPlayer` uses it first, falls back to `drawCreature` if absent
+- Home walker (HomeBackground.jsx): single animated companion egg walks/hops/spins in the background landscape; uses `drawEggBody` + `drawEyeLayer` to 48×48 offscreen canvas; creature system removed from this component
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change) — still used by minigames (EggRun, EggCatch)
 - 9 display stages (ไข่น้อย → ใกล้ฟักแล้ว!!!), adaptive XP threshold (`120 + n×60`, cap 800)
 - Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`
@@ -40,20 +41,15 @@ _Last updated: 2026-06-26 (session 2)_
 - App.jsx gate: shown for new players AND existing players with no `companions` row; never shown again after creation
 - Migration SQL: `supabase/migrations/20260626_companions.sql` — **must be run manually in Supabase SQL Editor**
 
-### Creature System
-- **Pixel art rendering** — `drawCreature(canvas, seed, stats)` + `getCreatureSeed(egg)` from `creatureAlgorithm.js` — **single source of truth for all screens**
-  - Used by: Home.jsx (large 160px + party bar), HomeBackground.jsx (walking sprites), Collection.jsx (90px cards), PartySelect.jsx (56px), MoveSelectBattleMode.jsx (world battles), BattleScreen.jsx, EggMemory.jsx, WorldScreen.jsx (player sprite via `window.__kq_activeCreatureSeed/Stats` globals)
-  - 12×12 pixel grid for ALL stages (baby/teen/final). Chibi pixel-art principles: furred=big 8-wide head (body narrower at 6-wide), no-ear dome winged head (6-wide) with high eyes and growing accent wings, scaled=flat-top head+slit eyes+side frills+accent tail-tip focal feature, chitin=3-band 4→6→8 wide stacked segments+thin antennae+compound eye bulge+accent wings only
-  - **Baby-stage Minecraft voxel redesign**: all 4 baby types use flat-color rectangular blocks only, no curves. Each type has one unmistakable Minecraft-style face feature — FURRED: 4×2 pig snout block + 2 nostril dots; WINGED: accent crest bar at head top + accent beak at face bottom, 4×4 wing panels to canvas edges; SCALED: 2×3 side frill blocks at extreme head edges + 1×2 slit pupils + 3×3 tail block; CHITIN: compound eyes in accent color (spider red-eye style) + 3-segment widening 6→8→10 body.
-  - 6 elements × 3 evo stages (baby/teen/final)
-- **DNA beauty layer** — `drawCreature.js` + `CreatureCanvas.jsx` — used by HatchOverlay only
-- `src/lib/creatureSystem.js`: `determineElement()`, `calcEvoStage()`, `CREATURE_ELEMENT_COLORS`, `CREATURE_ELEMENT_NAMES_TH`, `EVO_STAGE_LABELS_TH`
-- `src/lib/creatureGenerator.js`: `buildCreatureDNA()`, `buildVoiceProfile()`, `generateCreatureName()`
+### Legacy Creature System (partially retired)
+- `drawCreature` / `getCreatureSeed` from `creatureAlgorithm.js` — **no longer used by Home, HomeBackground, Collection, PartySelect, or Battle player side**
+  - Still used by: LoginBackdrop.jsx, BattleScreen.jsx (orphaned), EggMemory.jsx, FriendsScreen.jsx (MysteryTab), HatchOverlay.jsx (via CreatureCanvas.jsx + drawCreature.js). Full retirement is a separate planned pass.
+- `src/lib/creatureSystem.js`: still used by StateContext, HatchOverlay, state.js (progress migration)
+- `src/lib/creatureGenerator.js`: still used by StateContext (HATCH_EGG), HatchOverlay
 - Bond meter (0–100): `ADD_CREATURE_BOND` action; bond≥25 ATK×1.05, bond≥50 SPD+30, bond≥100 ATK×1.5, bond≥75 passive heal per correct answer
-- Evolution: baby→teen (battleLevel≥11, tier≥2); teen→final (battleLevel≥26, tier≥5, bond≥60)
-- Auto-generated Thai names via `generateCreatureName(dna)` — set at hatch, backfilled for legacy eggs
-- 6-creature hard limit; single active creature shown large on Home
-- `HomeBackground.jsx` canvas: `creatures` prop (array of hatchedEggs) → one animated entity per creature, walk/idle/jump/spin state machine, meeting gimmick, golden glow on center creature
+- Evolution: baby→teen (battleLevel≥11, tier≥2); teen→final (battleLevel≥26, tier≥5, bond≥60) — stored in `hatchedEggs` AMBIGUOUS blob (progress + creature identity)
+- `hatchedEggs` array in localStorage/`eggs.state_json`: AMBIGUOUS — stores both creature identity (dna, evoStage, creature.rarity) AND live progress (battleLevel, battleXP, bondMeter, stats HP/ATK/DEF/SPD). Container kept; creature-identity fields are orphaned but harmless.
+- `CreatureDetailPopup.jsx` — **deleted** (was only used by Collection.jsx which is now a placeholder)
 
 ### Treasure Chest (Map Chests)
 - `TreasureSlot.jsx`: question gate → correct → chest shakes (tap to open) → chest opens → items float up → collect

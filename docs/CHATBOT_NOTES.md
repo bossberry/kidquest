@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-27 — Companion egg walker on Home; Collection placeholder:**
+- Built: `HomeBackground.jsx` rewritten — single companion egg entity (walk/jump/spin) using `drawEggBody`+`drawEyeLayer` to 48×48 offscreen canvas; `Home.jsx` passes `companion={resolved}` + `stage` from `useCompanion()`; voice profile now derived from companion element/gender (no DNA). `Collection.jsx` replaced with "เร็วๆ นี้!" placeholder (companion EggCanvas + coming-soon copy). `CreatureDetailPopup.jsx` deleted (orphaned). Build clean at 169 modules.
+- Not finished: none
+- Blockers/risks found: `HomeBackground` now shows only 1 entity (the companion); the old "meeting gimmick" between multiple walkers is gone — intentional
+- Ready to start next: FriendsScreen MysteryTab rework (replace `drawCreature` + `get_mystery_adventurers` with companion EggCanvas); or BattleScreen.jsx deletion (orphaned); or WorldHUD `getCreatureSeed` dead-code removal
+- Needs Chatbot decision first: Full Collection redesign (shop/cosmetics/room) — placeholder only for now
+
 **2026-06-26 (session 2) — Companion egg shown on all screens; name = child's account name:**
 - Built: Replaced `drawCreature` canvas with `EggCanvas` on Home (large display + party bar), Collection (PartyGrid), PartySelect, and Battle (player side). Name `state.name` shown everywhere instead of `creatureName`. Map player sprite: WorldScreen pre-renders companion egg body+eyes to `window.__kq_playerOffscreen` (32×32); `tileEngine.renderPlayer` uses it. Build passes. Deployed to Vercel.
 - Not finished: none — all 5 screens done

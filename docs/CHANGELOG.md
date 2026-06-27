@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-06-27 — feat: companion egg walker on Home; Collection replaced with coming-soon placeholder
+
+### src/components/HomeBackground.jsx
+- Rewrote walker to use companion egg: props changed from `creatures[]` to `companion + stage`
+- Pre-renders companion egg to 48×48 offscreen canvas via `drawEggBody` + `drawEyeLayer`
+- Single entity (one companion) walks/hops/spins in the background landscape
+- Removed `drawCreature`, `getCreatureSeed`, creature-array animation logic
+
+### src/components/Home.jsx
+- Added `useCompanion()` — passes `resolved` + `stage` to HomeBackground
+- Removed `buildLegacyPreviewDNA`, `buildVoiceProfile` imports; voice profile now derived from companion `element`/`gender`
+- Removed `getEggElementHint`, `CREATURE_ELEMENT_COLORS`, `EVO_STAGE_LABELS_TH` imports; removed element-hint header block
+- Build: all creature system references removed from Home (except voiceProfile shape which is now companion-based)
+
+### src/components/Collection.jsx
+- Replaced with "coming soon" placeholder: companion EggCanvas centered + "เร็วๆ นี้!" heading + subtext "ร้านค้า • ไอเทมแต่งตัว • แต่งบ้าน กำลังจะมา"
+- Removed all creature system imports (drawCreature, buildLegacyPreviewDNA, CREATURE_ELEMENT_COLORS, CreatureDetailPopup, StageIcon, CreatureJourney)
+- Route still works; no 404
+
+### src/components/CreatureDetailPopup.jsx
+- Deleted — orphaned after Collection rewrite (was the only importer)
+
+---
+
 ## 2026-06-26 (session 2) — feat: companion egg shown on all screens; name shows child's name everywhere
 
 ### src/components/Home.jsx

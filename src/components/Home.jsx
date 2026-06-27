@@ -3,10 +3,9 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
 import HomeBackground from './HomeBackground.jsx'
-import { buildLegacyPreviewDNA, buildVoiceProfile } from '../lib/creatureGenerator.js'
+import { useCompanion } from '../context/CompanionContext.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
-import { getEggElementHint, CREATURE_ELEMENT_COLORS, EVO_STAGE_LABELS_TH } from '../lib/creatureSystem.js'
 import { drawItem } from '../lib/itemArt.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { PROGRESSION_MAP } from '../config/gameConfig.js'
@@ -48,6 +47,7 @@ const ITEM_DEFS = [
 
 export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, eggProgressData, eggStatsData } = useAppState()
+  const { resolved } = useCompanion()
 
   const [activeItem, setActiveItem]       = useState(null)
   const [particles, setParticles]         = useState([])
@@ -69,17 +69,16 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
-  // Voice profile for the active party creature — used to generate creature-specific sounds
+  // Voice profile derived from companion element + gender (replaces creature DNA voice)
   const voiceProfile = useMemo(() => {
-    const activeId = state.party?.[0]
-    const egg = activeId
-      ? (state.hatchedEggs || []).find(e => e.id === activeId)
-      : state.hatchedEggs?.[0]
-    if (!egg) return null
-    let dna = egg.dna
-    if (!dna) { try { dna = buildLegacyPreviewDNA(egg, 0) } catch (_) { return null } }
-    try { return buildVoiceProfile(dna) } catch (_) { return null }
-  }, [state.party, state.hatchedEggs]) // eslint-disable-line
+    const pitchMap = { fire:1.3, water:0.85, thunder:1.5, nature:1.0, shadow:0.7, light:1.2 }
+    return {
+      pitchBase:     pitchMap[resolved.element] ?? 1.0,
+      pitchVariance: resolved.gender === 'female' ? 0.07 : 0.12,
+      soundFamily:   'chirp',
+      soundSpeed:    1.0,
+    }
+  }, [resolved.element, resolved.gender])
   const activeCreature = useMemo(() => {
     const activeId = state.party?.[0]
     return activeId
@@ -181,7 +180,8 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
 
       <HomeBackground
         hour={hour}
-        creatures={state.hatchedEggs ?? []}
+        companion={resolved}
+        stage={eggStatsData?.stage ?? 1}
       />
 
       {/* Flying food overlay */}
@@ -263,20 +263,6 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
             ? (EGG_STAGE_NAMES[stage] || 'ไข่น้อย')
             : state.name}
         </div>
-        {/* Element hint — only when no creature yet */}
-        {eggsHatched === 0 && (() => {
-          const hint = getEggElementHint(state.xpThai, state.xpMath, state.xpEng, state.acc, state.streak, stage)
-          if (!hint) return null
-          return (
-            <div style={{
-              display:'inline-block', padding:'1px 8px', marginTop:2,
-              background: hint.color + '33', border: `1px solid ${hint.color}88`,
-              fontFamily:'Mitr,sans-serif', fontSize:10, color: hint.color,
-            }}>
-              ธาตุ{hint.nameTH}?
-            </div>
-          )
-        })()}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {eggsHatched === 0 && readyToHatch && (
             <div className="px-badge" style={{

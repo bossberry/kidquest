@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react'
-import { drawCreature, getCreatureSeed } from '../lib/creatureAlgorithm.js'
+import { EGG_SHAPES, drawEggBody, stageSizeMul } from '../egg/eggBaseLayer.js'
+import { drawEyeLayer } from '../egg/eggEyeLayer.js'
 import { playSFX, playTone } from '../lib/audio.js'
 
 const P = {
@@ -23,57 +24,54 @@ const P = {
 
 const SIZE = 48
 
-function makeEntity(egg, i, count, W, groundY) {
-  // Deterministic seed per creature so initial positions/speeds are stable
-  let s = Math.abs(((egg.id ?? '').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)) + i * 97)
-  const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xffffffff }
-  const startFrac = count === 1 ? 0.5 : 0.15 + (i / Math.max(1, count - 1)) * 0.70
+function makeEntity(W, groundY) {
   return {
-    x: W * startFrac,
+    x: W * 0.5,
     y: groundY,
-    dir: i % 2 === 0 ? 1 : -1,
-    speed: 0.3 + rng() * 0.5,
+    dir: 1,
+    speed: 0.45,
     walkFrame: 0,
     walkFrameTimer: 0,
     state: 'walk',
-    stateTimer: 120 + Math.floor(rng() * 180),
+    stateTimer: 120 + Math.floor(Math.random() * 180),
     jumpY: 0,
     jumpVel: 0,
     spinAngle: 0,
-    meetingTimer: 0,
   }
 }
 
-export default function HomeBackground({ hour, creatures }) {
+export default function HomeBackground({ hour, companion, stage }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
 
-  const canvasRef      = useRef(null)
-  const rafRef         = useRef(null)
-  const offscreens     = useRef([])
-  const entitiesRef    = useRef([])
+  const canvasRef       = useRef(null)
+  const rafRef          = useRef(null)
+  const offscreenRef    = useRef(null)
+  const entityRef       = useRef(null)
   const lastJumpSoundRef = useRef(0)
 
-  // Rebuild offscreen canvases when creatures change
+  // Rebuild offscreen canvas when companion or stage changes
   useEffect(() => {
-    offscreens.current = (creatures ?? []).map(egg => {
-      const off = document.createElement('canvas')
-      off.width  = SIZE
-      off.height = SIZE
-      drawCreature(off, getCreatureSeed(egg), egg.eggStats ?? egg.stats ?? {})
-      return off
-    })
-  }, [creatures]) // eslint-disable-line
-
-  // Rebuild entities when creature count changes
-  useEffect(() => {
-    const list = creatures ?? []
-    const count = list.length
-    if (entitiesRef.current.length === count) return
-    const W = window.innerWidth
-    const GY = Math.floor(Math.floor(window.innerHeight * 0.65) * 0.76)
-    entitiesRef.current = list.map((egg, i) => makeEntity(egg, i, count, W, GY - SIZE))
-  }, [creatures]) // eslint-disable-line
+    const { element = 'fire', eye = 'gba', gender = 'male' } = companion ?? {}
+    const s = stage ?? 1
+    const off = document.createElement('canvas')
+    off.width  = SIZE
+    off.height = SIZE
+    const ctx = off.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    const shape = EGG_SHAPES.baby
+    const basePx = 1
+    const px = basePx * stageSizeMul(s)
+    const eggW = shape.w * px
+    const eggH = shape.h * px
+    const cx = SIZE / 2
+    const groundY = SIZE * 0.88
+    const ox = Math.round(cx - eggW / 2)
+    const oy = Math.round(groundY - eggH)
+    drawEggBody(ctx, { element, shape: 'baby', px, ox, oy, gender })
+    drawEyeLayer(ctx, { style: eye, element, px, ox, oy, faceX: shape.crownX, eyeY: shape.eyeY, blink: false, gender })
+    offscreenRef.current = off
+  }, [companion?.element, companion?.eye, companion?.gender, stage]) // eslint-disable-line
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -89,6 +87,11 @@ export default function HomeBackground({ hour, creatures }) {
     ctx.imageSmoothingEnabled = false
 
     const GY = Math.floor(H * 0.76)
+
+    // Init entity once
+    if (!entityRef.current) {
+      entityRef.current = makeEntity(W, GY - SIZE)
+    }
 
     function fr(color, x, y, w, h2) {
       ctx.fillStyle = color
@@ -256,7 +259,6 @@ export default function HomeBackground({ hour, creatures }) {
       }
     }
 
-    // Non-creature animation state (clouds, butterflies, bird, fireflies)
     const anim = {
       clouds: [
         { x: W * 0.15, y: H * 0.14, w: 24 * S, h: 8 * S, spd: 0.30 },
@@ -276,136 +278,87 @@ export default function HomeBackground({ hour, creatures }) {
       ],
     }
 
-    function updateEntities() {
-      const ents = entitiesRef.current
-      if (!ents.length) return
+    function updateEntity() {
+      const e = entityRef.current
+      if (!e) return
 
-      // Meeting gimmick — two creatures walking toward each other
-      for (let i = 0; i < ents.length; i++) {
-        for (let j = i + 1; j < ents.length; j++) {
-          const a = ents[i], b = ents[j]
-          if (a.meetingTimer <= 0 && b.meetingTimer <= 0 &&
-              a.state === 'walk' && b.state === 'walk' &&
-              Math.abs(a.x - b.x) < 40) {
-            a.state = b.state = 'idle'
-            a.dir   = a.x < b.x ?  1 : -1  // face each other
-            b.dir   = b.x < a.x ?  1 : -1
-            a.meetingTimer = b.meetingTimer = 60
-            a.stateTimer   = b.stateTimer   = 60
-            playTone('chirp')
-          }
+      e.stateTimer--
+      if (e.stateTimer <= 0) {
+        const r = Math.random()
+        if (r < 0.50) {
+          e.state      = 'walk'
+          e.stateTimer = 120 + Math.floor(Math.random() * 180)
+        } else if (r < 0.70) {
+          e.state      = 'idle'
+          e.stateTimer = 60  + Math.floor(Math.random() * 60)
+        } else if (r < 0.85) {
+          e.state      = 'jump'
+          e.jumpY      = 0
+          e.jumpVel    = -4
+          e.stateTimer = 120
+          if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
+        } else {
+          e.state      = 'spin'
+          e.spinAngle  = 0
+          e.stateTimer = 60  + Math.floor(Math.random() * 60)
         }
       }
 
-      ents.forEach(e => {
-        e.stateTimer--
-        if (e.meetingTimer > 0) e.meetingTimer--
+      if (e.state === 'walk' && Math.random() < 0.005) {
+        e.state = 'jump'; e.jumpY = 0; e.jumpVel = -4; e.stateTimer = 120
+        if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
+      }
 
-        // State transition when timer expires
-        if (e.stateTimer <= 0) {
-          if (e.meetingTimer > 0) {
-            e.state      = 'idle'
-            e.stateTimer = e.meetingTimer
-          } else {
-            const r = Math.random()
-            if (r < 0.50) {
-              e.state      = 'walk'
-              e.stateTimer = 120 + Math.floor(Math.random() * 180)
-            } else if (r < 0.70) {
-              e.state      = 'idle'
-              e.stateTimer = 60  + Math.floor(Math.random() * 60)
-            } else if (r < 0.85) {
-              e.state      = 'jump'
-              e.jumpY      = 0
-              e.jumpVel    = -4
-              e.stateTimer = 120
-              if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
-            } else {
-              e.state      = 'spin'
-              e.spinAngle  = 0
-              e.stateTimer = 60  + Math.floor(Math.random() * 60)
-            }
+      switch (e.state) {
+        case 'walk':
+          e.x += e.dir * e.speed
+          if (e.x < SIZE / 2 + 10)     { e.x = SIZE / 2 + 10;       e.dir =  1 }
+          if (e.x > W - SIZE / 2 - 10) { e.x = W - SIZE / 2 - 10;   e.dir = -1 }
+          break
+        case 'jump':
+          e.jumpY   += e.jumpVel
+          e.jumpVel += 0.3
+          if (e.jumpY >= 0) {
+            e.jumpY = 0; e.jumpVel = 0
+            e.state = 'walk'
+            e.stateTimer = 120 + Math.floor(Math.random() * 180)
           }
-        }
+          break
+        case 'spin':
+          e.spinAngle += 0.15
+          break
+        default: break
+      }
 
-        // 0.5% spontaneous jump while walking
-        if (e.state === 'walk' && Math.random() < 0.005) {
-          e.state = 'jump'; e.jumpY = 0; e.jumpVel = -4; e.stateTimer = 120
-          if (Date.now() - lastJumpSoundRef.current > 800) { playSFX('footstep'); lastJumpSoundRef.current = Date.now() }
-        }
-
-        switch (e.state) {
-          case 'walk':
-            e.x += e.dir * e.speed
-            if (e.x < SIZE / 2 + 10)     { e.x = SIZE / 2 + 10;       e.dir =  1 }
-            if (e.x > W - SIZE / 2 - 10) { e.x = W - SIZE / 2 - 10;   e.dir = -1 }
-            break
-          case 'jump':
-            e.jumpY   += e.jumpVel
-            e.jumpVel += 0.3
-            if (e.jumpY >= 0) {
-              e.jumpY = 0; e.jumpVel = 0
-              e.state = 'walk'
-              e.stateTimer = 120 + Math.floor(Math.random() * 180)
-            }
-            break
-          case 'spin':
-            e.spinAngle += 0.15
-            break
-          default: break // 'idle' — bob handled in draw
-        }
-
-        e.walkFrameTimer++
-        if (e.walkFrameTimer >= 20) {
-          e.walkFrame     = 1 - e.walkFrame
-          e.walkFrameTimer = 0
-        }
-      })
+      e.walkFrameTimer = (e.walkFrameTimer ?? 0) + 1
+      if (e.walkFrameTimer >= 20) {
+        e.walkFrame      = 1 - (e.walkFrame ?? 0)
+        e.walkFrameTimer = 0
+      }
     }
 
-    function drawEntities(t) {
-      const ents = entitiesRef.current
-      const offs = offscreens.current
-      if (!ents.length || !offs.length) return
+    function drawEntity(t) {
+      const e   = entityRef.current
+      const off = offscreenRef.current
+      if (!e || !off) return
 
-      // Which creature is closest to screen center gets a glow
-      let centerIdx = 0, minDist = Infinity
-      ents.forEach((e, i) => {
-        const d = Math.abs(e.x - W / 2)
-        if (d < minDist) { minDist = d; centerIdx = i }
-      })
+      const bobOffset = e.state === 'idle' ? Math.floor(Math.sin(t * 0.1) * 2) : 0
+      const drawY = Math.floor(e.y + e.jumpY + bobOffset)
+      const drawX = Math.floor(e.x - SIZE / 2)
 
-      ents.forEach((e, i) => {
-        if (!offs[i]) return
-        const bobOffset = e.state === 'idle' ? Math.floor(Math.sin(t * 0.1) * 2) : 0
-        const drawY = Math.floor(e.y + e.jumpY + bobOffset)
-        const drawX = Math.floor(e.x - SIZE / 2)
-
-        // Soft glow halo for center creature (only meaningful with 2+)
-        if (i === centerIdx && ents.length > 1) {
-          ctx.save()
-          ctx.shadowColor = 'rgba(255,220,80,0.9)'
-          ctx.shadowBlur  = 14
-          ctx.drawImage(offs[i], drawX, drawY, SIZE, SIZE)
-          ctx.restore()
-        }
-
-        // Main draw — spin uses rotate transform, left-walk uses horizontal flip
-        ctx.save()
-        if (e.state === 'spin') {
-          ctx.translate(Math.floor(e.x), drawY + SIZE / 2)
-          ctx.rotate(e.spinAngle)
-          ctx.drawImage(offs[i], -SIZE / 2, -SIZE / 2, SIZE, SIZE)
-        } else if (e.dir < 0) {
-          // Flip around creature center: translate to cx, scale -1, draw at -SIZE/2
-          ctx.translate(Math.floor(e.x), 0)
-          ctx.scale(-1, 1)
-          ctx.drawImage(offs[i], -SIZE / 2, drawY, SIZE, SIZE)
-        } else {
-          ctx.drawImage(offs[i], drawX, drawY, SIZE, SIZE)
-        }
-        ctx.restore()
-      })
+      ctx.save()
+      if (e.state === 'spin') {
+        ctx.translate(Math.floor(e.x), drawY + SIZE / 2)
+        ctx.rotate(e.spinAngle)
+        ctx.drawImage(off, -SIZE / 2, -SIZE / 2, SIZE, SIZE)
+      } else if (e.dir < 0) {
+        ctx.translate(Math.floor(e.x), 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(off, -SIZE / 2, drawY, SIZE, SIZE)
+      } else {
+        ctx.drawImage(off, drawX, drawY, SIZE, SIZE)
+      }
+      ctx.restore()
     }
 
     let t = 0
@@ -442,15 +395,15 @@ export default function HomeBackground({ hour, creatures }) {
         })
       }
 
-      updateEntities()
-      drawEntities(t)
+      updateEntity()
+      drawEntity(t)
 
       rafRef.current = requestAnimationFrame(frame)
     }
 
     rafRef.current = requestAnimationFrame(frame)
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [isDay])
+  }, [isDay]) // eslint-disable-line
 
   return (
     <div style={{ position:'absolute', inset:0, zIndex:-1, pointerEvents:'none' }}>

@@ -1,67 +1,60 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { drawCreature } from '../lib/creatureAlgorithm.js'
-import { startBGM, stopBGM, playCreatureTapSFX, playTone } from '../lib/audio.js'
+import { renderEggSprite } from '../egg/renderEggSprite.js'
+import { startBGM, stopBGM, playCreatureTapSFX } from '../lib/audio.js'
 
-const EVO_STAGES = ['baby', 'teen', 'final']
+const ELEMENTS = ['fire', 'water', 'thunder', 'nature', 'shadow', 'light']
+const EYES     = ['gba', 'tama', 'sanrio', 'summoners']
+const GENDERS  = ['male', 'female']
 
-function makeFloatingCreatures(count) {
-  return Array.from({ length: count }, (_, i) => {
-    const stage = EVO_STAGES[Math.floor(Math.random() * EVO_STAGES.length)]
-    const bias = Math.random()
-    const stats = {
-      xpThai: bias < 0.34 ? 100 : Math.random() * 40,
-      xpMath: bias >= 0.34 && bias < 0.67 ? 100 : Math.random() * 40,
-      xpEng:  bias >= 0.67 ? 100 : Math.random() * 40,
-      acc: 60 + Math.random() * 35,
-      streak: Math.floor(Math.random() * 10),
-      evoStage: stage,
-    }
-    return {
-      id: i,
-      seed: Math.floor(Math.random() * 1e9),
-      stats,
-      size: stage === 'final' ? 64 : stage === 'teen' ? 52 : 40,
-      left: 5 + Math.random() * 85,
-      top:  5 + Math.random() * 80,
-      duration: 6 + Math.random() * 6,
-      delay: Math.random() * -8,
-    }
-  })
+function makeFloatingEggs(count) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    element: ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)],
+    eye:     EYES[Math.floor(Math.random() * EYES.length)],
+    gender:  GENDERS[Math.floor(Math.random() * GENDERS.length)],
+    stage:   1 + Math.floor(Math.random() * 5),
+    size:    40 + Math.floor(Math.random() * 28),
+    left:    5 + Math.random() * 85,
+    top:     5 + Math.random() * 80,
+    duration: 6 + Math.random() * 6,
+    delay:   Math.random() * -8,
+  }))
 }
 
-// Cycles forward through evo stages so repeated taps stay fun.
-function nextStage(stage) {
-  const idx = EVO_STAGES.indexOf(stage)
-  return EVO_STAGES[(idx + 1) % EVO_STAGES.length]
-}
-
-function FloatingCreature({ c }) {
+function FloatingEgg({ c }) {
   const canvasRef = useRef(null)
-  const [reaction, setReaction] = useState(null) // null | 'squish' | 'evolve'
-  const [displayStats, setDisplayStats] = useState(c.stats)
-  const revertTimerRef = useRef(null)
+  const rafRef    = useRef(null)
+  const [squish, setSquish] = useState(false)
+  const squishTimerRef = useRef(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    drawCreature(canvas, c.seed, displayStats)
-  }, [c, displayStats])
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      renderEggSprite(ctx, {
+        element: c.element, eye: c.eye, gender: c.gender,
+        stage: c.stage, aura: 0,
+        t: performance.now() / 1000,
+        canvasSize: c.size, basePxOverride: 2,
+      })
+      rafRef.current = requestAnimationFrame(draw)
+    }
+    rafRef.current = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [c])
 
   const handleTap = () => {
-    const doEvolve = Math.random() < 0.4
-    if (doEvolve) {
-      setReaction('evolve')
-      setDisplayStats(prev => ({ ...prev, evoStage: nextStage(prev.evoStage) }))
-      playTone('stageUp')
-    } else {
-      setReaction('squish')
-      playCreatureTapSFX()
-    }
-    clearTimeout(revertTimerRef.current)
-    revertTimerRef.current = setTimeout(() => setReaction(null), 450)
+    playCreatureTapSFX()
+    setSquish(true)
+    clearTimeout(squishTimerRef.current)
+    squishTimerRef.current = setTimeout(() => setSquish(false), 450)
   }
 
-  useEffect(() => () => clearTimeout(revertTimerRef.current), [])
+  useEffect(() => () => clearTimeout(squishTimerRef.current), [])
 
   return (
     <div
@@ -70,19 +63,19 @@ function FloatingCreature({ c }) {
         position: 'absolute',
         left: `${c.left}%`,
         top: `${c.top}%`,
-        animation: reaction ? 'none' : `kq-float-${c.id % 3} ${c.duration}s ease-in-out infinite`,
+        animation: squish ? 'none' : `kq-float-${c.id % 3} ${c.duration}s ease-in-out infinite`,
         animationDelay: `${c.delay}s`,
         opacity: 0.9,
         cursor: 'pointer',
-        transform: reaction === 'squish' ? 'scale(0.8, 1.2)' : reaction === 'evolve' ? 'scale(1.3)' : undefined,
-        transition: reaction ? 'transform 0.2s ease' : undefined,
+        transform: squish ? 'scale(0.8, 1.2)' : undefined,
+        transition: squish ? 'transform 0.2s ease' : undefined,
         WebkitTapHighlightColor: 'transparent',
       }}
     >
       <canvas
         ref={canvasRef}
         width={c.size}
-        height={c.size}
+        height={Math.round(c.size * 1.19)}
         style={{ imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }}
       />
     </div>
@@ -90,9 +83,9 @@ function FloatingCreature({ c }) {
 }
 
 export default function LoginBackdrop({ onStartTap }) {
-  const creaturesRef = useRef(null)
-  if (!creaturesRef.current) {
-    creaturesRef.current = makeFloatingCreatures(9)
+  const eggsRef = useRef(null)
+  if (!eggsRef.current) {
+    eggsRef.current = makeFloatingEggs(9)
   }
 
   useEffect(() => {
@@ -121,8 +114,8 @@ export default function LoginBackdrop({ onStartTap }) {
         }
       `}</style>
 
-      {creaturesRef.current.map(c => (
-        <FloatingCreature key={c.id} c={c} />
+      {eggsRef.current.map(c => (
+        <FloatingEgg key={c.id} c={c} />
       ))}
 
       {/* Central pixel-art start button */}

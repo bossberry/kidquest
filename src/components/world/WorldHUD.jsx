@@ -1,7 +1,6 @@
 import React from 'react'
 import { MAP_THEMES } from '../../config/gameConfig.js'
 import { WORLD_LEVELS } from '../../config/worldConfig.js'
-import { getCreatureSeed } from '../../lib/creatureAlgorithm.js'
 import PixelItemIcon from '../PixelItemIcon.jsx'
 
 export const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
@@ -40,10 +39,6 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
   const creature = (partyId ? eggs.find(e => e.id === partyId) : null)
     ?? [...eggs].sort((a, b) => (b.hatched_at ?? 0) - (a.hatched_at ?? 0))[0]
     ?? null
-
-  // Expose active creature to renderPlayer (canvas rAF loop can't receive React props directly)
-  window.__kq_activeCreatureSeed  = creature ? getCreatureSeed(creature) : 0
-  window.__kq_activeCreatureStats = creature?.eggStats ?? creature?.stats ?? {}
 
   const lvBonus = Math.max(0, (creature?.battleLevel ?? 1) - 1)
   const maxHP   = (creature?.stats?.HP ?? 10) + lvBonus

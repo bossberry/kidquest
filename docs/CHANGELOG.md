@@ -1,5 +1,41 @@
 # Changelog — KidQuest
 
+## 2026-06-27 (session 5) — feat: legacy creature art removal STEP 2+2.5+§3+§4
+
+### Deleted (zero callers verified before deletion)
+- `src/components/BattleScreen.jsx` — orphaned, was never imported in App.jsx
+- `src/components/HatchOverlay.jsx` — gated behind `!hasCreature` (never fires for current users); import + JSX removed from App.jsx
+- `src/components/CreatureCanvas.jsx` — only caller was HatchOverlay
+- `src/lib/drawCreature.js` — only caller was CreatureCanvas
+- `src/lib/creatureAlgorithm.js` — all callers (BattleScreen, EggMemory, LoginBackdrop, WorldHUD) fixed before deletion
+- `src/context/creatureHelpers.js` — only caller was HatchOverlay; dead import removed from StateContext.jsx
+
+### src/components/LoginBackdrop.jsx
+- Replaced `FloatingCreature` (drawCreature canvas) with `FloatingEgg` (renderEggSprite RAF loop)
+- 9 random element eggs (random element/eye/gender/stage) float and squish-on-tap
+- Removed `drawCreature` import; kept `startBGM`/`stopBGM`/`playCreatureTapSFX`
+
+### src/games/minigames/EggMemory.jsx
+- Replaced creature canvas cards with 6 element emoji cards: 🔥💧⚡🌿🌑✨ (always 6 pairs)
+- Removed `drawCreature`, `getCreatureSeed`, `ITEMS` imports; no creature dependency
+
+### src/components/world/WorldHUD.jsx
+- Removed dead `getCreatureSeed` import from `creatureAlgorithm.js`
+- Removed dead `window.__kq_activeCreatureSeed` and `window.__kq_activeCreatureStats` assignments (nothing read these globals)
+
+### db_backups/get_mystery_adventurers.OLD.sql (new)
+- Git-recoverable backup placeholder saved before running `20260627_mystery_adventurers_egg.sql`
+- ⚠️ Actual live DB definition should be retrieved via `SELECT pg_get_functiondef(...)` before applying the migration (see file for instructions)
+
+### Build
+- 165 modules (down from 170); clean build; no creature art reachable in the running app
+
+### Not done (STEP 3 — DB drops)
+- `hatchedEggs.state_json` creature-identity fields not dropped (pending backup + explicit OK)
+- `get_mystery_adventurers` RPC migration still not applied (apply `supabase/migrations/20260627_mystery_adventurers_egg.sql` in Supabase SQL Editor)
+
+---
+
 ## 2026-06-27 (session 4) — feat: full-pipeline animated walkers + Mystery Adventurers egg upgrade
 
 ### src/egg/renderEggSprite.js (new)

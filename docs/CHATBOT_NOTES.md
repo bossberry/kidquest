@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-27 (session 5) — Legacy creature art removal STEP 2+2.5+§3+§4:**
+- Built: Deleted BattleScreen.jsx, HatchOverlay.jsx, CreatureCanvas.jsx, drawCreature.js, creatureAlgorithm.js, creatureHelpers.js (all zero-caller verified). Replaced: LoginBackdrop.jsx → 9 random-element egg RAF sprites (renderEggSprite); EggMemory.jsx → 6 emoji card pairs (🔥💧⚡🌿🌑✨, no creature dependency). Removed dead WorldHUD globals (__kq_activeCreatureSeed/__kq_activeCreatureStats + getCreatureSeed import). Removed dead HatchOverlay import/JSX from App.jsx. Removed dead getCreatureForHatch import from StateContext.jsx. Created db_backups/get_mystery_adventurers.OLD.sql with backup note + retrieval instructions. Build clean at 165 modules.
+- Not finished: `get_mystery_adventurers` RPC migration still not applied (supabase/migrations/20260627_mystery_adventurers_egg.sql must be run in Supabase SQL Editor). STEP 3 (DB column/RPC-body drops) not started.
+- Blockers/risks found: The db_backups file is a placeholder — user should run `SELECT pg_get_functiondef('get_mystery_adventurers'::regproc)` in Supabase SQL Editor and save the real definition before applying the migration.
+- Ready to start next: Apply the RPC migration SQL in Supabase SQL Editor → test FriendsScreen Mystery Adventurers tab; then Phase 4 NPC System
+- Needs Chatbot decision first: STEP 3 (actual DB column drops on hatchedEggs blob fields) — user must give explicit OK after verifying backup
+
 **2026-06-27 (session 4) — Full-pipeline animated walkers + Mystery Adventurers egg upgrade:**
 - Built: Created `src/egg/renderEggSprite.js` — shared non-React helper running the full 9-step egg compositing pipeline (aura→pose→regalia→body→eyes→expression). Updated `HomeBackground.jsx` to call `renderEggSprite` per-frame into a reused 48×48 offscreen (`basePxOverride=2`); element animations are now live. Updated `WorldScreen.jsx` to set `window.__kq_companionEgg` (not a baked canvas); updated `tileEngine.renderPlayer` to call `renderEggSprite` per-frame into a 32×32 offscreen scaled to 16×16. Removed `drawCreature` from tileEngine. Updated `FriendsScreen.jsx` MysteryTab: `<EggCanvasCore>` per adventurer row/modal; removed `CreatureCanvas`/`ELEMENT_STATS`/`elementToStats`/`drawCreature`. Generated `supabase/migrations/20260627_mystery_adventurers_egg.sql` for new RPC returning `element/eye/gender/stage/...`. Build clean at 170 modules.
 - Not finished: Supabase migration for `get_mystery_adventurers` NOT yet applied — adventurers will show default egg (fire/gba/male/stage1) until migration runs

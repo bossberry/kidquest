@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-27 (session 4)_
+_Last updated: 2026-06-27 (session 5 — legacy creature removal STEP 2+2.5+3)_
 
 ---
 
@@ -43,16 +43,32 @@ _Last updated: 2026-06-27 (session 4)_
 - App.jsx gate: shown for new players AND existing players with no `companions` row; never shown again after creation
 - Migration SQL: `supabase/migrations/20260626_companions.sql` — **must be run manually in Supabase SQL Editor**
 
-### Legacy Creature System (partially retired)
-- `drawCreature` / `getCreatureSeed` from `creatureAlgorithm.js` — **no longer used by Home, HomeBackground, Collection, PartySelect, or Battle player side**
-  - Still used by: LoginBackdrop.jsx, BattleScreen.jsx (orphaned), EggMemory.jsx, HatchOverlay.jsx (via CreatureCanvas.jsx + drawCreature.js). Full retirement is a separate planned pass.
-  - **Removed from FriendsScreen** (2026-06-27): `drawCreature`, `CreatureCanvas`, `ELEMENT_STATS`, `elementToStats` all deleted from FriendsScreen.jsx
-- `src/lib/creatureSystem.js`: still used by StateContext, HatchOverlay, state.js (progress migration)
-- `src/lib/creatureGenerator.js`: still used by StateContext (HATCH_EGG), HatchOverlay
-- Bond meter (0–100): `ADD_CREATURE_BOND` action; bond≥25 ATK×1.05, bond≥50 SPD+30, bond≥100 ATK×1.5, bond≥75 passive heal per correct answer
-- Evolution: baby→teen (battleLevel≥11, tier≥2); teen→final (battleLevel≥26, tier≥5, bond≥60) — stored in `hatchedEggs` AMBIGUOUS blob (progress + creature identity)
-- `hatchedEggs` array in localStorage/`eggs.state_json`: AMBIGUOUS — stores both creature identity (dna, evoStage, creature.rarity) AND live progress (battleLevel, battleXP, bondMeter, stats HP/ATK/DEF/SPD). Container kept; creature-identity fields are orphaned but harmless.
-- `CreatureDetailPopup.jsx` — **deleted** (was only used by Collection.jsx which is now a placeholder)
+### Legacy Creature System (STEP 2+2.5+§3+§4 retired — 2026-06-27)
+
+**Deleted files (zero callers confirmed before deletion):**
+- `src/components/BattleScreen.jsx` — orphaned; was never imported in App.jsx
+- `src/components/HatchOverlay.jsx` — gated behind `!hasCreature` (never fires for current players); removed from App.jsx
+- `src/components/CreatureCanvas.jsx` — only caller was HatchOverlay
+- `src/lib/drawCreature.js` — only caller was CreatureCanvas
+- `src/lib/creatureAlgorithm.js` — only callers were BattleScreen + EggMemory + LoginBackdrop + WorldHUD (all fixed)
+- `src/context/creatureHelpers.js` — only caller was HatchOverlay; dead import in StateContext removed
+
+**Replaced with egg art:**
+- `LoginBackdrop.jsx` — 9 random element eggs (RAF loop, `renderEggSprite`) replace floating `drawCreature` creatures; tap=squish SFX
+- `EggMemory.jsx` — 6 element emoji cards (🔥💧⚡🌿🌑✨) replace creature canvas cards; no creature dependency
+- `WorldHUD.jsx` — removed dead `getCreatureSeed` import and `window.__kq_activeCreatureSeed/Stats` assignments (both globals were never read)
+
+**Still present (active callers remain):**
+- `src/lib/creatureSystem.js` — keeps `EVO_STAGE_LABELS_TH` (App.jsx evo toast), `determineElement`/`calcEvoStage` (StateContext, state.js progress)
+- `src/lib/creatureGenerator.js` — `buildCreatureDNA`/`generateCreatureName` still used by StateContext hatch flow and state.js migration
+- `src/config/creatureConfig.js` — `GRADE_LABELS`/`HATCH_CREATURES`/`TIERS` exported via gameConfig.js; `GRADE_LABELS` used across OnboardingModal, ProfileModal, state.js
+
+**DB columns not yet dropped (STEP 3 pending backup + explicit OK):**
+- `hatchedEggs` blob in `eggs.state_json` retains creature-identity fields (dna, evoStage, creature.rarity) — harmless; no UI reads them
+- `get_mystery_adventurers` RPC migration (`20260627_mystery_adventurers_egg.sql`) **not yet applied** — new shape returns `element/eye/gender/stage/...`; old shape returns `creature_seed/creature_name`; adventurers show default egg until migration runs
+- `db_backups/get_mystery_adventurers.OLD.sql` created in repo (git-recoverable) before applying the migration
+
+**Bond meter / evolution** — progress fields (`bondMeter`, `evoStage`, `battleLevel`, `battleXP`) still stored and computed in StateContext/state.js; companion stage (egg size/regalia/FX) is what's shown, not creature art
 
 ### Treasure Chest (Map Chests)
 - `TreasureSlot.jsx`: question gate → correct → chest shakes (tap to open) → chest opens → items float up → collect

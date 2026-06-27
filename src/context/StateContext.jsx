@@ -4,7 +4,6 @@ import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, _
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
-import { getCreatureForHatch } from './creatureHelpers.js'
 import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator.js'
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 

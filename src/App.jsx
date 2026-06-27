@@ -11,7 +11,6 @@ import WorldBattle from './components/WorldBattle.jsx'
 import PartySelect from './components/PartySelect.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import EggPopup from './components/EggPopup.jsx'
-import HatchOverlay from './components/HatchOverlay.jsx'
 import LevelUpCutscene from './components/LevelUpCutscene.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import ResetPasswordModal from './components/ResetPasswordModal.jsx'
@@ -113,8 +112,7 @@ export default function App() {
       <ItemToast />
       <ConfettiLayer />
       <EggPopup open={eggPopupOpen} onClose={() => setEggPopupOpen(false)} />
-      <HatchOverlay onClose={() => navigate('home')} suppressAutoOpen={screen === 'game' || screen === 'world-battle' || !!state.pendingBattle || !!state.battleCreatureId} />
-      {state.pendingLevelUp && (
+{state.pendingLevelUp && (
         <LevelUpCutscene
           data={state.pendingLevelUp}
           onDone={() => { dispatch({ type: ACTIONS.CLEAR_PENDING_LEVEL_UP }); navigate('world') }}

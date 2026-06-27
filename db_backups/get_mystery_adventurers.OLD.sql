@@ -1,0 +1,39 @@
+-- BACKUP: get_mystery_adventurers — OLD definition (pre-egg migration)
+-- Created: 2026-06-27 before running supabase/migrations/20260627_mystery_adventurers_egg.sql
+--
+-- ⚠️  IMPORTANT: This file was generated without direct DB access.
+--     To get the exact live definition, run in Supabase SQL Editor BEFORE applying the migration:
+--
+--       SELECT pg_get_functiondef('get_mystery_adventurers'::regproc);
+--
+--     and paste the result over this file, then commit.
+--
+-- RECONSTRUCTED shape (from CHATBOT_NOTES.md + code history):
+-- Phase 1.1 (dc522f3): returned { display_name text, source text }
+-- Phase 1.1b (4ab6014): added creature stats + rarity
+-- Phase 1.1c (4a76caf): added creature_seed bigint, creature_name text, evo_stage text
+-- Phase 4 (50b33fd):  migration written but NOT yet applied → live DB still has
+--                      the Phase 1.1c shape (creature_seed / creature_name / evo_stage).
+--
+-- Approximate OLD shape (may differ from live — retrieve the real definition above):
+
+-- CREATE OR REPLACE FUNCTION get_mystery_adventurers(p_limit integer DEFAULT 8)
+-- RETURNS TABLE (
+--   display_name    text,
+--   creature_seed   bigint,
+--   creature_name   text,
+--   evo_stage       text,
+--   hp              integer,
+--   atk             integer,
+--   def             integer,
+--   spd             integer,
+--   rarity_label    text,
+--   source          text
+-- ) ...
+--
+-- The new definition that replaces this is in:
+--   supabase/migrations/20260627_mystery_adventurers_egg.sql
+--
+-- That migration opens with:
+--   DROP FUNCTION IF EXISTS get_mystery_adventurers(integer);
+-- which drops the old function before recreating it.

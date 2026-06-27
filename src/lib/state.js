@@ -85,6 +85,10 @@ export function defaultState() {
     pendingLevelUp: null,
     pendingRewards: [],
     inputModeMastery: { wordbuild: 0, sequence: 0 },
+    coins: 0,
+    lastLoginDate: '',
+    loginStreak: 0,
+    coinsLevelBonus: {},
     lastSavedAt: Date.now(),
   }
 }

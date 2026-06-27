@@ -70,7 +70,7 @@ function placeFn(gs, canvas, setScore, setDead, runRef, animRef, dispatch) {
   const top = gs.blocks[gs.blocks.length - 1]
   const oL = Math.max(gs.current.x, top.x), oR = Math.min(gs.current.x + gs.current.w, top.x + top.w)
   const overlap = oR - oL
-  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setDead(true); const xp = Math.max(2, gs.score*3); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
+  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setDead(true); const xp = Math.max(2, gs.score*3); const towerCoins = Math.max(3, Math.min(8, 3 + Math.floor(gs.score / 4))); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: towerCoins } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
   playTone(overlap === gs.current.w ? 'streak' : 'correct')
   if (overlap === gs.current.w) spawnConfetti(3)
   const trimmed = { x: oL, y: top.y - 22, w: overlap, h: 20, color: TOWER_COLORS[gs.blocks.length % TOWER_COLORS.length] }

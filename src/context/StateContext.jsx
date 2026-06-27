@@ -6,6 +6,7 @@ import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
 import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator.js'
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
+import { showItemToast } from '../components/Toasts.jsx'
 
 export const StateContext = createContext(null)
 
@@ -144,6 +145,9 @@ export const ACTIONS = {
   CLEAR_PENDING_REWARDS:      'CLEAR_PENDING_REWARDS',
   // Input mode mastery (tracks comfort with wordbuild/sequence mechanics, fades hints)
   RECORD_INPUT_MODE_RESULT:   'RECORD_INPUT_MODE_RESULT',
+  // Coin economy
+  ADD_COINS:      'ADD_COINS',
+  DAILY_LOGIN:    'DAILY_LOGIN',
 }
 
 function reducer(state, action) {
@@ -846,6 +850,32 @@ function reducer(state, action) {
     case ACTIONS.ENTER_MAZE:
       return { ...state, mazeActive: true }
 
+    case ACTIONS.ADD_COINS: {
+      const { amount, bonusKey } = action.payload
+      if (bonusKey && (state.coinsLevelBonus || {})[bonusKey]) return state
+      return {
+        ...state,
+        coins: Math.max(0, (state.coins || 0) + amount),
+        ...(bonusKey ? { coinsLevelBonus: { ...(state.coinsLevelBonus || {}), [bonusKey]: true } } : {}),
+      }
+    }
+
+    case ACTIONS.DAILY_LOGIN: {
+      const today = todayStr()
+      if ((state.lastLoginDate || '') === today) return state
+      const d = new Date(Date.now() - 86400000)
+      const yesterday = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
+      const streak = (state.lastLoginDate || '') === yesterday ? (state.loginStreak || 0) + 1 : 1
+      const bonus = 10 + Math.min(streak, 5)
+      return {
+        ...state,
+        lastLoginDate: today,
+        loginStreak: streak,
+        coins: Math.max(0, (state.coins || 0) + bonus),
+        _dailyLoginBonus: bonus,
+      }
+    }
+
     default:
       return state
   }
@@ -885,6 +915,17 @@ export function StateProvider({ children }) {
     // Daily reset + lives reset on load
     dispatch({ type: ACTIONS.DECAY_HAPPINESS })
     dispatch({ type: ACTIONS.CHECK_DAILY_RESET })
+
+    // Daily login coins — show toast after a brief delay so ItemToast is registered
+    const loginToday = todayStr()
+    if ((state.lastLoginDate || '') !== loginToday) {
+      const _d = new Date(Date.now() - 86400000)
+      const _yesterday = _d.getFullYear() + '-' + (_d.getMonth() + 1) + '-' + _d.getDate()
+      const _loginStreak = (state.lastLoginDate || '') === _yesterday ? (state.loginStreak || 0) + 1 : 1
+      const _loginBonus = 10 + Math.min(_loginStreak, 5)
+      dispatch({ type: ACTIONS.DAILY_LOGIN })
+      setTimeout(() => showItemToast(`ล็อกอินรายวัน 🪙 +${_loginBonus}`), 900)
+    }
     const today = todayStr()
     if ((state.lastRunDate || '') !== today) {
       dispatch({ type: ACTIONS.ER_SAVE_SCORE, payload: { dist: state.erBestDist || 0, rings: state.erBestRings || 0 } })

@@ -32,7 +32,7 @@ export default function EggFishing() {
     }
     animRef.current = requestAnimationFrame(loop)
     timerRef.current = setInterval(() => setTimeLeft(t => {
-      if (t <= 1) { clearInterval(timerRef.current); runRef.current = false; setDone(true); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak:0, score:0 } }); return 0 }
+      if (t <= 1) { clearInterval(timerRef.current); runRef.current = false; setDone(true); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 5 } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak:0, score:0 } }); return 0 }
       return t - 1
     }), 1000)
     return () => { runRef.current = false; cancelAnimationFrame(animRef.current); clearInterval(timerRef.current) }

@@ -1,9 +1,18 @@
 # Current State — KidQuest
-_Last updated: 2026-06-27 (session 5 — legacy creature removal STEP 2+2.5+3)_
+_Last updated: 2026-06-27 (session 6 — coin economy earn-only)_
 
 ---
 
 ## Live Systems
+
+### Coin Economy (Earn-only — 2026-06-27)
+- **Balance**: `state.coins` (integer ≥ 0); migrated on load so existing players start at 0
+- **Earn triggers**: learning round complete (formula below), world battle win (+10 regular / +15 boss), arcade minigame complete (EggMemory +5, EggTower 3–8, EggRun 3–8 by rings, EggCatch 3–8 by score, EggFishing +5), level-unlock first-time bonus (+15, `coinsLevelBonus` flag prevents re-award), daily login (+10 + streak bonus up to +5 = max +15/day)
+- **Round formula**: `coins = clamp(round(12 × accuracyMul × masteryMul), 2, 12)` where `accuracyMul = accuracy < 0.5 ? 0.3 : accuracy` and `masteryMul = 1 - mastery` (mirrors XP decay)
+- **Typical daily total**: ~40–70 coins for a 20–30 min session (fresh player higher end; mastered player lower end)
+- **HUD**: Gold 🪙 badge in Home header (pixel font, `#FFD23F`)
+- **Feedback**: `showItemToast("🪙 +N")` on every award; `showItemToast("ล็อกอินรายวัน 🪙 +N")` on daily login
+- **Spending**: NOT implemented yet — earn-only. Shop/items/room planned for next phase.
 
 ### Friend Code System (Phase 1.1)
 - `FriendsScreen.jsx`: 2-tab screen reachable from BottomNav "เพื่อน" tab

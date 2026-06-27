@@ -40,6 +40,9 @@ _Last updated: 2026-06-27_
 - [x] **Pixel-art modal restyling** — LoginModal, ProfileModal, OnboardingModal now use `px-auth-sheet`/`px-auth-input`/`px-btn` instead of mismatched rounded Mitr/Fredoka-One styles ✅
 - [x] **Interactive pre-login backdrop** — tappable creatures (squish/evolve), pixel-art start button, BGM loop + tap SFX, collapsible LoginModal ✅
 
+- [x] **Coin economy (earn-only)** — `state.coins`; earn on round complete, battle win, minigame, level unlock, daily login; anti-farm mastery decay; Home HUD badge; no spending yet ✅ (2026-06-27)
+
+- [ ] **Coin spending system (shop/wearable-items/room)** — Chatbot must define what coins buy before implementation
 - [ ] **Phase 4: NPC System** — 5 NPCs (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole). Per-NPC: dialogue lines, gift on first talk, repeat-visit dialogue. Use `SCREEN_NPCS` config in `tileMaps.js`.
 - [ ] **Thai content expansion** — Levels 6–8: fruits/everyday objects, short phrases, simple sentences (อนุบาล → early ป.1 content)
 - [ ] **Math content expansion** — Levels 9–10: place value, counting to 100 (early ป.1 stretch)

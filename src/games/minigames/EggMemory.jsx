@@ -35,8 +35,9 @@ export default function EggMemory() {
             setDone(true)
             const xp = Math.max(5, Math.round(30 - moves))
             dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'thai', amount: xp } })
+            dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 5 } })
             dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0.8 } })
-            showItemToast('🎉 จับคู่ครบ! ' + (moves + 1) + ' ครั้ง · +' + xp + ' XP')
+            showItemToast('🎉 จับคู่ครบ! ' + (moves + 1) + ' ครั้ง · +' + xp + ' XP · 🪙 +5')
           }
         } else { playTone('wrong') }
         setFlipped([]); setLocked(false)

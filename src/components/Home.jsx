@@ -254,14 +254,24 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
         background: 'var(--px-darkest)',
         borderBottom: '2px solid var(--px-border)',
       }}>
-        <div style={{
-          fontFamily:'var(--font-thai)', fontSize:11,
-          color: 'var(--px-light)',
-          fontWeight: stage >= 6 ? 700 : 400,
-        }}>
-          {eggsHatched === 0
-            ? (EGG_STAGE_NAMES[stage] || 'ไข่น้อย')
-            : state.name}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{
+            fontFamily:'var(--font-thai)', fontSize:11,
+            color: 'var(--px-light)',
+            fontWeight: stage >= 6 ? 700 : 400,
+          }}>
+            {eggsHatched === 0
+              ? (EGG_STAGE_NAMES[stage] || 'ไข่น้อย')
+              : state.name}
+          </div>
+          <div style={{
+            display:'flex', alignItems:'center', gap:3,
+            background:'rgba(255,210,63,0.15)', border:'1px solid rgba(255,210,63,0.4)',
+            padding:'2px 7px', fontFamily:'var(--font-pixel)', fontSize:8,
+            color:'#FFD23F', letterSpacing:1,
+          }}>
+            🪙{state.coins || 0}
+          </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           {eggsHatched === 0 && readyToHatch && (

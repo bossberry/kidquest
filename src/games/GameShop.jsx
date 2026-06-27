@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { playTone, speakTh, speakEn } from '../lib/audio.js'
-import { spawnConfetti } from '../components/Toasts.jsx'
+import { showItemToast, spawnConfetti } from '../components/Toasts.jsx'
 import { shuffle } from '../config/gameConfig.js'
 
 const SHOP_ITEMS = [
@@ -144,6 +144,9 @@ export default function GameShop({ navigate }) {
         { phase: 3, subject: 'math',    correct: pqc[4]?1:0, total: 1 },
         { phase: 4, subject: 'thai',    correct: pqc[5]?1:0, total: 1 },
       ]
+      const _shopCoins = Math.max(2, Math.min(12, Math.round(12 * (p < 0.5 ? 0.3 : p))))
+      dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: _shopCoins } })
+      showItemToast(`🪙 +${_shopCoins}`)
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
       dispatch({ type: ACTIONS.UPDATE_SHOP_V1, payload: { score: p, wrong, hints: 0, dur, phaseStats } })
       dispatch({ type: ACTIONS.LOG_SESSION, payload: {

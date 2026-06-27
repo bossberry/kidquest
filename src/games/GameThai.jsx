@@ -4,7 +4,7 @@ import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
 import { TH_ALPHA, TH_L2, TH_L3, TH_L5, SPELL_L1, SP_CON, SP_VOW, CHAR_SPEAK, shuffle } from '../config/gameConfig.js'
 import { playTone, speakTh } from '../lib/audio.js'
-import { showToast, spawnConfetti } from '../components/Toasts.jsx'
+import { showToast, showItemToast, spawnConfetti } from '../components/Toasts.jsx'
 
 const LEVEL_WORDS = { 2: SPELL_L1, 3: TH_L2, 4: TH_L3 }
 
@@ -74,12 +74,19 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessi
     const p = score / total
     const now = Date.now()
     const ts = sessionStartRef?.current || now
+    // Coin formula: anti-farm via mastery decay (mirrors XP decay)
+    const mastery = state.levelMastery?.[world]?.[levelId] || 0
+    const accuracyMul = p < 0.5 ? 0.3 : p
+    const coins = Math.max(2, Math.min(12, Math.round(12 * accuracyMul * (1 - mastery))))
+    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: coins } })
+    showItemToast(`🪙 +${coins}`)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
     dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world, levelId, value: p * 0.4 + ((state.levelMastery?.[world]?.[levelId]) || 0) * 0.6 } })
     if (p >= 0.8) {
       const cur = state.subjectLevels?.[world] || 1
       if (cur < maxLevels) {
         dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world, newLevel: cur + 1 } })
+        dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 15, bonusKey: `${world}_${cur + 1}` } })
         showToast(`✨ ปลดล็อก Level ${cur + 1}!`); spawnConfetti(15); playTone('unlock')
       }
     }

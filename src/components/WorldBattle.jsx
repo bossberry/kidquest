@@ -491,6 +491,10 @@ export default function WorldBattle({ navigate }) {
       dispatch({ type: ACTIONS.DEFEAT_BOSS })
     }
 
+    // Coin reward: boss = 15, regular = 10
+    const battleCoins = isBossBattle ? 15 : 10
+    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: battleCoins } })
+
     // Roll rewards
     const battleItemDrop = rollBattleItem()
     const homeItemDrop   = rollHomeItem()

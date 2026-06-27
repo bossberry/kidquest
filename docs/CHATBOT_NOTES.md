@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-27 (session 6) — Coin economy (earn-only foundation):**
+- Built: Added `coins`, `lastLoginDate`, `loginStreak`, `coinsLevelBonus` to `defaultState()` + `migrateStateShape()` (existing players load with `coins: 0`). Added `ADD_COINS` and `DAILY_LOGIN` reducer actions. Hooked coin awards at: all ROUND_COMPLETE paths in GameThai (via `useFinishRound`), GameMath, GamePhonics (all 4 sub-games), GameShop, GameMathBattle; world battle win (+10 regular / +15 boss, in `WorldBattle.onComplete`); arcade minigame completions (EggMemory +5, EggTower score-scaled 3–8, EggRun ring-scaled 3–8, EggCatch score-scaled 3–8, EggFishing +5). Level-unlock first-time bonus (+15, guarded by `coinsLevelBonus[world_level]` flag — no re-award). Daily login (+10 + min(streak,5) each new calendar day). Coin HUD added to Home.jsx header (gold 🪙 badge). `showItemToast` used for all coin feedback. Formula: `round(12 × accuracy × (1-mastery))`, clamp [2,12]. Anti-farm: replaying mastered level → min 2 coins/round. Build clean at 165 modules.
+- Not finished: No spending, no shop, no items linked to coins — earn-only as specified.
+- Blockers/risks found: `showItemToast` in StateContext.jsx (daily login) uses 900ms setTimeout to let ItemToast component register. If app loads very slowly, toast might fire before registry. Acceptable for now.
+- Ready to start next: Coin spending system (shop/wearable items) — next session after design from Chatbot
+- Needs Chatbot decision first: What can coins buy? What's the shop UI? Any daily coin cap?
+
 **2026-06-27 (session 5) — Legacy creature art removal STEP 2+2.5+§3+§4:**
 - Built: Deleted BattleScreen.jsx, HatchOverlay.jsx, CreatureCanvas.jsx, drawCreature.js, creatureAlgorithm.js, creatureHelpers.js (all zero-caller verified). Replaced: LoginBackdrop.jsx → 9 random-element egg RAF sprites (renderEggSprite); EggMemory.jsx → 6 emoji card pairs (🔥💧⚡🌿🌑✨, no creature dependency). Removed dead WorldHUD globals (__kq_activeCreatureSeed/__kq_activeCreatureStats + getCreatureSeed import). Removed dead HatchOverlay import/JSX from App.jsx. Removed dead getCreatureForHatch import from StateContext.jsx. Created db_backups/get_mystery_adventurers.OLD.sql with backup note + retrieval instructions. Build clean at 165 modules.
 - Not finished: `get_mystery_adventurers` RPC migration still not applied (supabase/migrations/20260627_mystery_adventurers_egg.sql must be run in Supabase SQL Editor). STEP 3 (DB column/RPC-body drops) not started.

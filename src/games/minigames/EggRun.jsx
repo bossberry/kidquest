@@ -87,6 +87,8 @@ export default function EggRun({ navigate }) {
       if (rings >= 16) dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: 'food' } })
       showItemToast(ITEMS[k].emoji + ' ได้รับ ' + ITEMS[k].name + '!')
     }
+    const runCoins = rings >= 16 ? 8 : rings >= 6 ? 5 : 3
+    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: runCoins } })
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0 } })
   }, [phase]) // eslint-disable-line
 

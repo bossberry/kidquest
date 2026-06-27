@@ -1,5 +1,32 @@
 # Changelog — KidQuest
 
+## 2026-06-27 (session 6) — feat: coin economy (earn-only foundation)
+
+### src/lib/state.js
+- Added `coins: 0`, `lastLoginDate: ''`, `loginStreak: 0`, `coinsLevelBonus: {}` to `defaultState()`
+- Existing players get `coins: 0` on next load via `migrateStateShape`
+
+### src/context/StateContext.jsx
+- New `ADD_COINS` action: `{ amount, bonusKey? }` — adds coins, clamps ≥ 0; when `bonusKey` set, skips if already awarded and marks key in `coinsLevelBonus`
+- New `DAILY_LOGIN` action: awards `10 + min(streak, 5)` coins on first open each calendar day, tracks `loginStreak`
+- Mount useEffect: dispatches `DAILY_LOGIN` + shows `showItemToast("ล็อกอินรายวัน 🪙 +N")` at 900ms
+
+### Coin earn hooks (all 13 activity types)
+- `GameThai.jsx` (`useFinishRound`): `round(12 × accuracy × (1-mastery))` clamp [2,12] + level-unlock bonus +15
+- `GameMath.jsx`: same formula at done path + level-unlock bonus +15
+- `GamePhonics.jsx`: same formula at all 4 done paths (L1–L4) + level-unlock bonus +15
+- `GameShop.jsx`: accuracy-only formula (no mastery field for shop)
+- `GameMathBattle.jsx`: formula + level-unlock bonus
+- `WorldBattle.jsx`: +10 regular battle win / +15 boss win (in `onComplete`)
+- `EggMemory.jsx`: flat +5 on completion
+- `EggTower.jsx`: `max(3, min(8, 3+floor(score/4)))` on game-over
+- `EggRun.jsx`: rings≥16 → +8, rings≥6 → +5, else → +3
+- `EggCatch.jsx`: score≥20 → +8, score≥8 → +5, else → +3
+- `EggFishing.jsx`: flat +5 on timer end
+
+### src/components/Home.jsx
+- Coin HUD: 🪙N badge (gold `#FFD23F`, pixel font) shown in header next to name/stage
+
 ## 2026-06-27 (session 5) — feat: legacy creature art removal STEP 2+2.5+§3+§4
 
 ### Deleted (zero callers verified before deletion)

@@ -107,5 +107,7 @@ function handleReward(score,dispatch){
     dispatch({type:ACTIONS.DROP_ITEM,payload:{key:k}})
     showItemToast(ITEMS[k].emoji+' ได้รับ '+ITEMS[k].name+'!')
   }
+  const catchCoins = score >= 20 ? 8 : score >= 8 ? 5 : 3
+  dispatch({type:ACTIONS.ADD_COINS,payload:{amount:catchCoins}})
   dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak:0,score:0}})
 }

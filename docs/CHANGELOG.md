@@ -1,5 +1,38 @@
 # Changelog — KidQuest
 
+## 2026-06-27 (session 4) — feat: full-pipeline animated walkers + Mystery Adventurers egg upgrade
+
+### src/egg/renderEggSprite.js (new)
+- Shared non-React helper: full 9-step egg compositing pipeline (aura→pose→regalia-behind→body→regalia-front→eyes→expression)
+- Accepts `{element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride}`
+- Used by HomeBackground + tileEngine for live-animated walker sprites
+
+### src/components/HomeBackground.jsx
+- Replaced static offscreen bake (2-layer drawEggBody+drawEyeLayer) with per-frame `renderEggSprite` into a reused 48×48 canvas
+- `basePxOverride=2` ensures egg fills the sprite frame; element animations (flames, water swirl, halo pulse) are now live
+- `companionRef` keeps companion data in sync without restarting the RAF loop; `spriteOffRef` is the reused sprite canvas
+
+### src/components/WorldScreen.jsx
+- Replaced static `window.__kq_playerOffscreen` bake with `window.__kq_companionEgg = {element,eye,gender,stage,aura}`
+- Removed `EGG_SHAPES`, `drawEggBody`, `stageSizeMul`, `drawEyeLayer` imports
+
+### src/lib/tileEngine.js
+- Replaced `drawCreature` import with `renderEggSprite`
+- `renderPlayer` now calls `renderEggSprite` every frame into a reused 32×32 offscreen; result scaled to 16×16 via `ctx.drawImage` — fully animated
+
+### src/components/FriendsScreen.jsx
+- Mystery Adventurers cards/modal now render `<EggCanvasCore element eye gender stage aura=0>` (core egg component from src/egg/EggCanvas.jsx)
+- Shows `display_name` (bot/anonymized handle) + element name in Thai (ธาตุไฟ etc.) instead of creature_name
+- Deleted: `drawCreature` import, `ELEMENT_STATS`, `elementToStats`, `CreatureCanvas` component
+
+### supabase/migrations/20260627_mystery_adventurers_egg.sql (new)
+- Drops old `get_mystery_adventurers` and recreates with new return columns: `element/eye/gender/stage/hp/atk/def/spd/rarity_label/is_bot`
+- Real users: JOIN companions for egg identity; stage estimated from hatchedEggs[0].battleLevel
+- Bots: random element/eye/gender/stage + randomized names (15 preset bot names)
+- ⚠️ Must be applied manually in Supabase SQL Editor
+
+---
+
 ## 2026-06-27 — feat: companion egg walker on Home; Collection replaced with coming-soon placeholder
 
 ### src/components/HomeBackground.jsx

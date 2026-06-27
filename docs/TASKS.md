@@ -1,5 +1,5 @@
 # Tasks — KidQuest
-_Last updated: 2026-06-22_
+_Last updated: 2026-06-27_
 
 ---
 
@@ -75,6 +75,7 @@ _Last updated: 2026-06-22_
 - [x] **Living Egg renderer + Companion Creation** — `src/egg/` 8-layer system; `CompanionContext`; blocking `CompanionCreation` modal; `companions` Supabase table + RPC (2026-06-26)
 - [x] **Companion egg on all screens** — Home/Collection/PartySelect/Battle/Map all show companion egg; name = `state.name`; `drawCreature` retired from player-side rendering (2026-06-26)
 - [x] **Home walker + Collection placeholder** — HomeBackground uses companion egg (drawEggBody+drawEyeLayer to 48×48 offscreen) instead of drawCreature; Collection replaced with "เร็วๆ นี้!" placeholder (EggCanvas + coming-soon text); CreatureDetailPopup.jsx deleted (2026-06-27)
+- [x] **Full-pipeline animated walkers + Mystery Adventurers eggs** — `renderEggSprite.js` shared helper; Home/World walkers redrawn per-frame (element animations live); FriendsScreen MysteryTab uses EggCanvasCore; `get_mystery_adventurers` RPC migration written (20260627_mystery_adventurers_egg.sql — apply manually) (2026-06-27)
 
 - [x] **Phase 1.1 Friend Code System** — FriendsScreen.jsx: 2-tab layout (เพื่อน unified scroll + ผู้คนอื่นๆ mystery tab); get_mystery_adventurers RPC; mock challenge toast (2026-06-20)
 - [x] **Phase 1 Friend Code System** — FriendsScreen.jsx (4 tabs: My Code / Add / Requests / List); BottomNav 4th tab; Supabase RPCs wired (ensure_friend_code, send_friend_request, respond_friend_request, my_friends view) (2026-06-20)

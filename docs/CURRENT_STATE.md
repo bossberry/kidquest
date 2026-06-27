@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-27 (session 3)_
+_Last updated: 2026-06-27 (session 4)_
 
 ---
 
@@ -8,7 +8,8 @@ _Last updated: 2026-06-27 (session 3)_
 ### Friend Code System (Phase 1.1)
 - `FriendsScreen.jsx`: 2-tab screen reachable from BottomNav "เพื่อน" tab
   - **เพื่อน tab** (unified scroll): pending requests (conditional, no empty state) → My Code ("ABC-DEF" + copy) → Add Friend (6-char input + `send_friend_request`) → My Friends list (from `my_friends` view). All loaded in parallel via `Promise.all` on mount.
-  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards with real `drawCreature` pixel-art canvas (64×64 on card, 192×192 in modal), creature_name label, RarityBadge (5 tiers). Element derived via `ELEMENT_STATS` reverse-map (no changes to creatureAlgorithm.js). "ดูสเตตัส" opens portal modal with canvas + 4 StatBars (HP/ATK/DEF/SPD) + "ท้าเล่น" mock (3s toast). "🔄 สับใหม่" re-calls RPC. player/bot visually identical.
+  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards. Each card shows `<EggCanvasCore element eye gender stage aura=0 size=60>` (from `src/egg/EggCanvas.jsx` directly, not the wrapper). Card shows `display_name` + element in Thai + RarityBadge. "ดูสเตตัส" opens portal modal with `<EggCanvasCore size=160>` + 4 StatBars (HP/ATK/DEF/SPD) + "ท้าเล่น" mock (3s toast). "🔄 สับใหม่" re-calls RPC. `drawCreature`/`CreatureCanvas`/`ELEMENT_STATS`/`elementToStats` removed from FriendsScreen.
+  - ⚠️ **Migration pending**: `supabase/migrations/20260627_mystery_adventurers_egg.sql` must be run in Supabase SQL Editor to replace the old RPC (currently returns `creature_seed/creature_name/evo_stage`; after migration returns `element/eye/gender/stage/hp/atk/def/spd/rarity_label/is_bot`). Until migration runs, all adventurers will show with default values (fire/gba/male/stage1).
 - BottomNav: 4th tab (green dot, "เพื่อน")
 - Out of scope (Phase 2+): real challenge backend, friend battles, chat, remove-friend, leaderboards
 
@@ -26,8 +27,9 @@ _Last updated: 2026-06-27 (session 3)_
 - `src/components/EggCanvas.jsx` — wrapper reading `eye/gender/element` from `CompanionContext`; accepts legacy `stats={...}` prop (extracts `stats.stage`)
 - **All screens now render the companion egg** (not the legacy creature): Home (large display + party bar + background walker), Collection (placeholder), PartySelect, Battle player side, Map player sprite — all show companion `element/eye/gender` with stage/aura from XP progress
 - **Companion name everywhere** = `state.name` (the child's account name, e.g. โชแปง); no more `creatureName`/`creature.n` shown
-- Map player sprite: WorldScreen pre-renders a 32×32 egg (body + eyes) to `window.__kq_playerOffscreen` on mount; `tileEngine.renderPlayer` uses it first, falls back to `drawCreature` if absent
-- Home walker (HomeBackground.jsx): single animated companion egg walks/hops/spins in the background landscape; uses `drawEggBody` + `drawEyeLayer` to 48×48 offscreen canvas; creature system removed from this component
+- **`src/egg/renderEggSprite.js`** — new shared helper: `renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})` runs the full 9-step compositing pipeline (aura→pose→regalia-behind→body→regalia-front→eyes→expression) for non-React canvas contexts
+- Map player sprite: WorldScreen sets `window.__kq_companionEgg = {element,eye,gender,stage,aura}` on mount; `tileEngine.renderPlayer` calls `renderEggSprite` every frame into a reused 32×32 offscreen then `ctx.drawImage` scaled to TILE(16×16) — **fully animated** (element FX live)
+- Home walker (HomeBackground.jsx): single animated companion egg walks/hops/spins; `renderEggSprite` called per-frame into a reused 48×48 offscreen (basePxOverride=2 for larger egg); `companionRef` kept in sync with props; element animations (flames/water/halo) are **live**
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change) — still used by minigames (EggRun, EggCatch)
 - 9 display stages (ไข่น้อย → ใกล้ฟักแล้ว!!!), adaptive XP threshold (`120 + n×60`, cap 800)
 - Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`
@@ -43,7 +45,8 @@ _Last updated: 2026-06-27 (session 3)_
 
 ### Legacy Creature System (partially retired)
 - `drawCreature` / `getCreatureSeed` from `creatureAlgorithm.js` — **no longer used by Home, HomeBackground, Collection, PartySelect, or Battle player side**
-  - Still used by: LoginBackdrop.jsx, BattleScreen.jsx (orphaned), EggMemory.jsx, FriendsScreen.jsx (MysteryTab), HatchOverlay.jsx (via CreatureCanvas.jsx + drawCreature.js). Full retirement is a separate planned pass.
+  - Still used by: LoginBackdrop.jsx, BattleScreen.jsx (orphaned), EggMemory.jsx, HatchOverlay.jsx (via CreatureCanvas.jsx + drawCreature.js). Full retirement is a separate planned pass.
+  - **Removed from FriendsScreen** (2026-06-27): `drawCreature`, `CreatureCanvas`, `ELEMENT_STATS`, `elementToStats` all deleted from FriendsScreen.jsx
 - `src/lib/creatureSystem.js`: still used by StateContext, HatchOverlay, state.js (progress migration)
 - `src/lib/creatureGenerator.js`: still used by StateContext (HATCH_EGG), HatchOverlay
 - Bond meter (0–100): `ADD_CREATURE_BOND` action; bond≥25 ATK×1.05, bond≥50 SPD+30, bond≥100 ATK×1.5, bond≥75 passive heal per correct answer

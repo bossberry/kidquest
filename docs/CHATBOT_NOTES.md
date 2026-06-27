@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-27 (session 4) — Full-pipeline animated walkers + Mystery Adventurers egg upgrade:**
+- Built: Created `src/egg/renderEggSprite.js` — shared non-React helper running the full 9-step egg compositing pipeline (aura→pose→regalia→body→eyes→expression). Updated `HomeBackground.jsx` to call `renderEggSprite` per-frame into a reused 48×48 offscreen (`basePxOverride=2`); element animations are now live. Updated `WorldScreen.jsx` to set `window.__kq_companionEgg` (not a baked canvas); updated `tileEngine.renderPlayer` to call `renderEggSprite` per-frame into a 32×32 offscreen scaled to 16×16. Removed `drawCreature` from tileEngine. Updated `FriendsScreen.jsx` MysteryTab: `<EggCanvasCore>` per adventurer row/modal; removed `CreatureCanvas`/`ELEMENT_STATS`/`elementToStats`/`drawCreature`. Generated `supabase/migrations/20260627_mystery_adventurers_egg.sql` for new RPC returning `element/eye/gender/stage/...`. Build clean at 170 modules.
+- Not finished: Supabase migration for `get_mystery_adventurers` NOT yet applied — adventurers will show default egg (fire/gba/male/stage1) until migration runs
+- Blockers/risks found: Migration must be pasted and run at https://supabase.com/dashboard/project/dgpsnlkedergkbhqnjpu/sql
+- Ready to start next: Run the migration SQL, then test FriendsScreen in browser; or BattleScreen.jsx dead-code deletion; or Phase 4 NPC System
+- Needs Chatbot decision first: none
+
 **2026-06-27 — Companion egg walker on Home; Collection placeholder:**
 - Built: `HomeBackground.jsx` rewritten — single companion egg entity (walk/jump/spin) using `drawEggBody`+`drawEyeLayer` to 48×48 offscreen canvas; `Home.jsx` passes `companion={resolved}` + `stage` from `useCompanion()`; voice profile now derived from companion element/gender (no DNA). `Collection.jsx` replaced with "เร็วๆ นี้!" placeholder (companion EggCanvas + coming-soon copy). `CreatureDetailPopup.jsx` deleted (orphaned). Build clean at 169 modules.
 - Not finished: none

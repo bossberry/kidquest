@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
-import { drawCreature } from '../lib/creatureAlgorithm.js'
+import EggCanvasCore from '../egg/EggCanvas.jsx'
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -273,6 +273,11 @@ function rarityKey(label) {
   return (label || 'common').toLowerCase().replace(/\s/g, '')
 }
 
+const ELEMENT_TH = {
+  fire: 'ธาตุไฟ', water: 'ธาตุน้ำ', thunder: 'ธาตุฟ้า',
+  nature: 'ธาตุธรรมชาติ', shadow: 'ธาตุเงา', light: 'ธาตุแสง',
+}
+
 function RarityBadge({ label }) {
   const s = RARITY[rarityKey(label)] ?? RARITY.common
   return (
@@ -318,7 +323,7 @@ function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
           WebkitTapHighlightColor: 'transparent',
         }}>✕</button>
 
-        {/* Creature canvas */}
+        {/* Egg avatar */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <div style={{
             background: 'var(--px-black)',
@@ -326,16 +331,21 @@ function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
             boxShadow: s.glow ? `4px 4px 0 var(--px-black), ${s.glow}` : '4px 4px 0 var(--px-black)',
             lineHeight: 0,
           }}>
-            <CreatureCanvas seed={a.creature_seed} element={a.element} evoStage={a.evo_stage} size={192} />
+            <EggCanvasCore
+              element={a.element ?? 'fire'} eye={a.eye ?? 'gba'} gender={a.gender ?? 'male'}
+              stage={a.stage ?? 1} aura={0} size={160}
+            />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ ...FONT_TH, fontSize: 15, fontWeight: 700, color: 'var(--px-light)' }}>
-              {a.creature_name ?? 'สัตว์ลึกลับ'}
+              {a.display_name ?? 'นักผจญภัยลึกลับ'}
             </div>
-            <RarityBadge label={a.rarity_label} />
-          </div>
-          <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.5 }}>
-            {a.display_name ?? 'นักผจญภัยลึกลับ'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.65 }}>
+                {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'}
+              </span>
+              <RarityBadge label={a.rarity_label} />
+            </div>
           </div>
         </div>
 
@@ -431,24 +441,27 @@ function MysteryTab() {
                 padding: '12px 14px',
                 display: 'flex', alignItems: 'center', gap: 12,
               }}>
-                {/* Creature pixel-art avatar */}
+                {/* Egg avatar */}
                 <div style={{
                   flexShrink: 0, background: 'var(--px-black)',
                   border: `2px solid ${s.border}`, lineHeight: 0,
                 }}>
-                  <CreatureCanvas seed={a.creature_seed} element={a.element} evoStage={a.evo_stage} size={64} />
+                  <EggCanvasCore
+                    element={a.element ?? 'fire'} eye={a.eye ?? 'gba'} gender={a.gender ?? 'male'}
+                    stage={a.stage ?? 1} aura={0} size={60}
+                  />
                 </div>
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{ ...FONT_TH, fontSize: 13, color: 'var(--px-light)', fontWeight: 700 }}>
-                      {a.creature_name ?? 'สัตว์ลึกลับ'}
+                      {a.display_name ?? 'นักผจญภัยลึกลับ'}
                     </span>
                     <RarityBadge label={a.rarity_label} />
                   </div>
                   <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.55 }}>
-                    {a.display_name ?? 'นักผจญภัยลึกลับ'}
+                    {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'}
                   </div>
                 </div>
 
@@ -468,37 +481,6 @@ function MysteryTab() {
         </div>
       )}
     </div>
-  )
-}
-
-// ─── Creature canvas helpers ───────────────────────────────────────────────────
-
-// Reverse-maps element name → placeholder stats that make getElement() return
-// that exact element, without modifying creatureAlgorithm.js.
-const ELEMENT_STATS = {
-  shadow:  { xpThai: 20,  xpMath: 20,  xpEng: 20,  acc: 70, streak: 10 }, // streak ≥ 7
-  nature:  { xpThai: 20,  xpMath: 20,  xpEng: 20,  acc: 90, streak: 0  }, // acc ≥ 85
-  fire:    { xpThai: 100, xpMath: 20,  xpEng: 20,  acc: 70, streak: 0  }, // xpThai dominant
-  water:   { xpThai: 20,  xpMath: 100, xpEng: 20,  acc: 70, streak: 0  }, // xpMath dominant
-  thunder: { xpThai: 20,  xpMath: 20,  xpEng: 100, acc: 70, streak: 0  }, // xpEng dominant
-  light:   { xpThai: 33,  xpMath: 33,  xpEng: 34,  acc: 70, streak: 0  }, // no dominant (<0.45)
-}
-
-function elementToStats(element, evoStage) {
-  const base = ELEMENT_STATS[element] ?? ELEMENT_STATS.light
-  return { ...base, evoStage: evoStage ?? 'baby' }
-}
-
-function CreatureCanvas({ seed, element, evoStage, size }) {
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    drawCreature(canvas, Number(seed), elementToStats(element, evoStage))
-  }, [seed, element, evoStage])
-  return (
-    <canvas ref={canvasRef} width={size} height={size}
-      style={{ imageRendering: 'pixelated', display: 'block' }} />
   )
 }
 

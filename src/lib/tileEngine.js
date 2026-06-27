@@ -1,17 +1,17 @@
 // Tile engine — GB-palette canvas renderer for Green Meadow
 
-import { drawCreature } from './creatureAlgorithm.js'
+import { renderEggSprite } from '../egg/renderEggSprite.js'
 
-// Cached offscreen canvas — reused every frame to avoid per-frame GC pressure
-let _playerOff = null
-function getPlayerOff() {
+// Cached sprite offscreen (32×32) reused every frame; content redrawn each frame
+let _spriteOff = null
+function getSpriteOff() {
   if (typeof document === 'undefined') return null
-  if (!_playerOff) {
-    _playerOff = document.createElement('canvas')
-    _playerOff.width = 16
-    _playerOff.height = 16
+  if (!_spriteOff) {
+    _spriteOff = document.createElement('canvas')
+    _spriteOff.width  = 32
+    _spriteOff.height = 32
   }
-  return _playerOff
+  return _spriteOff
 }
 
 export const TILE = 16
@@ -233,15 +233,14 @@ export function renderPlayer(ctx, playerX, playerY, direction, walkFrame, eggCol
   const px = Math.round(playerX * TILE - camX)
   const py = Math.round(playerY * TILE - camY)
 
-  // Prefer a pre-rendered companion egg offscreen canvas set by WorldScreen
-  if (window.__kq_playerOffscreen) {
-    ctx.drawImage(window.__kq_playerOffscreen, px, py, TILE, TILE)
-    return
-  }
-
-  const off = getPlayerOff()
-  if (off) {
-    drawCreature(off, window.__kq_activeCreatureSeed ?? 0, window.__kq_activeCreatureStats ?? {})
+  const companion = window.__kq_companionEgg
+  const off = getSpriteOff()
+  if (off && companion) {
+    const sCtx = off.getContext('2d')
+    sCtx.imageSmoothingEnabled = false
+    sCtx.clearRect(0, 0, 32, 32)
+    renderEggSprite(sCtx, { ...companion, t: performance.now() / 1000, canvasSize: 32 })
+    ctx.imageSmoothingEnabled = false
     ctx.drawImage(off, px, py, TILE, TILE)
   }
 }

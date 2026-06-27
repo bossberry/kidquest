@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { EGG_SHAPES, drawEggBody, stageSizeMul } from '../egg/eggBaseLayer.js'
-import { drawEyeLayer } from '../egg/eggEyeLayer.js'
+import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { playSFX, playTone } from '../lib/audio.js'
 
 const P = {
@@ -44,33 +43,22 @@ export default function HomeBackground({ hour, companion, stage }) {
   const h = hour ?? new Date().getHours()
   const isDay = h >= 6 && h < 19
 
-  const canvasRef       = useRef(null)
-  const rafRef          = useRef(null)
-  const offscreenRef    = useRef(null)
-  const entityRef       = useRef(null)
+  const canvasRef        = useRef(null)
+  const rafRef           = useRef(null)
+  const spriteOffRef     = useRef(null)   // 48×48 offscreen refreshed every RAF frame
+  const companionRef     = useRef({ element: 'fire', eye: 'gba', gender: 'male', stage: 1, aura: 0 })
+  const entityRef        = useRef(null)
   const lastJumpSoundRef = useRef(0)
 
-  // Rebuild offscreen canvas when companion or stage changes
+  // Keep companion params in sync (no canvas bake — per-frame render handles it)
   useEffect(() => {
-    const { element = 'fire', eye = 'gba', gender = 'male' } = companion ?? {}
-    const s = stage ?? 1
-    const off = document.createElement('canvas')
-    off.width  = SIZE
-    off.height = SIZE
-    const ctx = off.getContext('2d')
-    ctx.imageSmoothingEnabled = false
-    const shape = EGG_SHAPES.baby
-    const basePx = 1
-    const px = basePx * stageSizeMul(s)
-    const eggW = shape.w * px
-    const eggH = shape.h * px
-    const cx = SIZE / 2
-    const groundY = SIZE * 0.88
-    const ox = Math.round(cx - eggW / 2)
-    const oy = Math.round(groundY - eggH)
-    drawEggBody(ctx, { element, shape: 'baby', px, ox, oy, gender })
-    drawEyeLayer(ctx, { style: eye, element, px, ox, oy, faceX: shape.crownX, eyeY: shape.eyeY, blink: false, gender })
-    offscreenRef.current = off
+    companionRef.current = {
+      element: companion?.element ?? 'fire',
+      eye:     companion?.eye     ?? 'gba',
+      gender:  companion?.gender  ?? 'male',
+      stage:   stage ?? 1,
+      aura:    0,
+    }
   }, [companion?.element, companion?.eye, companion?.gender, stage]) // eslint-disable-line
 
   useEffect(() => {
@@ -339,7 +327,7 @@ export default function HomeBackground({ hour, companion, stage }) {
 
     function drawEntity(t) {
       const e   = entityRef.current
-      const off = offscreenRef.current
+      const off = spriteOffRef.current
       if (!e || !off) return
 
       const bobOffset = e.state === 'idle' ? Math.floor(Math.sin(t * 0.1) * 2) : 0
@@ -361,9 +349,25 @@ export default function HomeBackground({ hour, companion, stage }) {
       ctx.restore()
     }
 
+    // Init sprite offscreen once; re-used across frames
+    if (!spriteOffRef.current) {
+      const sOff = document.createElement('canvas')
+      sOff.width  = SIZE
+      sOff.height = SIZE
+      spriteOffRef.current = sOff
+    }
+    const spriteCtx = spriteOffRef.current.getContext('2d')
+    spriteCtx.imageSmoothingEnabled = false
+
     let t = 0
     function frame() {
       t++
+      const tSec = performance.now() / 1000
+
+      // Re-render egg sprite every frame so element animations (flames, water, halo) are live
+      spriteCtx.clearRect(0, 0, SIZE, SIZE)
+      renderEggSprite(spriteCtx, { ...companionRef.current, t: tSec, canvasSize: SIZE, basePxOverride: 2 })
+
       ctx.clearRect(0, 0, W, H)
       drawStatic()
 

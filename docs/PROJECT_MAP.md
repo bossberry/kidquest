@@ -47,7 +47,8 @@ src/
 │   ├── eggStageLayer.js — element FX overlay, drawBodyMass, isBodyReplacedBy, stageToTier, regaliaTier
 │   ├── eggAuraLayer.js — 5 rarity aura levels, element-tinted rings
 │   ├── eggRegaliaLayer.js — per-element regalia growing with stage (tier 1 at stage 4+)
-│   └── eggAnimations.js — 6 anim states, getEggPose, applyEggPose, flashEgg, drawGroundShadow
+│   ├── eggAnimations.js — 6 anim states, getEggPose, applyEggPose, flashEgg, drawGroundShadow
+│   └── renderEggSprite.js — non-React full-pipeline helper: renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})
 │
 ├── config/
 │   ├── gameConfig.js       — barrel re-exporter + remaining content (ITEMS, LEVELS, TEACH_CONTENT, etc.)

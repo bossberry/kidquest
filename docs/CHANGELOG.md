@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-30 (session 7) — feat: coins earned shown on all result screens
+
+All 16 result/end screens now show the exact coins awarded that round.
+
+- `GameThai.jsx`: `ResultScreen` gains `coins` prop (gold badge); `useFinishRound` returns `{ finish, coins }` — no formula duplication; ThaiMatchGame/ThaiSpellGame/ThaiWordOrderGame all wired
+- `GameMath.jsx`: `coinsEarned` state + badge in inline done screen
+- `GamePhonics.jsx`: `ResultScreen` gains `coins` prop; all 4 sub-games (L1–L4) add `coinsEarned` state
+- `GameShop.jsx`: `coinsEarned` state + badge in inline done screen
+- `GameMathBattle.jsx`: `coinsEarned` state + badge in dark-background done screen
+- `EggMemory.jsx`: hardcoded `🪙 +5` badge (flat award)
+- `EggTower.jsx`: computes display from `score` state — `max(3,min(8,3+floor(score/4)))`
+- `EggCatch.jsx`: computes display from `score` state — `score≥20?8:score≥8?5:3`
+- `EggRun.jsx`: `🪙 +N` badge in dead overlay — derived from `gsRef.current.ringCount`
+- `EggFishing.jsx`: hardcoded `🪙 +5` badge (flat award)
+- `WorldBattle.jsx`: `pendingBattleCoins` state set alongside `ADD_COINS`; passed to `<RewardChest>`
+- `RewardChest.jsx`: `coins` prop → animated gold pill shown in reveal phase
+
 ## 2026-06-27 (session 6) — feat: coin economy (earn-only foundation)
 
 ### src/lib/state.js

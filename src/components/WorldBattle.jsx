@@ -367,6 +367,7 @@ export default function WorldBattle({ navigate }) {
   )
   const [cur, setCur]          = useState(0)
   const [pendingRewards, setPendingRewards] = useState(null)
+  const [pendingBattleCoins, setPendingBattleCoins] = useState(0)
   const streakRef      = useRef(0)
   const scoreRef       = useRef(0)
   const accuracyRef    = useRef({ correct: 0, total: 0 })
@@ -493,6 +494,7 @@ export default function WorldBattle({ navigate }) {
 
     // Coin reward: boss = 15, regular = 10
     const battleCoins = isBossBattle ? 15 : 10
+    setPendingBattleCoins(battleCoins)
     dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: battleCoins } })
 
     // Roll rewards
@@ -534,6 +536,7 @@ export default function WorldBattle({ navigate }) {
       {pendingRewards !== null && (
         <RewardChest
           rewards={pendingRewards}
+          coins={pendingBattleCoins}
           onDone={() => {
             setPendingRewards(null)
             dispatch({ type: ACTIONS.CLEAR_PENDING_REWARDS })

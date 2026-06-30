@@ -86,6 +86,7 @@ export default function GameShop({ navigate }) {
   const [attempts, setAttempts] = useState(0)
   const [feedback, setFeedback] = useState(null)
   const [done, setDone] = useState(false)
+  const [coinsEarned, setCoinsEarned] = useState(0)
   const [wrongChoice, setWrongChoice] = useState(null)
   const sessionStart = useRef(Date.now())
   const perQCorrect = useRef(Array(TOTAL).fill(false))
@@ -145,6 +146,7 @@ export default function GameShop({ navigate }) {
         { phase: 4, subject: 'thai',    correct: pqc[5]?1:0, total: 1 },
       ]
       const _shopCoins = Math.max(2, Math.min(12, Math.round(12 * (p < 0.5 ? 0.3 : p))))
+      setCoinsEarned(_shopCoins)
       dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: _shopCoins } })
       showItemToast(`🪙 +${_shopCoins}`)
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
@@ -180,9 +182,10 @@ export default function GameShop({ navigate }) {
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--purple-d)', marginBottom:8 }}>
           {p >= .9 ? 'เยี่ยมมาก! 🌟' : p >= .8 ? 'ผ่านแล้ว! 🎊' : 'ลองอีกครั้งนะ 💪'}
         </div>
-        <div style={{ fontSize:14, color:'var(--muted)', marginBottom:12 }}>
+        <div style={{ fontSize:14, color:'var(--muted)', marginBottom:coinsEarned>0?6:12 }}>
           {score}/{TOTAL} ถูก · +{xp} XP
         </div>
+        {coinsEarned > 0 && <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.12)',border:'1px solid rgba(255,210,63,0.35)',borderRadius:20,padding:'4px 14px',marginBottom:12,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{coinsEarned}</div>}
         {passed && (
           <div style={{ fontSize:13, color:'var(--green-d)', background:'var(--green-l)', borderRadius:8, padding:'6px 14px', marginBottom:12 }}>
             ✅ ผ่านภารกิจร้านค้าแล้ว!

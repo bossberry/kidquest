@@ -3,6 +3,13 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-06-30 (session 7) — Coins earned shown on all result screens:**
+- Built: All 16 result/end screens now display the exact coins earned that round. `GameThai.jsx`: `useFinishRound` refactored to return `{ finish, coins }` — coins pre-computed before the closure, passed as `coins` prop to `ResultScreen`. `GameMath`, `GameShop`, `GameMathBattle`: added `coinsEarned` state, set before dispatch, shown in inline done screens. `GamePhonics`: `ResultScreen` gains `coins` prop; all 4 sub-games (PhonicsGame L1, CVCGame L2, SightGame L3, SentenceGame L4) add `coinsEarned` state. Minigames: EggMemory/EggFishing hardcoded +5; EggTower/EggCatch display computed from `score` state (deterministic, same formula); EggRun badge in canvas dead overlay from `gsRef.ringCount`. WorldBattle: `pendingBattleCoins` state set alongside dispatch, passed to `<RewardChest coins={...}>`; RewardChest shows animated gold pill in reveal phase. Build clean at 165 modules.
+- Not finished: Nothing — all screens covered.
+- Blockers/risks: None.
+- Ready to start next: Coin spending system (shop/wearable items) — Chatbot must define what coins buy first
+- Needs Chatbot decision first: What can coins buy? What does the shop UI look like? Any daily coin cap?
+
 **2026-06-27 (session 6) — Coin economy (earn-only foundation):**
 - Built: Added `coins`, `lastLoginDate`, `loginStreak`, `coinsLevelBonus` to `defaultState()` + `migrateStateShape()` (existing players load with `coins: 0`). Added `ADD_COINS` and `DAILY_LOGIN` reducer actions. Hooked coin awards at: all ROUND_COMPLETE paths in GameThai (via `useFinishRound`), GameMath, GamePhonics (all 4 sub-games), GameShop, GameMathBattle; world battle win (+10 regular / +15 boss, in `WorldBattle.onComplete`); arcade minigame completions (EggMemory +5, EggTower score-scaled 3–8, EggRun ring-scaled 3–8, EggCatch score-scaled 3–8, EggFishing +5). Level-unlock first-time bonus (+15, guarded by `coinsLevelBonus[world_level]` flag — no re-award). Daily login (+10 + min(streak,5) each new calendar day). Coin HUD added to Home.jsx header (gold 🪙 badge). `showItemToast` used for all coin feedback. Formula: `round(12 × accuracy × (1-mastery))`, clamp [2,12]. Anti-farm: replaying mastered level → min 2 coins/round. Build clean at 165 modules.
 - Not finished: No spending, no shop, no items linked to coins — earn-only as specified.

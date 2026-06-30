@@ -12,7 +12,7 @@ const ITEM_COLORS = {
 }
 const SPARKLE_POSITIONS = [12, 28, 46, 64, 80]  // fixed % positions to avoid per-render random
 
-export default function RewardChest({ rewards, onDone }) {
+export default function RewardChest({ rewards, coins, onDone }) {
   const [phase, setPhase] = useState('closed')  // closed | shaking | opening | reveal | collected
   const t1Ref = useRef(null)
   const t2Ref = useRef(null)
@@ -120,10 +120,27 @@ export default function RewardChest({ rewards, onDone }) {
         )}
       </div>
 
+      {/* Coins earned */}
+      {(phase === 'reveal' || phase === 'collected') && coins > 0 && (
+        <div style={{
+          marginTop: 24,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: 'rgba(255,210,63,0.15)', border: '1px solid rgba(255,210,63,0.45)',
+          borderRadius: 24, padding: '6px 18px',
+          fontFamily: 'var(--font-pixel)', fontSize: 13, color: '#FFD23F',
+          transform: phase === 'collected' ? 'translateY(-40px) scale(0.6)' : 'translateY(0) scale(1)',
+          opacity: phase === 'collected' ? 0 : 1,
+          transition: 'transform 0.6s ease, opacity 0.6s ease',
+          animation: phase === 'reveal' ? 'scale-pop 0.4s ease both' : 'none',
+        }}>
+          🪙 +{coins}
+        </div>
+      )}
+
       {/* Revealed items */}
       {(phase === 'reveal' || phase === 'collected') && (
         <div style={{
-          marginTop: 32,
+          marginTop: coins > 0 ? 16 : 32,
           display: 'flex', gap: 16, justifyContent: 'center',
         }}>
           {rewards.length === 0 ? (

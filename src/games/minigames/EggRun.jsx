@@ -139,7 +139,8 @@ export default function EggRun({ navigate }) {
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:12, gap:8 }}>
             <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color:'#fff' }}>Game Over!</div>
             <div style={{ fontSize:16, color:'#fff', fontFamily:'Mitr,sans-serif' }}>📏 {Math.floor(gsRef.current?.dist||0)}m · 💛 {gsRef.current?.ringCount||0}</div>
-            <button onClick={() => setPhase('stats')} style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:10, padding:'10px 24px', color:'#fff', fontFamily:'Mitr,sans-serif', fontSize:14, cursor:'pointer', marginTop:8 }}>← Back</button>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.18)', border:'1px solid rgba(255,210,63,0.45)', borderRadius:20, padding:'3px 12px', fontFamily:'var(--font-pixel)', fontSize:10, color:'#FFD23F' }}>🪙 +{(gsRef.current?.ringCount||0)>=16?8:(gsRef.current?.ringCount||0)>=6?5:3}</div>
+            <button onClick={() => setPhase('stats')} style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:10, padding:'10px 24px', color:'#fff', fontFamily:'Mitr,sans-serif', fontSize:14, cursor:'pointer', marginTop:4 }}>← Back</button>
           </div>
         )}
       </div>

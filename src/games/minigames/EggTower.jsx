@@ -45,13 +45,17 @@ export default function EggTower() {
   const cW = Math.min(typeof window!=='undefined'?window.innerWidth:480, 480)
   const cH = Math.max(300, Math.min(420, typeof window!=='undefined'?window.innerHeight-130:400))
 
-  if (dead) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
-      <div style={{ fontSize:64, marginBottom:10 }}>🏗️</div>
-      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:8 }}>Tower: {score} ชั้น!</div>
-      <button onClick={() => { setDead(false); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
-    </div>
-  )
+  if (dead) {
+    const towerCoinsDisplay = Math.max(3, Math.min(8, 3 + Math.floor(score / 4)))
+    return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
+        <div style={{ fontSize:64, marginBottom:10 }}>🏗️</div>
+        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:8 }}>Tower: {score} ชั้น!</div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{towerCoinsDisplay}</div>
+        <button onClick={() => { setDead(false); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
+      </div>
+    )
+  }
 
   return (
     <div style={{ width:'100%', maxWidth:480 }}>

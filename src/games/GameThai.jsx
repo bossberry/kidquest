@@ -37,12 +37,17 @@ export default function GameThai() {
 }
 
 // ── shared result screen ──────────────────────────────────────────────
-function ResultScreen({ emoji, title, sub, onReplay, onBack }) {
+function ResultScreen({ emoji, title, sub, coins, onReplay, onBack }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center', width:'100%', maxWidth:480 }}>
       <div style={{ fontSize:64, marginBottom:10 }}>{emoji}</div>
       <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:'var(--green-d)', marginBottom:8 }}>{title}</div>
-      <div style={{ fontSize:14, color:'var(--muted)', marginBottom:20 }}>{sub}</div>
+      <div style={{ fontSize:14, color:'var(--muted)', marginBottom:coins > 0 ? 8 : 20 }}>{sub}</div>
+      {coins > 0 && (
+        <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>
+          🪙 +{coins}
+        </div>
+      )}
       <button onClick={onReplay} style={{ width:'100%', background:'var(--green)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer', marginBottom:8 }}>🔄 เล่นอีกครั้ง</button>
       <button onClick={onBack}   style={{ width:'100%', background:'var(--purple-l)', color:'var(--purple-d)', border:'none', borderRadius:10, padding:13, fontFamily:'Mitr,sans-serif', fontSize:14, fontWeight:600, cursor:'pointer' }}>← Level อื่น</button>
     </div>
@@ -70,14 +75,13 @@ function GameHeader({ cur, total, xp, streak }) {
 // ── finish round helper ────────────────────────────────────────────────
 function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessionStartRef }) {
   const { state, dispatch } = useAppState()
-  return () => {
-    const p = score / total
+  const p = score / total
+  const mastery = state.levelMastery?.[world]?.[levelId] || 0
+  const accuracyMul = p < 0.5 ? 0.3 : p
+  const coins = Math.max(2, Math.min(12, Math.round(12 * accuracyMul * (1 - mastery))))
+  const finish = () => {
     const now = Date.now()
     const ts = sessionStartRef?.current || now
-    // Coin formula: anti-farm via mastery decay (mirrors XP decay)
-    const mastery = state.levelMastery?.[world]?.[levelId] || 0
-    const accuracyMul = p < 0.5 ? 0.3 : p
-    const coins = Math.max(2, Math.min(12, Math.round(12 * accuracyMul * (1 - mastery))))
     dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: coins } })
     showItemToast(`🪙 +${coins}`)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
@@ -98,6 +102,7 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessi
       hints: 0, completed: p >= 0.8, nextAction: null, phaseStats: null,
     }})
   }
+  return { finish, coins }
 }
 
 // ── MATCH GAME (Level 1) ───────────────────────────────────────────────
@@ -137,7 +142,7 @@ function ThaiMatchGame({ lv, onBack }) {
     }
   }
 
-  const finish = useFinishRound({ score, total:10, world:'thai', levelId:1, maxLevels:5, streak, sessionStartRef: sessionStart })
+  const { finish, coins: coinsEarned } = useFinishRound({ score, total:10, world:'thai', levelId:1, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const next = () => {
     if (cur + 1 >= 10) { setDone(true); finish() }
@@ -148,7 +153,7 @@ function ThaiMatchGame({ lv, onBack }) {
 
   if (done) {
     const p = score / 10
-    return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'เยี่ยมมาก!':p>=.7?'เก่งมาก!':'ทำได้ดี!'} sub={`${score}/10 ถูก · +${xp} XP`}
+    return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'เยี่ยมมาก!':p>=.7?'เก่งมาก!':'ทำได้ดี!'} sub={`${score}/10 ถูก · +${xp} XP`} coins={coinsEarned}
       onReplay={() => { sessionStart.current = Date.now(); setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setFeedback(null);setDone(false);setQ(shuffle([...TH_ALPHA]).slice(0,10)) }}
       onBack={onBack} />
   }
@@ -209,7 +214,7 @@ function ThaiSpellGame({ lv, onBack, words }) {
   useEffect(() => { setUsedTiles([]); setErrTiles([]); setTyped([]); setAttempts(0); setFeedback(null) }, [cur])
   useEffect(() => { if (question) setTimeout(() => speakTh(question.word), 200) }, [cur]) // eslint-disable-line
 
-  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:lv?.id || 2, maxLevels:5, streak, sessionStartRef: sessionStart })
+  const { finish, coins: coinsEarned } = useFinishRound({ score, total:q.length, world:'thai', levelId:lv?.id || 2, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const tapTile = (ch, idx) => {
     if (usedTiles.includes(idx) || !question) return
@@ -258,7 +263,7 @@ function ThaiSpellGame({ lv, onBack, words }) {
   if (done || !question) {
     if (done) {
       const p = score / q.length
-      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'นักสะกดแชมเปียน!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
+      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'นักสะกดแชมเปียน!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`} coins={coinsEarned}
         onReplay={() => { sessionStart.current = Date.now(); const nq=shuffle([...words]).slice(0,10); setQ(nq); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
         onBack={onBack} />
     }
@@ -320,7 +325,7 @@ function ThaiWordOrderGame({ lv, onBack }) {
     if (question) setTimeout(() => speakTh(question.sound || question.words.join('')), 250)
   }, [cur]) // eslint-disable-line
 
-  const finish = useFinishRound({ score, total:q.length, world:'thai', levelId:5, maxLevels:5, streak, sessionStartRef: sessionStart })
+  const { finish, coins: coinsEarned } = useFinishRound({ score, total:q.length, world:'thai', levelId:5, maxLevels:5, streak, sessionStartRef: sessionStart })
 
   const tapTile = (w, idx) => {
     if (submitted || usedIdxs.includes(idx) || !question) return
@@ -356,7 +361,7 @@ function ThaiWordOrderGame({ lv, onBack }) {
   if (done || !question) {
     if (done) {
       const p = score / q.length
-      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'ยอดเยี่ยม!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`}
+      return <ResultScreen emoji={p>=.9?'🏆':p>=.7?'🎉':'😊'} title={p>=.9?'ยอดเยี่ยม!':'เก่งมาก!'} sub={`${score}/${q.length} ถูก · +${xp} XP`} coins={coinsEarned}
         onReplay={() => { sessionStart.current = Date.now(); setQ(shuffle([...TH_L5]).slice(0,8)); setCur(0);setScore(0);setStreak(0);setXp(0);setDone(false) }}
         onBack={onBack} />
     }

@@ -51,7 +51,8 @@ export default function EggMemory() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 64, marginBottom: 10 }}>🎉</div>
       <div style={{ fontFamily: "'Fredoka One',cursive", fontSize: 24, marginBottom: 8 }}>จับคู่ครบแล้ว!</div>
-      <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>{moves} ครั้ง</div>
+      <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 8 }}>{moves} ครั้ง</div>
+      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +5</div>
       <button
         onClick={() => { setDone(false); setFlipped([]); setMatched(new Set()); setMoves(0); setCards(shuffle([...cards])) }}
         style={{ width: '100%', background: 'var(--purple)', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontFamily: 'Mitr,sans-serif', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}

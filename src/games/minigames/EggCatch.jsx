@@ -35,14 +35,18 @@ export default function EggCatch() {
   const cW=Math.min(typeof window!=='undefined'?window.innerWidth:480,480)
   const cH=Math.max(240,Math.min(340,typeof window!=='undefined'?window.innerHeight-160:300))
 
-  if(phase==='dead') return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
-      <div style={{fontSize:64,marginBottom:10}}>🧺</div>
-      <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,marginBottom:8}}>Game Over!</div>
-      <div style={{fontSize:16,marginBottom:20}}>คะแนน: {score}</div>
-      <button onClick={()=>{setPhase('playing');setScore(0)}} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🔄 เล่นอีกครั้ง</button>
-    </div>
-  )
+  if(phase==='dead'){
+    const catchCoinsDisplay = score >= 20 ? 8 : score >= 8 ? 5 : 3
+    return(
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
+        <div style={{fontSize:64,marginBottom:10}}>🧺</div>
+        <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,marginBottom:8}}>Game Over!</div>
+        <div style={{fontSize:16,marginBottom:8}}>คะแนน: {score}</div>
+        <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.12)',border:'1px solid rgba(255,210,63,0.35)',borderRadius:20,padding:'4px 14px',marginBottom:16,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{catchCoinsDisplay}</div>
+        <button onClick={()=>{setPhase('playing');setScore(0)}} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🔄 เล่นอีกครั้ง</button>
+      </div>
+    )
+  }
 
   return(
     <div style={{width:'100%',maxWidth:480}}>

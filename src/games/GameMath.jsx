@@ -144,6 +144,7 @@ function MathLevelGame({ lv, onBack }) {
   const [attempts, setAttempts] = useState(0)
   const [feedback, setFeedback] = useState(null)
   const [done, setDone] = useState(false)
+  const [coinsEarned, setCoinsEarned] = useState(0)
   const [timeLeft, setTimeLeft] = useState(lv?.timer || 15)
   const timerRef = useRef(null)
   const sessionStart = useRef(Date.now())
@@ -204,6 +205,7 @@ function MathLevelGame({ lv, onBack }) {
       const p=score/10
       const _mathMastery=state.levelMastery?.math?.[lv?.id||1]||0
       const _mathCoins=Math.max(2,Math.min(12,Math.round(12*(p<0.5?0.3:p)*(1-_mathMastery))))
+      setCoinsEarned(_mathCoins)
       dispatch({type:ACTIONS.ADD_COINS,payload:{amount:_mathCoins}})
       showItemToast(`🪙 +${_mathCoins}`)
       dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}})
@@ -229,8 +231,9 @@ function MathLevelGame({ lv, onBack }) {
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
         <div style={{fontSize:64,marginBottom:10}}>{p>=.9?'🏆':p>=.7?'🎉':'😊'}</div>
         <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,color:'var(--purple-d)',marginBottom:8}}>{p>=.9?'อัจฉริยะเลข!':'เก่งมาก!'}</div>
-        <div style={{fontSize:14,color:'var(--muted)',marginBottom:16}}>{score}/10 ถูก · +{xp} XP</div>
-        <button onClick={()=>{sessionStart.current=Date.now();setQs(Array.from({length:10},()=>genQ(lv)));setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setAttempts(0);setFeedback(null);setDone(false)}} style={{width:'100%',background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer',marginBottom:8}}>🔄 เล่นอีกครั้ง</button>
+        <div style={{fontSize:14,color:'var(--muted)',marginBottom:coinsEarned>0?8:16}}>{score}/10 ถูก · +{xp} XP</div>
+        {coinsEarned > 0 && <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.12)',border:'1px solid rgba(255,210,63,0.35)',borderRadius:20,padding:'4px 14px',marginBottom:16,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{coinsEarned}</div>}
+        <button onClick={()=>{sessionStart.current=Date.now();setQs(Array.from({length:10},()=>genQ(lv)));setCur(0);setScore(0);setStreak(0);setXp(0);setAnswered(false);setAttempts(0);setFeedback(null);setDone(false);setCoinsEarned(0)}} style={{width:'100%',background:'var(--purple)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer',marginBottom:8}}>🔄 เล่นอีกครั้ง</button>
         <button onClick={onBack} style={{width:'100%',background:'var(--purple-l)',color:'var(--purple-d)',border:'none',borderRadius:10,padding:13,fontFamily:'Mitr,sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>← Level อื่น</button>
       </div>
     )

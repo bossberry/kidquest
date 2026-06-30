@@ -119,6 +119,7 @@ export default function GameMathBattle({ navigate }) {
   const [hitFlash, setHitFlash]   = useState(false)
   const [missShake, setMissShake] = useState(false)
   const [done, setDone]           = useState(false)
+  const [coinsEarned, setCoinsEarned] = useState(0)
   const sessionStart = useRef(Date.now())
 
   const q = qs[cur]
@@ -164,6 +165,7 @@ export default function GameMathBattle({ navigate }) {
       setDone(true)
       const p = score / TOTAL_QS
       const _mbCoins = Math.max(2, Math.min(12, Math.round(12 * (p < 0.5 ? 0.3 : p) * (1 - (state.levelMastery?.math?.[lv?.id||1] || 0)))))
+      setCoinsEarned(_mbCoins)
       dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: _mbCoins } })
       showItemToast(`🪙 +${_mbCoins}`)
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
@@ -202,7 +204,8 @@ export default function GameMathBattle({ navigate }) {
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color: won ? '#FFD700' : '#fff', marginBottom:8 }}>
           {won ? `ชนะ ${enemy.name} แล้ว! 🎉` : 'สู้ต่อไปนะ! 💪'}
         </div>
-        <div style={{ fontSize:14, color:'rgba(255,255,255,.7)', marginBottom:20 }}>{score}/{TOTAL_QS} ถูก · +{xp} XP</div>
+        <div style={{ fontSize:14, color:'rgba(255,255,255,.7)', marginBottom:coinsEarned>0?8:20 }}>{score}/{TOTAL_QS} ถูก · +{xp} XP</div>
+        {coinsEarned > 0 && <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.15)',border:'1px solid rgba(255,210,63,0.4)',borderRadius:20,padding:'4px 14px',marginBottom:20,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{coinsEarned}</div>}
         <div style={{ background:'rgba(255,255,255,.12)', borderRadius:14, padding:'12px 20px', marginBottom:20, width:'100%', maxWidth:320 }}>
           <div style={{ fontSize:12, color:'rgba(255,255,255,.6)', marginBottom:6 }}>HP ที่ลดได้</div>
           <HPBar current={Math.max(0, enemy.maxHP - score * dmgPerHit)} max={enemy.maxHP} />

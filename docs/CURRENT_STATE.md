@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-27 (session 6 — coin economy earn-only)_
+_Last updated: 2026-06-30 (session 7 — coins shown on all result screens)_
 
 ---
 
@@ -12,6 +12,7 @@ _Last updated: 2026-06-27 (session 6 — coin economy earn-only)_
 - **Typical daily total**: ~40–70 coins for a 20–30 min session (fresh player higher end; mastered player lower end)
 - **HUD**: Gold 🪙 badge in Home header (pixel font, `#FFD23F`)
 - **Feedback**: `showItemToast("🪙 +N")` on every award; `showItemToast("ล็อกอินรายวัน 🪙 +N")` on daily login
+- **Result screens**: All 16 result/end screens display a gold `🪙 +N` badge showing exact coins earned that round (same value dispatched to `state.coins`)
 - **Spending**: NOT implemented yet — earn-only. Shop/items/room planned for next phase.
 
 ### Friend Code System (Phase 1.1)

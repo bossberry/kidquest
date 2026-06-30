@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-30 — feat: decorated room becomes Home screen background (DecoratedRoom.jsx)
+
+### What changed
+- Created `src/components/DecoratedRoom.jsx`: canvas-based room renderer with room gradient background (cream/wood), placed furniture drawn via `item.draw()` from `ROOM_ITEMS`, and the companion egg walking/idle/jump/spin inside the room floor area (entity state machine + `renderEggSprite`, same as old `HomeBackground`). Reads `state.roomLayout` via ref so RAF always sees fresh layout. Self-contained: uses `useAppState()` + `useCompanion()` internally.
+- `Home.jsx`: replaced `<HomeBackground>` with `<DecoratedRoom style={{ position:'absolute', inset:0, zIndex:-1 }}>`. The child now sees their decorated room as the Home screen background. All other Home UI (header, egg zone, party bar, item tray, action row) unchanged.
+- `Room.jsx`: replaced the inline CSS-gradient + `EggCanvas` room scene with `<DecoratedRoom style={{ position:'absolute', inset:0 }}>` as the visual base. Added a transparent CSS grid overlay (12 divs with dashed/solid borders) as pure tap targets on top. Furniture no longer rendered by React DOM — it's drawn on the DecoratedRoom canvas. Removed `Slot` component; kept `SlotCanvas` + `ItemThumb` for picker modals.
+- `HomeBackground.jsx`: no longer imported; kept in place as dead code (can be deleted in a future cleanup).
+- Build clean at 168 modules, zero errors.
+
+### Files changed
+- `src/components/DecoratedRoom.jsx` — new file
+- `src/components/Home.jsx` — replaced HomeBackground import/usage with DecoratedRoom
+- `src/components/Room.jsx` — replaced inline room scene + EggCanvas with DecoratedRoom + tap overlay; removed Slot component
+
 ## 2026-06-30 — fix: furniture shop tab empty (Collection.jsx not updated in session 9)
 
 ### Root cause

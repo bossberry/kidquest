@@ -5,10 +5,11 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 
 ## Live Systems
 
-### Room / Den Decoration (2026-06-30)
-- **Screen**: `Collection.jsx` "ห้อง" tab in BottomNav → `Room.jsx` — one fixed room with CSS warm cream/wood background
+### Room / Den Decoration (2026-06-30; background integration 2026-06-30)
+- **Home background**: `DecoratedRoom.jsx` replaces `HomeBackground.jsx` as the full-screen background of Home — the child sees their decorated room (placed furniture + walking companion) every time they open the app
+- **Room editor**: same `DecoratedRoom` canvas is the visual base in `Room.jsx`; a transparent 4×3 tap-overlay is layered on top for slot interactions; editing the room updates Home immediately (shared `state.roomLayout`)
 - **Grid**: 4 columns × 3 rows = 12 placement slots (64px each, 8px gap); slots are CSS divs overlaid on the room background
-- **Companion**: `EggCanvas` (with current equipped cosmetics) stands at bottom-center of room
+- **Companion walker**: `DecoratedRoom.jsx` runs the same entity-state-machine as the old `HomeBackground` (walk/idle/jump/spin at 0.45 px/tick) but inside the room's floor area; uses `renderEggSprite` per-frame so element animations (fire/water/etc.) are live
 - **Place flow**: tap empty slot → bottom-sheet picker shows owned-but-unplaced furniture → tap to place
 - **Remove/swap flow**: tap occupied slot → action sheet with "ย้ายออก" (remove) and "เปลี่ยน" (swap)
 - **Furniture catalog**: 12 items in `src/lib/roomItems.js` — plant, rug, lamp, stuffed animal, window+curtains (small 30–60); chair, desk, toy chest, bookshelf, wall art (mid 150–280); bed, fish tank (big 500–600)

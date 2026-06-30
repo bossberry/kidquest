@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
-import EggCanvas from './EggCanvas.jsx'
+import DecoratedRoom from './DecoratedRoom.jsx'
 
 const COLS = 4
 const ROWS = 3
@@ -33,40 +33,6 @@ function SlotCanvas({ item, size = SLOT_SIZE - 16 }) {
   )
 }
 
-// ── Slot: one grid cell in the room ───────────────────────────────────────
-function Slot({ index, roomItem, onTap }) {
-  return (
-    <div
-      onClick={() => onTap(index)}
-      style={{
-        width: SLOT_SIZE, height: SLOT_SIZE,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer',
-        borderRadius: 10,
-        background: roomItem
-          ? 'rgba(255,255,255,0.12)'
-          : 'rgba(255,255,255,0.06)',
-        border: roomItem
-          ? '1.5px solid rgba(255,255,255,0.22)'
-          : '1.5px dashed rgba(255,255,255,0.18)',
-        boxSizing: 'border-box',
-        transition: 'background 0.15s, border-color 0.15s',
-        position: 'relative',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      {roomItem ? (
-        <SlotCanvas item={roomItem} size={SLOT_SIZE - 16} />
-      ) : (
-        <span style={{
-          fontSize: 18, color: 'rgba(255,255,255,0.18)',
-          fontFamily: 'var(--font-pixel)', lineHeight: 1,
-          userSelect: 'none',
-        }}>+</span>
-      )}
-    </div>
-  )
-}
 
 // ── ItemThumb: small card in the placement picker ─────────────────────────
 function ItemThumb({ item, onTap }) {
@@ -178,59 +144,57 @@ export default function Room() {
         </span>
       </div>
 
-      {/* Room scene */}
+      {/* Room scene: DecoratedRoom as base + transparent tap overlay for grid */}
       <div style={{
         position: 'relative', width: '100%',
         height: 380, flexShrink: 0, overflow: 'hidden',
-        // Wall (warm cream) top 65%, wood floor bottom 35%
-        background: 'linear-gradient(to bottom, #F2E8D8 65%, #8B6340 65%)',
       }}>
-        {/* Baseboard line */}
-        <div style={{
-          position: 'absolute', top: '65%', left: 0, right: 0,
-          height: 6, background: '#C09060',
-        }} />
+        {/* Visual base — room bg + furniture drawn on canvas + walking companion */}
+        <DecoratedRoom style={{ position: 'absolute', inset: 0 }} />
 
-        {/* Furniture grid — centered horizontally, pinned top */}
+        {/* Grid tap overlay — invisible tap targets, no furniture drawing */}
         <div style={{
-          position: 'absolute',
-          top: 18,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'grid',
-          gridTemplateColumns: `repeat(${COLS}, ${SLOT_SIZE}px)`,
-          gridTemplateRows: `repeat(${ROWS}, ${SLOT_SIZE}px)`,
-          gap: GAP,
-          width: GRID_W,
+          position: 'absolute', inset: 0, pointerEvents: 'none',
         }}>
-          {Array.from({ length: TOTAL_SLOTS }).map((_, idx) => {
-            const itemId = roomLayout[idx]
-            const roomItem = itemId ? ROOM_ITEMS.find(i => i.id === itemId) : null
-            return (
-              <Slot
-                key={idx}
-                index={idx}
-                roomItem={roomItem}
-                onTap={handleSlotTap}
-              />
-            )
-          })}
+          <div style={{
+            position: 'absolute', top: 18, left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${COLS}, ${SLOT_SIZE}px)`,
+            gridTemplateRows: `repeat(${ROWS}, ${SLOT_SIZE}px)`,
+            gap: GAP, width: GRID_W,
+            pointerEvents: 'auto',
+          }}>
+            {Array.from({ length: TOTAL_SLOTS }).map((_, idx) => {
+              const itemId = roomLayout[idx]
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handleSlotTap(idx)}
+                  style={{
+                    width: SLOT_SIZE, height: SLOT_SIZE,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                    background: itemId ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)',
+                    border: itemId
+                      ? '1.5px solid rgba(255,255,255,0.15)'
+                      : '1.5px dashed rgba(255,255,255,0.20)',
+                    boxSizing: 'border-box',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  {!itemId && (
+                    <span style={{
+                      fontSize: 18, color: 'rgba(255,255,255,0.22)',
+                      fontFamily: 'var(--font-pixel)', lineHeight: 1,
+                      userSelect: 'none', pointerEvents: 'none',
+                    }}>+</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-
-        {/* Companion egg — standing on the floor */}
-        <div style={{
-          position: 'absolute', bottom: 10,
-          left: '50%', transform: 'translateX(-50%)',
-        }}>
-          <EggCanvas width={80} height={95} anim="idle" />
-        </div>
-
-        {/* Floor grain hint */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: '35%', pointerEvents: 'none',
-          background: 'repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,0,0,0.06) 40px)',
-        }} />
       </div>
 
       {/* Hint text below room */}

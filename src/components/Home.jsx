@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
-import HomeBackground from './HomeBackground.jsx'
+import DecoratedRoom from './DecoratedRoom.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
@@ -178,11 +178,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
       width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
     }}>
 
-      <HomeBackground
-        hour={hour}
-        companion={resolved}
-        stage={eggStatsData?.stage ?? 1}
-      />
+      <DecoratedRoom style={{ position: 'absolute', inset: 0, zIndex: -1 }} />
 
       {/* Flying food overlay */}
       {flyingItem && (

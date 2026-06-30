@@ -117,7 +117,8 @@ src/
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Shop screen: 👗แต่งตัว / 🏠เฟอร์นิเจอร์ tabs; buy cosmetics + furniture
-│   ├── Room.jsx            — Den decoration screen: 4×3 grid, placement/remove/swap flow, companion egg
+│   ├── DecoratedRoom.jsx   — Shared canvas: room gradient + furniture + walking companion; background in Home + base in Room editor
+│   ├── Room.jsx            — Den decoration screen: DecoratedRoom base + 4×3 tap-overlay grid + placement/remove/swap modals
 │   ├── EggCanvas.jsx       — App-level EggCanvas wrapper (reads CompanionContext + state.equipped)
 │   ├── EggPopup.jsx        — Egg detail / item feed popup
 │   ├── LoginModal.jsx      — Supabase email/password form

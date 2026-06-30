@@ -51,6 +51,9 @@ src/
 │   ├── eggCosmeticLayer.js — 18 pixel-art wearable items (10 head + 8 face); COSMETIC_ITEMS catalog; drawCosmetics(ctx, o, equipped)
 │   └── renderEggSprite.js — non-React full-pipeline helper: renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})
 │
+├── lib/
+│   └── roomItems.js — 12 pixel-art furniture items; ROOM_ITEMS catalog; draw(ctx, cx, cy, sz) per item
+│
 ├── config/
 │   ├── gameConfig.js       — barrel re-exporter + remaining content (ITEMS, LEVELS, TEACH_CONTENT, etc.)
 │   ├── creatureConfig.js   — HATCH_CREATURES, CREATURE_LEVELS, TIERS, calcCreatureStats, GRADE_LABELS
@@ -113,16 +116,15 @@ src/
 │   │   └── MemoryCardInput.jsx — 6-card flip-and-match for memory mode; 3 pairs emoji+char; onPairFound fires per match; no mismatch penalty
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
-│   ├── Collection.jsx      — Hatched creatures + current egg tabs (86 lines)
-│   ├── CreatureDetailPopup.jsx — Creature stats popup (68 lines)
-│   ├── EggCanvas.jsx       — Canvas wrapper for drawEgg() (19 lines)
-│   ├── EggPopup.jsx        — Egg detail / item feed popup (92 lines)
-│   ├── HatchOverlay.jsx    — Hatch animation sequence (121 lines)
-│   ├── LoginModal.jsx      — Supabase email/password form (63 lines)
-│   ├── Report.jsx          — Parent dashboard (76 lines)
-│   ├── BottomNav.jsx       — Home/Collection/Report nav (28 lines)
-│   ├── Toasts.jsx          — XPToast, ItemToast, ConfettiLayer (88 lines)
-│   └── ErrorBoundary.jsx   — React error boundary (34 lines)
+│   ├── Collection.jsx      — Shop screen: 👗แต่งตัว / 🏠เฟอร์นิเจอร์ tabs; buy cosmetics + furniture
+│   ├── Room.jsx            — Den decoration screen: 4×3 grid, placement/remove/swap flow, companion egg
+│   ├── EggCanvas.jsx       — App-level EggCanvas wrapper (reads CompanionContext + state.equipped)
+│   ├── EggPopup.jsx        — Egg detail / item feed popup
+│   ├── LoginModal.jsx      — Supabase email/password form
+│   ├── Report.jsx          — Parent dashboard
+│   ├── BottomNav.jsx       — 5-tab nav: หน้าหลัก / ร้านค้า / ห้อง / รีพอร์ต / เพื่อน
+│   ├── Toasts.jsx          — XPToast, ItemToast, ConfettiLayer
+│   └── ErrorBoundary.jsx   — React error boundary
 │
 └── assets/
     └── phonicsAudio.js     — Exports path map for .m4a files (5 lines)

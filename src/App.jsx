@@ -23,6 +23,7 @@ import OnboardingModal from './components/OnboardingModal.jsx'
 import LoginBackdrop from './components/LoginBackdrop.jsx'
 import FriendsScreen from './components/FriendsScreen.jsx'
 import CompanionCreation from './components/CompanionCreation.jsx'
+import Room from './components/Room.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -138,6 +139,7 @@ export default function App() {
         />
       )}
       {screen === 'collection' && <Collection />}
+      {screen === 'room' && <Room />}
       {screen === 'report' && <Report />}
       {screen === 'game' && (
         <GameScreen

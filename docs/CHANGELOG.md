@@ -1,5 +1,19 @@
 # Changelog — KidQuest
 
+## 2026-06-30 (session 9) — feat: room / den decoration system
+
+### New
+- `src/lib/roomItems.js` — 12 pixel-art furniture items (plant, rug, lamp, stuffed animal, window, chair, desk, toy chest, bookshelf, wall art, bed, fish tank); `ROOM_ITEMS` catalog; `draw(ctx, cx, cy, sz)` per item
+- `src/components/Room.jsx` — Room screen: warm CSS room background, 4×3 grid of 64px placement slots, companion EggCanvas at center-bottom; tap empty slot → bottom-sheet picker; tap occupied slot → remove/swap sheet; toast feedback
+
+### Modified
+- `src/components/Collection.jsx` — added top-level tabs (👗แต่งตัว / 🏠เฟอร์นิเจอร์); furniture tab shows 12 items with room-background previews and buy flow using `BUY_ROOM_ITEM`
+- `src/components/BottomNav.jsx` — added 5th tab "ห้อง" (Room); "เพื่อน" recolored to orange
+- `src/App.jsx` — added `screen === 'room'` + Room import
+- `src/lib/state.js` — `ownedRoomItems: []` + `roomLayout: {}` added to `defaultState()`
+- `src/context/StateContext.jsx` — added `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM` actions + reducer cases
+- `docs/PROJECT_MAP.md` — added `Room.jsx` and `roomItems.js` entries
+
 ## 2026-06-30 (session 8) — feat: cosmetic items, shop, and wardrobe
 
 ### New

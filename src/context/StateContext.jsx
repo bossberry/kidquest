@@ -151,6 +151,10 @@ export const ACTIONS = {
   // Cosmetic shop
   BUY_ITEM:       'BUY_ITEM',
   EQUIP_ITEM:     'EQUIP_ITEM',
+  // Room / Den decoration
+  BUY_ROOM_ITEM:    'BUY_ROOM_ITEM',
+  PLACE_ROOM_ITEM:  'PLACE_ROOM_ITEM',
+  REMOVE_ROOM_ITEM: 'REMOVE_ROOM_ITEM',
 }
 
 function reducer(state, action) {
@@ -899,6 +903,33 @@ function reducer(state, action) {
         ...state,
         equipped: { ...(state.equipped || { head: null, face: null }), [slot]: current === id ? null : id },
       }
+    }
+
+    case ACTIONS.BUY_ROOM_ITEM: {
+      const { id, price } = action.payload
+      if ((state.coins || 0) < price) return state
+      if ((state.ownedRoomItems || []).includes(id)) return state
+      return {
+        ...state,
+        coins: (state.coins || 0) - price,
+        ownedRoomItems: [...(state.ownedRoomItems || []), id],
+      }
+    }
+
+    case ACTIONS.PLACE_ROOM_ITEM: {
+      const { slotIndex, itemId } = action.payload
+      if (!(state.ownedRoomItems || []).includes(itemId)) return state
+      return {
+        ...state,
+        roomLayout: { ...(state.roomLayout || {}), [slotIndex]: itemId },
+      }
+    }
+
+    case ACTIONS.REMOVE_ROOM_ITEM: {
+      const { slotIndex } = action.payload
+      const newLayout = { ...(state.roomLayout || {}) }
+      delete newLayout[slotIndex]
+      return { ...state, roomLayout: newLayout }
     }
 
     default:

@@ -1,9 +1,22 @@
 # Current State — KidQuest
-_Last updated: 2026-06-30 (session 8 — cosmetic items, shop, wardrobe)_
+_Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 
 ---
 
 ## Live Systems
+
+### Room / Den Decoration (2026-06-30)
+- **Screen**: `Collection.jsx` "ห้อง" tab in BottomNav → `Room.jsx` — one fixed room with CSS warm cream/wood background
+- **Grid**: 4 columns × 3 rows = 12 placement slots (64px each, 8px gap); slots are CSS divs overlaid on the room background
+- **Companion**: `EggCanvas` (with current equipped cosmetics) stands at bottom-center of room
+- **Place flow**: tap empty slot → bottom-sheet picker shows owned-but-unplaced furniture → tap to place
+- **Remove/swap flow**: tap occupied slot → action sheet with "ย้ายออก" (remove) and "เปลี่ยน" (swap)
+- **Furniture catalog**: 12 items in `src/lib/roomItems.js` — plant, rug, lamp, stuffed animal, window+curtains (small 30–60); chair, desk, toy chest, bookshelf, wall art (mid 150–280); bed, fish tank (big 500–600)
+- **Shop integration**: Collection screen has "👗แต่งตัว" / "🏠เฟอร์นิเจอร์" top-level tabs; furniture tab shows items with mini room-background preview; buy with `BUY_ROOM_ITEM` → coins deducted → item added to `ownedRoomItems`
+- **State**: `state.ownedRoomItems: string[]` (default `[]`), `state.roomLayout: { [slotIndex]: itemId }` (default `{}`); both backfilled from `defaultState()` for existing players
+- **Actions**: `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`
+- **Navigation**: 5-tab BottomNav — หน้าหลัก / ร้านค้า / ห้อง / รีพอร์ต / เพื่อน
+- **Deferred**: multi-room expansion (1 room is all that exists now)
 
 ### Cosmetic Shop + Wardrobe (2026-06-30)
 - **Items**: 18 pixel-art cosmetics — 10 head (bow, party hat, beanie, cap, headband stars, flower crown, top hat, wizard hat, gold crown, jeweled crown) + 8 face (blush, freckles, flower cheek, mustache, round glasses, eye mask, sunglasses, star glasses)

@@ -91,6 +91,8 @@ export function defaultState() {
     coinsLevelBonus: {},
     ownedItems: [],
     equipped: { head: null, face: null },
+    ownedRoomItems: [],
+    roomLayout: {},
     lastSavedAt: Date.now(),
   }
 }

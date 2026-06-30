@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-06-30 (session 8) — feat: cosmetic items, shop, and wardrobe
+
+### New
+- `src/egg/eggCosmeticLayer.js` — 18 pixel-art cosmetic items (10 head + 8 face); `COSMETIC_ITEMS` catalog; `drawCosmetics(ctx, o, equipped)`
+- Shop UI in `src/components/Collection.jsx` — replaces coming-soon placeholder; coin balance header, HEAD/FACE tabs, 2-col item grid with per-item egg preview, buy/equip/unequip, toast feedback; prices small 30–60 / mid 150–250 / big 500–800
+
+### Modified
+- `src/egg/index.js` — exports `COSMETIC_ITEMS`, `drawCosmetics`
+- `src/egg/EggCanvas.jsx` (core) — added `equipped` prop; `drawCosmetics` drawn as step 9 (inside pose transform, after expression, before flash); `equipped` in useEffect dep array
+- `src/components/EggCanvas.jsx` (wrapper) — auto-reads `state.equipped` from `useAppState`; accepts optional `equipped` prop override for shop previews
+- `src/lib/state.js` — `ownedItems: []` and `equipped: { head: null, face: null }` added to `defaultState()`
+- `src/context/StateContext.jsx` — added `BUY_ITEM` and `EQUIP_ITEM` to ACTIONS + reducer cases
+
+### Not changed
+- `eggAlgorithm.js` (LOCKED — untouched as always)
+- All existing screens using `<EggCanvas>` now show equipped items automatically via the wrapper change
+
 ## 2026-06-30 (session 7) — feat: coins earned shown on all result screens
 
 All 16 result/end screens now show the exact coins awarded that round.

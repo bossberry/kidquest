@@ -39,5 +39,8 @@ export {
   EGG_STATES, EGG_ANIMATIONS,
 } from "./eggAnimations.js";
 
+// Cosmetic items (head + face wearables) drawn last in the render pipeline
+export { COSMETIC_ITEMS, drawCosmetics } from "./eggCosmeticLayer.js";
+
 // The React component (created by the integration prompt, same folder):
 // export { default as EggCanvas } from "./EggCanvas.jsx";

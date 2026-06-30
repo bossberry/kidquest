@@ -89,6 +89,8 @@ export function defaultState() {
     lastLoginDate: '',
     loginStreak: 0,
     coinsLevelBonus: {},
+    ownedItems: [],
+    equipped: { head: null, face: null },
     lastSavedAt: Date.now(),
   }
 }

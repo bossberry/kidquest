@@ -1,6 +1,7 @@
 import React from 'react'
 import EggCanvasCore from '../egg/EggCanvas.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
+import { useAppState } from '../context/StateContext.jsx'
 
 /**
  * App-level EggCanvas wrapper.
@@ -16,13 +17,16 @@ export default function EggCanvas({
   anim = 'idle',
   width = 160,
   height = 190,
+  equipped,          // optional override; if omitted, reads from state.equipped
   className,
   style,
   onClick,
 }) {
   const { resolved } = useCompanion()
+  const { state } = useAppState()
 
   const resolvedStage = stage ?? stats?.stage ?? 1
+  const resolvedEquipped = equipped !== undefined ? equipped : (state.equipped ?? null)
   // Use the smaller dimension to drive basePx; set CSS to the requested width×height
   const size = Math.min(width, height)
 
@@ -36,6 +40,7 @@ export default function EggCanvas({
       stage={resolvedStage}
       aura={aura}
       size={size}
+      equipped={resolvedEquipped}
       className={className}
       style={{ width, height, ...style }}
       onClick={onClick}

@@ -1,9 +1,19 @@
 # Current State — KidQuest
-_Last updated: 2026-06-30 (session 7 — coins shown on all result screens)_
+_Last updated: 2026-06-30 (session 8 — cosmetic items, shop, wardrobe)_
 
 ---
 
 ## Live Systems
+
+### Cosmetic Shop + Wardrobe (2026-06-30)
+- **Items**: 18 pixel-art cosmetics — 10 head (bow, party hat, beanie, cap, headband stars, flower crown, top hat, wizard hat, gold crown, jeweled crown) + 8 face (blush, freckles, flower cheek, mustache, round glasses, eye mask, sunglasses, star glasses)
+- **Tiers**: small 30–60 coins / mid 150–250 / big 500–800
+- **State**: `state.ownedItems: string[]` (default `[]`), `state.equipped: { head: null|string, face: null|string }` (default `{head:null,face:null}`); both backfilled on load for existing players
+- **Actions**: `BUY_ITEM { id, price, slot }` — deducts coins, adds to ownedItems, auto-equips; `EQUIP_ITEM { id, slot }` — toggles equipped slot (tap again = unequip)
+- **Render pipeline**: `drawCosmetics(ctx, o, equipped)` called as step 9 in `src/egg/EggCanvas.jsx` (core), inside pose transform — hats/glasses draw over everything including expression
+- **Auto-wired everywhere**: App-level `src/components/EggCanvas.jsx` wrapper reads `state.equipped` automatically; all existing `<EggCanvas>` usages (Home, Battle, Map, popups) show equipped items without per-screen changes
+- **Shop screen**: `Collection.jsx` — coin balance header, HEAD/FACE tab switcher, 2-column item grid, per-item EggCanvas preview (showing that item on the companion), buy/equip/unequip buttons, toast feedback
+- **Deferred**: `renderEggSprite.js` walker (map player sprite + home walker) does NOT yet show cosmetics — needs `equipped` threaded through the non-React drawing pipeline
 
 ### Coin Economy (Earn-only — 2026-06-27)
 - **Balance**: `state.coins` (integer ≥ 0); migrated on load so existing players start at 0

@@ -4,7 +4,7 @@ import {
   drawStageLayer, drawEyeLayer, drawExpression,
   getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
   EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
-  drawEggBody,
+  drawEggBody, drawCosmetics,
 } from './index.js'
 
 /**
@@ -21,6 +21,7 @@ export default function EggCanvas({
   stage = 1,
   aura = 0,
   size = 160,
+  equipped = null,
   className,
   style,
   onClick,
@@ -106,7 +107,10 @@ export default function EggCanvas({
         px, ox, oy, t,
       })
 
-      // 9. Flash (e.g., hurt animation)
+      // 9. Cosmetics (hat + face items — drawn on top of everything, inside pose)
+      drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped)
+
+      // 10. Flash (e.g., hurt animation)
       if (pose.flash) flashEgg(ctx, eggW, eggH, pose.flash)
 
       // Restore pose transform (matches ctx.save() inside applyEggPose)
@@ -117,7 +121,7 @@ export default function EggCanvas({
 
     raf = requestAnimationFrame(render)
     return () => { cancelAnimationFrame(raf) }
-  }, [element, eye, gender, mood, anim, stage, aura, size])
+  }, [element, eye, gender, mood, anim, stage, aura, size, equipped])
 
   const logicalH = Math.round(size * 1.19)
   return (

@@ -48,6 +48,7 @@ src/
 │   ├── eggAuraLayer.js — 5 rarity aura levels, element-tinted rings
 │   ├── eggRegaliaLayer.js — per-element regalia growing with stage (tier 1 at stage 4+)
 │   ├── eggAnimations.js — 6 anim states, getEggPose, applyEggPose, flashEgg, drawGroundShadow
+│   ├── eggCosmeticLayer.js — 18 pixel-art wearable items (10 head + 8 face); COSMETIC_ITEMS catalog; drawCosmetics(ctx, o, equipped)
 │   └── renderEggSprite.js — non-React full-pipeline helper: renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})
 │
 ├── config/

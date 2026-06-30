@@ -148,6 +148,9 @@ export const ACTIONS = {
   // Coin economy
   ADD_COINS:      'ADD_COINS',
   DAILY_LOGIN:    'DAILY_LOGIN',
+  // Cosmetic shop
+  BUY_ITEM:       'BUY_ITEM',
+  EQUIP_ITEM:     'EQUIP_ITEM',
 }
 
 function reducer(state, action) {
@@ -873,6 +876,28 @@ function reducer(state, action) {
         loginStreak: streak,
         coins: Math.max(0, (state.coins || 0) + bonus),
         _dailyLoginBonus: bonus,
+      }
+    }
+
+    case ACTIONS.BUY_ITEM: {
+      const { id, price, slot } = action.payload
+      if ((state.coins || 0) < price) return state
+      if ((state.ownedItems || []).includes(id)) return state
+      return {
+        ...state,
+        coins: (state.coins || 0) - price,
+        ownedItems: [...(state.ownedItems || []), id],
+        equipped: { ...(state.equipped || { head: null, face: null }), [slot]: id },
+      }
+    }
+
+    case ACTIONS.EQUIP_ITEM: {
+      const { id, slot } = action.payload
+      if (!(state.ownedItems || []).includes(id)) return state
+      const current = (state.equipped || {})[slot]
+      return {
+        ...state,
+        equipped: { ...(state.equipped || { head: null, face: null }), [slot]: current === id ? null : id },
       }
     }
 

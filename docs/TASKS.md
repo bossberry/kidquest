@@ -42,7 +42,8 @@ _Last updated: 2026-06-27_
 
 - [x] **Coin economy (earn-only)** — `state.coins`; earn on round complete, battle win, minigame, level unlock, daily login; anti-farm mastery decay; Home HUD badge; no spending yet ✅ (2026-06-27)
 
-- [ ] **Coin spending system (shop/wearable-items/room)** — Chatbot must define what coins buy before implementation
+- [x] **Coin spending system — cosmetic shop (head + face items)** — 18 pixel-art items, shop UI, wardrobe auto-wired to all EggCanvas usages ✅ (2026-06-30)
+- [ ] **Walker cosmetics** — thread `state.equipped` into `renderEggSprite.js` so map sprite + home walker also show hats/glasses (Chatbot decision: is this a priority?)
 - [ ] **Phase 4: NPC System** — 5 NPCs (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole). Per-NPC: dialogue lines, gift on first talk, repeat-visit dialogue. Use `SCREEN_NPCS` config in `tileMaps.js`.
 - [ ] **Thai content expansion** — Levels 6–8: fruits/everyday objects, short phrases, simple sentences (อนุบาล → early ป.1 content)
 - [ ] **Math content expansion** — Levels 9–10: place value, counting to 100 (early ป.1 stretch)

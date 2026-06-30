@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-06-30 — fix: daily login coin award fires every refresh, balance never increases
+
+### Root cause
+Two interacting bugs: (1) The `DAILY_LOGIN` reducer did not bump `lastSavedAt`, so
+`stateRef.current.lastSavedAt` in memory always equalled the value Supabase had from the
+previous session — making `resolveSync` treat them as a tie and, per its `>=` rule,
+always pick remote as the winner. (2) The mount useEffect dispatched `DAILY_LOGIN`
+(correctly awarding coins + setting `lastLoginDate = today`) *before* the async Supabase
+load resolved. When Supabase arrived a few hundred ms later, `resolveSync` picked remote,
+and `ACTIONS.INIT` overwrote `lastLoginDate` back to yesterday and reverted the coin
+balance. On the next refresh `lastLoginDate` was still yesterday → daily login fired again.
+
+### Fix
+Added `lastSavedAt: Date.now()` to the `DAILY_LOGIN` reducer return value. This makes
+`stateRef.current.lastSavedAt` definitively newer than the Supabase entry, so
+`resolveSync` correctly picks local as the winner and skips the INIT overwrite. The daily
+login then persists to localStorage and syncs to Supabase normally via the existing
+`saveState` useEffect.
+
+### Files changed
+- `src/context/StateContext.jsx` — `DAILY_LOGIN` reducer case: added `lastSavedAt: Date.now()`
+
 ## 2026-06-30 (session 9) — feat: room / den decoration system
 
 ### New

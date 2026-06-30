@@ -874,12 +874,15 @@ function reducer(state, action) {
       const yesterday = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
       const streak = (state.lastLoginDate || '') === yesterday ? (state.loginStreak || 0) + 1 : 1
       const bonus = 10 + Math.min(streak, 5)
+      // lastSavedAt bumped so resolveSync sees local as genuinely newer than Supabase,
+      // preventing the async INIT dispatch from reverting the daily coin award.
       return {
         ...state,
         lastLoginDate: today,
         loginStreak: streak,
         coins: Math.max(0, (state.coins || 0) + bonus),
         _dailyLoginBonus: bonus,
+        lastSavedAt: Date.now(),
       }
     }
 

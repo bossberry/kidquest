@@ -1,5 +1,25 @@
 # Changelog — KidQuest
 
+## 2026-06-30 — fix: furniture shop tab empty (Collection.jsx not updated in session 9)
+
+### Root cause
+Session 9 ran out of context before `Collection.jsx` was updated. The committed state had
+`roomItems.js` (12 items), `Room.jsx`, `BottomNav.jsx` ("ห้อง" tab), and state/reducer
+changes — but `Collection.jsx` was left at the session-8 version (head/face cosmetics
+only, no furniture tab). Users could navigate to the Room screen but could not buy any
+furniture because the shop's furniture tab didn't exist. The Room picker showed
+"ซื้อในร้านค้าก่อนนะ" for every slot tap since `ownedRoomItems` was always empty.
+
+### Fix
+Completed `Collection.jsx`: added top-level 👗/🏠 tabs, `FurniturePreview` canvas
+component, `ROOM_ITEMS.map(...)` grid with tier badges, room-background previews, buy
+buttons wired to `BUY_ROOM_ITEM`. All 12 furniture items now appear and are purchasable.
+Confirmed in production bundle: 837-byte furniture catalog block, all 12 item `id`s
+present. (Commit f1da6e0 — part of session 9 completion in this conversation.)
+
+### Files changed
+- `src/components/Collection.jsx` — full rewrite: added furniture tab with 12 items
+
 ## 2026-06-30 — fix: daily login coin award fires every refresh, balance never increases
 
 ### Root cause

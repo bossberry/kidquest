@@ -1,5 +1,53 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — fix: furniture shop tab genuinely unreachable — CSS flexbox min-size collapse (Collection.jsx)
+
+### Corrected root cause (supersedes the 2026-06-30 "furniture shop tab empty" entry below)
+The furniture tab was NOT a data/import bug and was NOT actually fixed by commit
+f1da6e0 for a real (mouse/touch) user. That earlier entry — and a later static code
+audit (build + data-flow trace, no live browser) — misattributed the failure: they
+verified the item catalog and render logic were present in the bundle and concluded it
+was fixed. It was not. **Live browser testing revealed a pure CSS layout bug.**
+
+The top-level category tab-switcher `<div>` (the pill wrapping the 👗/🏠 buttons) is a
+flex item inside Collection's outer flex-column container (`display:flex;
+flexDirection:column; height:100%; overflowY:auto`). That tab-bar div sets
+`overflow:hidden` (to clip its rounded `borderRadius:10` corners). Per CSS flexbox's
+automatic-minimum-size rule, a flex item with non-`visible` overflow gets an automatic
+min-height of **0** instead of a content-based floor. Because total page content exceeds
+the viewport, the flex-shrink algorithm then collapsed this div's rendered height from
+~42px to **2px** — clipping both tab buttons into an invisible, unclickable sliver that
+looked like a thin divider line under the SHOP header. The furniture tab could never be
+reached by a real pointer, so `roomItems.js` / f1da6e0's furniture render logic (both
+correct) never got a chance to display. A previous session's JS `.click()` bypassed the
+zero-height hitbox, which is why the static/scripted checks all "passed."
+
+### Fix
+Added `flexShrink: 0, flexGrow: 0` to the tab-switcher div's inline style (it is a
+fixed-size control that must never shrink or grow). Computed height restored 2px → 42px;
+both tabs render full-size and are clickable with a real pointer. Verified live in Chrome
+against the running dev server: reloaded, opened Shop, real-clicked 🏠 เฟอร์นิเจอร์, and
+all 12 furniture items rendered (ต้นไม้ 30, พรม 40, โคมไฟ 45, ตุ๊กตา 50, หน้าต่าง 60,
+เก้าอี้ 150, โต๊ะ 180, กล่องของเล่น 200, ชั้นหนังสือ 280, ภาพวาด 250, เตียง 500, ตู้ปลา 600).
+
+**Second instance of the same bug (also live-verified, also fixed):** the Head/Face
+sub-tabs (หัว/หน้า) inside the wearable section shared the identical pattern
+(`overflow:hidden` flex item, no `flexShrink`) and were also collapsed to 2px live.
+Applied the same `flexShrink:0, flexGrow:0` fix; restored to 38px. This sub-tab bar had
+been silently invisible too.
+
+No item-list logic, coins economy, cosmetics/try-on, room placement, or Home background
+touched. Try-on preview and the Room (ห้อง) tab reverified — no regressions.
+
+The live buy-flow click could not be exercised: the save has 11 coins and the cheapest
+furniture is 30. Buy logic was instead verified by reading `handleBuyFurniture` +
+`BUY_ROOM_ITEM` reducer (guards insufficient coins and duplicate ownership, deducts
+price, appends to `ownedRoomItems`) — correct. No coin/localStorage manipulation was done.
+
+### Files changed
+- `src/components/Collection.jsx` — added `flexShrink:0, flexGrow:0` to the top-level
+  category tab-switcher div AND the Head/Face sub-tab div (two 1-line style additions)
+
 ## 2026-07-01 — feat: shop live try-on preview + walker cosmetics
 
 ### What changed

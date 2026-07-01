@@ -46,6 +46,7 @@ _Last updated: 2026-06-27_
 - [x] **Room / Den decoration system** — 12 furniture items, shop furniture tab, room screen with 4×3 grid placement, 5-tab BottomNav ✅ (2026-06-30)
 - [x] **Walker cosmetics** — threaded `state.equipped` into `renderEggSprite.js` (drawCosmetics step) + `DecoratedRoom.jsx` companion ref, so the Home-background room walker shows hats/glasses ✅ (2026-07-01)
 - [x] **Shop live try-on preview** — Collection.jsx cosmetics tab: big preview egg + tap-any-card instant try-on; unowned = local-only preview (no coins/persist) with "ลองใส่" tag + "ซื้อ" buy; owned = real equip toggle ✅ (2026-07-01)
+- [x] **Furniture shop tab genuinely unreachable — CSS flexbox collapse fix** — the 👗/🏠 tab-switcher (and the หัว/หน้า sub-tab bar) collapsed to 2px because `overflow:hidden` on a shrinkable flex item gets min-height 0 inside the flex-column; both tabs were invisible/unclickable to a real pointer. Added `flexShrink:0, flexGrow:0`. Not a data/import bug — corrects the misattributed 2026-06-30 entry. Live-verified in Chrome ✅ (2026-07-01)
 - [ ] **Phase 4: NPC System** — 5 NPCs (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole). Per-NPC: dialogue lines, gift on first talk, repeat-visit dialogue. Use `SCREEN_NPCS` config in `tileMaps.js`.
 - [ ] **Thai content expansion** — Levels 6–8: fruits/everyday objects, short phrases, simple sentences (อนุบาล → early ป.1 content)
 - [ ] **Math content expansion** — Levels 9–10: place value, counting to 100 (early ป.1 stretch)

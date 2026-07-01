@@ -135,8 +135,14 @@ export default function Collection() {
       </div>
 
       {/* Top-level category tabs */}
+      {/* flexShrink/flexGrow 0: this is a fixed-size control inside the outer
+          flex-column. Because it sets overflow:hidden (to clip the rounded
+          corners), CSS flexbox gives it an automatic min-height of 0, so when
+          page content exceeds the viewport the flex-shrink algorithm collapses
+          it to ~2px — hiding both tab buttons and making the furniture tab
+          unreachable. Pinning shrink/grow to 0 keeps its content height. */}
       <div style={{
-        display: 'flex', gap: 0,
+        display: 'flex', gap: 0, flexShrink: 0, flexGrow: 0,
         margin: '12px 16px 0', borderRadius: 10,
         border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden',
       }}>
@@ -192,8 +198,11 @@ export default function Collection() {
           </div>
 
           {/* Head / Face sub-tabs */}
+          {/* Same flexShrink/flexGrow 0 fix as the top-level tabs above: this
+              overflow:hidden flex item otherwise collapses to ~2px (verified
+              live) when page content exceeds the viewport, hiding both tabs. */}
           <div style={{
-            display: 'flex', gap: 0,
+            display: 'flex', gap: 0, flexShrink: 0, flexGrow: 0,
             margin: '4px 16px 14px', borderRadius: 10,
             border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden',
           }}>

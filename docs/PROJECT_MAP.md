@@ -52,7 +52,8 @@ src/
 │   └── renderEggSprite.js — non-React full-pipeline helper: renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})
 │
 ├── lib/
-│   └── roomItems.js — 12 pixel-art furniture items; ROOM_ITEMS catalog; draw(ctx, cx, cy, sz) per item
+│   ├── roomItems.js — 12 pixel-art furniture items; ROOM_ITEMS catalog; draw(ctx, cx, cy, sz) per item
+│   └── roomScene.js — shared non-React drawRoomScene(ctx,{W,H,roomLayout,small,hint}) — room bg + furniture (used by DecoratedRoom, RoomScene, RoomVisit)
 │
 ├── config/
 │   ├── gameConfig.js       — barrel re-exporter + remaining content (ITEMS, LEVELS, TEACH_CONTENT, etc.)
@@ -117,7 +118,9 @@ src/
 │   ├── BattleScreen.jsx    — Turn-based battle sim + animation (292 lines)
 │   ├── ChallengerOverlay.jsx — Full-screen challenger announcement (169 lines)
 │   ├── Collection.jsx      — Shop screen: 👗แต่งตัว / 🏠เฟอร์นิเจอร์ tabs; buy cosmetics + furniture
-│   ├── DecoratedRoom.jsx   — Shared canvas: room gradient + furniture + walking companion; background in Home + base in Room editor
+│   ├── DecoratedRoom.jsx   — Shared canvas: room (via drawRoomScene) + walking companion; background in Home + base in Room editor
+│   ├── RoomScene.jsx       — Presentational canvas: room (drawRoomScene) + optional in-room egg (renderEggSprite); friend card thumbnails + RoomVisit bg
+│   ├── RoomVisit.jsx       — Full-screen read-only overlay: visit a friend/adventurer's room + companion egg + stats + cosmetic chips
 │   ├── Room.jsx            — Den decoration screen: DecoratedRoom base + 4×3 tap-overlay grid + placement/remove/swap modals
 │   ├── EggCanvas.jsx       — App-level EggCanvas wrapper (reads CompanionContext + state.equipped)
 │   ├── EggPopup.jsx        — Egg detail / item feed popup

@@ -1,5 +1,64 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — Friends room visit + cosmetics display
+
+### ⚠️ NEW MIGRATION PENDING — MUST BE RUN MANUALLY
+- **`supabase/migrations/20260701_mystery_adventurers_room_visit.sql` must be pasted and run
+  in the Supabase SQL Editor** (Dashboard → SQL Editor → Run;
+  https://supabase.com/dashboard/project/dgpsnlkedergkbhqnjpu/sql). There is no Supabase CLI
+  / service-role key in the repo, so it cannot be applied automatically.
+- Until it is run, the app keeps working against the OLD RPC shape — `equipped_head` /
+  `equipped_face` / `room_layout` come back `undefined` and the UI degrades gracefully
+  (undecorated room + no cosmetics), which is exactly what live testing showed.
+- Pre-change backup saved to `db_backups/get_mystery_adventurers_pre_room_visit.sql`.
+
+### supabase/migrations/20260701_mystery_adventurers_room_visit.sql (new)
+- `CREATE OR REPLACE FUNCTION get_mystery_adventurers(integer)` extended (via DROP + CREATE,
+  since the return TABLE gains columns). Keeps every existing field; adds `equipped_head text`,
+  `equipped_face text`, `room_layout jsonb`. Real rows read `state_json->'equipped'->>'head'`
+  / `->>'face'` and `COALESCE(state_json->'roomLayout','{}'::jsonb)` from the joined `eggs`
+  row. Bot rows get plausible random cosmetics (~35% empty per slot → natural mix of
+  both/one/neither) and a small random `room_layout` (0–3 furniture entries). Item ids match
+  the client catalogs (`COSMETIC_ITEMS`, `ROOM_ITEMS`). Privacy unchanged — no `child_name`
+  or `user_id` exposed for anyone (real display_name stays the generic Thai mask).
+
+### src/lib/roomScene.js (new)
+- Shared, non-React `drawRoomScene(ctx, { W, H, roomLayout, small, hint })` helper extracted
+  from `DecoratedRoom.jsx` — room gradient wall/floor, baseboard, floor grain, furniture from
+  layout, and the empty-room hint. `small=true` scales for card thumbnails; `hint=false`
+  suppresses the "decorate at the Room menu" text for friend rooms. The `small=false, hint=true`
+  path reproduces DecoratedRoom's prior drawScene exactly (SLOT_SIZE 64 / GAP 8 / same grid math).
+
+### src/components/DecoratedRoom.jsx
+- Its inline `drawScene()` now delegates to `drawRoomScene(...)`. Removed the now-unused
+  furniture constants / `ROOM_ITEMS` import. Home hero zone + Room editor render pixel-identically
+  (live-verified — no regression).
+
+### src/components/RoomScene.jsx (new)
+- Presentational canvas: paints a room (via `drawRoomScene`) plus, optionally, a companion egg
+  standing in it (`renderEggSprite`). Decoupled from local player state — takes an explicit `egg`
+  so a visited friend's/bot's identity + cosmetics show (never the local companion). Used for the
+  card thumbnail (`small`, egg baked in) and the RoomVisit background (large, `egg={null}`).
+
+### src/components/RoomVisit.jsx (new)
+- Full-screen read-only overlay, slides in from the right. Header: back button (‹) + "ห้องของ
+  [name]". Full-bleed room + large centered `EggCanvasCore` (their element/eye/gender/stage,
+  `aura` via `stageToAura`, `equipped` from the RPC). Bottom panel: HP/ATK/DEF/SPD + rarity +
+  cosmetic chips (icon + Thai name) or "ยังไม่ได้แต่งตัว". No taps on egg/furniture. Gracefully
+  defaults `room_layout→{}` and `equipped_*→null` for the pre-migration RPC shape.
+
+### src/components/FriendsScreen.jsx
+- Mystery-adventurers cards redesigned: left = 72×80 `RoomScene` thumbnail (room + companion egg
+  with cosmetics); right = name + rarity badge, element · Lv, HP/ATK/SPD (`MiniStat`), and worn
+  cosmetics as small inline icons (`CosmeticIcon`, icon-only — no text label, no "N ชิ้น" count).
+  Tapping the card body opens `RoomVisit`; the "ดูสเตตัส" button uses `stopPropagation` so the
+  existing stats-modal + "ท้าเล่น" mock-challenge flow is fully preserved.
+
+Live-verified in Chrome (account "โชแปง"): cards render with mini room previews + stats (empty
+rooms / no cosmetics as expected pre-migration), card-tap opens the centered room visit, back
+button returns to the list, "ดูสเตตัส" still opens the stats modal, and Home + Room screens are
+visually unaffected by the DecoratedRoom refactor. Zero console errors. Build clean.
+
 ## 2026-07-01 — Companion egg enlarged + centered on Home (follow-up to the Home redesign)
 
 ### src/components/DecoratedRoom.jsx

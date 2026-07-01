@@ -1,13 +1,10 @@
 import React, { useRef, useEffect } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
-import { ROOM_ITEMS } from '../lib/roomItems.js'
+import { drawRoomScene } from '../lib/roomScene.js'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { playSFX } from '../lib/audio.js'
 
-const COLS = 4, ROWS = 3
-const SLOT_SIZE = 64, GAP = 8
-const GRID_W = COLS * SLOT_SIZE + (COLS - 1) * GAP
 const SIZE = 48
 
 function makeEntity(W, groundY) {
@@ -79,10 +76,6 @@ export default function DecoratedRoom({ style, showWalker = true }) {
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
 
-    const WALL_FRAC = 0.65
-    const wallH     = Math.floor(H * WALL_FRAC)
-    const GRID_TOP  = Math.max(12, Math.floor(H * 0.04))
-    const gridLeft  = (W - GRID_W) / 2
     const groundY   = H - SIZE - 6
 
     if (!entityRef.current) entityRef.current = makeEntity(W, groundY)
@@ -97,49 +90,7 @@ export default function DecoratedRoom({ style, showWalker = true }) {
     spriteCtx.imageSmoothingEnabled = false
 
     function drawScene() {
-      const grad = ctx.createLinearGradient(0, 0, 0, H)
-      grad.addColorStop(0,           '#F2E8D8')
-      grad.addColorStop(WALL_FRAC - 0.001, '#F2E8D8')
-      grad.addColorStop(WALL_FRAC,  '#8B6340')
-      grad.addColorStop(1,           '#8B6340')
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, W, H)
-
-      // Baseboard
-      ctx.fillStyle = '#C09060'
-      ctx.fillRect(0, wallH, W, 6)
-
-      // Floor grain
-      ctx.fillStyle = 'rgba(0,0,0,0.045)'
-      for (let x = 0; x < W; x += 40) {
-        ctx.fillRect(x, wallH + 7, 1, H - wallH - 7)
-      }
-
-      // Furniture
-      const layout = roomLayoutRef.current
-      for (const [idxStr, itemId] of Object.entries(layout)) {
-        const idx = parseInt(idxStr)
-        if (isNaN(idx)) continue
-        const col = idx % COLS
-        const row = Math.floor(idx / COLS)
-        const cx  = gridLeft + col * (SLOT_SIZE + GAP) + SLOT_SIZE / 2
-        const cy  = GRID_TOP + row * (SLOT_SIZE + GAP) + SLOT_SIZE / 2
-        const item = ROOM_ITEMS.find(i => i.id === itemId)
-        if (item) {
-          ctx.save()
-          item.draw(ctx, cx, cy, SLOT_SIZE * 0.80)
-          ctx.restore()
-        }
-      }
-
-      // Empty-room hint
-      if (Object.keys(layout).length === 0) {
-        ctx.fillStyle = 'rgba(139,99,64,0.55)'
-        ctx.font      = '13px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.fillText('แต่งห้องได้ที่เมนู ห้อง', W / 2, wallH - 18)
-        ctx.textAlign = 'left'
-      }
+      drawRoomScene(ctx, { W, H, roomLayout: roomLayoutRef.current, small: false })
     }
 
     function updateEntity() {

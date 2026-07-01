@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-07-01 (Home screen redesign)_
+_Last updated: 2026-07-01 (Friends room visit + cosmetics)_
 
 ---
 
@@ -39,12 +39,16 @@ _Last updated: 2026-07-01 (Home screen redesign)_
 - **Result screens**: All 16 result/end screens display a gold `🪙 +N` badge showing exact coins earned that round (same value dispatched to `state.coins`)
 - **Spending**: NOT implemented yet — earn-only. Shop/items/room planned for next phase.
 
-### Friend Code System (Phase 1.1)
+### Friend Code System (Phase 1.1) + Room Visit (2026-07-01)
 - `FriendsScreen.jsx`: 2-tab screen reachable from BottomNav "เพื่อน" tab
   - **เพื่อน tab** (unified scroll): pending requests (conditional, no empty state) → My Code ("ABC-DEF" + copy) → Add Friend (6-char input + `send_friend_request`) → My Friends list (from `my_friends` view). All loaded in parallel via `Promise.all` on mount.
-  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards. Each card shows `<EggCanvasCore element eye gender stage aura=0 size=60>` (from `src/egg/EggCanvas.jsx` directly, not the wrapper). Card shows `display_name` + element in Thai + RarityBadge. "ดูสเตตัส" opens portal modal with `<EggCanvasCore size=160>` + 4 StatBars (HP/ATK/DEF/SPD) + "ท้าเล่น" mock (3s toast). "🔄 สับใหม่" re-calls RPC. `drawCreature`/`CreatureCanvas`/`ELEMENT_STATS`/`elementToStats` removed from FriendsScreen.
-  - ⚠️ **Migration pending**: `supabase/migrations/20260627_mystery_adventurers_egg.sql` must be run in Supabase SQL Editor to replace the old RPC (currently returns `creature_seed/creature_name/evo_stage`; after migration returns `element/eye/gender/stage/hp/atk/def/spd/rarity_label/is_bot`). Until migration runs, all adventurers will show with default values (fire/gba/male/stage1).
-- BottomNav: 4th tab (green dot, "เพื่อน")
+  - **ผู้คนอื่นๆ tab**: `get_mystery_adventurers({ p_limit: 8 })` → 8 adventurer cards. **Each card now shows a mini room preview**: left = 72×80 `<RoomScene small>` (room background via the shared `drawRoomScene` helper + the adventurer's companion egg standing in it, wearing their cosmetics via `renderEggSprite`); right = `display_name` + RarityBadge, element·Lv, HP/ATK/SPD (`MiniStat`), and worn cosmetics as small inline icons (`CosmeticIcon` — icon only, **no text label, no "N ชิ้น" count**). **Tapping the card body opens the Room Visit screen** (`RoomVisit`). The "ดูสเตตัส" button (uses `stopPropagation`) still opens the legacy stats portal modal (`<EggCanvasCore size=160>` + 4 StatBars + "ท้าเล่น" mock 3s toast) — the mock-challenge flow is preserved. "🔄 สับใหม่" re-calls RPC.
+  - **Room Visit** (`RoomVisit.jsx`): full-screen read-only overlay, slides in from the right. Header = back button (‹) + "ห้องของ [name]". Main = full-bleed room (`RoomScene`, large) + large centered `EggCanvasCore` (their element/eye/gender/stage, `aura` via `stageToAura`, `equipped` from the RPC's `equipped_head`/`equipped_face`). Bottom panel = HP/ATK/DEF/SPD + rarity + cosmetic chips (icon + Thai name) or "ยังไม่ได้แต่งตัว" when both slots empty. Purely visual — no taps on egg/furniture; back button closes.
+  - **Shared render helper** (`src/lib/roomScene.js`): `drawRoomScene(ctx, { W, H, roomLayout, small, hint })` extracted from `DecoratedRoom.jsx` (which now delegates to it) so Home / Room editor / friend cards / room-visit all draw the same room art. `small=true` → thumbnail scaling; `hint=false` → no "decorate at the Room menu" text (used for friend rooms). The `small=false, hint=true` path is pixel-identical to the old DecoratedRoom scene — Home/Room verified unaffected.
+  - **Graceful degradation before migration**: the room-visit + card previews default `room_layout→{}` and `equipped_head/equipped_face→null` if those fields are missing, so the UI shows an undecorated room + no cosmetics (never crashes) until the new RPC is live.
+  - 🔴 **NEW MIGRATION PENDING — MUST BE RUN MANUALLY IN THE SUPABASE SQL EDITOR**: `supabase/migrations/20260701_mystery_adventurers_room_visit.sql`. It `CREATE OR REPLACE`s `get_mystery_adventurers` to add `equipped_head text`, `equipped_face text`, `room_layout jsonb` (real rows from `eggs.state_json`; bots get random plausible cosmetics + a small random layout). **No Supabase CLI / service key exists in the repo — Claude Code cannot apply it.** Until the user pastes-and-runs it at https://supabase.com/dashboard/project/dgpsnlkedergkbhqnjpu/sql, adventurer rooms stay empty + undecorated (as live-tested). Pre-change backup: `db_backups/get_mystery_adventurers_pre_room_visit.sql`. (This is separate from and in addition to the still-pending 20260627 RPC migration below.)
+  - ⚠️ **Prior migration also pending**: `supabase/migrations/20260627_mystery_adventurers_egg.sql` replaced the legacy RPC (`creature_seed/creature_name/evo_stage` → `element/eye/gender/stage/hp/atk/def/spd/rarity_label/is_bot`). The 20260701 migration above is written as a full definition that supersedes it, so running 20260701 alone brings the RPC fully up to date. Until any migration runs, adventurers show default values (fire/gba/male/stage1).
+- BottomNav: 5th tab (green dot, "เพื่อน")
 - Out of scope (Phase 2+): real challenge backend, friend battles, chat, remove-friend, leaderboards
 
 ### Living Egg System (New renderer — 2026-06-26)

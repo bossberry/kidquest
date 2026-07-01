@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase.js'
 import EggCanvasCore from '../egg/EggCanvas.jsx'
+import RoomScene from './RoomScene.jsx'
+import RoomVisit from './RoomVisit.jsx'
+import { renderEggSprite } from '../egg/renderEggSprite.js'
+import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -308,6 +312,55 @@ function StatBar({ label, value, max, color }) {
   )
 }
 
+function MiniStat({ label, value, color }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+      <span style={{ ...FONT_PX, fontSize: 6, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+      <span style={{ ...FONT_PX, fontSize: 8, color }}>{value ?? '-'}</span>
+    </span>
+  )
+}
+
+// ─── Inline cosmetic icon (static, no label) ────────────────────────────────────
+// Renders the adventurer's egg wearing exactly one cosmetic, single-frame.
+
+function CosmeticIcon({ egg, item, size = 30 }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const H = Math.round(size * 1.19)
+    const DPR = window.devicePixelRatio || 1
+    canvas.width  = Math.round(size * DPR)
+    canvas.height = Math.round(H * DPR)
+    const ctx = canvas.getContext('2d')
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+    ctx.imageSmoothingEnabled = false
+    renderEggSprite(ctx, {
+      element: egg.element ?? 'fire', eye: egg.eye ?? 'gba', gender: egg.gender ?? 'male',
+      stage: 1, aura: 0, anim: 'idle', t: 0, canvasSize: size,
+      equipped: { [item.slot]: item.id, [item.slot === 'head' ? 'face' : 'head']: null },
+    })
+  }, [egg.element, egg.eye, egg.gender, item.id, item.slot, size])
+  return (
+    <canvas ref={ref} title={item.nameTh}
+      style={{ width: size, height: Math.round(size * 1.19), imageRendering: 'pixelated', display: 'block' }} />
+  )
+}
+
+function cosmeticIconsFor(a) {
+  const out = []
+  if (a.equipped_head) {
+    const it = COSMETIC_ITEMS.find(i => i.id === a.equipped_head && i.slot === 'head')
+    if (it) out.push(it)
+  }
+  if (a.equipped_face) {
+    const it = COSMETIC_ITEMS.find(i => i.id === a.equipped_face && i.slot === 'face')
+    if (it) out.push(it)
+  }
+  return out
+}
+
 // ─── Adventurer stats modal ────────────────────────────────────────────────────
 
 function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
@@ -374,6 +427,7 @@ function MysteryTab() {
   const [adventurers, setAdventurers]   = useState([])
   const [loading, setLoading]           = useState(true)
   const [selected, setSelected]         = useState(null)
+  const [visiting, setVisiting]         = useState(null)
   const [toastMsg, setToastMsg]         = useState(null)
   const toastTimerRef                   = useRef(null)
 
@@ -417,6 +471,10 @@ function MysteryTab() {
         />
       )}
 
+      {visiting && (
+        <RoomVisit adventurer={visiting} onClose={() => setVisiting(null)} />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ ...FONT_TH, fontSize: 12, color: 'var(--px-yellow)', fontWeight: 700 }}>🌐 ผู้คนอื่นๆ</div>
         <button onClick={load} disabled={loading}
@@ -433,45 +491,67 @@ function MysteryTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {adventurers.map((a, i) => {
             const s = RARITY[rarityKey(a.rarity_label)] ?? RARITY.common
+            const eggIdentity = { element: a.element ?? 'fire', eye: a.eye ?? 'gba', gender: a.gender ?? 'male' }
+            const icons = cosmeticIconsFor(a)
             return (
-              <div key={i} style={{
-                background: 'var(--px-dark)',
-                border: `2px solid ${s.border}`,
-                boxShadow: s.glow ? `3px 3px 0 var(--px-black), ${s.glow}` : '3px 3px 0 var(--px-black)',
-                padding: '12px 14px',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                {/* Egg avatar */}
+              <div key={i}
+                onClick={() => setVisiting(a)}
+                style={{
+                  background: 'var(--px-dark)',
+                  border: `2px solid ${s.border}`,
+                  boxShadow: s.glow ? `3px 3px 0 var(--px-black), ${s.glow}` : '3px 3px 0 var(--px-black)',
+                  padding: '12px 14px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                }}>
+                {/* Room preview thumbnail: room background + companion egg (with cosmetics) */}
                 <div style={{
                   flexShrink: 0, background: 'var(--px-black)',
                   border: `2px solid ${s.border}`, lineHeight: 0,
                 }}>
-                  <EggCanvasCore
-                    element={a.element ?? 'fire'} eye={a.eye ?? 'gba'} gender={a.gender ?? 'male'}
-                    stage={a.stage ?? 1} aura={0} size={60}
+                  <RoomScene
+                    width={72} height={80} small
+                    roomLayout={a.room_layout ?? {}}
+                    egg={{
+                      ...eggIdentity, stage: a.stage ?? 1, aura: 0,
+                      equipped: { head: a.equipped_head ?? null, face: a.equipped_face ?? null },
+                    }}
                   />
                 </div>
 
                 {/* Info */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{ ...FONT_TH, fontSize: 13, color: 'var(--px-light)', fontWeight: 700 }}>
                       {a.display_name ?? 'นักผจญภัยลึกลับ'}
                     </span>
                     <RarityBadge label={a.rarity_label} />
                   </div>
-                  <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-light)', opacity: 0.55 }}>
-                    {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'}
+                  <div style={{ ...FONT_TH, fontSize: 10, color: 'var(--px-light)', opacity: 0.55 }}>
+                    {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'} · Lv.{a.stage ?? 1}
                   </div>
+                  {/* Stats */}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <MiniStat label="HP"  value={a.hp}  color="var(--px-green)" />
+                    <MiniStat label="ATK" value={a.atk} color="var(--px-red)" />
+                    <MiniStat label="SPD" value={a.spd} color="var(--px-yellow)" />
+                  </div>
+                  {/* Worn cosmetics — icons only, no label/count */}
+                  {icons.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                      {icons.map(it => <CosmeticIcon key={it.id} egg={eggIdentity} item={it} size={28} />)}
+                    </div>
+                  )}
                 </div>
 
-                {/* View stats button */}
-                <button onClick={() => setSelected(a)}
+                {/* View stats button — preserves the existing ดูสเตตัส → ท้าเล่น modal flow */}
+                <button onClick={(e) => { e.stopPropagation(); setSelected(a) }}
                   style={{
                     flexShrink: 0, ...FONT_TH, fontSize: 11, cursor: 'pointer',
                     background: 'transparent', border: '2px solid var(--px-border)',
                     color: 'var(--px-light)', padding: '7px 10px',
                     boxShadow: '2px 2px 0 var(--px-black)', whiteSpace: 'nowrap',
+                    WebkitTapHighlightColor: 'transparent',
                   }}>
                   ดูสเตตัส
                 </button>

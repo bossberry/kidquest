@@ -1,5 +1,35 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — fix: stamp lastSavedAt on every mutating reducer (closes the whole resolveSync-revert bug class)
+
+### src/context/StateContext.jsx
+Follow-up to `c74e83d` (coins) and `036070f` (cosmetics/room items): those two fixes
+patched the specific reducers that had been caught reverting data on reload, but the
+underlying gap — a mutating reducer case that doesn't stamp `lastSavedAt: Date.now()`
+on its returned state — could exist in any of the ~70 other `case ACTIONS.*` reducers in
+this file, since `resolveSync()` (`src/lib/state.js:273`) picks whichever of {local,
+remote} has the newer whole-object `lastSavedAt` and is not a field-level merge. Any
+un-stamped mutation is invisible to that comparison and can be silently discarded by a
+later sync that happens to run with a stale remote snapshot — the exact failure mode
+already observed twice.
+
+Rather than wait for a third bug report, did a full sweep: every reducer `case` that
+returns a genuinely different state (coin/XP/mastery/inventory/creature/world-progress
+mutations — everything except `INIT`, the true no-op `ENCOUNTER_TRIGGERED`, the
+`USE_ITEM`/`DROP_ITEM` aliases that delegate to already-covered cases, and the six
+reducers `036070f` already fixed) now includes `lastSavedAt: Date.now()` in its returned
+object. `ADD_COINS` — the specific reducer flagged as the most likely next victim in
+`036070f`'s handoff note — is included.
+
+Live-verified: wrote a `+5` coin bump with a fresh `lastSavedAt` directly to
+`localStorage.kq_state` (mirroring exactly what the patched `ADD_COINS` reducer now
+produces), reloaded the real running app, confirmed the coin bump survived
+`resolveSync` (11 → 16, shown in the HUD), then restored the account to its exact
+original state (11 coins) so no test data was left behind. Build clean (168 modules).
+
+No resolveSync rearchitecture — matches the established per-reducer stamp pattern from
+`c74e83d`/`036070f` rather than a field-merge rewrite.
+
 ## 2026-07-01 — fix: bought cosmetics disappear after close/reopen (resolveSync race — same class as c74e83d)
 
 ### Root cause

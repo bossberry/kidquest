@@ -202,6 +202,7 @@ function reducer(state, action) {
         acc: accDelta !== undefined ? Math.round((state.acc || 70) * 0.95 + accDelta * 0.05) : state.acc,
         speed: speedDelta !== undefined ? Math.round((state.speed || 50) * 0.9 + speedDelta * 0.1) : state.speed,
         firstSubject: state.firstSubject === -1 ? ['thai','eng','math'].indexOf(world) : state.firstSubject,
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -236,6 +237,7 @@ function reducer(state, action) {
         badges: (score || 0) >= 0.9 ? (state.badges || 0) + 1 : (state.badges || 0),
         dailyBattleRounds: (dailyReset ? 0 : (state.dailyBattleRounds || 0)) + 1,
         lastBattleDate: today,
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -315,11 +317,12 @@ function reducer(state, action) {
         badges: (state.badges || 0) + 1,
         hatchedEggs: [updatedNewEgg, ...(state.hatchedEggs || [])],
         party: newParty,
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.CLOSE_HATCH:
-      return { ...state, hatching: false, readyToHatch: false }
+      return { ...state, hatching: false, readyToHatch: false, lastSavedAt: Date.now() }
 
     case ACTIONS.USE_HOME_ITEM: {
       const { key } = action.payload
@@ -355,24 +358,24 @@ function reducer(state, action) {
           rainbow_star: { endsAt: Date.now() + 5 * 60 * 1000, effect: 'saiyan_aura' }
         }
       }
-      return { ...state, ...updates }
+      return { ...state, ...updates, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.USE_BATTLE_ITEM: {
       const { key } = action.payload
       const count = state.battleItems?.[key] || 0
       if (count <= 0) return state
-      return { ...state, battleItems: { ...state.battleItems, [key]: count - 1 } }
+      return { ...state, battleItems: { ...state.battleItems, [key]: count - 1 }, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.DROP_HOME_ITEM: {
       const { key } = action.payload
-      return { ...state, homeItems: { ...state.homeItems, [key]: (state.homeItems?.[key] || 0) + 1 } }
+      return { ...state, homeItems: { ...state.homeItems, [key]: (state.homeItems?.[key] || 0) + 1 }, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.DROP_BATTLE_ITEM: {
       const { key } = action.payload
-      return { ...state, battleItems: { ...state.battleItems, [key]: (state.battleItems?.[key] || 0) + 1 } }
+      return { ...state, battleItems: { ...state.battleItems, [key]: (state.battleItems?.[key] || 0) + 1 }, lastSavedAt: Date.now() }
     }
 
     // Backward-compat aliases
@@ -382,14 +385,14 @@ function reducer(state, action) {
       return reducer(state, { type: ACTIONS.DROP_BATTLE_ITEM, payload: action.payload })
 
     case ACTIONS.SET_CURRENT_WORLD:
-      return { ...state, currentWorld: action.payload }
+      return { ...state, currentWorld: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.SET_SESSION_XP:
-      return { ...state, sessionXP: action.payload }
+      return { ...state, sessionXP: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.UPDATE_THAI_MASTERY: {
       const { word, value } = action.payload
-      return { ...state, thaiMastery: { ...(state.thaiMastery || {}), [word]: value } }
+      return { ...state, thaiMastery: { ...(state.thaiMastery || {}), [word]: value }, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.UPDATE_LEVEL_MASTERY: {
@@ -400,26 +403,27 @@ function reducer(state, action) {
           ...(state.levelMastery || {}),
           [world]: { ...(state.levelMastery?.[world] || {}), [levelId]: value },
         },
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.UNLOCK_LEVEL: {
       const { world, newLevel } = action.payload
-      return { ...state, subjectLevels: { ...(state.subjectLevels || {}), [world]: newLevel } }
+      return { ...state, subjectLevels: { ...(state.subjectLevels || {}), [world]: newLevel }, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.SEEN_TEACH: {
       const { key } = action.payload
       const seen = state.seenTeach || []
       if (seen.includes(key)) return state
-      return { ...state, seenTeach: [...seen, key] }
+      return { ...state, seenTeach: [...seen, key], lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ER_DEDUCT_LIFE: {
       const today = todayStr()
       const reset = (state.lastRunDate || '') !== today
       const lives = reset ? 3 : (state.eggRunLives || 0)
-      return { ...state, eggRunLives: Math.max(0, lives - 1), lastRunDate: today }
+      return { ...state, eggRunLives: Math.max(0, lives - 1), lastRunDate: today, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ER_SAVE_SCORE: {
@@ -428,37 +432,39 @@ function reducer(state, action) {
         ...state,
         erBestDist: Math.max(state.erBestDist || 0, dist),
         erBestRings: Math.max(state.erBestRings || 0, rings),
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.UPDATE_HAPPINESS:
-      return { ...state, happiness: Math.max(0, Math.min(100, action.payload)) }
+      return { ...state, happiness: Math.max(0, Math.min(100, action.payload)), lastSavedAt: Date.now() }
 
     case ACTIONS.CHECK_DAILY_RESET: {
       const today = todayStr()
       if ((state.lastPlayDate || '') === today) return state
-      return { ...state, dailyRounds: 0, lastPlayDate: today }
+      return { ...state, dailyRounds: 0, lastPlayDate: today, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.DECAY_HAPPINESS: {
-      if (!state.lastLogin) return { ...state, lastLogin: Date.now() }
+      if (!state.lastLogin) return { ...state, lastLogin: Date.now(), lastSavedAt: Date.now() }
       const hoursAway = (Date.now() - state.lastLogin) / 3600000
-      if (hoursAway <= 8) return { ...state, lastLogin: Date.now() }
+      if (hoursAway <= 8) return { ...state, lastLogin: Date.now(), lastSavedAt: Date.now() }
       return {
         ...state,
         happiness: Math.max(10, (state.happiness || 80) - Math.floor(hoursAway * 3)),
         lastLogin: Date.now(),
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.SET_HATCHING:
-      return { ...state, hatching: action.payload }
+      return { ...state, hatching: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.SET_CHALLENGER:
-      return { ...state, pendingChallenger: action.payload, dailyBattleRounds: 0 }
+      return { ...state, pendingChallenger: action.payload, dailyBattleRounds: 0, lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_CHALLENGER:
-      return { ...state, pendingChallenger: null }
+      return { ...state, pendingChallenger: null, lastSavedAt: Date.now() }
 
     case ACTIONS.RECORD_BATTLE: {
       const { entry, bossKey, itemKey } = action.payload
@@ -469,11 +475,11 @@ function reducer(state, action) {
       const battleItems = itemKey
         ? { ...(state.battleItems || {}), [itemKey]: ((state.battleItems || {})[itemKey] || 0) + 1 }
         : state.battleItems
-      return { ...state, defeatedBosses, battleHistory, battleItems }
+      return { ...state, defeatedBosses, battleHistory, battleItems, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.FOUNDATION_COMPLETE:
-      return { ...state, foundationComplete: true }
+      return { ...state, foundationComplete: true, lastSavedAt: Date.now() }
 
     case ACTIONS.SET_PROFILE: {
       const { name, schoolGrade, gender } = action.payload
@@ -482,6 +488,7 @@ function reducer(state, action) {
         name: name || state.name,
         schoolGrade: schoolGrade ?? state.schoolGrade,
         gender: gender ?? state.gender,
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -511,6 +518,7 @@ function reducer(state, action) {
           totalDuration: (prev.totalDuration || 0) + dur,
           phaseStats:    nextPhaseStats,
         },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -522,7 +530,7 @@ function reducer(state, action) {
         ? (entry.ts - (lastSame.ts + (lastSame.dur || 0))) < 60000
         : false
       const nextLog = [...prevLog, { ...entry, replayedImmediately }].slice(-50)
-      return { ...state, sessionLog: nextLog }
+      return { ...state, sessionLog: nextLog, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.LOG_BATTLE_ANSWER: {
@@ -536,29 +544,30 @@ function reducer(state, action) {
           ...(state.responseTimeLogs ?? {}),
           [subject]: updated,
         },
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.UPDATE_LAST_HOME_VISIT:
-      return { ...state, lastHomeVisit: action.payload }
+      return { ...state, lastHomeVisit: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.ENTER_WORLD: {
       const { region, screen } = action.payload
       const discovered = [...new Set([...(state.discoveredScreens || []), screen])]
-      return { ...state, currentRegion: region, currentScreen: screen, discoveredScreens: discovered }
+      return { ...state, currentRegion: region, currentScreen: screen, discoveredScreens: discovered, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.EXIT_WORLD:
-      return { ...state, currentRegion: null, currentScreen: null }
+      return { ...state, currentRegion: null, currentScreen: null, lastSavedAt: Date.now() }
 
     case ACTIONS.MOVE_SCREEN:
-      return { ...state, currentScreen: action.payload }
+      return { ...state, currentScreen: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.DISCOVER_SCREEN: {
       const scr = action.payload
       const already = state.discoveredScreens || []
       if (already.includes(scr)) return state
-      return { ...state, discoveredScreens: [...already, scr] }
+      return { ...state, discoveredScreens: [...already, scr], lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ENCOUNTER_TRIGGERED:
@@ -566,25 +575,25 @@ function reducer(state, action) {
 
     case ACTIONS.ENTER_BATTLE_FROM_WORLD: {
       const { position, enemy } = action.payload
-      return { ...state, worldPosition: position, worldBattleEnemy: enemy, pendingBattle: null }
+      return { ...state, worldPosition: position, worldBattleEnemy: enemy, pendingBattle: null, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.RETURN_FROM_WORLD_BATTLE:
-      return { ...state, worldBattleEnemy: null, battleCreatureId: null }
+      return { ...state, worldBattleEnemy: null, battleCreatureId: null, lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_WORLD_POSITION:
-      return { ...state, worldPosition: null }
+      return { ...state, worldPosition: null, lastSavedAt: Date.now() }
 
     // ── Party + creature battle system ────────────────────────────────────────
 
     case ACTIONS.SET_PENDING_BATTLE:
-      return { ...state, pendingBattle: action.payload }
+      return { ...state, pendingBattle: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_PENDING_BATTLE:
-      return { ...state, pendingBattle: null, battleCreatureId: null }
+      return { ...state, pendingBattle: null, battleCreatureId: null, lastSavedAt: Date.now() }
 
     case ACTIONS.SET_BATTLE_CREATURE:
-      return { ...state, battleCreatureId: action.payload }
+      return { ...state, battleCreatureId: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.SELECT_CREATURE_AND_ENTER_BATTLE: {
       const { creatureId, battle } = action.payload
@@ -595,6 +604,7 @@ function reducer(state, action) {
         worldPosition: position ?? state.worldPosition,
         worldBattleEnemy: enemy ?? state.worldBattleEnemy,
         pendingBattle: null,
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -606,7 +616,7 @@ function reducer(state, action) {
           ? { ...e, currentHP: Math.max(0, (e.currentHP ?? e.stats?.HP ?? 10) - damage), hpUpdatedAt: now }
           : e
       )
-      return { ...state, hatchedEggs }
+      return { ...state, hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.CREATURE_HEAL: {
@@ -618,7 +628,8 @@ function reducer(state, action) {
           const maxHP = e.stats?.HP ?? 100
           const newHP = Math.min(maxHP, (e.currentHP ?? maxHP) + amount)
           return { ...e, currentHP: newHP }
-        })
+        }),
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -630,7 +641,7 @@ function reducer(state, action) {
         const newBattleLevel = calcBattleLevel(newBattleXP)
         return { ...e, battleXP: newBattleXP, battleLevel: newBattleLevel }
       })
-      return { ...state, hatchedEggs }
+      return { ...state, hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ADD_TO_PARTY: {
@@ -640,18 +651,18 @@ function reducer(state, action) {
       const hatchedEggs = (state.hatchedEggs || []).map(e =>
         e.id === cid ? { ...e, inParty: true } : e
       )
-      return { ...state, party: [...(state.party || []), cid], hatchedEggs }
+      return { ...state, party: [...(state.party || []), cid], hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.SET_ACTIVE_CREATURE: {
       const { creatureId: activeId } = action.payload
       const party = state.party || []
       if (!party.includes(activeId) || party[0] === activeId) return state
-      return { ...state, party: [activeId, ...party.filter(id => id !== activeId)] }
+      return { ...state, party: [activeId, ...party.filter(id => id !== activeId)], lastSavedAt: Date.now() }
     }
 
     case ACTIONS.UNLOCK_PARTY_SLOT:
-      return { ...state, partySlots: Math.min(6, (state.partySlots || 1) + 1) }
+      return { ...state, partySlots: Math.min(6, (state.partySlots || 1) + 1), lastSavedAt: Date.now() }
 
     case ACTIONS.INCREMENT_BATTLE_WINS: {
       // +1 bond to active creature on battle win
@@ -675,6 +686,7 @@ function reducer(state, action) {
         battleWins: newBattleWins,
         hatchedEggs: eggsAfterWin,
         pendingEvoNotice: evoNoticeW,
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -692,6 +704,7 @@ function reducer(state, action) {
         bossEnemyDefeated: false,
         bossRoamingScreen: null,
         bossWinsAtDefeat: 0,
+        lastSavedAt: Date.now(),
       }
 
     case ACTIONS.DEFEAT_BOSS: {
@@ -706,17 +719,18 @@ function reducer(state, action) {
         clearedMaps: [],
         currentScreen: 'NW',
         worldPosition: null,
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.RESPAWN_BOSS_ON_NORMAL_MAP: {
       const screens = ['NW', 'NE', 'SW', 'SE']
       const bossRoamingScreen = screens[(state.battleWins ?? 0) % 4]
-      return { ...state, bossRoamingScreen }
+      return { ...state, bossRoamingScreen, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ACTIVATE_MAZE:
-      return { ...state, mazeActive: true }
+      return { ...state, mazeActive: true, lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_MAZE: {
       const mazeClearScreens = ['NW', 'NE', 'SW', 'SE']
@@ -725,6 +739,7 @@ function reducer(state, action) {
         ...state,
         mazeActive: false,
         mazePortal: { screenId: newPortalScreen, col: null, row: null },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -733,7 +748,7 @@ function reducer(state, action) {
       const hatchedEggs = (state.hatchedEggs || []).map(e =>
         e.id === creatureId ? { ...e, creatureName: name } : e
       )
-      return { ...state, hatchedEggs }
+      return { ...state, hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ADD_CREATURE_BOND: {
@@ -744,7 +759,7 @@ function reducer(state, action) {
         const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, bond, e.evoStage ?? 'baby')
         return { ...e, bondMeter: bond, evoStage: newEvo }
       })
-      return { ...state, hatchedEggs }
+      return { ...state, hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.CREATURE_EVOLVE: {
@@ -754,24 +769,24 @@ function reducer(state, action) {
         const newEvo = calcEvoStage(e.battleLevel ?? 1, state.grade ?? 0, e.bondMeter ?? 0, e.evoStage ?? 'baby')
         return { ...e, evoStage: newEvo }
       })
-      return { ...state, hatchedEggs }
+      return { ...state, hatchedEggs, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.CLEAR_EVO_NOTICE:
-      return { ...state, pendingEvoNotice: null }
+      return { ...state, pendingEvoNotice: null, lastSavedAt: Date.now() }
 
     case ACTIONS.MAP_CLEARED: {
       const sid = action.payload
       const cleared = state.clearedMaps || []
       if (!['NW','NE','SW','SE'].includes(sid) || cleared.includes(sid)) return state
-      return { ...state, clearedMaps: [...cleared, sid] }
+      return { ...state, clearedMaps: [...cleared, sid], lastSavedAt: Date.now() }
     }
 
     case ACTIONS.SECRET_MAP_SPAWN:
-      return { ...state, mazeActive: true, mazeCleared: false, secretMapExpiry: action.payload }
+      return { ...state, mazeActive: true, mazeCleared: false, secretMapExpiry: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.SECRET_MAP_EXPIRE:
-      return { ...state, mazeActive: false, secretMapExpiry: null }
+      return { ...state, mazeActive: false, secretMapExpiry: null, lastSavedAt: Date.now() }
 
     case ACTIONS.CREATURE_STAT_BOOST: {
       const { creatureId, stat, amount } = action.payload
@@ -782,7 +797,8 @@ function reducer(state, action) {
           const newStats = { ...(e.stats ?? {}), [stat]: (e.stats?.[stat] ?? 0) + amount }
           const maxHP = newStats.HP ?? 100
           return { ...e, stats: newStats, currentHP: Math.min(maxHP, e.currentHP ?? maxHP) }
-        })
+        }),
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -809,26 +825,28 @@ function reducer(state, action) {
               return newEvo !== (e.evoStage ?? 'baby') ? { ...e, evoStage: newEvo } : e
             })
           : state.hatchedEggs,
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.SET_PENDING_LEVEL_UP:
-      return { ...state, pendingLevelUp: action.payload }
+      return { ...state, pendingLevelUp: action.payload, lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_PENDING_LEVEL_UP:
-      return { ...state, pendingLevelUp: null }
+      return { ...state, pendingLevelUp: null, lastSavedAt: Date.now() }
 
     case ACTIONS.SET_PENDING_REWARDS:
-      return { ...state, pendingRewards: action.payload ?? [] }
+      return { ...state, pendingRewards: action.payload ?? [], lastSavedAt: Date.now() }
 
     case ACTIONS.CLEAR_PENDING_REWARDS:
-      return { ...state, pendingRewards: [] }
+      return { ...state, pendingRewards: [], lastSavedAt: Date.now() }
 
     case ACTIONS.SET_SUBJECT_SESSION_STREAK: {
       const { subject, streak } = action.payload
       return {
         ...state,
         subjectSessionStreak: { ...(state.subjectSessionStreak || {}), [subject]: streak },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -841,21 +859,22 @@ function reducer(state, action) {
       return {
         ...state,
         inputModeMastery: { ...state.inputModeMastery, [mode]: updated },
+        lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.SPAWN_MAZE_PORTAL: {
       const portalScreens = ['NW', 'NE', 'SW', 'SE']
       const portalScreenId = portalScreens[Math.floor(Math.random() * portalScreens.length)]
-      return { ...state, mazePortal: { screenId: portalScreenId, col: null, row: null } }
+      return { ...state, mazePortal: { screenId: portalScreenId, col: null, row: null }, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.SPAWN_MAZE_PORTAL_RESOLVED:
       if (!state.mazePortal) return state
-      return { ...state, mazePortal: { ...state.mazePortal, col: action.payload.col, row: action.payload.row } }
+      return { ...state, mazePortal: { ...state.mazePortal, col: action.payload.col, row: action.payload.row }, lastSavedAt: Date.now() }
 
     case ACTIONS.ENTER_MAZE:
-      return { ...state, mazeActive: true }
+      return { ...state, mazeActive: true, lastSavedAt: Date.now() }
 
     case ACTIONS.ADD_COINS: {
       const { amount, bonusKey } = action.payload
@@ -864,6 +883,7 @@ function reducer(state, action) {
         ...state,
         coins: Math.max(0, (state.coins || 0) + amount),
         ...(bonusKey ? { coinsLevelBonus: { ...(state.coinsLevelBonus || {}), [bonusKey]: true } } : {}),
+        lastSavedAt: Date.now(),
       }
     }
 

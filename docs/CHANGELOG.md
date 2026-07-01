@@ -1,5 +1,69 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — Home screen redesign (approved layout)
+
+### src/components/Home.jsx (full rewrite of layout/JSX; no game logic changed)
+Redesigned Home to the approved top-to-bottom layout. **Visual/UX only** — no state
+shape, reducer, or other-screen changes; `eggAlgorithm.js` untouched.
+
+- **Header simplified**: left = small circular companion-egg avatar (`EggCanvas` 40px in
+  a 34px round frame) + child name + egg-stage name; right = 🔥 login-streak pill
+  (`state.loginStreak`, orange `#FF6B35`), 🪙 coin pill (`state.coins`, gold `#FFD23F`),
+  and a 🔊/🔇 sound-toggle icon button. Dark semi-transparent panel with
+  `backdrop-filter: blur`. **Login/profile is still reachable**: the whole left
+  avatar+name block is a button → `onOpenProfile()` when logged in, `onOpenLogin()` when
+  not (replaces the old text login/profile button). Removed the pulsing "พร้อมฟัก!"
+  ready-to-hatch badge from the header.
+- **Status bar added (new thin row)**: three equal chips — ❤️ HP (orange), ⭐ XP (gold),
+  💕 Bond (purple `#9B5DE5`) — each an emoji + thin proportional bar, no numbers. HP =
+  `activeEgg.currentHP/stats.HP`, XP = `eggProgressData.pct`, Bond = `activeEgg.bondMeter`.
+  **Bond is shown on Home for the first time.** All three use `?.`/fallbacks so the
+  zero-egg case renders (HP 100%, Bond 0%) without crashing.
+- **Decorated room is the central hero zone**: `<DecoratedRoom>` moved from a
+  full-viewport `position:absolute inset:0 zIndex:-1` background into the flex-1 egg zone
+  (`position:absolute inset:0 zIndex:0` inside an `overflow:hidden` relative container),
+  so the walking companion egg is actually visible in the middle of the screen instead of
+  hidden behind the bottom panels. DecoratedRoom internals untouched. A floating
+  "Lv.N · [egg stage name]" pill sits top-center of the zone.
+- **Egg-tap-to-pet preserved**: the egg zone is a transparent tap target. Tap logic:
+  armed item → use it (`handleTapItem`); else post-hatch → `handleCreatureTap` (+bond,
+  floating emoji reaction); else pre-hatch → `handleEggTap` (pet combo / hatch trigger).
+  Floating reaction + heal-float + tap particles render centered in the zone.
+- **Party bar removed** (the scrollable multi-egg portrait row).
+- **Compact evolution-progress bar removed from Home** (`compactEvoInfo` block + its
+  `PROGRESSION_MAP` import dropped).
+- **Pre/post-hatch JSX branch split collapsed** into one layout. New-player hatch flow
+  preserved: when `readyToHatch && hatchedEggs.length === 0`, a pulsing
+  "แตะเพื่อฟักไข่!" CTA button renders in the egg zone and tapping the egg still triggers
+  `SET_HATCHING` via `handlePetEgg` — onboarding for future new accounts is intact.
+- **Minigame shortcut card added**: full-width card (🎮 + "มินิเกม" + subtitle
+  "Egg Memory · Egg Run · อีก 3 เกม" + › chevron). Taps dispatch
+  `SET_CURRENT_WORLD: 'memory'` + `navigate('game')` → launches Egg Memory directly.
+  **Caveat**: no minigame-*picker* screen exists (see note below); this launches the
+  first-listed game as the pragmatic destination.
+- **Item tray restyled, logic unchanged**: bigger icons (28px), roomier tap targets,
+  icon + Thai name + count badge + status line (พร้อม / active `Nm` / cooldown `Nm`).
+  All `USE_HOME_ITEM` / arm→use / cooldown / active-boost logic identical.
+- **Explore button** now full-width "🗺️ ออกสำรวจ!" (unchanged navigation: `ENTER_WORLD` +
+  `navigate('world')`). The old "ลูบ!" pet button was removed (petting is via the egg zone).
+
+**Minigame-picker note (Scope Guardian):** a dedicated "pick a minigame from a list"
+screen does not exist. Minigames (EggRun/EggCatch/EggMemory/EggTower/EggFishing) are
+rendered by `GameScreen` based on `state.currentWorld`, but `SET_CURRENT_WORLD` was
+dispatched *nowhere* and `navigate('game')` appeared *nowhere* — so GameScreen (and every
+minigame) was effectively unreachable, and world-map minigame tiles (Phase 6) are unbuilt.
+Building a real picker is new scope beyond "redesign Home.jsx", so the shortcut launches
+Egg Memory directly (a trivial 2-line wiring change; EggMemory is dependency-free after
+its emoji refactor). **Flagged as a Needs-Chatbot-decision:** should a real minigame
+picker screen be designed?
+
+Live-verified in Chrome vs the running dev server: header/status/room/minigame/tray/
+explore all render per spec; egg-tap pet works; arm-food → tap-egg → use decremented
+count 172→171; minigame card → Egg Memory; explore → Green Meadow map; bottom nav +
+Shop + Room screens unaffected; zero console errors. Build clean (168 modules). Zero-egg
+new-player path verified by code (guarded branch + hatch CTA preserved), not live (can't
+safely zero out the live account's hatchedEggs without risking the resolveSync-revert bug).
+
 ## 2026-07-01 — fix: stamp lastSavedAt on every mutating reducer (closes the whole resolveSync-revert bug class)
 
 ### src/context/StateContext.jsx

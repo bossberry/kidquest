@@ -50,6 +50,7 @@ _Last updated: 2026-06-27_
 - [x] **World-map walker cosmetics** — `WorldScreen.jsx` now includes `equipped: state.equipped` in `window.__kq_companionEgg`; `tileEngine.renderPlayer` already spread the whole companion object into `renderEggSprite`, so the map walker picks up the existing `drawCosmetics` step automatically — same pattern as the Home room-walker fix above ✅ (2026-07-01)
 - [x] **Delete dead HomeBackground.jsx** — confirmed zero remaining imports (Home.jsx uses `DecoratedRoom`); deleted the file and a stale comment reference in Home.jsx ✅ (2026-07-01)
 - [x] **Stamp lastSavedAt on every mutating reducer** — full sweep of `StateContext.jsx` (~70 `case ACTIONS.*` reducers) so ANY state mutation stamps `lastSavedAt: Date.now()`, closing the whole resolveSync-revert bug class (not just the two instances already caught: coins in `c74e83d`, cosmetics/room items in `036070f`). `ADD_COINS` specifically included. Live-verified a coin bump survives reload ✅ (2026-07-01)
+- [x] **Home screen redesign (approved layout)** — Home.jsx rewritten to: simplified header (avatar/name/stage · 🔥streak · 🪙coins · 🔊), new thin status bar (❤️HP · ⭐XP · 💕Bond — Bond shown on Home for the first time), DecoratedRoom promoted to the central hero zone (walking egg visible) with a floating Lv·stage pill, party bar removed, compact evolution bar removed, pre/post-hatch branch split collapsed (new-player hatch CTA preserved), minigame shortcut card added, item tray restyled (logic unchanged), full-width explore button. Live-verified in Chrome. Build clean ✅ (2026-07-01)
 - [ ] **Phase 4: NPC System** — 5 NPCs (Prof Owl already wired; add Grandma Turtle, Clover Kid, Crystal Fairy, Sleepy Mole). Per-NPC: dialogue lines, gift on first talk, repeat-visit dialogue. Use `SCREEN_NPCS` config in `tileMaps.js`.
 - [ ] **Thai content expansion** — Levels 6–8: fruits/everyday objects, short phrases, simple sentences (อนุบาล → early ป.1 content)
 - [ ] **Math content expansion** — Levels 9–10: place value, counting to 100 (early ป.1 stretch)
@@ -59,6 +60,7 @@ _Last updated: 2026-06-27_
 
 ## Later (needs Chatbot design first)
 
+- [ ] **Minigame picker screen** — the Home minigame shortcut card currently launches Egg Memory directly because no picker exists and GameScreen was previously unreachable (nothing dispatched `SET_CURRENT_WORLD` / `navigate('game')`). Decide: dedicated picker screen? which games shown? unlock gating (EggCatch=2 eggs, EggMemory=4, etc. per CURRENT_STATE)? or route via map tiles (Phase 6) instead? (raised by 2026-07-01 Home redesign)
 - [ ] **Cooking Mission MVP** — after Shop play-validation with Chopin; needs readiness data from real play
 - [ ] **Phase 5: Treasure refinement** — fixed treasure spots + hidden clovers per screen
 - [ ] **Phase 6: Minigame world triggers** — fullscreen minigame launched from map tile

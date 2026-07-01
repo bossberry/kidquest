@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-06-30 (session 9 — room / den decoration system)_
+_Last updated: 2026-07-01 (Home screen redesign)_
 
 ---
 
@@ -176,13 +176,17 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
   - `calcEvoStageInline()` in StateContext.jsx for reducer use (avoids circular import)
 - `subjectReadiness.js` shared utility: 4 states (Strong/Comfortable/Exploring/Not Ready)
 
-### Home Screen (`Home.jsx`, ~969 lines)
-- Background: `DecoratedRoom.jsx` (decorated room + walking companion egg) — `HomeBackground.jsx` (old pixel sky/mountains/ground scene) deleted 2026-07-01, see "Room / Den Decoration" above for details
-- Egg zone: large EggCanvas (190×225px), floating + aura. Post-session growth banner when `sessionXP > 0`
-- Creature zone: large 160×160 `drawCreature` canvas (tap/swipe for bond), party portrait bar (56×56 per creature, gold border on active)
-- Item tray: food/ribbon/shoes/rainbow_star; cooldown status from `state.activeBoosts`; active/cooldown overlays; saiyan rainbow hue-cycle animation on creature canvas when rainbow_star active (CSS `.saiyan-rainbow` class on wrapper div — `@keyframes rainbow-cycle` 0.6s hue-rotate); activation plays `powerup` SFX + `celebrate` tone
-- HatchOverlay biography phase (`bio`) before egg tapping when active creature has adventures
-- Creature companion tap: `handleCreatureTap` (+1 bond + bounce + emoji reaction); 3 swipes = +3 bond + 💖
+### Home Screen (`Home.jsx`) — redesigned 2026-07-01
+Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
+- **Header** (dark blur panel): left = tappable block (small circular companion-egg avatar + child name + egg-stage name) → opens Profile (logged in) or Login (not); right = 🔥 login-streak pill (`state.loginStreak`, `#FF6B35`), 🪙 coin pill (`state.coins`, `#FFD23F`), 🔊/🔇 sound toggle. Old text login/profile button + pulsing ready-to-hatch badge removed.
+- **Status bar** (thin ~36px row): three equal chips ❤️ HP / ⭐ XP / 💕 Bond — emoji + thin proportional bar, no numbers. HP=`activeEgg.currentHP/stats.HP`, XP=`eggProgressData.pct`, Bond=`activeEgg.bondMeter` (purple `#9B5DE5`). **Bond shown on Home for the first time.** Fallbacks make the zero-egg case render safely.
+- **Decorated room hero zone**: `<DecoratedRoom>` fills the flex-1 middle area (moved out of the full-viewport background so the walking companion egg is visible in the center). Floating "Lv.N · [egg stage name]" pill top-center. DecoratedRoom internals untouched.
+- **Egg-tap-to-pet**: transparent tap target over the room. Armed item → use; post-hatch → `handleCreatureTap` (+bond + floating emoji); pre-hatch → `handleEggTap` (pet combo / hatch). Reaction + heal-float + particles render centered.
+- **New-player hatch flow preserved**: `readyToHatch && hatchedEggs.length===0` → pulsing "แตะเพื่อฟักไข่!" CTA in the egg zone; tapping the egg triggers `SET_HATCHING`. (Pre/post-hatch JSX branch split collapsed into one layout.)
+- **Minigame shortcut card** (full-width): 🎮 "มินิเกม" + "Egg Memory · Egg Run · อีก 3 เกม" + › → dispatches `SET_CURRENT_WORLD:'memory'` + `navigate('game')` → launches Egg Memory directly. **No minigame-picker screen exists** (see Not Implemented); this is the pragmatic destination.
+- **Item tray** (unchanged logic, restyled): food/ribbon/shoes/rainbow_star; 28px icons, icon+name+count+status line (พร้อม / `Nm` active / `Nm` cooldown); `USE_HOME_ITEM` / arm→use / `activeBoosts` cooldown all identical.
+- **Explore button**: full-width "🗺️ ออกสำรวจ!" → `ENTER_WORLD` + `navigate('world')`.
+- **Removed from Home**: party portrait bar, compact evolution-progress bar (`compactEvoInfo`), large overlaid static `EggCanvas`, the old "ลูบ!" pet button, saiyan-rainbow wrapper on the (now-removed) big canvas. `useHomeAmbience` / `useCreatureInteraction` / `useHomeInteractions` hooks all still wired (ambient events, stage-up banner, growth banner, combos, item effects preserved).
 
 ### Collection Screen (`Collection.jsx`)
 - CreatureJourney: evolution roadmap shown under each party creature card; ○/⚡/✅ per step (teen/final); shows Lv, Tier, Bond requirements; BABY→TEEN→FINAL stage bar
@@ -277,6 +281,7 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 ---
 
 ## Not Implemented
+- **Minigame picker screen** — no "pick a minigame from a list" screen exists. `GameScreen` renders a minigame from `state.currentWorld`, but nothing dispatched `SET_CURRENT_WORLD` and nothing did `navigate('game')`, so GameScreen + all 5 minigames were unreachable until the Home redesign (2026-07-01) wired the minigame shortcut card to launch Egg Memory directly. Phase 6 (map-tile minigame triggers) still unbuilt. A real picker is a **Chatbot design decision**.
 - NPC dialogue system (Phase 4 — next major feature)
 - Multi-child profiles / parent account management
 - Payment / subscription (target: 199 THB/month)

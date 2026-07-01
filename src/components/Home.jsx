@@ -1,4 +1,4 @@
-// Home.jsx — main hub: active creature display, party portrait bar, ambient life (HomeBackground), and quick-nav to all modes.
+// Home.jsx — main hub: active creature display, party portrait bar, decorated room background (DecoratedRoom), and quick-nav to all modes.
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'

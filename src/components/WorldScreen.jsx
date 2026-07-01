@@ -115,10 +115,11 @@ export default function WorldScreen({ navigate }) {
       gender:  companionResolved.gender,
       stage:   eggStatsData?.stage ?? 1,
       aura:    0,
+      equipped: state.equipped ?? null,
     }
     window.__kq_playerOffscreen = null  // stop tileEngine falling back to old baked sprite
     return () => { window.__kq_companionEgg = null }
-  }, [companionResolved.element, companionResolved.eye, companionResolved.gender, eggStatsData?.stage]) // eslint-disable-line
+  }, [companionResolved.element, companionResolved.eye, companionResolved.gender, eggStatsData?.stage, state.equipped]) // eslint-disable-line
 
   const clearedMaps = state.clearedMaps ?? []
   const allMapsCleared = ['NW', 'NE', 'SW', 'SE'].every(s => clearedMaps.includes(s))

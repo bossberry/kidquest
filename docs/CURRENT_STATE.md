@@ -6,10 +6,10 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 ## Live Systems
 
 ### Room / Den Decoration (2026-06-30; background integration 2026-06-30)
-- **Home background**: `DecoratedRoom.jsx` replaces `HomeBackground.jsx` as the full-screen background of Home — the child sees their decorated room (placed furniture + walking companion) every time they open the app
+- **Home background**: `DecoratedRoom.jsx` is the full-screen background of Home — the child sees their decorated room (placed furniture + walking companion) every time they open the app (`HomeBackground.jsx` was the old background renderer; confirmed dead and deleted 2026-07-01)
 - **Room editor**: same `DecoratedRoom` canvas is the visual base in `Room.jsx`; a transparent 4×3 tap-overlay is layered on top for slot interactions; editing the room updates Home immediately (shared `state.roomLayout`)
 - **Grid**: 4 columns × 3 rows = 12 placement slots (64px each, 8px gap); slots are CSS divs overlaid on the room background
-- **Companion walker**: `DecoratedRoom.jsx` runs the same entity-state-machine as the old `HomeBackground` (walk/idle/jump/spin at 0.45 px/tick) but inside the room's floor area; uses `renderEggSprite` per-frame so element animations (fire/water/etc.) are live
+- **Companion walker**: `DecoratedRoom.jsx` runs the same entity-state-machine as the old (now-deleted) `HomeBackground` (walk/idle/jump/spin at 0.45 px/tick) but inside the room's floor area; uses `renderEggSprite` per-frame so element animations (fire/water/etc.) are live, including equipped cosmetics (head/face) as of 2026-07-01
 - **Place flow**: tap empty slot → bottom-sheet picker shows owned-but-unplaced furniture → tap to place
 - **Remove/swap flow**: tap occupied slot → action sheet with "ย้ายออก" (remove) and "เปลี่ยน" (swap)
 - **Furniture catalog**: 12 items in `src/lib/roomItems.js` — plant, rug, lamp, stuffed animal, window+curtains (small 30–60); chair, desk, toy chest, bookshelf, wall art (mid 150–280); bed, fish tank (big 500–600)
@@ -62,8 +62,8 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 - **All screens now render the companion egg** (not the legacy creature): Home (large display + party bar + background walker), Collection (placeholder), PartySelect, Battle player side, Map player sprite — all show companion `element/eye/gender` with stage/aura from XP progress
 - **Companion name everywhere** = `state.name` (the child's account name, e.g. โชแปง); no more `creatureName`/`creature.n` shown
 - **`src/egg/renderEggSprite.js`** — new shared helper: `renderEggSprite(ctx, {element,eye,gender,stage,aura,mood,anim,t,canvasSize,basePxOverride})` runs the full 9-step compositing pipeline (aura→pose→regalia-behind→body→regalia-front→eyes→expression) for non-React canvas contexts
-- Map player sprite: WorldScreen sets `window.__kq_companionEgg = {element,eye,gender,stage,aura}` on mount; `tileEngine.renderPlayer` calls `renderEggSprite` every frame into a reused 32×32 offscreen then `ctx.drawImage` scaled to TILE(16×16) — **fully animated** (element FX live)
-- Home walker (HomeBackground.jsx): single animated companion egg walks/hops/spins; `renderEggSprite` called per-frame into a reused 48×48 offscreen (basePxOverride=2 for larger egg); `companionRef` kept in sync with props; element animations (flames/water/halo) are **live**
+- Map player sprite: WorldScreen sets `window.__kq_companionEgg = {element,eye,gender,stage,aura,equipped}` on mount (equipped cosmetics added 2026-07-01); `tileEngine.renderPlayer` calls `renderEggSprite` every frame into a reused 32×32 offscreen then `ctx.drawImage` scaled to TILE(16×16) — **fully animated** (element FX + equipped head/face cosmetics live)
+- Home walker (`DecoratedRoom.jsx`, formerly `HomeBackground.jsx` — deleted 2026-07-01): single animated companion egg walks/hops/spins inside the decorated room; `renderEggSprite` called per-frame into a reused 48×48 offscreen (basePxOverride=2 for larger egg); `companionRef` kept in sync with props including `equipped`; element animations (flames/water/halo) and equipped cosmetics are **live**
 - Procedural canvas egg — `eggAlgorithm.js` (**LOCKED**: `drawEgg`, `hash`, `prng` must never change) — still used by minigames (EggRun, EggCatch)
 - 9 display stages (ไข่น้อย → ใกล้ฟักแล้ว!!!), adaptive XP threshold (`120 + n×60`, cap 800)
 - Pet/feed/item interaction with formal FSM in `useCreatureInteraction.js`
@@ -177,7 +177,7 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 - `subjectReadiness.js` shared utility: 4 states (Strong/Comfortable/Exploring/Not Ready)
 
 ### Home Screen (`Home.jsx`, ~969 lines)
-- `HomeBackground.jsx` canvas: pixel scene (sky, mountains, ground, sun/moon, clouds, butterflies, bird, fireflies) + animated creature entities
+- Background: `DecoratedRoom.jsx` (decorated room + walking companion egg) — `HomeBackground.jsx` (old pixel sky/mountains/ground scene) deleted 2026-07-01, see "Room / Den Decoration" above for details
 - Egg zone: large EggCanvas (190×225px), floating + aura. Post-session growth banner when `sessionXP > 0`
 - Creature zone: large 160×160 `drawCreature` canvas (tap/swipe for bond), party portrait bar (56×56 per creature, gold border on active)
 - Item tray: food/ribbon/shoes/rainbow_star; cooldown status from `state.activeBoosts`; active/cooldown overlays; saiyan rainbow hue-cycle animation on creature canvas when rainbow_star active (CSS `.saiyan-rainbow` class on wrapper div — `@keyframes rainbow-cycle` 0.6s hue-rotate); activation plays `powerup` SFX + `celebrate` tone

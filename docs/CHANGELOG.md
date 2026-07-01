@@ -1,5 +1,25 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — World-map walker shows equipped cosmetics; removed dead HomeBackground.jsx
+
+### src/components/WorldScreen.jsx
+- `window.__kq_companionEgg` (published for `tileEngine.renderPlayer` to draw per-frame)
+  now includes `equipped: state.equipped ?? null`, matching the same field
+  `DecoratedRoom.jsx` already passes. `tileEngine.js:242` spreads the whole companion
+  object into `renderEggSprite`, so no change was needed there — the existing
+  `drawCosmetics` step (added for the Home room-walker fix) picks it up automatically.
+  The world-map player sprite now renders equipped head/face cosmetics.
+
+### src/components/HomeBackground.jsx (deleted)
+- Confirmed dead since Home.jsx switched to `<DecoratedRoom>` — no remaining imports.
+  Removed the file and a stale reference in Home.jsx's header comment.
+
+Build verified clean (168 modules). Live browser verification for the map-walker change
+was not repeated in this session — the logged-in test session from the prior task ended
+before this pass started; verified instead via a direct code read confirming the same
+`state.equipped` → `renderEggSprite({ ...companion })` pattern already live-verified on
+DecoratedRoom.
+
 ## 2026-07-01 — fix: furniture shop tab genuinely unreachable — CSS flexbox min-size collapse (Collection.jsx)
 
 ### Corrected root cause (supersedes the 2026-06-30 "furniture shop tab empty" entry below)

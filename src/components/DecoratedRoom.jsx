@@ -39,7 +39,7 @@ export default function DecoratedRoom({ style }) {
   const canvasRef       = useRef(null)
   const rafRef          = useRef(null)
   const spriteOffRef    = useRef(null)
-  const companionRef    = useRef({ element: 'fire', eye: 'gba', gender: 'male', stage: 1, aura: 0 })
+  const companionRef    = useRef({ element: 'fire', eye: 'gba', gender: 'male', stage: 1, aura: 0, equipped: null })
   const entityRef       = useRef(null)
   const lastJumpRef     = useRef(0)
 
@@ -56,8 +56,9 @@ export default function DecoratedRoom({ style }) {
       gender:  companion?.gender  ?? 'male',
       stage:   eggStatsData?.stage ?? 1,
       aura:    0,
+      equipped: state.equipped ?? null,
     }
-  }, [companion?.element, companion?.eye, companion?.gender, eggStatsData?.stage])
+  }, [companion?.element, companion?.eye, companion?.gender, eggStatsData?.stage, state.equipped])
 
   useEffect(() => {
     const container = containerRef.current

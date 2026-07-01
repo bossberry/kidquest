@@ -24,10 +24,10 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 - **Tiers**: small 30–60 coins / mid 150–250 / big 500–800
 - **State**: `state.ownedItems: string[]` (default `[]`), `state.equipped: { head: null|string, face: null|string }` (default `{head:null,face:null}`); both backfilled on load for existing players
 - **Actions**: `BUY_ITEM { id, price, slot }` — deducts coins, adds to ownedItems, auto-equips; `EQUIP_ITEM { id, slot }` — toggles equipped slot (tap again = unequip)
-- **Render pipeline**: `drawCosmetics(ctx, o, equipped)` called as step 9 in `src/egg/EggCanvas.jsx` (core), inside pose transform — hats/glasses draw over everything including expression
-- **Auto-wired everywhere**: App-level `src/components/EggCanvas.jsx` wrapper reads `state.equipped` automatically; all existing `<EggCanvas>` usages (Home, Battle, Map, popups) show equipped items without per-screen changes
-- **Shop screen**: `Collection.jsx` — coin balance header, HEAD/FACE tab switcher, 2-column item grid, per-item EggCanvas preview (showing that item on the companion), buy/equip/unequip buttons, toast feedback
-- **Deferred**: `renderEggSprite.js` walker (map player sprite + home walker) does NOT yet show cosmetics — needs `equipped` threaded through the non-React drawing pipeline
+- **Render pipeline**: `drawCosmetics(ctx, o, equipped)` called as step 9 in both `src/egg/EggCanvas.jsx` (core React canvas) AND `src/egg/renderEggSprite.js` (non-React walker pipeline), inside pose transform — hats/glasses draw over everything including expression
+- **Auto-wired everywhere**: App-level `src/components/EggCanvas.jsx` wrapper reads `state.equipped` automatically; all existing `<EggCanvas>` usages (Home large egg, Battle, Map, popups) show equipped items without per-screen changes. The `DecoratedRoom.jsx` room walker (Home background) also reads `state.equipped` into its companion ref → cosmetics now visible on the walking egg too
+- **Shop screen**: `Collection.jsx` cosmetics tab — coin balance header, **large companion preview egg at top** (real element/eye/gender/stage/aura), HEAD/FACE tab switcher, 2-column item grid, per-item isolated icon egg, buy/equip toggle buttons, toast feedback
+- **Live try-on preview** (2026-07-01): tapping any item card instantly shows it on the big preview egg. Unowned item → local-only `preview` state (never persisted, no coins spent) with a "👀 ลองใส่" tag; buy via "ซื้อ 🪙price" to make it real. Owned item → real `EQUIP_ITEM` toggle. `previewEquipped = preview ? { ...equipped, [slot]: id } : undefined` overrides the big egg's `equipped` prop only; `state.equipped` is untouched until a real buy/equip. Preview resets on unmount/buy/equip/tab-switch — leaving the shop never persists an unbought try-on
 
 ### Coin Economy (Earn-only — 2026-06-27)
 - **Balance**: `state.coins` (integer ≥ 0); migrated on load so existing players start at 0

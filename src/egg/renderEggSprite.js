@@ -17,7 +17,7 @@ import {
   drawStageLayer, drawEyeLayer, drawExpression,
   getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
   EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
-  drawEggBody,
+  drawEggBody, drawCosmetics,
 } from './index.js'
 
 export function renderEggSprite(ctx, {
@@ -31,6 +31,7 @@ export function renderEggSprite(ctx, {
   t       = 0,
   canvasSize    = 48,
   basePxOverride = null,
+  equipped = null,
 }) {
   const logicalW  = canvasSize
   const logicalH  = Math.round(canvasSize * 1.19)
@@ -90,7 +91,10 @@ export function renderEggSprite(ctx, {
     px, ox, oy, t,
   })
 
-  // 9. Flash overlay (hurt animation)
+  // 9. Cosmetics (hat + face items — on top of everything, inside pose)
+  drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped)
+
+  // 10. Flash overlay (hurt animation)
   if (pose.flash) flashEgg(ctx, eggW, eggH, pose.flash)
 
   // Restore pose transform (matches ctx.save() from applyEggPose)

@@ -1,5 +1,22 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — feat: shop live try-on preview + walker cosmetics
+
+### What changed
+- `Collection.jsx` (cosmetics tab): added a large companion preview egg at the top showing the child's real element/eye/gender/stage/aura plus a **local try-on override**. Tapping any item card instantly updates this big egg.
+  - New local-only state `preview: { slot, id } | null` — never dispatched, never persisted. Drives `previewEquipped = preview ? { ...equipped, [slot]: id } : undefined`, passed as the big egg's `equipped` prop (`undefined` → wrapper falls back to real `state.equipped`).
+  - Tapping an **unowned** item → sets `preview` only (free, no coins, no reducer dispatch). A clear "ซื้อ 🪙price" button buys+equips for real.
+  - Tapping an **owned** item → real `EQUIP_ITEM` toggle (unchanged reducer contract) and clears `preview`.
+  - A "👀 ลองใส่" tag overlays the big egg only while previewing an unowned item; per-card shows "✓ ใส่อยู่" (real equipped) vs "👀 กำลังลอง" (local try-on). Highlighted border tracks whichever item is currently on the big egg.
+  - Preview resets on unmount (leaving the shop), on buy, on real equip, and on switching the top-level tab — real `state.equipped` is never touched by previewing.
+- Walker cosmetics (resolves the deferred item from session 8/10): `renderEggSprite.js` now accepts `equipped` and calls `drawCosmetics` (new step 9, before flash). `DecoratedRoom.jsx` reads `state.equipped` into its companion ref, so the Home-background room walker now shows equipped hats/glasses too. Home's large egg-zone `EggCanvas` already showed cosmetics (wrapper default) — no change needed there.
+- Build clean at 168 modules, zero errors.
+
+### Files changed
+- `src/components/Collection.jsx` — live try-on preview state + tappable cards + big preview egg + try-on tag
+- `src/egg/renderEggSprite.js` — `equipped` param + `drawCosmetics` step
+- `src/components/DecoratedRoom.jsx` — thread `state.equipped` into the walker sprite
+
 ## 2026-06-30 — feat: decorated room becomes Home screen background (DecoratedRoom.jsx)
 
 ### What changed

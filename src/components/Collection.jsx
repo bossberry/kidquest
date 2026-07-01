@@ -14,6 +14,15 @@ const TIER_META = {
 const HEAD_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'head')
 const FACE_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'face')
 
+// Map egg XP stage (0–8) to companion aura level (0–4) — mirrors Home.jsx
+function stageToAura(s) {
+  if (s >= 8) return 4
+  if (s >= 6) return 3
+  if (s >= 4) return 2
+  if (s >= 2) return 1
+  return 0
+}
+
 // Small canvas preview for a furniture item icon
 function FurniturePreview({ item, size = 64 }) {
   const canvasRef = useRef(null)
@@ -35,17 +44,29 @@ function FurniturePreview({ item, size = 64 }) {
 }
 
 export default function Collection() {
-  const { state, dispatch } = useAppState()
+  const { state, dispatch, eggProgressData } = useAppState()
   // top-level tabs: 'wearable' | 'furniture'
   const [topTab, setTopTab] = useState('wearable')
   // wearable sub-tabs: 'head' | 'face'
   const [wearableTab, setWearableTab] = useState('head')
   const [toast, setToast] = useState(null)
+  // Local-only try-on of an UNOWNED item: { slot, id } | null.
+  // NEVER persisted — resets on unmount / buy / real equip. Owned items skip this
+  // (their equip is real, driven straight from state.equipped).
+  const [preview, setPreview] = useState(null)
 
   const coins       = state.coins ?? 0
   const owned       = state.ownedItems ?? []
   const equipped    = state.equipped ?? { head: null, face: null }
   const ownedRoom   = state.ownedRoomItems ?? []
+  const stage       = eggProgressData?.stage ?? 1
+
+  // Equipped map passed to the big preview egg: real equipped, but with the
+  // tried-on slot overridden locally when previewing an unowned item.
+  // undefined → EggCanvas wrapper falls back to state.equipped (real).
+  const previewEquipped = preview
+    ? { ...equipped, [preview.slot]: preview.id }
+    : undefined
 
   function showToast(msg) {
     setToast(msg)
@@ -56,13 +77,24 @@ export default function Collection() {
   function handleBuyWearable(item) {
     if (coins < item.price) { showToast('เหรียญไม่พอ!'); return }
     dispatch({ type: ACTIONS.BUY_ITEM, payload: { id: item.id, price: item.price, slot: item.slot } })
+    setPreview(null) // real state now reflects it — drop the local try-on
     showToast(`ได้รับ ${item.nameTh}!`)
   }
-  function handleEquip(item) {
-    dispatch({ type: ACTIONS.EQUIP_ITEM, payload: { id: item.id, slot: item.slot } })
+  // Tapping a card: owned → real equip toggle; unowned → local try-on only.
+  function handleSelectWearable(item) {
+    if (isOwned(item)) {
+      dispatch({ type: ACTIONS.EQUIP_ITEM, payload: { id: item.id, slot: item.slot } })
+      setPreview(null) // real equipped state drives the egg
+    } else {
+      setPreview({ slot: item.slot, id: item.id })
+    }
   }
-  const isOwned    = (item) => owned.includes(item.id)
-  const isEquipped = (item) => equipped[item.slot] === item.id
+  const isOwned      = (item) => owned.includes(item.id)
+  const isEquipped   = (item) => equipped[item.slot] === item.id
+  const isPreviewing = (item) => preview && preview.slot === item.slot && preview.id === item.id
+  // Which item is currently shown on the big egg for a slot (preview wins).
+  const isShown = (item) =>
+    (preview && preview.slot === item.slot ? preview.id : equipped[item.slot]) === item.id
 
   // ── Furniture actions ───────────────────────────────────────────────────
   function handleBuyFurniture(item) {
@@ -114,7 +146,7 @@ export default function Collection() {
         ].map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setTopTab(key)}
+            onClick={() => { setTopTab(key); setPreview(null) }}
             style={{
               flex: 1, border: 'none', cursor: 'pointer', padding: '10px 0',
               fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 600,
@@ -132,9 +164,31 @@ export default function Collection() {
       {/* ── WEARABLE section ─────────────────────────────────────────────── */}
       {topTab === 'wearable' && (
         <>
-          {/* Egg preview — shows current equipped items */}
+          {/* Big companion preview — always the child's real egg (element/eye/
+              gender/stage/aura) + real equipped, OR a local try-on override.
+              Tapping any item card below updates this instantly. */}
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14, paddingBottom: 4 }}>
-            <EggCanvas width={110} height={131} anim="idle" />
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <EggCanvas
+                stage={stage}
+                aura={stageToAura(stage)}
+                width={140} height={166}
+                anim="idle"
+                equipped={previewEquipped}
+              />
+              {/* "trying on" tag — only while previewing an unowned item */}
+              {preview && (
+                <div style={{
+                  position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
+                  background: 'rgba(124,77,255,0.94)', color: '#fff',
+                  fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 700,
+                  padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)', pointerEvents: 'none',
+                }}>
+                  👀 ลองใส่
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Head / Face sub-tabs */}
@@ -172,18 +226,22 @@ export default function Collection() {
             {wearableItems.map(item => {
               const owned_ = isOwned(item)
               const eqd    = isEquipped(item)
+              const shown  = isShown(item)        // currently on the big egg (preview or real)
+              const trying = isPreviewing(item)   // local try-on of this unowned item
               const canAfford = coins >= item.price
-              const previewEq = { head: null, face: null, [item.slot]: item.id }
+              const iconEq = { head: null, face: null, [item.slot]: item.id }
 
               return (
                 <div
                   key={item.id}
+                  onClick={() => handleSelectWearable(item)}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    background: eqd ? 'rgba(255,210,63,0.08)' : 'rgba(255,255,255,0.03)',
-                    border: eqd ? '1.5px solid rgba(255,210,63,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer',
+                    background: shown ? 'rgba(255,210,63,0.08)' : 'rgba(255,255,255,0.03)',
+                    border: shown ? '1.5px solid rgba(255,210,63,0.55)' : '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 12, padding: '12px 8px 10px', gap: 8,
-                    transition: 'border-color 0.2s',
+                    transition: 'border-color 0.2s, background 0.2s',
                   }}
                 >
                   {/* Tier badge */}
@@ -196,8 +254,8 @@ export default function Collection() {
                     {TIER_META[item.tier].label}
                   </span>
 
-                  {/* Egg preview with this item equipped */}
-                  <EggCanvas width={80} height={95} anim="idle" equipped={previewEq} />
+                  {/* Isolated icon egg showing just this item */}
+                  <EggCanvas width={80} height={95} anim="idle" equipped={iconEq} />
 
                   {/* Item name */}
                   <div style={{
@@ -207,15 +265,20 @@ export default function Collection() {
                     {item.nameTh}
                   </div>
 
-                  {eqd && (
+                  {/* Status line: real equipped vs local try-on */}
+                  {eqd ? (
                     <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 7, color: '#FFD23F', letterSpacing: 1 }}>
                       ✓ ใส่อยู่
                     </div>
-                  )}
+                  ) : trying ? (
+                    <div style={{ fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 700, color: '#b39dff' }}>
+                      👀 กำลังลอง
+                    </div>
+                  ) : null}
 
                   {owned_ ? (
                     <button
-                      onClick={() => handleEquip(item)}
+                      onClick={(e) => { e.stopPropagation(); handleSelectWearable(item) }}
                       style={{
                         border: 'none', cursor: 'pointer', borderRadius: 8,
                         padding: '7px 14px', width: '100%',
@@ -229,18 +292,18 @@ export default function Collection() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleBuyWearable(item)}
+                      onClick={(e) => { e.stopPropagation(); handleBuyWearable(item) }}
                       disabled={!canAfford}
                       style={{
                         border: 'none', cursor: canAfford ? 'pointer' : 'not-allowed',
                         borderRadius: 8, padding: '7px 14px', width: '100%',
-                        fontFamily: 'var(--font-pixel)', fontSize: 9, letterSpacing: 1,
+                        fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
                         background: canAfford ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.06)',
                         color: canAfford ? '#FFD23F' : 'rgba(255,255,255,0.25)',
                         transition: 'all 0.15s',
                       }}
                     >
-                      🪙 {item.price}
+                      ซื้อ 🪙 {item.price}
                     </button>
                   )}
                 </div>

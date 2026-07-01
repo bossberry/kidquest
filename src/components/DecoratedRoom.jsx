@@ -29,11 +29,16 @@ function makeEntity(W, groundY) {
 // Read-only decorated room: gradient background + placed furniture + walking companion.
 // Used as background in Home (style={{ position:'absolute', inset:0, zIndex:-1 }})
 // and as base visual in Room editor (style={{ position:'absolute', inset:0 }}).
-export default function DecoratedRoom({ style }) {
+// showWalker=false (Home, 2026-07-01 redesign) draws room art only — the large
+// interactive EggCanvas is layered on top instead, so the tiny walker isn't
+// duplicated/confusing next to it. Room.jsx doesn't pass this — defaults true.
+export default function DecoratedRoom({ style, showWalker = true }) {
   const { state, eggStatsData } = useAppState()
   const { resolved: companion } = useCompanion()
 
   const roomLayoutRef = useRef(state.roomLayout ?? {})
+  const showWalkerRef = useRef(showWalker)
+  showWalkerRef.current = showWalker
 
   const containerRef    = useRef(null)
   const canvasRef       = useRef(null)
@@ -217,13 +222,14 @@ export default function DecoratedRoom({ style }) {
 
     function frame() {
       const tSec = performance.now() / 1000
-      spriteCtx.clearRect(0, 0, SIZE, SIZE)
-      renderEggSprite(spriteCtx, { ...companionRef.current, t: tSec, canvasSize: SIZE, basePxOverride: 2 })
-
       ctx.clearRect(0, 0, W, H)
       drawScene()
-      updateEntity()
-      drawEntity(tSec)
+      if (showWalkerRef.current) {
+        spriteCtx.clearRect(0, 0, SIZE, SIZE)
+        renderEggSprite(spriteCtx, { ...companionRef.current, t: tSec, canvasSize: SIZE, basePxOverride: 2 })
+        updateEntity()
+        drawEntity(tSec)
+      }
       rafRef.current = requestAnimationFrame(frame)
     }
 

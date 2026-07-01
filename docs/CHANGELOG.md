@@ -1,5 +1,33 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — Companion egg enlarged + centered on Home (follow-up to the Home redesign)
+
+### src/components/DecoratedRoom.jsx
+- Added a `showWalker` prop (default `true`, so `Room.jsx`'s existing usage is unaffected).
+  When `false`, the RAF loop still draws the room background/furniture every frame but
+  skips the small walking-companion sprite entirely (`spriteCtx` render, `updateEntity`,
+  `drawEntity`). Read via a ref (`showWalkerRef`) to stay consistent with the rest of the
+  file's RAF-safe pattern, even though neither current call site changes the prop after mount.
+
+### src/components/Home.jsx
+- The post-redesign Home showed the companion only as the tiny 48px room-walker sprite —
+  too small to be "the main character of the screen." Restored a large, centered,
+  interactive `EggCanvas` (200×236) on top of the room art (`DecoratedRoom` now rendered
+  with `showWalker={false}` on Home only), reusing the exact stage/aura/anim/mood/glow
+  pipeline the pre-redesign large egg used (re-added `cssAnimToEggAnim`/`cssAnimToMood`
+  helpers). Equipped cosmetics render automatically (the `EggCanvas` wrapper defaults to
+  `state.equipped` when no override is passed). Tap-to-pet, bounce-on-tap, and the
+  floating reaction/heal-float/particle overlays are unchanged in behavior, only
+  repositioned (from percentages tuned for the old tiny walker to be centered on/above
+  the new large egg).
+- Room editor (`Room.jsx`) is untouched — it doesn't pass `showWalker`, so it still shows
+  the small walking companion exactly as before.
+
+Live-verified in Chrome against the running dev server: large glowing egg renders
+centered over the room background; tapping it triggers the happy expression + warm glow
+(pet interaction confirmed working); Room screen still shows its walker + placement grid
+unaffected. Build clean (168 modules).
+
 ## 2026-07-01 — Home screen redesign (approved layout)
 
 ### src/components/Home.jsx (full rewrite of layout/JSX; no game logic changed)

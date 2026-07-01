@@ -1,8 +1,9 @@
-// Home.jsx — main hub (redesigned 2026-07-01):
+// Home.jsx — main hub (redesigned 2026-07-01, egg enlarged 2026-07-01):
 //   header (avatar · stage · name | 🔥streak · 🪙coins · 🔊) → status bar (HP · XP · Bond)
-//   → full-bleed DecoratedRoom (companion egg walks/idles/jumps inside) with a floating Lv pill + tap-to-pet
+//   → full-bleed DecoratedRoom (room art only, showWalker=false) with a large centered
+//     tappable EggCanvas on top (the star of the screen) + a floating Lv pill
 //   → minigame shortcut card → item tray → explore button.
-// BottomNav is rendered by App.jsx (not here). DecoratedRoom internals untouched.
+// BottomNav is rendered by App.jsx (not here).
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import EggCanvas from './EggCanvas.jsx'
@@ -17,13 +18,28 @@ import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
 import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
 
-// Map egg XP stage (0–8) to companion aura level (0–4) — used by the small header avatar.
+// Map egg XP stage (0–8) to companion aura level (0–4) — used by the small header avatar
+// and the large hero egg.
 function stageToAura(s) {
   if (s >= 8) return 4
   if (s >= 6) return 3
   if (s >= 4) return 2
   if (s >= 2) return 1
   return 0
+}
+// Map CSS-animation state name (from useCreatureInteraction) to EggCanvas anim/mood props.
+function cssAnimToEggAnim(cssAnim) {
+  if (cssAnim === 'sleepy' || cssAnim === 'relax') return 'sleepy'
+  if (cssAnim === 'excited' || cssAnim === 'reunion') return 'excited'
+  if (cssAnim === 'happy-spin' || cssAnim === 'pet') return 'happy'
+  if (cssAnim === 'eat') return 'happy'
+  return 'idle'
+}
+function cssAnimToMood(cssAnim) {
+  if (cssAnim === 'sleepy' || cssAnim === 'relax') return 'sleepy'
+  if (cssAnim === 'excited' || cssAnim === 'reunion') return 'excited'
+  if (cssAnim === 'happy-spin' || cssAnim === 'pet' || cssAnim === 'eat') return 'happy'
+  return 'normal'
 }
 
 const ITEM_DEFS = [
@@ -303,8 +319,29 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
           display:'flex', flexDirection:'column', alignItems:'center',
         }}
       >
-        {/* Full-bleed decorated room — the companion egg walks/idles/jumps inside it */}
-        <DecoratedRoom style={{ position:'absolute', inset:0, zIndex:0 }} />
+        {/* Full-bleed decorated room — art only; the large hero egg below is the interactive element */}
+        <DecoratedRoom style={{ position:'absolute', inset:0, zIndex:0 }} showWalker={false} />
+
+        {/* Large hero companion egg — centered, tappable, the star of the screen */}
+        <div style={{
+          position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
+          zIndex:6, display:'flex', alignItems:'center', justifyContent:'center',
+        }}>
+          <div style={{
+            transform: creatureBounce ? 'scale(1.12)' : 'scale(1)',
+            transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
+          }}>
+            <EggCanvas
+              stage={stage}
+              aura={stageToAura(stage)}
+              anim={cssAnimToEggAnim(eggAnim)}
+              mood={cssAnimToMood(eggAnim)}
+              width={200} height={236}
+              className={eggGlow ? `egg-glow-${eggGlow}` : undefined}
+              style={{ display:'block' }}
+            />
+          </div>
+        </div>
 
         {/* Floating Lv · stage-name pill, top-center */}
         <div style={{
@@ -322,9 +359,9 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
           </span>
         </div>
 
-        {/* Floating reaction emoji + heal float, centered */}
+        {/* Floating reaction emoji + heal float — above the large egg's head */}
         <div style={{
-          position:'absolute', top:'42%', left:'50%', transform:'translateX(-50%)',
+          position:'absolute', top:'calc(50% - 138px)', left:'50%', transform:'translateX(-50%)',
           pointerEvents:'none', zIndex:20,
         }}>
           {bondReaction && (
@@ -345,9 +382,9 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
           )}
         </div>
 
-        {/* Tap particles, centered */}
+        {/* Tap particles — centered on the large egg */}
         {particles.length > 0 && (
-          <div style={{ position:'absolute', top:'55%', left:'50%', pointerEvents:'none', zIndex:10 }}>
+          <div style={{ position:'absolute', top:'50%', left:'50%', pointerEvents:'none', zIndex:10 }}>
             {particles.map(p => (
               <div key={p.id} style={{
                 position:'absolute', top:0, left:0,

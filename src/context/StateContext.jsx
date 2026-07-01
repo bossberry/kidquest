@@ -890,11 +890,15 @@ function reducer(state, action) {
       const { id, price, slot } = action.payload
       if ((state.coins || 0) < price) return state
       if ((state.ownedItems || []).includes(id)) return state
+      // lastSavedAt bumped (see c74e83d) so resolveSync sees local as genuinely
+      // newer than the Supabase snapshot; otherwise a stale remote read reverts
+      // the purchase — ownedItems vanishes on the next reload.
       return {
         ...state,
         coins: (state.coins || 0) - price,
         ownedItems: [...(state.ownedItems || []), id],
         equipped: { ...(state.equipped || { head: null, face: null }), [slot]: id },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -902,9 +906,12 @@ function reducer(state, action) {
       const { id, slot } = action.payload
       if (!(state.ownedItems || []).includes(id)) return state
       const current = (state.equipped || {})[slot]
+      // lastSavedAt bumped (see c74e83d) so an equip/unequip survives a stale
+      // remote resolveSync instead of being reverted on reload.
       return {
         ...state,
         equipped: { ...(state.equipped || { head: null, face: null }), [slot]: current === id ? null : id },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -912,10 +919,12 @@ function reducer(state, action) {
       const { id, price } = action.payload
       if ((state.coins || 0) < price) return state
       if ((state.ownedRoomItems || []).includes(id)) return state
+      // lastSavedAt bumped (see c74e83d) — same latent revert bug as BUY_ITEM.
       return {
         ...state,
         coins: (state.coins || 0) - price,
         ownedRoomItems: [...(state.ownedRoomItems || []), id],
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -925,6 +934,7 @@ function reducer(state, action) {
       return {
         ...state,
         roomLayout: { ...(state.roomLayout || {}), [slotIndex]: itemId },
+        lastSavedAt: Date.now(),
       }
     }
 
@@ -932,7 +942,7 @@ function reducer(state, action) {
       const { slotIndex } = action.payload
       const newLayout = { ...(state.roomLayout || {}) }
       delete newLayout[slotIndex]
-      return { ...state, roomLayout: newLayout }
+      return { ...state, roomLayout: newLayout, lastSavedAt: Date.now() }
     }
 
     default:

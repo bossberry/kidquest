@@ -236,7 +236,7 @@ _Last updated: 2026-06-30 (session 9 — room / den decoration system)_
 - `state.gender` — `'male' | 'female' | 'unspecified'`
 - `state.stateVersion` — schema version (currently 1); `migrateStateShape()` deep-merges new nested fields on load
 - `state.lastSavedAt` — timestamp used for cloud conflict resolution (replaces `rounds` counter)
-- `resolveSync(local, remote)` — single source of truth for cloud conflict resolution in `state.js`
+- `resolveSync(local, remote)` — single source of truth for cloud conflict resolution in `state.js`. Whole-object last-write-wins by `lastSavedAt` (tie → remote). **Any reducer that mutates persisted state MUST stamp `lastSavedAt: Date.now()`**, otherwise a stale remote snapshot can win a later resolveSync and silently revert the change on reload (bugs fixed this way: `c74e83d` daily-login coins; 2026-07-01 cosmetics/room purchases). Reducers currently stamping it: `DAILY_LOGIN`, `BUY_ITEM`, `EQUIP_ITEM`, `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`.
 - `SaveStatusIndicator.jsx` — fixed bottom-right badge showing saving/saved/error/offline via pub/sub (`onSaveStatusChange`)
 - Logout: `supabase.auth.signOut()` + `localStorage.removeItem(KEY)` + `dispatch(INIT, defaultState())` — fully clears local state
 - `_migrateBattleStats()` backfills all new fields for legacy eggs on load

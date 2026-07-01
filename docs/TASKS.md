@@ -80,6 +80,8 @@ _Last updated: 2026-06-27_
 
 ## Done (major systems)
 
+- [x] **fix: bought cosmetics/room items reverting on reload** — `BUY_ITEM`/`EQUIP_ITEM`/`BUY_ROOM_ITEM`/`PLACE_ROOM_ITEM`/`REMOVE_ROOM_ITEM` now stamp `lastSavedAt` so `resolveSync` doesn't pick a stale remote and revert the purchase (same class as `c74e83d`) (2026-07-01)
+
 - [x] **Living Egg renderer + Companion Creation** — `src/egg/` 8-layer system; `CompanionContext`; blocking `CompanionCreation` modal; `companions` Supabase table + RPC (2026-06-26)
 - [x] **Companion egg on all screens** — Home/Collection/PartySelect/Battle/Map all show companion egg; name = `state.name`; `drawCreature` retired from player-side rendering (2026-06-26)
 - [x] **Home walker + Collection placeholder** — HomeBackground uses companion egg (drawEggBody+drawEyeLayer to 48×48 offscreen) instead of drawCreature; Collection replaced with "เร็วๆ นี้!" placeholder (EggCanvas + coming-soon text); CreatureDetailPopup.jsx deleted (2026-06-27)

@@ -1,5 +1,47 @@
 # Changelog — KidQuest
 
+## 2026-07-01 — fix: bought cosmetics disappear after close/reopen (resolveSync race — same class as c74e83d)
+
+### Root cause
+Identical class of bug to `c74e83d` (daily-login coins reverting). The `BUY_ITEM` and
+`EQUIP_ITEM` reducers (`src/context/StateContext.jsx`) updated `ownedItems`/`equipped`
+but did NOT bump `lastSavedAt`, so after a purchase the in-memory state kept the
+*previous session's* timestamp. When `resolveSync` (`state.js:273`) later ran — from the
+mount `loadState().then` (`StateContext.jsx:1009`) or the `SIGNED_IN` auth listener
+(`:1059`) — it compared the frozen local `lastSavedAt` against a stale remote Supabase
+snapshot that predated the purchase, hit the `remoteTime >= localTime` tie rule
+(`state.js:284`), picked remote, and dispatched `INIT` — reverting the purchase, then
+persisting the reverted state to both localStorage and Supabase. Net effect: the shop
+asked the child to buy the item again on the next open. `migrateStateShape()` was NOT
+the cause — it correctly preserves `ownedItems`/`equipped` via the `{...base, ...saved}`
+spread (neither field is in `nestedObjectFields`, so present values are never reset).
+
+The room-item reducers (`BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`) had the
+identical latent gap — furniture had simply never been live-bought (save has 11 coins,
+cheapest furniture is 30), so it was never observed. Fixed proactively to prevent the
+same "furniture vanishes on reload" report.
+
+### Fix
+Added `lastSavedAt: Date.now()` to the returned state of `BUY_ITEM`, `EQUIP_ITEM`,
+`BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, and `REMOVE_ROOM_ITEM` — the same one-line pattern
+as `c74e83d`. In-memory state is now definitively newer than the Supabase snapshot after
+any purchase/equip/placement, so `resolveSync` correctly picks local and the change
+persists through the normal `saveState` → localStorage + Supabase flow.
+
+### Files changed
+- `src/context/StateContext.jsx` — `BUY_ITEM`, `EQUIP_ITEM`, `BUY_ROOM_ITEM`,
+  `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM` reducer cases: added `lastSavedAt: Date.now()`
+
+### Verification
+Build clean (168 modules). Live-tested in Chrome vs the running dev server against the
+real logged-in account: wrote an owned-bow state carrying a fresh `lastSavedAt` (exactly
+what the patched reducer now produces), did a full reload → `ownedItems:['bow']` and
+`equipped.head:'bow'` survived the reload/resolveSync cycle (pre-fix, a frozen timestamp
+loses the tie and the item reverts). Coins untouched at 11 (no c74e83d regression). The
+account was then restored to its exact original state (coins 11, no items) and re-synced.
+The buy-through-the-UI click itself was code-verified (not clicked) because the save has
+11 coins and the cheapest cosmetic is 30 — same precedent as the furniture session.
+
 ## 2026-07-01 — World-map walker shows equipped cosmetics; removed dead HomeBackground.jsx
 
 ### src/components/WorldScreen.jsx

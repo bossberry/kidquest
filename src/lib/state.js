@@ -320,6 +320,21 @@ export function migrateStateShape(saved) {
     }
   }
 
+  // roomLayout schema migration (2026-07-02, iso room):
+  // The OLD flat-grid room stored numeric-string slot keys ("0".."11"). The NEW
+  // iso room uses "{zone}_{a}_{b}" keys and cannot be mapped 1:1, so a stale flat
+  // layout is reset to {}. NEW-format keys and empty {} pass through untouched.
+  // IMPORTANT: ownedRoomItems is NEVER modified here — every purchase must persist.
+  const rl = saved.roomLayout
+  if (rl && typeof rl === 'object' && !Array.isArray(rl)) {
+    const keys = Object.keys(rl)
+    if (keys.length > 0 && keys.every(k => /^\d+$/.test(k))) {
+      merged.roomLayout = {}
+      // Stamp lastSavedAt so a stale cloud copy can't revert the reset via resolveSync.
+      merged.lastSavedAt = Date.now()
+    }
+  }
+
   merged.stateVersion = STATE_VERSION
   return merged
 }

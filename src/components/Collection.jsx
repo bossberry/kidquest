@@ -12,6 +12,9 @@ const TIER_META = {
   big:   { label: 'EPIC',    color: '#FFD23F' },
 }
 
+// Room-zone labels for furniture cards (where an item can be placed)
+const ZONE_LABEL = { floor: 'พื้น', left_wall: 'ผนังซ้าย', right_wall: 'ผนังขวา' }
+
 const HEAD_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'head')
 const FACE_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'face')
 
@@ -361,15 +364,33 @@ export default function Collection() {
                     transition: 'border-color 0.2s',
                   }}
                 >
-                  {/* Tier badge */}
-                  <span style={{
-                    fontFamily: 'var(--font-pixel)', fontSize: 7, letterSpacing: 1,
-                    color: TIER_META[item.tier].color,
-                    background: 'rgba(0,0,0,0.4)',
-                    borderRadius: 4, padding: '2px 5px', alignSelf: 'flex-end',
+                  {/* Top row: zone badge(s) left, tier badge right */}
+                  <div style={{
+                    display: 'flex', width: '100%', alignItems: 'center',
+                    justifyContent: 'space-between', gap: 4,
                   }}>
-                    {TIER_META[item.tier].label}
-                  </span>
+                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {(item.allowedZones || []).map(z => (
+                        <span key={z} style={{
+                          fontFamily: 'var(--font-thai)', fontSize: 9, lineHeight: 1.4,
+                          color: '#cfe0ff',
+                          background: 'rgba(120,160,255,0.16)',
+                          border: '1px solid rgba(120,160,255,0.3)',
+                          borderRadius: 4, padding: '1px 5px',
+                        }}>
+                          {ZONE_LABEL[z] || z}
+                        </span>
+                      ))}
+                    </div>
+                    <span style={{
+                      fontFamily: 'var(--font-pixel)', fontSize: 7, letterSpacing: 1,
+                      color: TIER_META[item.tier].color,
+                      background: 'rgba(0,0,0,0.4)',
+                      borderRadius: 4, padding: '2px 5px',
+                    }}>
+                      {TIER_META[item.tier].label}
+                    </span>
+                  </div>
 
                   {/* Furniture pixel-art preview on a warm background */}
                   <div style={{

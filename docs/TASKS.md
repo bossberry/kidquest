@@ -90,6 +90,17 @@ _Last updated: 2026-07-02_
 
 ## Done (major systems)
 
+- [x] **Isometric Room decoration system** (2026-07-02) — converted Room/Den from a flat
+  top-down 12-slot CSS grid to a true 2:1 iso interior (`roomScene.js`: 6×4 diamond floor +
+  two back walls, zone-prefixed slot keys `{zone}_{a}_{b}`). Added `allowedZones` + iso
+  contact-shadow/side-face draw treatment to all 12 `roomItems`; rewrote `Room.jsx` as a
+  single canvas that draws + hit-tests with a 3-tab zone switcher (พื้น/ผนังซ้าย/ผนังขวา);
+  renamed `PLACE/REMOVE_ROOM_ITEM` payloads `slotIndex`→`slotKey`; added `migrateStateShape`
+  logic that resets stale numeric-key layouts to `{}` (bumping `lastSavedAt`) while never
+  touching `ownedRoomItems`; added zone badges to Collection furniture cards. Build clean,
+  render + hit-test + migration verified functionally (Room screen itself is behind the
+  Supabase login gate).
+
 - [x] **Audio expansion: new SFX/BGM, sound toggle removed** — 9 new SFX (coin_earn,
   coin_purchase, item_equip, furniture_place/remove, room_visit_enter, minigame_start,
   lives_empty, unlock_new) wired to their real dispatch/mount sites; 3 new BGM tracks

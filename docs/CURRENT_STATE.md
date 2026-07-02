@@ -5,17 +5,20 @@ _Last updated: 2026-07-02 (Audio expansion: new SFX/BGM, sound toggle removed)_
 
 ## Live Systems
 
-### Room / Den Decoration (2026-06-30; background integration 2026-06-30)
-- **Home background**: `DecoratedRoom.jsx` is the full-screen background of Home — the child sees their decorated room (placed furniture + walking companion) every time they open the app (`HomeBackground.jsx` was the old background renderer; confirmed dead and deleted 2026-07-01)
-- **Room editor**: same `DecoratedRoom` canvas is the visual base in `Room.jsx`; a transparent 4×3 tap-overlay is layered on top for slot interactions; editing the room updates Home immediately (shared `state.roomLayout`)
-- **Grid**: 4 columns × 3 rows = 12 placement slots (64px each, 8px gap); slots are CSS divs overlaid on the room background
-- **Companion walker**: `DecoratedRoom.jsx` runs the same entity-state-machine as the old (now-deleted) `HomeBackground` (walk/idle/jump/spin at 0.45 px/tick) but inside the room's floor area; uses `renderEggSprite` per-frame so element animations (fire/water/etc.) are live, including equipped cosmetics (head/face) as of 2026-07-01
-- **Place flow**: tap empty slot → bottom-sheet picker shows owned-but-unplaced furniture → tap to place
-- **Remove/swap flow**: tap occupied slot → action sheet with "ย้ายออก" (remove) and "เปลี่ยน" (swap)
-- **Furniture catalog**: 12 items in `src/lib/roomItems.js` — plant, rug, lamp, stuffed animal, window+curtains (small 30–60); chair, desk, toy chest, bookshelf, wall art (mid 150–280); bed, fish tank (big 500–600)
-- **Shop integration**: Collection screen has "👗แต่งตัว" / "🏠เฟอร์นิเจอร์" top-level tabs; furniture tab shows items with mini room-background preview; buy with `BUY_ROOM_ITEM` → coins deducted → item added to `ownedRoomItems`
-- **State**: `state.ownedRoomItems: string[]` (default `[]`), `state.roomLayout: { [slotIndex]: itemId }` (default `{}`); both backfilled from `defaultState()` for existing players
-- **Actions**: `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`
+### Room / Den Decoration — ISOMETRIC (2026-06-30; iso rewrite 2026-07-02)
+- **Iso interior**: the room is now a true 2:1 isometric interior (`src/lib/roomScene.js`) — a 6×4 diamond checkerboard floor plus two back walls (on-screen LEFT = 4-wide, on-screen RIGHT = 6-wide; both 2 placeable height rows). Replaces the old flat top-down 12-slot CSS grid.
+- **Home background**: `DecoratedRoom.jsx` is the decorated-room hero on Home (placed furniture + walking companion); it passes `state.roomLayout` straight to `drawRoomScene` — unchanged by the iso rewrite, renders iso automatically.
+- **Room editor** (`Room.jsx`, fully rewritten 2026-07-02): a single `<canvas>` both draws the iso room (`drawRoomScene`) and handles hit-testing (`hitTestZone` on the same `computeRoomGeometry`). No more DecoratedRoom overlay / CSS grid / walker in the editor.
+- **Zone tabs**: 3-tab switcher พื้น / ผนังซ้าย / ผนังขวา sets `activeZone` (`floor` | `left_wall` | `right_wall`); the active zone's empty slots show faint yellow outline hints; the selected slot shows a strong yellow highlight.
+- **Slot keys**: `roomLayout` keys are now `"{zone}_{a}_{b}"` strings — `floor_{col}_{row}` (col 0-5, row 0-3), `left_wall_{y}_{z}` (y 0-3, z 1-2), `right_wall_{x}_{z}` (x 0-5, z 1-2). (Old numeric `0`–`11` keys are wiped on migration — see below.)
+- **Furniture render**: floor items draw with iso depth — a pixel contact shadow grounds them (`withGround()` wrapper), and the boxy ones (toy chest, bookshelf, bed, fish tank) have iso right/top faces. Wall items (window, wall art) draw flat, skewed onto the wall plane. Same flat-pixel-art house style throughout.
+- **Place flow**: tap empty slot → bottom-sheet picker shows owned items whose `allowedZones` include the active zone and that aren't already placed → tap to place.
+- **Remove/swap flow**: tap occupied slot → action sheet with "ย้ายออก" (remove) and "เปลี่ยน" (swap, re-opens the zone-filtered picker on that slot).
+- **Furniture catalog**: 12 items in `src/lib/roomItems.js`, each with `allowedZones` — floor: plant, rug, lamp, stuffed animal, chair, desk, toy chest, bookshelf, bed, fish tank; wall (both walls): window+curtains, wall art.
+- **Shop integration**: Collection furniture tab shows each item's tier badge + zone badge(s) (พื้น / ผนังซ้าย / ผนังขวา) so the child knows where it can go before buying; buy with `BUY_ROOM_ITEM` → coins deducted → item added to `ownedRoomItems`.
+- **State**: `state.ownedRoomItems: string[]` (default `[]`), `state.roomLayout: { [slotKey]: itemId }` (default `{}`).
+- **Migration** (`migrateStateShape` in `state.js`): a saved `roomLayout` whose keys are all numeric strings (old flat grid) is reset to `{}` and `lastSavedAt` is bumped (so a stale cloud copy can't revert the reset). New-format / empty layouts pass through untouched. `ownedRoomItems` is NEVER modified by migration — purchases always persist.
+- **Actions**: `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM` (`{ slotKey, itemId }`), `REMOVE_ROOM_ITEM` (`{ slotKey }`)
 - **Navigation**: 5-tab BottomNav — หน้าหลัก / ร้านค้า / ห้อง / รีพอร์ต / เพื่อน
 - **Deferred**: multi-room expansion (1 room is all that exists now)
 

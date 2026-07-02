@@ -25,6 +25,55 @@ function rS(ctx, cx, cy, dx, dy, w, h, col, sz) {
   R(ctx, cx, cy, dx * s, dy * s, w * s, h * s, col)
 }
 
+// ── ISO helpers ─────────────────────────────────────────────────────────────
+// Flat contact shadow (pixel-stepped diamond) so a floor item reads as grounded
+// on an iso tile instead of floating. Drawn under the item's feet.
+function groundShadow(ctx, cx, cy, sz) {
+  const s = sz / 48
+  ctx.save()
+  ctx.globalAlpha = 0.20
+  const base = 18 // baseline-48 px below center (near the feet)
+  const rows = [[-3, 12], [-2, 20], [-1, 26], [0, 28], [1, 26], [2, 20], [3, 12]]
+  for (const [dy, w] of rows) {
+    R(ctx, cx, cy, -(w / 2) * s, (base + dy * 2) * s, w * s, 2 * s, '#000000')
+  }
+  ctx.restore()
+}
+
+// Iso right side-face for a box whose FRONT face is R(cx,cy, dx,dy, w,h).
+// Adds a receding parallelogram to the right → 3D depth. Baseline-48 units.
+function isoSide(ctx, cx, cy, dx, dy, w, h, depth, col, sz) {
+  const s = sz / 48
+  const rx = cx + (dx + w) * s, y = cy + dy * s, hh = h * s, d = depth * s
+  ctx.beginPath()
+  ctx.moveTo(rx, y)
+  ctx.lineTo(rx + d, y - d * 0.5)
+  ctx.lineTo(rx + d, y + hh - d * 0.5)
+  ctx.lineTo(rx, y + hh)
+  ctx.closePath()
+  ctx.fillStyle = col
+  ctx.fill()
+}
+
+// Iso top-face for a box whose FRONT-TOP edge is R(cx,cy, dx,dy, w,·).
+function isoTop(ctx, cx, cy, dx, dy, w, depth, col, sz) {
+  const s = sz / 48
+  const x = cx + dx * s, y = cy + dy * s, ww = w * s, d = depth * s
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x + ww, y)
+  ctx.lineTo(x + ww + d, y - d * 0.5)
+  ctx.lineTo(x + d, y - d * 0.5)
+  ctx.closePath()
+  ctx.fillStyle = col
+  ctx.fill()
+}
+
+// Wrap a floor item's draw fn so every floor item gets a grounding shadow.
+function withGround(fn) {
+  return (ctx, cx, cy, sz) => { groundShadow(ctx, cx, cy, sz); fn(ctx, cx, cy, sz) }
+}
+
 // ── DRAW FUNCTIONS ─────────────────────────────────────────────────────────
 
 function drawPlant(ctx, cx, cy, sz) {
@@ -159,6 +208,9 @@ function drawDesk(ctx, cx, cy, sz) {
 function drawToyChest(ctx, cx, cy, sz) {
   // Colorful toy chest
   const box = '#E87030', lid = '#FF9944', dark = '#A04010', gold = '#FFD23F'
+  // Iso depth: right side-face + lid top-face (behind the front art)
+  isoSide(ctx,cx,cy, -16,-10, 32,30, 5, '#B4581F', sz)
+  isoTop(ctx,cx,cy, -17,-10, 34, 5, '#FFBB66', sz)
   // Box body
   rS(ctx,cx,cy, -16,-2, 32,22, box, sz)
   rS(ctx,cx,cy, -16,-2, 32,5,  '#F0944A', sz) // front shade
@@ -183,6 +235,9 @@ function drawToyChest(ctx, cx, cy, sz) {
 function drawBookshelf(ctx, cx, cy, sz) {
   // Wooden bookshelf with colorful books
   const wood = '#8B6340', dark = '#5C3820'
+  // Iso depth: right side-face + top-face
+  isoSide(ctx,cx,cy, -18,-24, 36,46, 4, '#3E2614', sz)
+  isoTop(ctx,cx,cy, -18,-24, 36, 4, '#6E4A2A', sz)
   // Outer frame
   rS(ctx,cx,cy, -18,-24, 36,46, dark, sz)
   rS(ctx,cx,cy, -15,-22, 30,42, wood, sz)
@@ -238,6 +293,8 @@ function drawWallArt(ctx, cx, cy, sz) {
 function drawBed(ctx, cx, cy, sz) {
   // Cozy bed (side view)
   const wood = '#8B6340', dark = '#5C3820', blanket = '#3399FF', pillow = '#EEE8FF'
+  // Iso depth: right side-face along the bed body
+  isoSide(ctx,cx,cy, -20,-18, 40,40, 5, '#4A2C19', sz)
   // Headboard
   rS(ctx,cx,cy, -20,-18, 40,14, wood, sz)
   rS(ctx,cx,cy, -20,-18, 40,4, '#A07040', sz)  // headboard top edge
@@ -261,6 +318,9 @@ function drawBed(ctx, cx, cy, sz) {
 function drawFishTank(ctx, cx, cy, sz) {
   // Aquarium with fish
   const glass = '#aaddff', dark = '#223344', water = '#1e5c8a'
+  // Iso depth: right side-face + top-face
+  isoSide(ctx,cx,cy, -20,-22, 40,40, 4, '#16222E', sz)
+  isoTop(ctx,cx,cy, -20,-22, 40, 4, '#3A5566', sz)
   // Tank border
   rS(ctx,cx,cy, -20,-22, 40,40, dark, sz)
   // Water fill
@@ -295,20 +355,25 @@ function drawFishTank(ctx, cx, cy, sz) {
 
 // ── CATALOG ────────────────────────────────────────────────────────────────
 
+// allowedZones controls which iso zones an item may be placed in:
+//   'floor'      — sits on the diamond floor (grounded, iso side/top faces)
+//   'left_wall'  — hangs flat on the on-screen LEFT (4-wide) back wall
+//   'right_wall' — hangs flat on the on-screen RIGHT (6-wide) back wall
+// Floor items are wrapped in withGround() so they draw a contact shadow.
 export const ROOM_ITEMS = [
   // ─── SMALL (30-60 coins) ───
-  { id: 'plant',          nameTh: 'ต้นไม้',      price: 30,  tier: 'small', draw: drawPlant },
-  { id: 'rug',            nameTh: 'พรม',          price: 40,  tier: 'small', draw: drawRug },
-  { id: 'lamp',           nameTh: 'โคมไฟ',        price: 45,  tier: 'small', draw: drawLamp },
-  { id: 'stuffed_animal', nameTh: 'ตุ๊กตา',       price: 50,  tier: 'small', draw: drawStuffedAnimal },
-  { id: 'window_curtain', nameTh: 'หน้าต่าง',     price: 60,  tier: 'small', draw: drawWindowCurtain },
+  { id: 'plant',          nameTh: 'ต้นไม้',      price: 30,  tier: 'small', allowedZones: ['floor'],                    draw: withGround(drawPlant) },
+  { id: 'rug',            nameTh: 'พรม',          price: 40,  tier: 'small', allowedZones: ['floor'],                    draw: withGround(drawRug) },
+  { id: 'lamp',           nameTh: 'โคมไฟ',        price: 45,  tier: 'small', allowedZones: ['floor'],                    draw: withGround(drawLamp) },
+  { id: 'stuffed_animal', nameTh: 'ตุ๊กตา',       price: 50,  tier: 'small', allowedZones: ['floor'],                    draw: withGround(drawStuffedAnimal) },
+  { id: 'window_curtain', nameTh: 'หน้าต่าง',     price: 60,  tier: 'small', allowedZones: ['left_wall', 'right_wall'],  draw: drawWindowCurtain },
   // ─── MID (150-300 coins) ───
-  { id: 'small_chair',    nameTh: 'เก้าอี้',       price: 150, tier: 'mid',   draw: drawSmallChair },
-  { id: 'desk',           nameTh: 'โต๊ะ',          price: 180, tier: 'mid',   draw: drawDesk },
-  { id: 'toy_chest',      nameTh: 'กล่องของเล่น', price: 200, tier: 'mid',   draw: drawToyChest },
-  { id: 'bookshelf',      nameTh: 'ชั้นหนังสือ',  price: 280, tier: 'mid',   draw: drawBookshelf },
-  { id: 'wall_art',       nameTh: 'ภาพวาด',        price: 250, tier: 'mid',   draw: drawWallArt },
+  { id: 'small_chair',    nameTh: 'เก้าอี้',       price: 150, tier: 'mid',   allowedZones: ['floor'],                    draw: withGround(drawSmallChair) },
+  { id: 'desk',           nameTh: 'โต๊ะ',          price: 180, tier: 'mid',   allowedZones: ['floor'],                    draw: withGround(drawDesk) },
+  { id: 'toy_chest',      nameTh: 'กล่องของเล่น', price: 200, tier: 'mid',   allowedZones: ['floor'],                    draw: withGround(drawToyChest) },
+  { id: 'bookshelf',      nameTh: 'ชั้นหนังสือ',  price: 280, tier: 'mid',   allowedZones: ['floor'],                    draw: withGround(drawBookshelf) },
+  { id: 'wall_art',       nameTh: 'ภาพวาด',        price: 250, tier: 'mid',   allowedZones: ['left_wall', 'right_wall'],  draw: drawWallArt },
   // ─── BIG (500+ coins) ───
-  { id: 'bed',            nameTh: 'เตียง',          price: 500, tier: 'big',   draw: drawBed },
-  { id: 'fish_tank',      nameTh: 'ตู้ปลา',        price: 600, tier: 'big',   draw: drawFishTank },
+  { id: 'bed',            nameTh: 'เตียง',          price: 500, tier: 'big',   allowedZones: ['floor'],                    draw: withGround(drawBed) },
+  { id: 'fish_tank',      nameTh: 'ตู้ปลา',        price: 600, tier: 'big',   allowedZones: ['floor'],                    draw: withGround(drawFishTank) },
 ]

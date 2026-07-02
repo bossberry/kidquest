@@ -992,19 +992,19 @@ function reducer(state, action) {
     }
 
     case ACTIONS.PLACE_ROOM_ITEM: {
-      const { slotIndex, itemId } = action.payload
+      const { slotKey, itemId } = action.payload
       if (!(state.ownedRoomItems || []).includes(itemId)) return state
       return {
         ...state,
-        roomLayout: { ...(state.roomLayout || {}), [slotIndex]: itemId },
+        roomLayout: { ...(state.roomLayout || {}), [slotKey]: itemId },
         lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.REMOVE_ROOM_ITEM: {
-      const { slotIndex } = action.payload
+      const { slotKey } = action.payload
       const newLayout = { ...(state.roomLayout || {}) }
-      delete newLayout[slotIndex]
+      delete newLayout[slotKey]
       return { ...state, roomLayout: newLayout, lastSavedAt: Date.now() }
     }
 

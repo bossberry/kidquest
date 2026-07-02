@@ -1,21 +1,19 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
-import DecoratedRoom from './DecoratedRoom.jsx'
+import { drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey } from '../lib/roomScene.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 
-const COLS = 4
-const ROWS = 3
-const TOTAL_SLOTS = COLS * ROWS   // 12
+const SCENE_H = 380   // px — iso room canvas height
 
-const SLOT_SIZE = 64   // px — each slot square
-const GAP = 8          // px — gap between slots
+const ZONE_TABS = [
+  { zone: 'floor',      label: 'พื้น' },
+  { zone: 'left_wall',  label: 'ผนังซ้าย' },
+  { zone: 'right_wall', label: 'ผนังขวา' },
+]
 
-// Grid total width: 4×64 + 3×8 = 280px
-const GRID_W = COLS * SLOT_SIZE + (COLS - 1) * GAP
-
-// ── SlotCanvas: renders one furniture item onto a canvas element ────────────
-function SlotCanvas({ item, size = SLOT_SIZE - 16 }) {
+// ── SlotCanvas: renders one furniture item onto a small canvas ──────────────
+function SlotCanvas({ item, size = 48 }) {
   const canvasRef = useRef(null)
   useEffect(() => {
     const canvas = canvasRef.current
@@ -34,8 +32,7 @@ function SlotCanvas({ item, size = SLOT_SIZE - 16 }) {
   )
 }
 
-
-// ── ItemThumb: small card in the placement picker ─────────────────────────
+// ── ItemThumb: small card in the placement picker ───────────────────────────
 function ItemThumb({ item, onTap }) {
   return (
     <div
@@ -61,70 +58,114 @@ function ItemThumb({ item, onTap }) {
   )
 }
 
-// ── Main Room screen ───────────────────────────────────────────────────────
+// ── Main Room screen ─────────────────────────────────────────────────────────
 export default function Room() {
   const { state, dispatch } = useAppState()
-  const [pickerSlot, setPickerSlot] = useState(null)   // slot index awaiting placement
-  const [actionSlot, setActionSlot] = useState(null)   // slot index for remove/swap action
-  const [toast, setToast]   = useState(null)
+  const [activeZone, setActiveZone] = useState('floor')
+  const [pickerKey, setPickerKey] = useState(null)   // empty slot key awaiting placement / swap
+  const [actionKey, setActionKey] = useState(null)   // occupied slot key for remove/swap
+  const [toast, setToast] = useState(null)
 
-  const coins       = state.coins ?? 0
-  const ownedRoom   = state.ownedRoomItems ?? []
-  const roomLayout  = state.roomLayout ?? {}
+  const coins      = state.coins ?? 0
+  const ownedRoom  = state.ownedRoomItems ?? []
+  const roomLayout = state.roomLayout ?? {}
+
+  const wrapRef   = useRef(null)
+  const canvasRef = useRef(null)
+  const geomRef   = useRef(null)   // { g, W, H } — geometry the visible canvas was drawn with
+
+  // The slot currently highlighted (whichever sheet is open)
+  const selectedKey = actionKey || pickerKey || null
 
   useEffect(() => {
     playBGM('room')
     return () => stopBGM()
   }, [])
 
-  // Items currently placed somewhere in the room
-  const placedIds = Object.values(roomLayout)
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current
+    const wrap   = wrapRef.current
+    if (!canvas || !wrap) return
+    const W = wrap.clientWidth || 360
+    const H = SCENE_H
+    if (canvas.width !== W)  canvas.width = W
+    if (canvas.height !== H) canvas.height = H
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    drawRoomScene(ctx, { W, H, roomLayout, small: false, hint: false, activeZone, selectedKey })
+    geomRef.current = { g: computeRoomGeometry(W, H, false), W, H }
+  }, [roomLayout, activeZone, selectedKey])
 
-  // Items owned but not yet placed (available to place)
-  const unplaced = ROOM_ITEMS.filter(i => ownedRoom.includes(i.id) && !placedIds.includes(i.id))
+  useEffect(() => { redraw() }, [redraw])
+
+  useEffect(() => {
+    const onResize = () => redraw()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [redraw])
+
+  const placedIds = Object.values(roomLayout)
 
   function flash(msg) {
     setToast(msg)
     setTimeout(() => setToast(null), 1800)
   }
 
-  function handleSlotTap(idx) {
-    if (roomLayout[idx]) {
-      setActionSlot(idx)
-    } else {
-      setPickerSlot(idx)
-    }
+  function handleCanvasClick(e) {
+    const canvas = canvasRef.current
+    const g = geomRef.current?.g
+    if (!canvas || !g) return
+    const rect = canvas.getBoundingClientRect()
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width)
+    const py = (e.clientY - rect.top)  * (canvas.height / rect.height)
+    const hit = hitTestZone(g, px, py, activeZone)
+    if (!hit) return
+    if (roomLayout[hit.key]) setActionKey(hit.key)
+    else                     setPickerKey(hit.key)
+  }
+
+  // Items owned + allowed in the picker's zone + not already placed elsewhere
+  function pickChoices(slotKey) {
+    const zone = parseSlotKey(slotKey)?.zone
+    if (!zone) return []
+    return ROOM_ITEMS.filter(i =>
+      ownedRoom.includes(i.id) &&
+      (i.allowedZones || []).includes(zone) &&
+      !placedIds.includes(i.id)
+    )
   }
 
   function handlePlace(item) {
-    dispatch({ type: ACTIONS.PLACE_ROOM_ITEM, payload: { slotIndex: pickerSlot, itemId: item.id } })
+    dispatch({ type: ACTIONS.PLACE_ROOM_ITEM, payload: { slotKey: pickerKey, itemId: item.id } })
     playSFX('furniture_place')
-    setPickerSlot(null)
+    setPickerKey(null)
     flash(`วาง${item.nameTh}แล้ว! 🏠`)
   }
 
-  function handleSwapPick(item) {
-    // Remove what's already there, then place new item
-    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotIndex: actionSlot } })
-    dispatch({ type: ACTIONS.PLACE_ROOM_ITEM,  payload: { slotIndex: actionSlot, itemId: item.id } })
-    playSFX('furniture_place')
-    setActionSlot(null)
-    flash(`เปลี่ยนเป็น${item.nameTh}แล้ว!`)
-  }
-
   function handleRemove() {
-    const itemId = roomLayout[actionSlot]
+    const itemId = roomLayout[actionKey]
     const item = ROOM_ITEMS.find(i => i.id === itemId)
-    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotIndex: actionSlot } })
+    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotKey: actionKey } })
     playSFX('furniture_remove')
-    setActionSlot(null)
+    setActionKey(null)
     flash(item ? `เก็บ${item.nameTh}แล้ว` : 'เก็บของแล้ว')
   }
 
-  // The item currently in the action slot (for swap: show all owned-but-unplaced PLUS current)
-  const actionItemId = actionSlot !== null ? roomLayout[actionSlot] : null
-  const swapChoices = actionSlot !== null
-    ? ROOM_ITEMS.filter(i => ownedRoom.includes(i.id) && i.id !== actionItemId && !placedIds.includes(i.id))
+  function handleZoneTab(zone) {
+    setActiveZone(zone)
+    setPickerKey(null)
+    setActionKey(null)
+  }
+
+  const pickerChoices = pickerKey ? pickChoices(pickerKey) : []
+  const actionItemId  = actionKey ? roomLayout[actionKey] : null
+  const actionZone    = actionKey ? parseSlotKey(actionKey)?.zone : null
+  const swapChoices   = actionKey
+    ? ROOM_ITEMS.filter(i =>
+        ownedRoom.includes(i.id) &&
+        (i.allowedZones || []).includes(actionZone) &&
+        i.id !== actionItemId &&
+        !placedIds.includes(i.id))
     : []
 
   return (
@@ -153,62 +194,53 @@ export default function Room() {
         </span>
       </div>
 
-      {/* Room scene: DecoratedRoom as base + transparent tap overlay for grid */}
-      <div style={{
+      {/* Iso room scene — single canvas doing both draw + hit-test */}
+      <div ref={wrapRef} style={{
         position: 'relative', width: '100%',
-        height: 380, flexShrink: 0, overflow: 'hidden',
+        height: SCENE_H, flexShrink: 0, overflow: 'hidden',
       }}>
-        {/* Visual base — room bg + furniture drawn on canvas + walking companion */}
-        <DecoratedRoom style={{ position: 'absolute', inset: 0 }} />
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          style={{
+            display: 'block', width: '100%', height: '100%',
+            imageRendering: 'pixelated', cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        />
+      </div>
 
-        {/* Grid tap overlay — invisible tap targets, no furniture drawing */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-        }}>
-          <div style={{
-            position: 'absolute', top: 18, left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'grid',
-            gridTemplateColumns: `repeat(${COLS}, ${SLOT_SIZE}px)`,
-            gridTemplateRows: `repeat(${ROWS}, ${SLOT_SIZE}px)`,
-            gap: GAP, width: GRID_W,
-            pointerEvents: 'auto',
-          }}>
-            {Array.from({ length: TOTAL_SLOTS }).map((_, idx) => {
-              const itemId = roomLayout[idx]
-              return (
-                <div
-                  key={idx}
-                  onClick={() => handleSlotTap(idx)}
-                  style={{
-                    width: SLOT_SIZE, height: SLOT_SIZE,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
-                    background: itemId ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)',
-                    border: itemId
-                      ? '1.5px solid rgba(255,255,255,0.15)'
-                      : '1.5px dashed rgba(255,255,255,0.20)',
-                    boxSizing: 'border-box',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  {!itemId && (
-                    <span style={{
-                      fontSize: 18, color: 'rgba(255,255,255,0.22)',
-                      fontFamily: 'var(--font-pixel)', lineHeight: 1,
-                      userSelect: 'none', pointerEvents: 'none',
-                    }}>+</span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
+      {/* Zone switcher */}
+      <div style={{
+        display: 'flex', gap: 8, justifyContent: 'center',
+        padding: '12px 18px 4px',
+      }}>
+        {ZONE_TABS.map(t => {
+          const on = activeZone === t.zone
+          return (
+            <button
+              key={t.zone}
+              onClick={() => handleZoneTab(t.zone)}
+              style={{
+                flex: 1, maxWidth: 120, border: 'none', cursor: 'pointer',
+                borderRadius: 10, padding: '9px 0',
+                fontFamily: 'var(--font-thai)', fontSize: 14, fontWeight: 700,
+                background: on ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.05)',
+                color: on ? '#FFD23F' : 'rgba(255,255,255,0.5)',
+                border: on ? '1.5px solid rgba(255,210,63,0.5)' : '1.5px solid transparent',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Hint text below room */}
       <div style={{
-        padding: '10px 18px 6px',
+        padding: '8px 18px 6px',
         fontFamily: 'var(--font-thai)', fontSize: 12,
         color: 'rgba(255,255,255,0.35)', textAlign: 'center',
       }}>
@@ -216,19 +248,15 @@ export default function Room() {
       </div>
 
       {/* ── Placement picker modal ─────────────────────────────────────── */}
-      {pickerSlot !== null && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9100,
-            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-          }}
-        >
-          {/* Backdrop */}
+      {pickerKey !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9100,
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }}>
           <div
-            onClick={() => setPickerSlot(null)}
+            onClick={() => setPickerKey(null)}
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
           />
-          {/* Sheet */}
           <div style={{
             position: 'relative', zIndex: 1,
             background: '#1a1040',
@@ -244,21 +272,18 @@ export default function Room() {
               เลือกของที่จะวาง
             </div>
 
-            {unplaced.length === 0 ? (
+            {pickerChoices.length === 0 ? (
               <div style={{
                 padding: '20px 0', textAlign: 'center',
                 fontFamily: 'var(--font-thai)', fontSize: 13,
-                color: 'rgba(255,255,255,0.45)',
-                lineHeight: 1.7,
+                color: 'rgba(255,255,255,0.45)', lineHeight: 1.7,
               }}>
-                ยังไม่มีของที่วางได้<br />
+                ยังไม่มีของสำหรับตรงนี้<br />
                 <span style={{ color: '#FFD23F' }}>ซื้อในร้านค้าก่อนนะ</span>
               </div>
             ) : (
-              <div style={{
-                display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4,
-              }}>
-                {unplaced.map(item => (
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                {pickerChoices.map(item => (
                   <ItemThumb key={item.id} item={item} onTap={() => handlePlace(item)} />
                 ))}
               </div>
@@ -268,15 +293,13 @@ export default function Room() {
       )}
 
       {/* ── Action modal (remove / swap for occupied slot) ─────────────── */}
-      {actionSlot !== null && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9100,
-            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-          }}
-        >
+      {actionKey !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9100,
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }}>
           <div
-            onClick={() => setActionSlot(null)}
+            onClick={() => setActionKey(null)}
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
           />
           <div style={{
@@ -287,7 +310,6 @@ export default function Room() {
             paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
             animation: 'fadeInUp 0.22s ease both',
           }}>
-            {/* Current item preview */}
             {actionItemId && (() => {
               const cur = ROOM_ITEMS.find(i => i.id === actionItemId)
               return cur ? (
@@ -305,8 +327,7 @@ export default function Room() {
               ) : null
             })()}
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: swapChoices.length > 0 ? 14 : 0 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={handleRemove}
                 style={{
@@ -321,7 +342,7 @@ export default function Room() {
               </button>
               {swapChoices.length > 0 && (
                 <button
-                  onClick={() => { setActionSlot(null); setPickerSlot(actionSlot) }}
+                  onClick={() => { const k = actionKey; setActionKey(null); setPickerKey(k) }}
                   style={{
                     flex: 1, border: 'none', cursor: 'pointer',
                     background: 'rgba(255,210,63,0.18)', borderRadius: 10,

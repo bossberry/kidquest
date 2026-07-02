@@ -1,5 +1,33 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — Isometric Room decoration system
+
+Converted the Room / Den decoration screen from a flat top-down 12-slot CSS grid to a true 2:1 isometric interior. All existing state/reducers preserved; slot-key schema changed with a safe migration.
+
+### src/lib/roomScene.js (was already present, uncommitted — now wired end-to-end)
+- Shared non-React iso renderer + geometry: 6×4 diamond floor + two back walls (on-screen LEFT 4-wide, RIGHT 6-wide, each 2 placeable height rows). Exports `computeRoomGeometry`, `slotCenter`, `hitTestZone`, `parseSlotKey`, `zoneSlotKeys`, `drawRoomScene` (now takes optional editor-only `activeZone` + `selectedKey`). Slot keys are `"{zone}_{a}_{b}"`.
+
+### src/lib/roomItems.js
+- Added `allowedZones` to every one of the 12 items (floor items → `['floor']`; window + wall art → `['left_wall','right_wall']`).
+- Added iso treatment: `withGround()` wraps every floor item's draw fn to add a pixel contact-shadow (kills the "flat icon floating in the room" look); added `isoSide`/`isoTop` right/top faces to the boxy floor items (toy chest, bookshelf, bed, fish tank). Wall items unchanged (already read as flat wall-mounted objects). Kept the flat-pixel-art house style (fillRect + simple polygons, no gradients).
+
+### src/lib/state.js
+- `migrateStateShape()`: detects an OLD flat-grid `roomLayout` (all keys numeric strings) and resets it to `{}`, bumping `lastSavedAt` so a stale cloud copy can't revert the reset via `resolveSync`. New-format (`{zone}_{a}_{b}`) and empty layouts pass through untouched. **`ownedRoomItems` is never touched** — all purchases persist across the migration.
+
+### src/context/StateContext.jsx
+- `PLACE_ROOM_ITEM` / `REMOVE_ROOM_ITEM` payloads renamed `slotIndex` → `slotKey` (string). Logic otherwise unchanged (still stamp `lastSavedAt`).
+
+### src/components/Room.jsx (full rewrite)
+- Replaced the DecoratedRoom-base + transparent 4×3 CSS-grid overlay with a single `<canvas>` that both draws the iso room and hit-tests taps. Added a 3-tab zone switcher (พื้น / ผนังซ้าย / ผนังขวา → `activeZone`). Tap → `hitTestZone` on the exact same geometry the canvas drew → empty slot opens a zone-filtered picker (owned + `allowedZones` includes zone + not already placed), occupied slot opens the remove/swap sheet. Empty-slot hints + selected highlight come from `drawRoomScene`. Picker/action/toast UI patterns preserved.
+
+### src/components/Collection.jsx
+- Furniture cards now show a zone badge (พื้น / ผนังซ้าย / ผนังขวา, one per `allowedZones` entry) alongside the tier badge, so the child knows where an item can be placed before buying.
+
+### Verification
+- `npm run build` clean, zero console errors on load + after exercising the modules.
+- Functionally verified via dynamic-import of the live dev-server source (the actual Room screen sits behind a Supabase login gate that cannot be passed without credentials): `drawRoomScene` renders the full iso room + all furniture with no errors (visual screenshot confirmed floor diamond, both walls, wall-mounted art/windows, floor furniture with iso depth, contact shadows, zone hints, selected highlight); `hitTestZone(slotCenter(...))` round-trips correctly for all three zones; `migrateStateShape` verified across old-numeric / new-format / empty / missing cases — old resets + bumps `lastSavedAt`, `ownedRoomItems` preserved in every case.
+- DB note: confirmed anon-key REST reads of `eggs.state_json` return `[]` (RLS blocks reading other users' rows) — the possible past `ownedRoomItems` wipe cannot be inspected or restored from here; that remains a Boss/service-role action. No DB writes attempted; migration code has no path that clears `ownedRoomItems`.
+
 ## 2026-07-02 — World map visual polish (Pandora-style, round 3)
 
 Third polish pass, focused on two things: the map still reading as a rectangle on a background, and trees still reading as uniform balls. All gameplay logic unchanged.

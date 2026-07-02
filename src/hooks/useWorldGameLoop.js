@@ -4,7 +4,7 @@ import {
   MAP_COLS, MAP_ROWS, isoProject, renderMapIso, renderPlayerIso,
   PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
-import { drawEnemy } from '../lib/drawEnemy.js'
+import { drawEnemy, drawEnemyPandora } from '../lib/drawEnemy.js'
 import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
@@ -358,15 +358,14 @@ export function useWorldGameLoop({
       ctx.clearRect(0, 0, vw, vh)
 
       if (window.__kq_pandoraDebug) {
-        // Stage 3/6 of the Pandora-style pseudo-3D world-map rewrite (this
+        // Stage 4/6 of the Pandora-style pseudo-3D world-map rewrite (this
         // supersedes the isometric track above — different, non-isometric
         // technique, kept behind its own flag so the two experiments never
-        // collide). Player egg now drawn with a drop shadow, scaled up, and
-        // Y-sorted against trees/rocks via renderMapPandora's `extraEntities`
-        // param. Camera now follows the player (per the brief's own camera
-        // formula, clamped to map bounds the same way the original
-        // getCamera() clamps — no staging deferral for this in the Pandora
-        // spec, unlike the iso track). Enemies still not drawn (Stage 4).
+        // collide). Enemies now drawn via drawEnemyPandora() (new, separate
+        // from the flat renderer's drawEnemy() — that stays untouched), each
+        // Y-sorted into the same extraEntities list as the player so a tall
+        // standing object (once trees have interior placements, e.g. the
+        // boss map's tree-wall corridors) can still occlude them correctly.
         const mapPixW = MAP_COLS * PANDORA_TILE
         const mapPixH = MAP_ROWS * PANDORA_TILE
         const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
@@ -378,9 +377,16 @@ export function useWorldGameLoop({
 
         const playerGroundX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
         const playerGroundY = g.displayY * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
-        const playerEntity = { y: playerGroundY, draw: () => renderPlayerPandora(ctx, playerGroundX, playerGroundY) }
+        const pandoraEntities = [{ y: playerGroundY, draw: () => renderPlayerPandora(ctx, playerGroundX, playerGroundY) }]
 
-        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame, [playerEntity])
+        for (const e of enemiesRef.current) {
+          if (e.defeated || e.dead) continue
+          const ex = e.col * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
+          const ey = e.row * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
+          pandoraEntities.push({ y: ey, draw: () => drawEnemyPandora(ctx, e.type, ex, ey, g.frame) })
+        }
+
+        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame, pandoraEntities)
         return
       }
 

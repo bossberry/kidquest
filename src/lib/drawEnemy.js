@@ -434,6 +434,243 @@ export function drawEnemyHurt(ctx, type, size, x = 0, y = 0) {
   ctx.restore()
 }
 
+// ── Pandora-style pseudo-3D enemy sprites (2026-07-02, Stage 4/6) ─────────────
+// Fully separate from DRAW_FNS/drawEnemy()/drawEnemyHurt() above — those stay
+// byte-for-byte untouched as the original flat renderer's enemies. These are
+// rounder/volumetric (ellipses over rects), each with a ground drop-shadow
+// and a baked-in upper-left-light/lower-right-shade convention, keyed by the
+// same enemy `type` strings so callers can look either set up interchangeably.
+
+function pShadow(ctx, cx, groundY, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, w / 2, h / 2, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// Rounded body with a soft upper-left highlight + lower-right shade baked on
+// top of a flat base fill — the shared "volumetric" look every type builds from.
+function pBody(ctx, cx, cy, rx, ry, base, light, dark) {
+  ctx.fillStyle = base
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.save()
+  ctx.globalAlpha = 0.35
+  ctx.fillStyle = light
+  ctx.beginPath()
+  ctx.ellipse(cx - rx * 0.35, cy - ry * 0.35, rx * 0.5, ry * 0.5, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+  ctx.save()
+  ctx.globalAlpha = 0.22
+  ctx.fillStyle = dark
+  ctx.beginPath()
+  ctx.ellipse(cx + rx * 0.3, cy + ry * 0.35, rx * 0.45, ry * 0.4, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+function pSleepyBunny(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 22, 6)
+  const bodyCy = groundY - 9
+  pBody(ctx, cx, bodyCy, 11, 8, '#f5eee8', '#ffffff', '#d8c0c0')
+  const headCy = bodyCy - 11
+  pBody(ctx, cx, headCy, 8, 7, '#f5eee8', '#ffffff', '#d8c0c0')
+  ctx.fillStyle = '#f0d8d8'
+  ctx.beginPath(); ctx.ellipse(cx - 4, headCy - 9, 2.5, 7, -0.15, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 4, headCy - 9, 2.5, 7, 0.15, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffb0b8'
+  ctx.beginPath(); ctx.ellipse(cx - 4, headCy - 8, 1.2, 4.4, -0.15, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 4, headCy - 8, 1.2, 4.4, 0.15, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = '#886666'; ctx.lineWidth = 1.3
+  ctx.beginPath(); ctx.moveTo(cx - 4, headCy); ctx.lineTo(cx - 1.5, headCy); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 1.5, headCy); ctx.lineTo(cx + 4, headCy); ctx.stroke()
+}
+
+function pBouncySlime(ctx, cx, groundY, frame) {
+  pShadow(ctx, cx, groundY, 22, 6)
+  const squish = Math.sin((frame || 0) * 0.15) * 0.12
+  const rx = 13 * (1 + squish), ry = 11 * (1 - squish)
+  const cy = groundY - ry
+  ctx.save()
+  ctx.globalAlpha = 0.82
+  pBody(ctx, cx, cy, rx, ry, '#5acd7a', '#a0ffb0', '#2a8a4a')
+  ctx.restore()
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.beginPath(); ctx.ellipse(cx - rx * 0.35, cy - ry * 0.4, 3, 2, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#1a1a2a'
+  ctx.beginPath(); ctx.ellipse(cx - 4, cy, 1.8, 2.2, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 4, cy, 1.8, 2.2, 0, 0, Math.PI * 2); ctx.fill()
+}
+
+function pFoxKit(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 22, 6)
+  // Tail
+  ctx.save()
+  pBody(ctx, cx - 12, groundY - 10, 6, 9, '#e8863a', '#ffb060', '#b8622a')
+  ctx.restore()
+  const bodyCy = groundY - 9
+  pBody(ctx, cx, bodyCy, 11, 8, '#e8863a', '#ffb060', '#b8622a')
+  ctx.fillStyle = '#f8e8c8'
+  ctx.beginPath(); ctx.ellipse(cx, bodyCy + 2, 6, 4.5, 0, 0, Math.PI * 2); ctx.fill()
+  const headCy = bodyCy - 11
+  pBody(ctx, cx, headCy, 8, 7, '#e8863a', '#ffb060', '#b8622a')
+  ctx.fillStyle = '#e8863a'
+  ctx.beginPath(); ctx.moveTo(cx - 6, headCy - 3); ctx.lineTo(cx - 8, headCy - 11); ctx.lineTo(cx - 2, headCy - 5); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(cx + 6, headCy - 3); ctx.lineTo(cx + 8, headCy - 11); ctx.lineTo(cx + 2, headCy - 5); ctx.closePath(); ctx.fill()
+  ctx.fillStyle = '#1a1a1a'
+  ctx.beginPath(); ctx.arc(cx - 3, headCy - 1, 1.4, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, headCy - 1, 1.4, 0, Math.PI * 2); ctx.fill()
+}
+
+function pGhostWisp(ctx, cx, groundY, frame) {
+  const wave = Math.sin((frame || 0) * 0.12) * 2
+  ctx.save()
+  ctx.globalAlpha = 0.18
+  ctx.fillStyle = '#c8a8ff'
+  ctx.beginPath(); ctx.ellipse(cx, groundY, 24, 24, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+  const cy = groundY - 14
+  ctx.save()
+  ctx.globalAlpha = 0.7
+  pBody(ctx, cx, cy, 11, 12, '#d8c0ff', '#f0e8ff', '#9070c0')
+  ctx.restore()
+  ctx.save()
+  ctx.globalAlpha = 0.5
+  ctx.fillStyle = '#f0e8ff'
+  ctx.beginPath()
+  ctx.moveTo(cx - 9, cy + 6)
+  ctx.quadraticCurveTo(cx - 5, cy + 10 + wave, cx, cy + 6)
+  ctx.quadraticCurveTo(cx + 5, cy + 10 - wave, cx + 9, cy + 6)
+  ctx.quadraticCurveTo(cx, cy + 4, cx - 9, cy + 6)
+  ctx.fill()
+  ctx.restore()
+  ctx.fillStyle = '#6a3acc'
+  ctx.beginPath(); ctx.arc(cx - 4, cy - 1, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 4, cy - 1, 1.6, 0, Math.PI * 2); ctx.fill()
+}
+
+function pSnake(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 20, 6)
+  const segs = [[0, -4, 6], [-3, -12, 6.5], [2, -20, 6], [-2, -27, 5]]
+  for (const [dx, dy, r] of segs) {
+    pBody(ctx, cx + dx, groundY + dy, r, r * 0.75, '#3a9a3a', '#7ad07a', '#1a6a1a')
+  }
+  const [hx, hy] = [cx + segs[3][0], groundY + segs[3][1] - 4]
+  pBody(ctx, hx, hy, 5, 4, '#3a9a3a', '#7ad07a', '#1a6a1a')
+  ctx.fillStyle = '#ffcc00'
+  ctx.beginPath(); ctx.arc(hx - 2, hy - 1, 1.3, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(hx + 2, hy - 1, 1.3, 0, Math.PI * 2); ctx.fill()
+}
+
+function pEggPawn(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 22, 6)
+  const bodyCy = groundY - 12
+  pBody(ctx, cx, bodyCy, 11, 13, '#d83030', '#ff7060', '#902020')
+  ctx.fillStyle = 'rgba(240,240,240,0.9)'
+  ctx.beginPath(); ctx.ellipse(cx, bodyCy + 2, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffcc00'
+  ctx.beginPath(); ctx.arc(cx - 3, bodyCy, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, bodyCy, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx - 3, bodyCy + 5, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, bodyCy + 5, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffcc00'
+  ctx.beginPath(); ctx.arc(cx - 5, bodyCy - 16, 2.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 5, bodyCy - 16, 2.2, 0, Math.PI * 2); ctx.fill()
+}
+
+function pLeafSprite(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 20, 6)
+  const bodyCy = groundY - 12
+  pBody(ctx, cx, bodyCy, 10, 13, '#4aaa4a', '#8ad08a', '#2a7a2a')
+  ctx.save()
+  ctx.globalAlpha = 0.85
+  pBody(ctx, cx - 11, bodyCy + 2, 6, 4, '#3a9a3a', '#8ad08a', '#2a7a2a')
+  pBody(ctx, cx + 11, bodyCy, 6, 4, '#5aaa3a', '#8ad08a', '#2a7a2a')
+  ctx.restore()
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(cx - 3, bodyCy - 4, 2.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, bodyCy - 4, 2.2, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#1a3a1a'
+  ctx.beginPath(); ctx.arc(cx - 3, bodyCy - 4, 1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, bodyCy - 4, 1, 0, Math.PI * 2); ctx.fill()
+}
+
+function pGrumpyMole(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 24, 7)
+  const bodyCy = groundY - 10
+  pBody(ctx, cx, bodyCy, 12, 9, '#8a6030', '#c09060', '#5a3a18')
+  const headCy = bodyCy - 11
+  pBody(ctx, cx, headCy, 9, 7, '#8a6030', '#c09060', '#5a3a18')
+  ctx.fillStyle = '#333333'
+  ctx.beginPath(); ctx.ellipse(cx - 4, headCy, 3.5, 3, 0, 0, Math.PI * 2); ctx.stroke()
+  ctx.strokeStyle = '#333333'; ctx.lineWidth = 1.4
+  ctx.beginPath(); ctx.ellipse(cx - 4, headCy, 3.2, 2.8, 0, 0, Math.PI * 2); ctx.stroke()
+  ctx.beginPath(); ctx.ellipse(cx + 4, headCy, 3.2, 2.8, 0, 0, Math.PI * 2); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx - 1, headCy); ctx.lineTo(cx + 1, headCy); ctx.stroke()
+  ctx.fillStyle = 'rgba(170,220,255,0.5)'
+  ctx.beginPath(); ctx.ellipse(cx - 4, headCy, 3, 2.6, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 4, headCy, 3, 2.6, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = '#5a3010'; ctx.lineWidth = 1.4
+  ctx.beginPath(); ctx.moveTo(cx - 3, headCy + 6); ctx.quadraticCurveTo(cx, headCy + 8, cx + 3, headCy + 6); ctx.stroke()
+}
+
+function pMushroomImp(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 22, 6)
+  const stemCy = groundY - 8
+  pBody(ctx, cx, stemCy, 8, 8, '#e8c890', '#fff0d8', '#b89860')
+  const capCy = stemCy - 10
+  pBody(ctx, cx, capCy, 12, 8, '#cc3030', '#ff7060', '#902020')
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.ellipse(cx - 5, capCy - 2, 2.2, 1.8, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 5, capCy - 1, 2, 1.6, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx, capCy - 4, 1.8, 1.4, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.ellipse(cx - 3, stemCy, 2.4, 2.4, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 3, stemCy, 2.4, 2.4, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#1a1a2a'
+  ctx.beginPath(); ctx.arc(cx - 3, stemCy, 1.3, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, stemCy, 1.3, 0, Math.PI * 2); ctx.fill()
+}
+
+function pBabyZombie(ctx, cx, groundY) {
+  pShadow(ctx, cx, groundY, 18, 5)
+  const bodyCy = groundY - 8
+  pBody(ctx, cx, bodyCy, 8, 7, '#7a9a6a', '#a8c898', '#4a6a3a')
+  const headCy = bodyCy - 9
+  pBody(ctx, cx, headCy, 6, 6, '#9ab88a', '#c8e0b8', '#5a7a4a')
+  ctx.strokeStyle = '#cc2020'; ctx.lineWidth = 1.2
+  ctx.beginPath(); ctx.moveTo(cx - 4, headCy - 1); ctx.lineTo(cx - 2, headCy + 1); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx - 2, headCy - 1); ctx.lineTo(cx - 4, headCy + 1); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 2, headCy - 1); ctx.lineTo(cx + 4, headCy + 1); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 4, headCy - 1); ctx.lineTo(cx + 2, headCy + 1); ctx.stroke()
+  ctx.fillStyle = '#1a0a0a'
+  ctx.fillRect(cx - 2, headCy + 3, 4, 1.5)
+}
+
+const PANDORA_DRAW_FNS = {
+  bunny: pSleepyBunny, sleepy_bunny: pSleepyBunny,
+  slime: pBouncySlime, bouncy_slime: pBouncySlime,
+  fox: pFoxKit, fox_kit: pFoxKit, tiny_fox: pFoxKit,
+  egg_pawn: pEggPawn,
+  leaf_sprite: pLeafSprite,
+  grumpy_mole: pGrumpyMole,
+  mushroom_imp: pMushroomImp,
+  baby_zombie: pBabyZombie,
+  snake: pSnake,
+  ghost_wisp: pGhostWisp,
+}
+
+// Draws one enemy at its ground-contact screen point (cx, groundY) — same
+// anchor convention as drawPandoraTree/renderPlayerPandora in tileEngine.js.
+// `frame` only matters to slime (wobble) and ghost (wave); harmless to pass
+// for every type.
+export function drawEnemyPandora(ctx, type, cx, groundY, frame) {
+  const fn = PANDORA_DRAW_FNS[type] || pSleepyBunny
+  fn(ctx, cx, groundY, frame)
+}
+
 // ── MUSHROOM IMP ──────────────────────────────────────────────────────────────
 
 function _mushroomImp(ctx, size) {

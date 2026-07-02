@@ -41,8 +41,12 @@ export default function MissionPanel({ screenId, state, worldLevel }) {
       pointerEvents: 'none',
     }}>
       <div style={{
-        background: 'rgba(0,0,0,0.55)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        // Fix 5 (2026-07-02, Pandora-style visual polish): lighter + blurred
+        // so it floats over the map instead of reading as a solid dark box.
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 10,
         padding: '8px 12px',
         display: 'flex', flexDirection: 'column', gap: 4,
       }}>

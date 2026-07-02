@@ -71,8 +71,12 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
     <div style={{
       position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
       paddingTop: 'env(safe-area-inset-top, 0px)',
-      background: 'rgba(5,10,5,0.86)',
-      borderBottom: '1px solid rgba(50,110,50,0.3)',
+      // Fix 5 (2026-07-02, Pandora-style visual polish): translucent + blurred
+      // instead of a near-opaque bar, so the map is visible through it and it
+      // reads as floating over the scene rather than covering it.
+      background: 'rgba(5,10,5,0.4)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      borderBottom: '1px solid rgba(50,110,50,0.25)',
     }}>
       <div style={{
         height: HUD_CONTENT_H,

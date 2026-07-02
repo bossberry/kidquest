@@ -1,5 +1,26 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — World map visual polish (Pandora-style, round 1)
+
+Follow-up visual polish pass on the Pandora-style world-map renderer (see the rewrite entry directly below). All gameplay logic unchanged.
+
+### src/lib/tileEngine.js
+- **Fix 1 (letterbox)**: `renderMapPandora()`'s tile-culling loop no longer clamps to `[0, MAP_COLS)`/`[0, MAP_ROWS)` — it now covers the full viewport regardless of the real map's size. Cells outside the actual tile-map array read as `undefined` and fall through to the same textured-grass default as any other untyped tile, so the ground texture extends seamlessly past the map edge instead of leaving a flat, differently-toned void around a visible "box."
+- **Fix 2/3 (richer ground + natural trees)**: `drawPandoraGrass`/`drawPandoraPath` now paint 3-5 irregular light/dark elliptical patches (was flat dots) plus a subtle bottom-edge shadow strip per tile; grass/path base colors adjusted slightly warmer. `drawPandoraTree` now takes `col`/`row` and is seeded per-tile: canopy radius 18-28px (was fixed 22px) and trunk height 10-18px (was fixed 14px) both randomized, canopy color picked from a 5-shade green palette instead of one fixed hex, plus 2-3 dark undergrowth blobs scattered at the base. Breaks up the "identical clones = fence" look of the tree border into something reading as a natural forest edge.
+
+### src/components/WorldScreen.jsx
+- **Fix 4 (tactile D-pad)**: `DPAD_BTN` rebuilt as 44px circular buttons (was 56px rounded-squares) with a `boxShadow`/`transform` press state (tracked via new `pressedDir` state + `onPointerDown`/`Up`/`Leave`), an SVG triangle arrow icon instead of a text glyph, sitting on a new 140px translucent blurred backing circle. NPC-talk/sign-read buttons restyled as a purple-gradient pill with a chunky tactile shadow (kept the text label for legibility, per CLAUDE.md's "no technical terms, friendly" guidance for a young child — not converted to icon-only).
+- **Fix 6 (ambient atmosphere)**: added a barely-perceptible radial vignette (transparent center → `rgba(0,0,0,0.15)` edges) and a faint warm sunlight tint (`rgba(255,220,100,0.04)`) as full-canvas DOM overlays, same pattern as the existing sky-tint overlay.
+
+### src/styles.css
+- Found and worked around a global rule (`button,...{border-radius:0!important}`, part of the app's established pixel-art "zero border-radius" convention) that silently flattened the new circular D-pad/action buttons despite their inline `borderRadius` styles. Added two scoped override classes (`.px-world-round`, `.px-world-pill`) at higher specificity (`button.px-world-round{border-radius:50%!important}`) — an intentional, scoped exception for the world map's softer Pandora aesthetic, not a change to the pixel-art convention elsewhere in the app.
+
+### src/components/world/WorldHUD.jsx, src/components/world/MissionPanel.jsx
+- **Fix 5 (transparent HUD)**: HUD background opacity 0.86→0.4 + `backdrop-filter: blur(8px)`; MissionPanel 0.55→0.35 + `blur(6px)` + rounded corners. Both now read as floating over the map rather than covering it; verified text/bar contrast still legible against the textured grass showing through.
+
+### Verification
+Live-verified in Chrome: full-viewport ground texture confirmed (no more letterboxed "box" look), grass/tree variation clearly visible in zoomed crops, D-pad renders as genuinely circular tactile buttons (screenshot-confirmed after the CSS-specificity fix) and still triggers real movement/battles correctly, HUD text remains legible through the new transparency, zero console errors. Not independently screenshot-verified: the action-button (NPC talk/sign read) pill shape specifically — same underlying CSS-class mechanism as the D-pad fix, which was verified, so high confidence but not personally re-confirmed with its own screenshot.
+
 ## 2026-07-02 — World map: Pandora-style pseudo-3D rewrite (replaces flat + iso renderers)
 
 Full replacement of the world map's rendering system, built and verified in 6 stages. All gameplay logic (movement, collision, battle triggers, tall-grass encounters, chests, signs, NPCs, maze, boss, fog-of-war) is unchanged — only the drawing changed. An earlier isometric-diamond approach (3 stages, commits `bcd8e06`/`e702ce8`/`d0ad20f`) was built first, then replaced by a design pivot to this Y-sorted technique before it was finished; that iso code was left dormant behind a debug flag through Stages 1-5 of this rewrite and fully deleted in Stage 6 once Pandora was confirmed solid — recoverable from git history if ever needed.

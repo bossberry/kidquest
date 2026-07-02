@@ -45,17 +45,21 @@ function tileHash(col, row) {
 }
 
 const P = {
-  GRASS_BASE:    '#5a8a3c',
+  GRASS_BASE:    '#5c8a3c',
   GRASS_DOT:     '#3f6b28',
   GRASS_HILITE:  '#7aac54',
-  PATH_BASE:     '#c8a96e',
-  PATH_LIGHT:    '#d8bd8a',
-  PATH_DOT:      '#9a7d4e',
+  PATH_BASE:     '#c4a265',
+  PATH_LIGHT:    '#d4b47f',
+  PATH_DOT:      '#96794a',
   TALL_A:        '#4a7a2c',
   TALL_B:        '#6ab04c',
   WATER_BASE:    '#2a6aaa',
   WATER_SHIMMER: '#4a8acc',
 }
+
+// Small palette of tree-canopy greens (Fix 3 — natural forest variation, not
+// clones) — picked from within the brief's #2d6a1e–#4a9a2c range.
+const TREE_CANOPY_COLORS = ['#2d6a1e', '#357a22', '#3d8a28', '#459228', '#4a9a2c']
 
 // -- Pandora ground drawers (Stage 1 — flat ground layer only, no standing
 // objects/entities yet; those land in later stages alongside the Y-sort
@@ -65,27 +69,40 @@ function drawPandoraGrass(ctx, px, py, col, row) {
   ctx.fillStyle = P.GRASS_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
-  // 3-5 stable per-tile speckle dots (hashed from col/row, not per-frame
-  // random, so the texture doesn't flicker every frame).
+  // 3-5 stable irregular light/dark patches (hashed from col/row, not
+  // per-frame random, so the texture doesn't flicker every frame) — reads as
+  // natural meadow color variation rather than a flat single-tone fill.
   const h = tileHash(col, row)
-  ctx.fillStyle = P.GRASS_DOT
-  const dotCount = 3 + (h % 3)
-  for (let i = 0; i < dotCount; i++) {
+  const patchCount = 3 + (h % 3)
+  for (let i = 0; i < patchCount; i++) {
     const dh = tileHash(col * 7 + i, row * 13 + i * 3)
-    const dx = 3 + (dh % (PANDORA_TILE - 6))
-    const dy = 3 + ((dh * 5) % (PANDORA_TILE - 6))
-    ctx.fillRect(px + dx, py + dy, 2, 2)
+    const dx = 4 + (dh % (PANDORA_TILE - 8))
+    const dy = 4 + ((dh * 5) % (PANDORA_TILE - 8))
+    const r = 3 + (dh % 4) // 3-6px
+    ctx.fillStyle = dh % 2 === 0 ? P.GRASS_DOT : P.GRASS_HILITE
+    ctx.globalAlpha = dh % 2 === 0 ? 0.5 : 0.3
+    ctx.beginPath()
+    ctx.ellipse(px + dx, py + dy, r, r * 0.7, (dh % 5) * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
   }
 
-  // Faint highlight stripe along the top edge — Stage 6 polish: only ~55% of
-  // tiles get it (gated on the same hash) so it reads as broken/organic
-  // texture instead of a continuous grid-line running across every row.
+  // Faint highlight stripe along the top edge — only ~55% of tiles get it
+  // (gated on the same hash) so it reads as broken/organic texture instead
+  // of a continuous grid-line running across every row.
   if (h % 9 < 5) {
     ctx.fillStyle = P.GRASS_HILITE
-    ctx.globalAlpha = 0.28
+    ctx.globalAlpha = 0.22
     ctx.fillRect(px, py, PANDORA_TILE, 2)
     ctx.globalAlpha = 1
   }
+
+  // Subtle darker shadow along the bottom edge of every tile — a cheap but
+  // effective way to suggest each row has a hair of depth/thickness.
+  ctx.fillStyle = '#000000'
+  ctx.globalAlpha = 0.08
+  ctx.fillRect(px, py + PANDORA_TILE - 2, PANDORA_TILE, 2)
+  ctx.globalAlpha = 1
 }
 
 function drawPandoraPath(ctx, px, py, col, row) {
@@ -108,6 +125,11 @@ function drawPandoraPath(ctx, px, py, col, row) {
     const dy = 2 + ((dh * 3) % (PANDORA_TILE - 4))
     ctx.fillRect(px + dx, py + dy, 2, 1)
   }
+
+  ctx.fillStyle = '#000000'
+  ctx.globalAlpha = 0.08
+  ctx.fillRect(px, py + PANDORA_TILE - 2, PANDORA_TILE, 2)
+  ctx.globalAlpha = 1
 }
 
 function drawPandoraTallGrass(ctx, px, py, col, row) {
@@ -162,14 +184,39 @@ function drawPandoraShadow(ctx, cx, groundY, w, h) {
   ctx.fill()
 }
 
-function drawPandoraTree(ctx, px, py) {
+function drawPandoraTree(ctx, px, py, col, row) {
   const cx = px + PANDORA_TILE / 2
   const groundY = py + PANDORA_TILE - 4
+  const h = tileHash(col, row)
+
+  // Per-tree size/color variation (Fix 3) — seeded by tile position so it's
+  // stable across frames, breaks up the "identical clones = fence" look of
+  // a uniform tree border into something reading as a natural forest edge.
+  const canopyR = 18 + (h % 11)        // 18-28
+  const trunkH  = 10 + ((h * 3) % 9)   // 10-18
+  const canopyColor = TREE_CANOPY_COLORS[h % TREE_CANOPY_COLORS.length]
+
+  // Undergrowth — 2-3 dark blobs scattered at the base, drawn BEFORE the
+  // shadow/trunk so they read as bushes/ground shadow, not on top of them.
+  const bushCount = 2 + (h % 2)
+  for (let i = 0; i < bushCount; i++) {
+    const dh = tileHash(col * 5 + i * 7, row * 11 + i)
+    const bx = cx + ((dh % 21) - 10)
+    const by = groundY - 2 + ((dh % 5) - 2)
+    const br = 4 + (dh % 5) // 4-8
+    ctx.save()
+    ctx.globalAlpha = 0.4
+    ctx.fillStyle = '#1d4a10'
+    ctx.beginPath()
+    ctx.arc(bx, by, br, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
 
   drawPandoraShadow(ctx, cx, groundY, 40, 12)
 
   // Trunk, base planted at the ground point.
-  const trunkW = 8, trunkH = 14
+  const trunkW = 8
   ctx.fillStyle = '#4a2f18'
   ctx.fillRect(cx - trunkW / 2, groundY - trunkH, trunkW, trunkH)
 
@@ -177,23 +224,28 @@ function drawPandoraTree(ctx, px, py) {
   // extends above the tile's top boundary (real height); Y-sort in the
   // caller (not row order) is what makes this occlude correctly against
   // neighboring standing objects.
-  const canopyR = 22
   const canopyCy = groundY - trunkH - 18
-  ctx.fillStyle = '#2d6a1e'
+  ctx.fillStyle = canopyColor
   ctx.beginPath()
   ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2)
   ctx.fill()
-  ctx.fillStyle = '#3d8a28'
+  // Lighter inner fill (rim/fill two-tone) via a white-alpha wash over the
+  // canopy color, rather than a second hardcoded hex — keeps the rim/fill
+  // contrast per-tree-color-correct instead of clashing with the randomized hue.
+  ctx.save()
+  ctx.globalAlpha = 0.22
+  ctx.fillStyle = '#ffffff'
   ctx.beginPath()
   ctx.arc(cx, canopyCy, canopyR - 3, 0, Math.PI * 2)
   ctx.fill()
+  ctx.restore()
 
   // Upper-left highlight blob (ambient light source convention).
   ctx.save()
   ctx.globalAlpha = 0.5
   ctx.fillStyle = '#5ab040'
   ctx.beginPath()
-  ctx.arc(cx - 7, canopyCy - 7, 12, 0, Math.PI * 2)
+  ctx.arc(cx - 7, canopyCy - 7, canopyR * 0.55, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 }
@@ -345,10 +397,18 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
 
   const viewW = ctx.canvas.width
   const viewH = ctx.canvas.height
-  const startCol = Math.max(0, Math.floor(camX / PANDORA_TILE))
-  const startRow = Math.max(0, Math.floor(camY / PANDORA_TILE))
-  const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / PANDORA_TILE))
-  const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / PANDORA_TILE))
+  // Fix 1 (2026-07-02): NOT clamped to [0, MAP_COLS)/[0, MAP_ROWS) — the
+  // loop covers the full viewport regardless of the real map's size, so
+  // when the map is smaller than the screen the ground texture (grass
+  // speckle/highlight, stable per the same tileHash) extends seamlessly
+  // past the map edge instead of leaving a flat, differently-toned void
+  // outside a visible "box". Cells outside the real tileMap array read as
+  // `undefined` and fall through to the same drawPandoraGrass default as
+  // any other untyped tile — no special-casing needed.
+  const startCol = Math.floor(camX / PANDORA_TILE)
+  const startRow = Math.floor(camY / PANDORA_TILE)
+  const endCol = Math.ceil((camX + viewW) / PANDORA_TILE)
+  const endRow = Math.ceil((camY + viewH) / PANDORA_TILE)
 
   const standing = [...extraEntities]
 
@@ -363,11 +423,11 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
         case T.PATH:  drawPandoraPath(ctx, px, py, c, r); break
         case T.WATER: drawPandoraWater(ctx, px, py, frame); break
         case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r); break
-        default:      drawPandoraGrass(ctx, px, py, c, r) // includes TREE/WALL ground + fallback
+        default:      drawPandoraGrass(ctx, px, py, c, r) // includes TREE/WALL ground + fallback + out-of-map
       }
 
       if (tileType === T.TREE) {
-        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py) })
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r) })
       } else if (tileType === T.WALL) {
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
       } else if (tileType === T.SIGN) {

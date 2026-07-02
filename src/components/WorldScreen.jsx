@@ -35,15 +35,32 @@ const SKY_TINTS = [
 
 
 
-const DPAD_BTN = (pos) => ({
-  position: 'absolute', width: 56, height: 56, borderRadius: 12,
-  background: 'rgba(255,255,255,0.13)', border: '2px solid rgba(255,255,255,0.28)',
-  color: 'rgba(255,255,255,0.88)', fontSize: 22, cursor: 'pointer',
+// Fix 4 (2026-07-02, Pandora-style visual polish) — circular tactile D-pad
+// buttons instead of flat rounded-square arrows. `pressed` toggles the
+// "pressed in" look (shadow collapses + shifts down 2px) via onPointerDown/
+// Up/Leave in the render below — CSS-in-JS objects can't express :active.
+const DPAD_BTN = (pos, pressed) => ({
+  position: 'absolute', width: 44, height: 44, borderRadius: '50%',
+  background: 'rgba(0,0,0,0.45)', border: '2px solid rgba(255,255,255,0.2)',
+  color: '#fff', cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
-  userSelect: 'none', fontFamily: 'system-ui,sans-serif',
+  userSelect: 'none',
+  boxShadow: pressed ? '0 2px 0 rgba(0,0,0,0.4)' : '0 4px 0 rgba(0,0,0,0.4)',
+  transform: pressed ? 'translateY(2px)' : 'none',
+  transition: 'box-shadow 60ms ease, transform 60ms ease',
   ...pos,
 })
+
+// Small filled-triangle arrow icon (cleaner than a text glyph at this size).
+function DpadArrow({ dir }) {
+  const rot = { up: 0, right: 90, down: 180, left: 270 }[dir]
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" style={{ transform: `rotate(${rot}deg)`, pointerEvents: 'none' }}>
+      <path d="M8 2 L14 12 L2 12 Z" fill="#fff" />
+    </svg>
+  )
+}
 
 const VALID_DYNAMIC = new Set(['NW', 'NE', 'SW', 'SE', 'BOSS', 'MAZE'])
 const BOSS_TILE = { col: 7, row: 3 }
@@ -66,6 +83,7 @@ export default function WorldScreen({ navigate }) {
   const canvasRef = useRef(null)
 
   const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
+  const [pressedDir, setPressedDir] = useState(null) // D-pad tactile press state (Fix 4)
   const [screenId, setScreenId] = useState(VALID_DYNAMIC.has(state.currentScreen) ? state.currentScreen : 'NW')
   const [transitioning, setTransitioning] = useState(false)
   const [transOverlay, setTransOverlay] = useState(0)
@@ -612,6 +630,17 @@ export default function WorldScreen({ navigate }) {
         }} />
       })()}
 
+      {/* Fix 6 — ambient atmosphere: barely-perceptible vignette (edges
+          slightly darkened) + a faint warm sunlight tint over the whole map. */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+        background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.15) 100%)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+        background: 'rgba(255,220,100,0.04)',
+      }} />
+
       {/* Fade overlay */}
       <div style={{
         position: 'absolute', inset: 0, background: '#14231a',
@@ -644,46 +673,68 @@ export default function WorldScreen({ navigate }) {
         worldLevel={state.worldLevel ?? 0}
       />
 
-      {/* NPC talk button */}
+      {/* NPC talk button — Fix 4: Pandora-style prominent action button
+          (purple gradient, chunky tactile shadow). Kept the text label
+          (not icon-only) so the action stays legible for a young child. */}
       {nearNPC && !dialogue && (
-        <button onClick={openNPC} style={{
-          position: 'absolute', bottom: 8, right: 8, zIndex: 25,
-          background: 'rgba(255,255,255,0.92)', border: 'none', borderRadius: 20,
-          padding: '6px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
-          fontSize: 13, color: '#4a2a08', cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
+        <button onClick={openNPC} className="px-world-pill" style={{
+          position: 'absolute', bottom: 16, right: 16, zIndex: 25,
+          background: 'linear-gradient(180deg, #8B5CF6, #6D28D9)', border: 'none', borderRadius: 30,
+          padding: '10px 20px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 14, color: '#fff', cursor: 'pointer',
+          boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
           WebkitTapHighlightColor: 'transparent',
         }}>💬 คุย</button>
       )}
 
-      {/* Sign read button */}
+      {/* Sign read button — same treatment as the NPC talk button above. */}
       {nearSign && !dialogue && !nearNPC && (
-        <button onClick={openSign} style={{
-          position: 'absolute', bottom: 8, right: 8, zIndex: 25,
-          background: 'rgba(255,255,255,0.92)', border: 'none', borderRadius: 20,
-          padding: '6px 14px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
-          fontSize: 13, color: '#4a2a08', cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.22)',
+        <button onClick={openSign} className="px-world-pill" style={{
+          position: 'absolute', bottom: 16, right: 16, zIndex: 25,
+          background: 'linear-gradient(180deg, #8B5CF6, #6D28D9)', border: 'none', borderRadius: 30,
+          padding: '10px 20px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 14, color: '#fff', cursor: 'pointer',
+          boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
           WebkitTapHighlightColor: 'transparent',
         }}>📋 อ่าน</button>
       )}
 
-      {/* D-pad — bottom center, overlays on canvas */}
+      {/* D-pad — bottom center, overlays on canvas. Fix 4: circular tactile
+          buttons on a translucent blurred backing circle, replacing the old
+          flat rounded-square arrows. */}
       <div style={{
         position: 'absolute',
         bottom: 'calc(24px + env(safe-area-inset-bottom))',
         left: '50%',
         transform: 'translateX(-50%)',
-        opacity: 0.82,
         width: 168,
         height: 168,
         zIndex: 30,
       }}>
-        <button onPointerDown={moveUp}    style={DPAD_BTN({ left: 56,  top: 0   })}>▲</button>
-        <button onPointerDown={moveLeft}  style={DPAD_BTN({ left: 0,   top: 56  })}>◄</button>
-        <div style={{ position: 'absolute', left: 56, top: 56, width: 56, height: 56 }} />
-        <button onPointerDown={moveRight} style={DPAD_BTN({ left: 112, top: 56  })}>►</button>
-        <button onPointerDown={moveDown}  style={DPAD_BTN({ left: 56,  top: 112 })}>▼</button>
+        <div style={{
+          position: 'absolute', left: '50%', top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 140, height: 140, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.22)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        }} />
+        {[
+          { dir: 'up',    move: moveUp,    pos: { left: 62, top: 4   } },
+          { dir: 'left',  move: moveLeft,  pos: { left: 4,  top: 62  } },
+          { dir: 'right', move: moveRight, pos: { left: 120, top: 62 } },
+          { dir: 'down',  move: moveDown,  pos: { left: 62, top: 120 } },
+        ].map(({ dir, move, pos }) => (
+          <button
+            key={dir}
+            className="px-world-round"
+            onPointerDown={() => { setPressedDir(dir); move() }}
+            onPointerUp={() => setPressedDir(d => d === dir ? null : d)}
+            onPointerLeave={() => setPressedDir(d => d === dir ? null : d)}
+            style={DPAD_BTN(pos, pressedDir === dir)}
+          >
+            <DpadArrow dir={dir} />
+          </button>
+        ))}
       </div>
 
       {/* Dialogue overlay */}

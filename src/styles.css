@@ -598,6 +598,15 @@ img,canvas{image-rendering:pixelated;image-rendering:crisp-edges}
 /* Kill border-radius on interactive elements */
 button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel"],[class*="modal"]{border-radius:0!important}
 
+/* World map (Pandora-style visual polish, 2026-07-02): scoped exception to
+   the pixel-art zero-border-radius convention above — the D-pad and its
+   action button are intentionally soft/rounded/tactile, contrasting with
+   the rest of the app's flat pixel-art buttons. Higher specificity
+   (element+class) than the button reset above so it wins despite both
+   using !important. */
+button.px-world-round{border-radius:50%!important}
+button.px-world-pill{border-radius:30px!important}
+
 /* Pixel box panels */
 .px-box{background:var(--px-dark);border:var(--px-border-style);box-shadow:var(--px-shadow);border-radius:0;padding:12px}
 .px-box-light{background:var(--px-mid);border:2px solid var(--px-light);box-shadow:3px 3px 0 var(--px-dark);border-radius:0;padding:12px}

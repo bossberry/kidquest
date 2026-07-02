@@ -1,11 +1,22 @@
 import { useEffect } from 'react'
-import { T, canMove, getCamera, renderMap, renderPlayer } from '../lib/tileEngine.js'
+import {
+  T, canMove, getCamera, renderMap, renderPlayer,
+  MAP_COLS, MAP_ROWS, isoProject, renderMapIso,
+} from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const TILE = 16
 const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
+
+// Stage 1/6 iso-world-map debug toggle. Defaults to on for in-progress iso
+// work; flip `window.__kq_isoDebug = false` in the console to compare against
+// the original flat top-down renderer (zero behavior change when off).
+// Only sets the default once — won't clobber a value already toggled at runtime.
+if (typeof window !== 'undefined' && window.__kq_isoDebug === undefined) {
+  window.__kq_isoDebug = true
+}
 
 /**
  * useWorldGameLoop — owns the RAF render/update loop: enemy AI, collision-driven
@@ -343,10 +354,21 @@ export function useWorldGameLoop({
 
       const vw = canvas.width
       const vh = canvas.height
+      ctx.clearRect(0, 0, vw, vh)
+
+      if (window.__kq_isoDebug) {
+        // Stage 1/6: empty iso floor only — static camera centered on the map,
+        // no entities/player drawn yet (those land in later stages).
+        const center = isoProject(MAP_COLS / 2, MAP_ROWS / 2, 0, 0)
+        const isoCamX = center.px - vw / 2
+        const isoCamY = center.py - vh / 2
+        renderMapIso(ctx, tileMap, isoCamX, isoCamY)
+        return
+      }
+
       const { camX, camY: camYBase } = getCamera(g.displayX, g.displayY, vw, vh)
       const PANEL_H = 72  // approximate height of MissionPanel
       const camY = camYBase - Math.round((HUD_CONTENT_H + PANEL_H) / 2)
-      ctx.clearRect(0, 0, vw, vh)
       renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
       renderEnemies(ctx, camX, camY, g.frame)
       renderChests(ctx, camX, camY, g.frame)

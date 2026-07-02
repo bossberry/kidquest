@@ -20,6 +20,30 @@ export const CANVAS_H = 240
 export const MAP_COLS = 20
 export const MAP_ROWS = 15
 
+// -- Isometric (2:1) projection math — Stage 1 of the iso world-map rollout --
+// ISO_W/ISO_H describe the pixel footprint of one tile's diamond in iso space.
+export const ISO_W = TILE * 2 // 32px — width of one iso tile diamond
+export const ISO_H = TILE     // 16px — height of one iso tile diamond
+
+// Projects a tile-space (col, row) into iso screen pixels, offset by a camera
+// position that is itself already in iso pixel space (not tile-space).
+export function isoProject(col, row, camX, camY) {
+  const px = (col - row) * (ISO_W / 2) - camX
+  const py = (col + row) * (ISO_H / 2) - camY
+  return { px, py }
+}
+
+// Inverse of isoProject — converts iso screen pixels back to fractional
+// tile-space (col, row). Not used until a later stage (tap hit-testing), but
+// added now alongside its forward counterpart for symmetry.
+export function isoUnproject(px, py, camX, camY) {
+  const x = px + camX
+  const y = py + camY
+  const col = (x / (ISO_W / 2) + y / (ISO_H / 2)) / 2
+  const row = (y / (ISO_H / 2) - x / (ISO_W / 2)) / 2
+  return { col, row }
+}
+
 export const T = {
   GRASS: 0, TALL: 1, TREE: 2, PATH: 3, WATER: 4, WALL: 5,
   EXIT_N: 10, EXIT_S: 11, EXIT_E: 12, EXIT_W: 13,
@@ -44,6 +68,8 @@ const C = {
   FLOWER_CTR: '#ffffff',
   FLOWER_PET: '#5ababa',
   SPARKLE:    '#ffe040',
+  ISO_BG:       '#1a2a1a',
+  ISO_HIGHLIGHT:'#7aae7a',
 }
 
 // -- Tile renderers --
@@ -221,6 +247,55 @@ export function renderMap(ctx, tileMap, npcData, enemyData, camX, camY, frame) {
         case T.ITEM_SPOT:  drawItemSpot(ctx, px, py, frame); break
         default:           drawGrass(ctx, px, py)
       }
+    }
+  }
+}
+
+// -- Isometric tile renderer (Stage 1: flat floor, no per-type shapes yet) --
+
+// Draws one tile as a 4-point iso diamond at iso-pixel origin (px, py) — the
+// top-left corner of the diamond's bounding box, matching isoProject()'s output.
+function drawIsoTile(ctx, px, py, fillColor) {
+  const top    = { x: px + ISO_W / 2, y: py }
+  const right  = { x: px + ISO_W,     y: py + ISO_H / 2 }
+  const bottom = { x: px + ISO_W / 2, y: py + ISO_H }
+  const left   = { x: px,             y: py + ISO_H / 2 }
+
+  ctx.fillStyle = fillColor
+  ctx.beginPath()
+  ctx.moveTo(top.x, top.y)
+  ctx.lineTo(right.x, right.y)
+  ctx.lineTo(bottom.x, bottom.y)
+  ctx.lineTo(left.x, left.y)
+  ctx.closePath()
+  ctx.fill()
+
+  // Subtle top-left highlight (simulated light from upper-left) so adjacent
+  // tiles read as distinct diamonds rather than a solid blob.
+  ctx.strokeStyle = C.ISO_HIGHLIGHT
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(left.x, left.y)
+  ctx.lineTo(top.x, top.y)
+  ctx.lineTo(right.x, right.y)
+  ctx.stroke()
+}
+
+// Stage 1 iso map renderer — every tile draws as a flat grass diamond
+// regardless of its actual type code; per-type iso shapes land in Stage 2.
+// Draws the full map every frame in back-to-front painter's-algorithm order
+// (row 0 → MAP_ROWS-1, col 0 → MAP_COLS-1 within each row) — no viewport
+// culling yet, matching the current tile-map's small entity count.
+export function renderMapIso(ctx, tileMap, camX, camY) {
+  ctx.fillStyle = C.ISO_BG
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  const rows = tileMap?.length ?? MAP_ROWS
+  for (let r = 0; r < rows; r++) {
+    const cols = tileMap?.[r]?.length ?? MAP_COLS
+    for (let c = 0; c < cols; c++) {
+      const { px, py } = isoProject(c, r, camX, camY)
+      drawIsoTile(ctx, px, py, C.GRASS)
     }
   }
 }

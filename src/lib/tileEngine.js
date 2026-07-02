@@ -361,9 +361,101 @@ function drawPandoraWater(ctx, px, py, frame) {
   ctx.globalAlpha = 1
 }
 
-// Stage 1: ground tiles only. Trees/rocks/walls/flowers/signs/chests/NPCs/
-// enemies/exits all fall through to plain grass this stage — they're not in
-// scope until Stage 2+ (standing objects + Y-sort) per the staged plan.
+// -- Standing objects (Stage 2 — trees, rocks/walls) --
+// Each is anchored at a tile's "ground contact" point (bottom-center of the
+// tile, slightly inset) rather than the tile's top-left, since these are
+// tall objects that extend upward past the tile boundary. A drop shadow is
+// drawn first (flush with the ground), then the object body above it.
+
+function drawPandoraShadow(ctx, cx, groundY, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, w / 2, h / 2, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function drawPandoraTree(ctx, px, py) {
+  const cx = px + PANDORA_TILE / 2
+  const groundY = py + PANDORA_TILE - 4
+
+  drawPandoraShadow(ctx, cx, groundY, 40, 12)
+
+  // Trunk, base planted at the ground point.
+  const trunkW = 8, trunkH = 14
+  ctx.fillStyle = '#4a2f18'
+  ctx.fillRect(cx - trunkW / 2, groundY - trunkH, trunkW, trunkH)
+
+  // Canopy — rim + fill, centered ~18px above the trunk top. Intentionally
+  // extends above the tile's top boundary (real height); Y-sort in the
+  // caller (not row order) is what makes this occlude correctly against
+  // neighboring standing objects.
+  const canopyR = 22
+  const canopyCy = groundY - trunkH - 18
+  ctx.fillStyle = '#2d6a1e'
+  ctx.beginPath()
+  ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#3d8a28'
+  ctx.beginPath()
+  ctx.arc(cx, canopyCy, canopyR - 3, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Upper-left highlight blob (ambient light source convention).
+  ctx.save()
+  ctx.globalAlpha = 0.5
+  ctx.fillStyle = '#5ab040'
+  ctx.beginPath()
+  ctx.arc(cx - 7, canopyCy - 7, 12, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+function drawPandoraRock(ctx, px, py) {
+  const cx = px + PANDORA_TILE / 2
+  const groundY = py + PANDORA_TILE - 4
+  const rw = 22, rh = 16
+  const top = groundY - rh
+
+  drawPandoraShadow(ctx, cx, groundY, 26, 8)
+
+  // Rounded boulder base.
+  ctx.fillStyle = '#8a8a8a'
+  ctx.beginPath()
+  ctx.ellipse(cx, top + rh / 2, rw / 2, rh / 2, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Darker left face.
+  ctx.save()
+  ctx.globalAlpha = 0.55
+  ctx.fillStyle = '#6a6a6a'
+  ctx.beginPath()
+  ctx.ellipse(cx - rw * 0.18, top + rh / 2 + 2, rw * 0.3, rh * 0.4, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+  // Lighter right face.
+  ctx.save()
+  ctx.globalAlpha = 0.5
+  ctx.fillStyle = '#aaaaaa'
+  ctx.beginPath()
+  ctx.ellipse(cx + rw * 0.2, top + rh / 2 - 2, rw * 0.25, rh * 0.3, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+  // Thin top highlight arc.
+  ctx.strokeStyle = '#cccccc'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.ellipse(cx, top + rh * 0.3, rw * 0.35, rh * 0.2, 0, Math.PI * 1.1, Math.PI * 1.9)
+  ctx.stroke()
+}
+
+// Stage 2: trees + rocks/walls drawn as standing objects, Y-sorted by their
+// ground-contact point (screen Y) so nearer objects correctly occlude
+// farther ones — this is the core of the pseudo-3D depth feel. Ground tiles
+// still draw first as one flat pass (they're always behind every standing
+// object); standing objects are collected into a list and sorted/drawn
+// AFTER the whole ground pass, same reasoning as the iso track's two-pass
+// floor/raised split (Stage 2 there) but generalized to explicit Y instead
+// of row order, since Y-sort must also correctly interleave with entities
+// (player/enemies) added in later stages. No entities yet this stage.
 export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
   ctx.fillStyle = P.GRASS_BASE
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
@@ -374,6 +466,8 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
   const startRow = Math.max(0, Math.floor(camY / PANDORA_TILE))
   const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / PANDORA_TILE))
   const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / PANDORA_TILE))
+
+  const standing = []
 
   for (let r = startRow; r < endRow; r++) {
     for (let c = startCol; c < endCol; c++) {
@@ -386,10 +480,19 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
         case T.PATH:  drawPandoraPath(ctx, px, py, c, r); break
         case T.WATER: drawPandoraWater(ctx, px, py, frame); break
         case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r); break
-        default:      drawPandoraGrass(ctx, px, py, c, r)
+        default:      drawPandoraGrass(ctx, px, py, c, r) // includes TREE/WALL ground + fallback
+      }
+
+      if (tileType === T.TREE) {
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py) })
+      } else if (tileType === T.WALL) {
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
       }
     }
   }
+
+  standing.sort((a, b) => a.y - b.y)
+  standing.forEach(s => s.draw())
 }
 
 // -- Isometric tile renderer --

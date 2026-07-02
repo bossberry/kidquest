@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../../context/StateContext.jsx'
 import { shuffle } from '../../config/gameConfig.js'
-import { playTone } from '../../lib/audio.js'
+import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
@@ -19,6 +19,10 @@ export default function EggMemory() {
   const [coinsEarned, setCoinsEarned] = useState(0)
 
   const lives = livesRemaining(state, 'memory')
+
+  useEffect(() => {
+    if (phase === 'ready' && lives <= 0) playSFX('lives_empty')
+  }, [phase, lives])
 
   const deal = () => setCards(shuffle([
     ...ELEMENT_EMOJIS.map((sym, i) => ({ id: i, sym, key: i })),
@@ -51,7 +55,7 @@ export default function EggMemory() {
             setCoinsEarned(coins)
             setPhase('done')
             dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'thai', amount: xp } })
-            dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: coins } })
+            dispatchAddCoins(dispatch, coins)
             dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0.8 } })
             showItemToast('🎉 จับคู่ครบ! ' + finalMoves + ' ครั้ง · +' + xp + ' XP · 🪙 +' + coins)
           }

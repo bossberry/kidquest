@@ -1,5 +1,77 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — Audio expansion: new SFX/BGM tracks, sound toggle removed
+
+### src/lib/audio.js
+- Added 9 new SFX to the `SFX` dictionary: `coin_earn` (ting-ting), `coin_purchase`
+  (ting-ting + ascending fanfare), `item_equip` (whoosh + shimmer sweep), `furniture_place`
+  (thud + pop), `furniture_remove` (pop + thud), `room_visit_enter` (3-note bell),
+  `minigame_start` (bandpass noise sweep + 2-note sting), `lives_empty` (low sawtooth buzz),
+  `unlock_new` (5-note ascending arpeggio) — all raw Web Audio synthesis, matching the
+  existing style (no external audio files).
+- Added 3 new BGM generator functions to `BGM_TRACKS`: `room` (slow ~70 BPM cozy pad +
+  pentatonic melody + bass pulse), `shop` (~110 BPM staccato major-scale melody + I→V chord
+  loop + offbeat noise percussion), `minigame` (~130 BPM fast pentatonic arpeggio + driving
+  bassline + noise snare on 2/4) — same generator pattern as the existing `_bgmHome`/
+  `_bgmWorld`/etc (sustained oscillators + `setTimeout`-scheduled note loops, cleaned up via
+  the shared `bgmNodes`/`bgmTimers` module state).
+- Removed the sound-toggle mechanism: `setSoundOn()`, `toggleSound()`, `getSoundOn()` exports
+  deleted; `_soundOn` is now a `true` constant. Existing `if (!_soundOn) return` guards inside
+  every sound function were left in place (now permanently pass) rather than stripped out —
+  keeps the diff minimal and guarantees no existing sound function's behavior changed.
+
+### src/context/StateContext.jsx
+- Added `dispatchAddCoins(dispatch, amount, bonusKey)` export — dispatches `ACTIONS.ADD_COINS`
+  and plays `coin_earn` whenever `amount` is non-zero. Every one of the ~17 existing
+  `ACTIONS.ADD_COINS` dispatch call sites (across `GameThai.jsx`, `GameMath.jsx`,
+  `GamePhonics.jsx`, `GameShop.jsx`, `GameMathBattle.jsx`, `WorldBattle.jsx`, and all 5
+  `src/games/minigames/*.jsx`) now goes through this helper instead of dispatching directly —
+  every coin award plays its SFX automatically, with no per-call-site SFX call needed. The
+  reducer itself is untouched/still pure. `ACTIONS.DAILY_LOGIN` (a separate action that awards
+  coins in its own reducer case) plays `coin_earn` at its own dispatch site in the
+  `StateProvider` init effect, not through the helper.
+
+### src/components/Collection.jsx
+- `playBGM('shop')` on mount / `stopBGM()` on unmount.
+- `handleBuyWearable`/`handleBuyFurniture` (BUY_ITEM/BUY_ROOM_ITEM) play `coin_purchase`.
+- `handleSelectWearable`'s owned-item branch (EQUIP_ITEM) plays `item_equip`.
+
+### src/components/Room.jsx
+- `playBGM('room')` on mount / `stopBGM()` on unmount.
+- `handlePlace`/`handleSwapPick` (PLACE_ROOM_ITEM) play `furniture_place`; `handleRemove`
+  (REMOVE_ROOM_ITEM) plays `furniture_remove`.
+
+### src/components/RoomVisit.jsx
+- Plays `room_visit_enter` on mount (fires whenever `FriendsScreen.jsx` opens the overlay).
+
+### src/components/Home.jsx
+- `launchRandomMinigame` now plays `minigame_start` and calls `playBGM('minigame')` right
+  before `navigate('game')`.
+- New `unlock_new` detection: a ref seeded to the current `unlockedGames(eggLevel)` set on
+  first render, re-compared on every `eggLevel` change — if the set grew (a minigame's
+  unlock-level threshold was crossed during this session), plays `unlock_new`. Deliberately
+  session-scoped (not persisted) so reloading the app never re-fires it for thresholds already
+  crossed in a prior session — there is no existing "minigame just unlocked" event to hook
+  into elsewhere in the codebase, so this was the cleanest available signal.
+- Sound-toggle button removed from the header; `soundOn`/`toggleSound` props removed.
+
+### src/hooks/useBattleCombat.js
+- `showVictory()` now calls `playBGM('victory')` alongside its existing `playTone('fanfare')`/
+  `playSFX('victory')` — the `victory` BGM track existed in `BGM_TRACKS` since it was added but
+  had no call site until now. `WorldBattle.jsx`'s existing `stopBGM()` calls in `onComplete`/
+  `onFaint` end it when the victory screen is left (no new stop call needed).
+
+### src/games/minigames/{EggMemory,EggCatch,EggFishing,EggTower}.jsx, EggRun.jsx
+- Each minigame's `ready`-phase "lives exhausted" branch now plays `lives_empty` once (via a
+  `useEffect` keyed on `phase`/lives, not on every re-render) when it becomes visible.
+- Each minigame's `ACTIONS.ADD_COINS` dispatch replaced with `dispatchAddCoins(dispatch, …)`.
+
+### src/App.jsx, src/games/GameScreen.jsx
+- Removed the `soundOn`/`setSoundOnState`/`toggleSound` state, the `kq_sound` localStorage
+  read/write, and the prop chain into `Home`/`GameScreen` (GameScreen was forwarding
+  `soundOn` further into `GameThai`/`GameMath`/`GamePhonics`, none of which actually read the
+  prop — confirmed dead before removing).
+
 ## 2026-07-02 — Minigame daily-lives + unlock-gating system
 
 ### src/lib/minigameLives.js (new)

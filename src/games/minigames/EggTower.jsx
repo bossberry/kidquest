@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../../context/StateContext.jsx'
 import { TOWER_COLORS } from '../../config/gameConfig.js'
-import { playTone } from '../../lib/audio.js'
+import { playTone, playSFX } from '../../lib/audio.js'
 import { spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
@@ -18,6 +18,10 @@ export default function EggTower() {
   const [score, setScore] = useState(0)
 
   const lives = livesRemaining(state, 'tower')
+
+  useEffect(() => {
+    if (phase === 'ready' && lives <= 0) playSFX('lives_empty')
+  }, [phase, lives])
 
   const startGame = () => {
     if (lives <= 0) return
@@ -104,7 +108,7 @@ function placeFn(gs, canvas, setScore, setPhase, runRef, animRef, dispatch) {
   const top = gs.blocks[gs.blocks.length - 1]
   const oL = Math.max(gs.current.x, top.x), oR = Math.min(gs.current.x + gs.current.w, top.x + top.w)
   const overlap = oR - oL
-  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setPhase('dead'); const xp = Math.max(2, gs.score*3); const towerCoins = towerCoinsFor(gs.score); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: towerCoins } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
+  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setPhase('dead'); const xp = Math.max(2, gs.score*3); const towerCoins = towerCoinsFor(gs.score); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatchAddCoins(dispatch, towerCoins); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
   playTone(overlap === gs.current.w ? 'streak' : 'correct')
   if (overlap === gs.current.w) spawnConfetti(3)
   const trimmed = { x: oL, y: top.y - 22, w: overlap, h: 20, color: TOWER_COLORS[gs.blocks.length % TOWER_COLORS.length] }

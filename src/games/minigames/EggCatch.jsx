@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../../context/StateContext.jsx'
 import { ITEMS, CATCH_ITEMS, shuffle } from '../../config/gameConfig.js'
-import { playTone } from '../../lib/audio.js'
+import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
@@ -17,6 +17,10 @@ export default function EggCatch() {
   const [score, setScore] = useState(0)
 
   const lives = livesRemaining(state, 'catch')
+
+  useEffect(() => {
+    if (phase === 'ready' && lives <= 0) playSFX('lives_empty')
+  }, [phase, lives])
 
   const startGame = () => {
     if (lives <= 0) return
@@ -142,6 +146,6 @@ function handleReward(score,dispatch){
     showItemToast(ITEMS[k].emoji+' ได้รับ '+ITEMS[k].name+'!')
   }
   const catchCoins = rings>=40?12:rings>=25?8:rings>=10?5:3
-  dispatch({type:ACTIONS.ADD_COINS,payload:{amount:catchCoins}})
+  dispatchAddCoins(dispatch, catchCoins)
   dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak:0,score:0}})
 }

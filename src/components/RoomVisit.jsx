@@ -4,6 +4,7 @@ import EggCanvasCore from '../egg/EggCanvas.jsx'
 import RoomScene from './RoomScene.jsx'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
+import { playSFX } from '../lib/audio.js'
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -80,6 +81,7 @@ export default function RoomVisit({ adventurer: a, onClose }) {
     const id = requestAnimationFrame(() => setEntered(true))
     return () => cancelAnimationFrame(id)
   }, [])
+  useEffect(() => { playSFX('room_visit_enter') }, [])
 
   const containerRef = useRef(null)
   const [size, setSize] = useState({ w: 360, h: 480 })

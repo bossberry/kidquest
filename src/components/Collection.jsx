@@ -3,6 +3,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
 import EggCanvas from './EggCanvas.jsx'
+import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 
 // Tier label + color (shared by cosmetics and furniture)
 const TIER_META = {
@@ -61,6 +62,11 @@ export default function Collection() {
   const ownedRoom   = state.ownedRoomItems ?? []
   const stage       = eggProgressData?.stage ?? 1
 
+  useEffect(() => {
+    playBGM('shop')
+    return () => stopBGM()
+  }, [])
+
   // Equipped map passed to the big preview egg: real equipped, but with the
   // tried-on slot overridden locally when previewing an unowned item.
   // undefined → EggCanvas wrapper falls back to state.equipped (real).
@@ -77,6 +83,7 @@ export default function Collection() {
   function handleBuyWearable(item) {
     if (coins < item.price) { showToast('เหรียญไม่พอ!'); return }
     dispatch({ type: ACTIONS.BUY_ITEM, payload: { id: item.id, price: item.price, slot: item.slot } })
+    playSFX('coin_purchase')
     setPreview(null) // real state now reflects it — drop the local try-on
     showToast(`ได้รับ ${item.nameTh}!`)
   }
@@ -84,6 +91,7 @@ export default function Collection() {
   function handleSelectWearable(item) {
     if (isOwned(item)) {
       dispatch({ type: ACTIONS.EQUIP_ITEM, payload: { id: item.id, slot: item.slot } })
+      playSFX('item_equip')
       setPreview(null) // real equipped state drives the egg
     } else {
       setPreview({ slot: item.slot, id: item.id })
@@ -100,6 +108,7 @@ export default function Collection() {
   function handleBuyFurniture(item) {
     if (coins < item.price) { showToast('เหรียญไม่พอ!'); return }
     dispatch({ type: ACTIONS.BUY_ROOM_ITEM, payload: { id: item.id, price: item.price } })
+    playSFX('coin_purchase')
     showToast(`ได้รับ ${item.nameTh}! วางในห้องได้เลย 🏠`)
   }
   const isOwnedRoom = (item) => ownedRoom.includes(item.id)

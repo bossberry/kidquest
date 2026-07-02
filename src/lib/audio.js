@@ -1,27 +1,15 @@
 let audioCtx = null
-let _soundOn = true
+// Sound is always on — the on/off toggle UI was removed (2026-07-02). Kept as a
+// constant (rather than deleting every `if (!_soundOn) return` guard below) so the
+// diff stays minimal and every existing sound function is untouched.
+const _soundOn = true
 let _phonicsAudio = null
 let currentPhonicsAudio = null
-
-export function setSoundOn(v) {
-  _soundOn = v
-  if (!v && window.speechSynthesis) window.speechSynthesis.cancel()
-  if (!v) stopBGM(0)
-}
-export function getSoundOn() { return _soundOn }
 
 export function getACtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
   if (audioCtx.state === 'suspended') audioCtx.resume()
   return audioCtx
-}
-
-export function toggleSound(btn) {
-  _soundOn = !_soundOn
-  if (btn) { btn.textContent = _soundOn ? '🔊' : '🔇'; btn.style.opacity = _soundOn ? '1' : '.5' }
-  if (!_soundOn && window.speechSynthesis) window.speechSynthesis.cancel()
-  if (!_soundOn) stopBGM(0)
-  return _soundOn
 }
 
 export function playTone(type) {
@@ -422,7 +410,156 @@ function _bgmLogin(ctx) {
   return nodes
 }
 
-const BGM_TRACKS = { home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victory: _bgmVictory, login: _bgmLogin }
+// Cozy, slow, relaxing — Animal Crossing shop/house vibe. Sustained C-major pad +
+// gentle pentatonic melody (quarter-note pace) + soft low bass pulse. ~70 BPM.
+function _bgmRoom(ctx) {
+  const nodes = []
+  ;[261, 329, 392].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.018 - i * 0.003
+    o.connect(g); g.connect(ctx.destination); o.start()
+    nodes.push({ osc: o, gain: g })
+  })
+  const beat = 857 // ~70 BPM quarter note
+  const bassTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'sine'; o.frequency.value = 130
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.024, ctx.currentTime + 0.05)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.65)
+    bgmTimers.push(setTimeout(bassTick, beat * 2))
+  }
+  const mel = [523, 587, 659, 784, 880, 784, 659, 587]
+  let mi = 0
+  const melTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'triangle'; o.frequency.value = mel[mi++ % mel.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.06)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.75)
+    bgmTimers.push(setTimeout(melTick, beat))
+  }
+  bgmTimers.push(setTimeout(bassTick, 200))
+  bgmTimers.push(setTimeout(melTick, 500))
+  return nodes
+}
+
+// Bouncy, cheerful jingle — staccato major-scale melody (eighth notes) over a
+// I→V chord loop, with light noise "percussion" on the offbeat. ~110 BPM.
+function _bgmShop(ctx) {
+  const nodes = []
+  const chords = [261, 392] // I (C) → V (G)
+  let ci = 0
+  const chordTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'sine'; o.frequency.value = chords[ci++ % chords.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.02, ctx.currentTime + 0.03)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 1.05)
+    bgmTimers.push(setTimeout(chordTick, 1090))
+  }
+  const mel = [523, 587, 659, 698, 784, 698, 659, 587]
+  let mi = 0
+  const melTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'square'; o.frequency.value = mel[mi++ % mel.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.026, ctx.currentTime + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.18)
+    bgmTimers.push(setTimeout(melTick, 273))
+  }
+  let beat = 0
+  const percTick = () => {
+    if (bgmNodes !== nodes) return
+    beat++
+    if (beat % 2 === 0) {
+      const len = Math.ceil(ctx.sampleRate * 0.04)
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+      const src = ctx.createBufferSource(), g = ctx.createGain()
+      g.gain.setValueAtTime(0.05, ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04)
+      src.buffer = buf; src.connect(g); g.connect(ctx.destination)
+      src.start(ctx.currentTime)
+    }
+    bgmTimers.push(setTimeout(percTick, 545))
+  }
+  bgmTimers.push(setTimeout(chordTick, 100))
+  bgmTimers.push(setTimeout(melTick, 150))
+  bgmTimers.push(setTimeout(percTick, 545))
+  return nodes
+}
+
+// Energetic arcade loop — fast pentatonic arpeggio (sixteenth notes) over a
+// driving bassline, with a snappy noise "snare" on beats 2 & 4. ~130 BPM.
+function _bgmMinigame(ctx) {
+  const nodes = []
+  const bass = [130, 130, 196, 174]
+  let bi = 0
+  const bassTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'sawtooth'; o.frequency.value = bass[bi++ % bass.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.022, ctx.currentTime + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.24)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.26)
+    bgmTimers.push(setTimeout(bassTick, 461))
+  }
+  const mel = [523, 587, 659, 784, 659, 587, 523, 392]
+  let mi = 0
+  const melTick = () => {
+    if (bgmNodes !== nodes) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = 'triangle'; o.frequency.value = mel[mi++ % mel.length]
+    g.gain.setValueAtTime(0, ctx.currentTime)
+    g.gain.linearRampToValueAtTime(0.024, ctx.currentTime + 0.008)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
+    o.connect(g); g.connect(ctx.destination)
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.11)
+    bgmTimers.push(setTimeout(melTick, 115))
+  }
+  let beat = 0
+  const snareTick = () => {
+    if (bgmNodes !== nodes) return
+    beat++
+    if (beat % 2 === 0) {
+      const len = Math.ceil(ctx.sampleRate * 0.05)
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+      const src = ctx.createBufferSource(), g = ctx.createGain()
+      g.gain.setValueAtTime(0.07, ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05)
+      src.buffer = buf; src.connect(g); g.connect(ctx.destination)
+      src.start(ctx.currentTime)
+    }
+    bgmTimers.push(setTimeout(snareTick, 461))
+  }
+  bgmTimers.push(setTimeout(bassTick, 50))
+  bgmTimers.push(setTimeout(melTick, 100))
+  bgmTimers.push(setTimeout(snareTick, 461))
+  return nodes
+}
+
+const BGM_TRACKS = {
+  home: _bgmHome, world: _bgmWorld, battle: _bgmBattle, victory: _bgmVictory, login: _bgmLogin,
+  room: _bgmRoom, shop: _bgmShop, minigame: _bgmMinigame,
+}
 
 export function playBGM(track) {
   stopBGM(0)
@@ -500,6 +637,43 @@ const SFX = {
   egg_excited: ctx => _arp(ctx, [523, 659, 784], 52, 'sine'),
   egg_hatch:   ctx => { _noise(ctx, 0.10, 190); _sweep(ctx, 300, 800, 0.09, 'sine', 280) },
   stage_up:    ctx => _arp(ctx, [261, 329, 392], 115, 'triangle'),
+
+  // Economy / rewards (2026-07-02 audio expansion) ─────────────────────────────
+  // "ting-ting" — C6 → E6, fast attack/decay sine notes.
+  coin_earn: ctx => { _t(ctx, 1047, 0.12, 80, 'sine'); _t(ctx, 1319, 0.12, 100, 'sine', 90) },
+  // coin_earn + a short ascending major-chord fanfare (C5-E5-G5) — more celebratory, for purchases.
+  coin_purchase: ctx => {
+    _t(ctx, 1047, 0.12, 80, 'sine'); _t(ctx, 1319, 0.12, 100, 'sine', 90)
+    _t(ctx, 523, 0.12, 130, 'triangle', 220); _t(ctx, 659, 0.12, 130, 'triangle', 290); _t(ctx, 784, 0.14, 180, 'triangle', 360)
+  },
+  // whoosh (noise burst) + shimmer (sine sweep up) — cosmetic equip.
+  item_equip: ctx => { _noise(ctx, 0.05, 90); _sweep(ctx, 700, 2200, 0.08, 'sine', 220) },
+  // soft low thud + mid pop — furniture placed.
+  furniture_place: ctx => { _t(ctx, 65, 0.16, 90, 'sine'); _t(ctx, 420, 0.08, 70, 'sine', 70) },
+  // pop then thud — reverse of furniture_place, furniture removed.
+  furniture_remove: ctx => { _t(ctx, 420, 0.08, 70, 'sine'); _t(ctx, 65, 0.16, 90, 'sine', 70) },
+  // gentle 3-note bell — E5 → G5 → B5, slow decay — entering a friend's room.
+  room_visit_enter: ctx => { _t(ctx, 659, 0.10, 380, 'sine'); _t(ctx, 784, 0.10, 380, 'sine', 140); _t(ctx, 988, 0.11, 460, 'sine', 280) },
+  // filtered noise sweep (bandpass ramp low→high) + a two-note "go!" sting — minigame launch.
+  minigame_start: ctx => {
+    const len = Math.ceil(ctx.sampleRate * 0.3)
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+    const d = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+    const src = ctx.createBufferSource(), g = ctx.createGain(), filt = ctx.createBiquadFilter()
+    filt.type = 'bandpass'
+    filt.frequency.setValueAtTime(300, ctx.currentTime)
+    filt.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + 0.3)
+    g.gain.setValueAtTime(0.09, ctx.currentTime)
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+    src.buffer = buf; src.connect(filt); filt.connect(g); g.connect(ctx.destination)
+    src.start(ctx.currentTime)
+    _t(ctx, 1047, 0.14, 90, 'square', 300); _t(ctx, 1319, 0.16, 120, 'square', 380)
+  },
+  // short low buzz — sawtooth ~80Hz, quick fade — all minigame lives exhausted.
+  lives_empty: ctx => _t(ctx, 80, 0.14, 200, 'sawtooth'),
+  // ascending 5-note arpeggio — C4-E4-G4-C5-E5 — a new minigame unlocks.
+  unlock_new: ctx => _arp(ctx, [261, 329, 392, 523, 659], 80, 'sine'),
 }
 
 export function playSFX(name) {

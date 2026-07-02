@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useAppState, ACTIONS, scaleMonsterStats } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, scaleMonsterStats, dispatchAddCoins } from '../context/StateContext.jsx'
 import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle,
          SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS } from '../config/gameConfig.js'
 import { speakTh, speakEn, playBGM, stopBGM, playSFX, playTone } from '../lib/audio.js'
@@ -495,7 +495,7 @@ export default function WorldBattle({ navigate }) {
     // Coin reward: boss = 15, regular = 10
     const battleCoins = isBossBattle ? 15 : 10
     setPendingBattleCoins(battleCoins)
-    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: battleCoins } })
+    dispatchAddCoins(dispatch, battleCoins)
 
     // Roll rewards
     const battleItemDrop = rollBattleItem()

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.jsx'
 import { playTone, speakTh, speakEn } from '../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../components/Toasts.jsx'
 import { shuffle } from '../config/gameConfig.js'
@@ -147,7 +147,7 @@ export default function GameShop({ navigate }) {
       ]
       const _shopCoins = Math.max(2, Math.min(12, Math.round(12 * (p < 0.5 ? 0.3 : p))))
       setCoinsEarned(_shopCoins)
-      dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: _shopCoins } })
+      dispatchAddCoins(dispatch, _shopCoins)
       showItemToast(`🪙 +${_shopCoins}`)
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
       dispatch({ type: ACTIONS.UPDATE_SHOP_V1, payload: { score: p, wrong, hints: 0, dur, phaseStats } })

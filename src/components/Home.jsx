@@ -1,5 +1,5 @@
-// Home.jsx — main hub (redesigned 2026-07-01, egg enlarged 2026-07-01):
-//   header (avatar · stage · name | 🔥streak · 🪙coins · 🔊) → status bar (HP · XP · Bond)
+// Home.jsx — main hub (redesigned 2026-07-01, egg enlarged 2026-07-01; sound toggle removed 2026-07-02, sound always on):
+//   header (avatar · stage · name | 🔥streak · 🪙coins) → status bar (HP · XP · Bond)
 //   → full-bleed DecoratedRoom (room art only, showWalker=false) with a large centered
 //     tappable EggCanvas on top (the star of the screen) + a floating Lv pill
 //   → minigame shortcut card → item tray → explore button.
@@ -56,7 +56,7 @@ const C_COIN   = '#FFD23F'
 const C_STREAK = '#FF6B35'
 const C_BOND   = '#9B5DE5'
 
-export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOpenProfile }) {
+export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, eggProgressData } = useAppState()
   const { resolved } = useCompanion()
 
@@ -147,9 +147,25 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
       return
     }
     const pick = pool[Math.floor(Math.random() * pool.length)]
+    playSFX('minigame_start')
+    playBGM('minigame')
     dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: pick })
     navigate('game')
   }
+
+  // ── unlock_new: detect a minigame crossing its unlock-level threshold during
+  // this session (not on initial mount/reload — the ref seeds to the current
+  // unlocked set so nothing looks "new" right after loading the app). ─────────
+  const prevUnlockedRef = useRef(null)
+  useEffect(() => {
+    if (prevUnlockedRef.current === null) {
+      prevUnlockedRef.current = new Set(miniUnlocked)
+      return
+    }
+    const grew = miniUnlocked.some(k => !prevUnlockedRef.current.has(k))
+    if (grew) playSFX('unlock_new')
+    prevUnlockedRef.current = new Set(miniUnlocked)
+  }, [eggLevel]) // eslint-disable-line
 
   // Egg-zone tap: armed item → use it; else post-hatch adds bond (+reaction), pre-hatch pets / triggers hatch.
   const onEggZoneTap = (e) => {
@@ -287,17 +303,6 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
               {state.coins || 0}
             </span>
           </div>
-          <button
-            onClick={toggleSound}
-            aria-label="toggle sound"
-            style={{
-              background:'rgba(255,255,255,0.06)', border:'1px solid var(--px-border)',
-              padding:'3px 7px', cursor:'pointer', fontSize:13, lineHeight:1,
-              opacity: soundOn ? 1 : 0.45,
-            }}
-          >
-            {soundOn ? '🔊' : '🔇'}
-          </button>
         </div>
       </div>
 

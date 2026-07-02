@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../../context/StateContext.jsx'
 import EggCanvas from '../../components/EggCanvas.jsx'
 import { ITEMS, shuffle } from '../../config/gameConfig.js'
-import { erSfxJump, erSfxRing, erSfxHit, erSfxSpeedUp, erSfxMilestone, erSfxGameOver, erSfxRecord, erSfxCountdown } from '../../lib/audio.js'
+import { erSfxJump, erSfxRing, erSfxHit, erSfxSpeedUp, erSfxMilestone, erSfxGameOver, erSfxRecord, erSfxCountdown, playSFX } from '../../lib/audio.js'
 import { showToast, spawnConfetti, showItemToast } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
@@ -19,6 +19,10 @@ export default function EggRun({ navigate }) {
   const [countdownN, setCountdownN] = useState(3)
 
   const livesAvail = livesRemaining(state, 'eggrun')
+
+  useEffect(() => {
+    if (phase === 'stats' && livesAvail <= 0) playSFX('lives_empty')
+  }, [phase, livesAvail])
 
   // Countdown
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function EggRun({ navigate }) {
       showItemToast(ITEMS[k].emoji + ' ได้รับ ' + ITEMS[k].name + '!')
     }
     const runCoins = Math.min(15, (dist >= 200 ? 8 : dist >= 100 ? 5 : 3) + (rings >= 20 ? 5 : rings >= 10 ? 3 : 1))
-    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: runCoins } })
+    dispatchAddCoins(dispatch, runCoins)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0 } })
   }, [phase]) // eslint-disable-line
 

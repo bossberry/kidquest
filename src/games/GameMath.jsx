@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.jsx'
 import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
 import { MATH_WORDS, PATTERN_SETS, LEVELS, COUNTABLES, COUNTABLE_GROUPS, shuffle } from '../config/gameConfig.js'
@@ -206,7 +206,7 @@ function MathLevelGame({ lv, onBack }) {
       const _mathMastery=state.levelMastery?.math?.[lv?.id||1]||0
       const _mathCoins=Math.max(2,Math.min(12,Math.round(12*(p<0.5?0.3:p)*(1-_mathMastery))))
       setCoinsEarned(_mathCoins)
-      dispatch({type:ACTIONS.ADD_COINS,payload:{amount:_mathCoins}})
+      dispatchAddCoins(dispatch, _mathCoins)
       showItemToast(`🪙 +${_mathCoins}`)
       dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak,score:p}})
       dispatch({type:ACTIONS.UPDATE_LEVEL_MASTERY,payload:{world:'math',levelId:lv?.id||1,value:p*0.4+_mathMastery*0.6}})
@@ -214,7 +214,7 @@ function MathLevelGame({ lv, onBack }) {
         if (p >= 0.8) { dispatch({type:ACTIONS.FOUNDATION_COMPLETE}); showToast('✨ ผ่าน Foundation แล้ว!'); spawnConfetti(15) }
       } else if (p>=0.8) {
         const cur2=state.subjectLevels?.math||1
-        if(cur2<8){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});dispatch({type:ACTIONS.ADD_COINS,payload:{amount:15,bonusKey:`math_${cur2+1}`}});showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15);playTone('unlock')}
+        if(cur2<8){dispatch({type:ACTIONS.UNLOCK_LEVEL,payload:{world:'math',newLevel:cur2+1}});dispatchAddCoins(dispatch, 15, `math_${cur2+1}`);showToast(`✨ ปลดล็อก Level ${cur2+1}!`);spawnConfetti(15);playTone('unlock')}
       }
       if(p>=0.9){playTone('fanfare');spawnConfetti(30)}else if(p>=0.8){playTone('complete')}
       dispatch({ type: ACTIONS.LOG_SESSION, payload: {

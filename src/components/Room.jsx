@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
 import DecoratedRoom from './DecoratedRoom.jsx'
+import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 
 const COLS = 4
 const ROWS = 3
@@ -71,6 +72,11 @@ export default function Room() {
   const ownedRoom   = state.ownedRoomItems ?? []
   const roomLayout  = state.roomLayout ?? {}
 
+  useEffect(() => {
+    playBGM('room')
+    return () => stopBGM()
+  }, [])
+
   // Items currently placed somewhere in the room
   const placedIds = Object.values(roomLayout)
 
@@ -92,6 +98,7 @@ export default function Room() {
 
   function handlePlace(item) {
     dispatch({ type: ACTIONS.PLACE_ROOM_ITEM, payload: { slotIndex: pickerSlot, itemId: item.id } })
+    playSFX('furniture_place')
     setPickerSlot(null)
     flash(`วาง${item.nameTh}แล้ว! 🏠`)
   }
@@ -100,6 +107,7 @@ export default function Room() {
     // Remove what's already there, then place new item
     dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotIndex: actionSlot } })
     dispatch({ type: ACTIONS.PLACE_ROOM_ITEM,  payload: { slotIndex: actionSlot, itemId: item.id } })
+    playSFX('furniture_place')
     setActionSlot(null)
     flash(`เปลี่ยนเป็น${item.nameTh}แล้ว!`)
   }
@@ -108,6 +116,7 @@ export default function Room() {
     const itemId = roomLayout[actionSlot]
     const item = ROOM_ITEMS.find(i => i.id === itemId)
     dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotIndex: actionSlot } })
+    playSFX('furniture_remove')
     setActionSlot(null)
     flash(item ? `เก็บ${item.nameTh}แล้ว` : 'เก็บของแล้ว')
   }

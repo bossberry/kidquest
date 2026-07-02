@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-07-01 (Friends room visit + cosmetics)_
+_Last updated: 2026-07-02 (Audio expansion: new SFX/BGM, sound toggle removed)_
 
 ---
 
@@ -182,7 +182,7 @@ _Last updated: 2026-07-01 (Friends room visit + cosmetics)_
 
 ### Home Screen (`Home.jsx`) — redesigned 2026-07-01
 Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
-- **Header** (dark blur panel): left = tappable block (small circular companion-egg avatar + child name + egg-stage name) → opens Profile (logged in) or Login (not); right = 🔥 login-streak pill (`state.loginStreak`, `#FF6B35`), 🪙 coin pill (`state.coins`, `#FFD23F`), 🔊/🔇 sound toggle. Old text login/profile button + pulsing ready-to-hatch badge removed.
+- **Header** (dark blur panel): left = tappable block (small circular companion-egg avatar + child name + egg-stage name) → opens Profile (logged in) or Login (not); right = 🔥 login-streak pill (`state.loginStreak`, `#FF6B35`), 🪙 coin pill (`state.coins`, `#FFD23F`). Old text login/profile button + pulsing ready-to-hatch badge removed. **Sound toggle removed 2026-07-02 — sound is always on** (no 🔊/🔇 button anywhere; see Audio section).
 - **Status bar** (thin ~36px row): three equal chips ❤️ HP / ⭐ XP / 💕 Bond — emoji + thin proportional bar, no numbers. HP=`activeEgg.currentHP/stats.HP`, XP=`eggProgressData.pct`, Bond=`activeEgg.bondMeter` (purple `#9B5DE5`). **Bond shown on Home for the first time.** Fallbacks make the zero-egg case render safely.
 - **Decorated room hero zone**: `<DecoratedRoom>` fills the flex-1 middle area (moved out of the full-viewport background so the walking companion egg is visible in the center). Floating "Lv.N · [egg stage name]" pill top-center. DecoratedRoom internals untouched.
 - **Egg-tap-to-pet**: transparent tap target over the room. Armed item → use; post-hatch → `handleCreatureTap` (+bond + floating emoji); pre-hatch → `handleEggTap` (pet combo / hatch). Reaction + heal-float + particles render centered.
@@ -220,8 +220,10 @@ Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
 - itemArt.js: pixel art for shoes (orange sneaker) + rainbow_star (multicolor 8-arm star)
 
 ### Audio
-- BGM: `playBGM(track)` / `stopBGM()` — 4 tracks (home/world/battle/victory) via Web Audio API
-- SFX: `playSFX(name)` — 19 named sounds; iOS `touchstart` resume
+- **Sound is always on** (2026-07-02) — the 🔊/🔇 toggle UI, `soundOn`/`toggleSound` prop chain (App→Home/GameScreen), `setSoundOn()`/`toggleSound()` exports, and the `kq_sound` localStorage key were all removed. `audio.js` keeps a `_soundOn = true` constant and the existing `if (!_soundOn) return` guards (harmless no-ops now) rather than touching every sound function.
+- BGM: `playBGM(track)` / `stopBGM()` — 8 tracks via Web Audio API: `home`, `world`, `battle`, `victory`, `login` (existing) + `room`, `shop`, `minigame` (2026-07-02). `victory` now has a real call site (`showVictory()` in `useBattleCombat.js`, alongside the existing `playTone('fanfare')`/`playSFX('victory')`) — previously defined but never played. `room` plays on `Room.jsx` mount, `shop` on `Collection.jsx` mount (both `stopBGM()` on unmount); `minigame` plays right before `navigate('game')` in `Home.jsx`'s `launchRandomMinigame` (no minigame calls its own BGM, so it plays through the whole session).
+- SFX: `playSFX(name)` — 19 existing + 9 new (2026-07-02): `coin_earn` (ting-ting, every non-zero coin award), `coin_purchase` (cha-ching, shop purchases), `item_equip` (whoosh+sparkle, cosmetic equip/unequip), `furniture_place`/`furniture_remove` (thud+pop / pop+thud), `room_visit_enter` (bell chime, `RoomVisit.jsx` mount), `minigame_start` (sweep+sting, minigame launch), `lives_empty` (low buzz, minigame "come back tomorrow" message), `unlock_new` (5-note arpeggio, first time a minigame's unlock-level threshold is crossed in a session — detected via a ref-seeded before/after compare of `unlockedGames(eggLevel)` in `Home.jsx`, not persisted across reloads). iOS `touchstart` resume.
+- **Coin sound helper**: `dispatchAddCoins(dispatch, amount, bonusKey)` in `StateContext.jsx` wraps every `ACTIONS.ADD_COINS` dispatch — plays `coin_earn` (if `amount` is non-zero) then dispatches. All ~17 call sites across `GameThai/GameMath/GamePhonics/GameShop/GameMathBattle/WorldBattle.jsx` and the 5 minigames now go through this helper instead of dispatching `ADD_COINS` directly. `ACTIONS.DAILY_LOGIN` (a separate action, awards coins inline in its reducer case) plays `coin_earn` at its own dispatch site in `StateContext.jsx`'s init effect. Shop purchases (`BUY_ITEM`/`BUY_ROOM_ITEM` in `Collection.jsx`) play `coin_purchase` directly, not `coin_earn`.
 - TTS: Web Speech API — Thai (`speakTh`), English (`speakEn`), math Thai number words
 - Creature voice: `playCreatureSound(voiceProfile, moment)` — 5 families, pitch-shifted per DNA
 - Static `.m4a` phonics files in `public/sounds/phonics/`

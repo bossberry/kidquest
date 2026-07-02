@@ -1,5 +1,5 @@
 # Tasks — KidQuest
-_Last updated: 2026-06-27_
+_Last updated: 2026-07-02_
 
 ---
 
@@ -87,6 +87,18 @@ _Last updated: 2026-06-27_
 ---
 
 ## Done (major systems)
+
+- [x] **Audio expansion: new SFX/BGM, sound toggle removed** — 9 new SFX (coin_earn,
+  coin_purchase, item_equip, furniture_place/remove, room_visit_enter, minigame_start,
+  lives_empty, unlock_new) wired to their real dispatch/mount sites; 3 new BGM tracks
+  (room/shop/minigame); `victory` BGM given a real call site (previously defined but never
+  played); coin awards routed through a new `dispatchAddCoins()` helper in `StateContext.jsx`
+  so every one of the ~17 `ADD_COINS` call sites plays `coin_earn` automatically; sound
+  on/off toggle UI + `kq_sound` localStorage key removed — sound is always on. Live-verified
+  in Chrome (shop purchase, equip/unequip, furniture place/remove, room visit overlay,
+  minigame launch + full Egg Memory playthrough triggering a real coin award, zero console
+  errors); battle-victory BGM verified by code review only (couldn't get world-map movement
+  input working in the automated browser session to trigger a live battle win). Build clean ✅ (2026-07-02)
 
 - [x] **fix: bought cosmetics/room items reverting on reload** — `BUY_ITEM`/`EQUIP_ITEM`/`BUY_ROOM_ITEM`/`PLACE_ROOM_ITEM`/`REMOVE_ROOM_ITEM` now stamp `lastSavedAt` so `resolveSync` doesn't pick a stale remote and revert the purchase (same class as `c74e83d`) (2026-07-01)
 

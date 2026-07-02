@@ -20,7 +20,7 @@ const WORLD_TITLES = {
   mathbattle:'⚔️ Math Battle',
 }
 
-export default function GameScreen({ navigate, soundOn, toggleSound }) {
+export default function GameScreen({ navigate }) {
   const { state } = useAppState()
   const world = state.currentWorld || 'thai'
 
@@ -34,9 +34,9 @@ export default function GameScreen({ navigate, soundOn, toggleSound }) {
       </div>
       <div id="game-container" style={{ width:'100%', maxWidth:480, flex:1, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', paddingBottom:20 }}>
         <Suspense fallback={<div style={{ padding:40, color:'var(--muted)' }}>กำลังโหลด...</div>}>
-          {world === 'thai'    && <GameThai navigate={navigate} soundOn={soundOn} />}
-          {world === 'math'    && <GameMath navigate={navigate} soundOn={soundOn} />}
-          {world === 'eng'     && <GamePhonics navigate={navigate} soundOn={soundOn} />}
+          {world === 'thai'    && <GameThai navigate={navigate} />}
+          {world === 'math'    && <GameMath navigate={navigate} />}
+          {world === 'eng'     && <GamePhonics navigate={navigate} />}
           {world === 'eggrun'  && <EggRun navigate={navigate} />}
           {world === 'catch'   && <EggCatch navigate={navigate} />}
           {world === 'memory'  && <EggMemory navigate={navigate} />}

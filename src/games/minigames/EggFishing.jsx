@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../../context/StateContext.jsx'
 import { FISH_TYPES, ITEMS } from '../../config/gameConfig.js'
-import { playTone } from '../../lib/audio.js'
+import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
@@ -26,6 +26,10 @@ export default function EggFishing() {
   const [caughtItems, setCaughtItems] = useState([])
 
   const lives = livesRemaining(state, 'fishing')
+
+  useEffect(() => {
+    if (phase === 'ready' && lives <= 0) playSFX('lives_empty')
+  }, [phase, lives])
 
   const startGame = () => {
     if (lives <= 0) return
@@ -55,7 +59,7 @@ export default function EggFishing() {
         clearInterval(timerRef.current); runRef.current = false
         const total = coinsRef.current
         setCoinsEarned(total); setPhase('done')
-        if (total > 0) dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: total } })
+        if (total > 0) dispatchAddCoins(dispatch, total)
         dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak:0, score:0 } })
         return 0
       }

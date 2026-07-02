@@ -7,8 +7,19 @@ import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS
 import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator.js'
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
+import { playSFX } from '../lib/audio.js'
 
 export const StateContext = createContext(null)
+
+// dispatchAddCoins — every ADD_COINS award should play the coin_earn "ting-ting"
+// SFX; rather than adding playSFX('coin_earn') at every one of the ~15 call sites
+// across the game/minigame files, route them all through this helper (2026-07-02
+// audio expansion). The reducer itself stays pure — the sound plays here, not
+// inside ACTIONS.ADD_COINS's case.
+export function dispatchAddCoins(dispatch, amount, bonusKey) {
+  if (amount) playSFX('coin_earn')
+  dispatch({ type: ACTIONS.ADD_COINS, payload: bonusKey ? { amount, bonusKey } : { amount } })
+}
 
 // Battle level progression: XP thresholds grow quadratically
 function calcBattleLevel(xp) {
@@ -1045,6 +1056,7 @@ export function StateProvider({ children }) {
       const _loginStreak = (state.lastLoginDate || '') === _yesterday ? (state.loginStreak || 0) + 1 : 1
       const _loginBonus = 10 + Math.min(_loginStreak, 5)
       dispatch({ type: ACTIONS.DAILY_LOGIN })
+      if (_loginBonus) playSFX('coin_earn')
       setTimeout(() => showItemToast(`ล็อกอินรายวัน 🪙 +${_loginBonus}`), 900)
     }
     const today = todayStr()

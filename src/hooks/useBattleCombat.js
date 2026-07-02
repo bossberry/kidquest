@@ -1,5 +1,5 @@
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { playTone, playSFX, playElementSFX } from '../lib/audio.js'
+import { playTone, playSFX, playElementSFX, playBGM } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import { getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
@@ -261,6 +261,7 @@ export function useBattleCombat(params) {
     setVictoryMode(true)
     setBattleLog(`${enemy.name} หมดแรง!`)
     playTone('fanfare'); playSFX('victory')
+    playBGM('victory') // replaces the battle track; WorldBattle's onComplete/onFaint stopBGM() ends it
     spawnConfetti(35)
     // 10% chance to drop a battle item on victory
     if (Math.random() < 0.10) {

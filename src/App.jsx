@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAppState, ACTIONS } from './context/StateContext.jsx'
 import { useCompanion } from './context/CompanionContext.jsx'
-import { setSoundOn, initVoices, playSFX, playTone } from './lib/audio.js'
+import { initVoices, playSFX, playTone } from './lib/audio.js'
 import Home from './components/Home.jsx'
 import Collection from './components/Collection.jsx'
 import Report from './components/Report.jsx'
@@ -27,9 +27,6 @@ import Room from './components/Room.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
-  const [soundOn, setSoundOnState] = useState(() => {
-    try { return localStorage.getItem('kq_sound') !== 'off' } catch { return true }
-  })
   const [eggPopupOpen, setEggPopupOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -62,7 +59,6 @@ export default function App() {
   }, [])
 
   useEffect(() => { initVoices() }, [])
-  useEffect(() => { setSoundOn(soundOn) }, [soundOn])
 
   const navigate = (to) => {
     if (to === 'home') dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
@@ -127,12 +123,6 @@ export default function App() {
       {screen === 'home' && (
         <Home
           navigate={navigate}
-          soundOn={soundOn}
-          toggleSound={() => setSoundOnState(v => {
-            const next = !v
-            try { localStorage.setItem('kq_sound', next ? 'on' : 'off') } catch {}
-            return next
-          })}
           onOpenEggPopup={() => setEggPopupOpen(true)}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
@@ -141,17 +131,7 @@ export default function App() {
       {screen === 'collection' && <Collection />}
       {screen === 'room' && <Room />}
       {screen === 'report' && <Report />}
-      {screen === 'game' && (
-        <GameScreen
-          navigate={navigate}
-          soundOn={soundOn}
-          toggleSound={() => setSoundOnState(v => {
-            const next = !v
-            try { localStorage.setItem('kq_sound', next ? 'on' : 'off') } catch {}
-            return next
-          })}
-        />
-      )}
+      {screen === 'game' && <GameScreen navigate={navigate} />}
       {screen === 'world' && <WorldScreen navigate={navigate} />}
       {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
       {screen === 'friends' && <FriendsScreen />}

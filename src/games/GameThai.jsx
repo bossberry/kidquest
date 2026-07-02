@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.jsx'
 import LevelSelector from './LevelSelector.jsx'
 import TeachOverlay from './TeachOverlay.jsx'
 import { TH_ALPHA, TH_L2, TH_L3, TH_L5, SPELL_L1, SP_CON, SP_VOW, CHAR_SPEAK, shuffle } from '../config/gameConfig.js'
@@ -82,7 +82,7 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessi
   const finish = () => {
     const now = Date.now()
     const ts = sessionStartRef?.current || now
-    dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: coins } })
+    dispatchAddCoins(dispatch, coins)
     showItemToast(`🪙 +${coins}`)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
     dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: { world, levelId, value: p * 0.4 + ((state.levelMastery?.[world]?.[levelId]) || 0) * 0.6 } })
@@ -90,7 +90,7 @@ function useFinishRound({ score, total, world, levelId, maxLevels, streak, sessi
       const cur = state.subjectLevels?.[world] || 1
       if (cur < maxLevels) {
         dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world, newLevel: cur + 1 } })
-        dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 15, bonusKey: `${world}_${cur + 1}` } })
+        dispatchAddCoins(dispatch, 15, `${world}_${cur + 1}`)
         showToast(`✨ ปลดล็อก Level ${cur + 1}!`); spawnConfetti(15); playTone('unlock')
       }
     }

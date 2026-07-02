@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react'
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.jsx'
 import { MATH_WORDS, PATTERN_SETS, LEVELS, COUNTABLES, shuffle } from '../config/gameConfig.js'
 import { playTone } from '../lib/audio.js'
 import { showToast, showItemToast, spawnConfetti } from '../components/Toasts.jsx'
@@ -166,7 +166,7 @@ export default function GameMathBattle({ navigate }) {
       const p = score / TOTAL_QS
       const _mbCoins = Math.max(2, Math.min(12, Math.round(12 * (p < 0.5 ? 0.3 : p) * (1 - (state.levelMastery?.math?.[lv?.id||1] || 0)))))
       setCoinsEarned(_mbCoins)
-      dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: _mbCoins } })
+      dispatchAddCoins(dispatch, _mbCoins)
       showItemToast(`🪙 +${_mbCoins}`)
       dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak, score: p } })
       dispatch({ type: ACTIONS.UPDATE_LEVEL_MASTERY, payload: {
@@ -177,7 +177,7 @@ export default function GameMathBattle({ navigate }) {
         const cur2 = state.subjectLevels?.math || 1
         if (cur2 < 8) {
           dispatch({ type: ACTIONS.UNLOCK_LEVEL, payload: { world:'math', newLevel:cur2+1 } })
-          dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 15, bonusKey: `math_${cur2+1}` } })
+          dispatchAddCoins(dispatch, 15, `math_${cur2+1}`)
           showToast(`✨ ปลดล็อก Level ${cur2+1}!`); spawnConfetti(15); playTone('unlock')
         }
       }

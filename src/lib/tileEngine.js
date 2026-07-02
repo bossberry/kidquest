@@ -455,8 +455,14 @@ function drawPandoraRock(ctx, px, py) {
 // AFTER the whole ground pass, same reasoning as the iso track's two-pass
 // floor/raised split (Stage 2 there) but generalized to explicit Y instead
 // of row order, since Y-sort must also correctly interleave with entities
-// (player/enemies) added in later stages. No entities yet this stage.
-export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
+// (player/enemies) added in later stages.
+//
+// `extraEntities` (Stage 3+): an array of `{ y, draw }` the caller supplies
+// for anything dynamic that also needs Y-sorting against trees/rocks — the
+// player this stage, enemies from Stage 4. `y` must already be in the same
+// camera-adjusted screen-space as the tree/rock entries below (world Y minus
+// camY), so it sorts correctly against them.
+export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntities = []) {
   ctx.fillStyle = P.GRASS_BASE
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
@@ -467,7 +473,7 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
   const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / PANDORA_TILE))
   const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / PANDORA_TILE))
 
-  const standing = []
+  const standing = [...extraEntities]
 
   for (let r = startRow; r < endRow; r++) {
     for (let c = startCol; c < endCol; c++) {
@@ -493,6 +499,37 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
 
   standing.sort((a, b) => a.y - b.y)
   standing.forEach(s => s.draw())
+}
+
+// -- Pandora player sprite (Stage 3) --
+// Drop shadow drawn first, then the egg sprite scaled up (~40x48, vs the
+// original 32x32) to feel prominent on the larger 32px tiles. `groundX/
+// groundY` are the screen-space feet-contact point the caller computed via
+// the brief's own anchor formula (worldX*TILE+TILE/2, worldY*TILE+TILE*0.8)
+// minus camera — the sprite is drawn extending UPWARD from that point,
+// mirroring how drawPandoraTree/drawPandoraRock anchor at their base.
+export function renderPlayerPandora(ctx, groundX, groundY) {
+  const companion = window.__kq_companionEgg
+  const off = getSpriteOff()
+  if (!off || !companion) return
+
+  ctx.save()
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'
+  ctx.beginPath()
+  ctx.ellipse(groundX, groundY, 10, 3, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+
+  const sCtx = off.getContext('2d')
+  sCtx.imageSmoothingEnabled = false
+  sCtx.clearRect(0, 0, 32, 32)
+  renderEggSprite(sCtx, { ...companion, t: performance.now() / 1000, canvasSize: 32 })
+  ctx.imageSmoothingEnabled = false
+
+  const spriteW = 40, spriteH = 48
+  const dx = Math.round(groundX - spriteW / 2)
+  const dy = Math.round(groundY - spriteH)
+  ctx.drawImage(off, dx, dy, spriteW, spriteH)
 }
 
 // -- Isometric tile renderer --

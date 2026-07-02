@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import {
   T, canMove, getCamera, renderMap, renderPlayer,
   MAP_COLS, MAP_ROWS, isoProject, renderMapIso, renderPlayerIso,
-  PANDORA_TILE, renderMapPandora,
+  PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
@@ -358,15 +358,29 @@ export function useWorldGameLoop({
       ctx.clearRect(0, 0, vw, vh)
 
       if (window.__kq_pandoraDebug) {
-        // Stage 1/6 of the Pandora-style pseudo-3D world-map rewrite (this
+        // Stage 3/6 of the Pandora-style pseudo-3D world-map rewrite (this
         // supersedes the isometric track above — different, non-isometric
         // technique, kept behind its own flag so the two experiments never
-        // collide). Ground tiles only this stage (grass/path/water/tall
-        // grass) — no trees/objects/entities/Y-sort yet, and still a STATIC
-        // map-centered camera since there's no player drawn yet to follow.
-        const pandoraCamX = (MAP_COLS / 2) * PANDORA_TILE - vw / 2
-        const pandoraCamY = (MAP_ROWS / 2) * PANDORA_TILE - vh / 2
-        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame)
+        // collide). Player egg now drawn with a drop shadow, scaled up, and
+        // Y-sorted against trees/rocks via renderMapPandora's `extraEntities`
+        // param. Camera now follows the player (per the brief's own camera
+        // formula, clamped to map bounds the same way the original
+        // getCamera() clamps — no staging deferral for this in the Pandora
+        // spec, unlike the iso track). Enemies still not drawn (Stage 4).
+        const mapPixW = MAP_COLS * PANDORA_TILE
+        const mapPixH = MAP_ROWS * PANDORA_TILE
+        const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
+        const rawCamY = g.displayY * PANDORA_TILE + PANDORA_TILE / 2 - vh / 2
+        const pandoraCamX = mapPixW <= vw ? -(vw - mapPixW) / 2 : Math.max(0, Math.min(rawCamX, mapPixW - vw))
+        const pandoraCamYBase = mapPixH <= vh ? -(vh - mapPixH) / 2 : Math.max(0, Math.min(rawCamY, mapPixH - vh))
+        const PANDORA_PANEL_H = 72 // matches the flat renderer's MissionPanel offset
+        const pandoraCamY = pandoraCamYBase - Math.round((HUD_CONTENT_H + PANDORA_PANEL_H) / 2)
+
+        const playerGroundX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
+        const playerGroundY = g.displayY * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
+        const playerEntity = { y: playerGroundY, draw: () => renderPlayerPandora(ctx, playerGroundX, playerGroundY) }
+
+        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame, [playerEntity])
         return
       }
 

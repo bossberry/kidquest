@@ -481,6 +481,36 @@ export function renderPlayer(ctx, playerX, playerY, direction, walkFrame, eggCol
   }
 }
 
+// Iso counterpart of renderPlayer (Stage 3) — reprojects the same
+// interpolated tile-space (playerX, playerY) through isoProject() every
+// frame, so the existing walk-tween (still computed in tile-space floats in
+// useWorldGameLoop.js, unchanged) glides smoothly across the diamond floor
+// instead of snapping tile-to-tile. Anchors the sprite's bottom-center at
+// the tile's visual "ground" point (px+ISO_W/2, py+ISO_H/2) — the same
+// center-depth anchor used for tree trunks/sign posts in Stage 2 — so the
+// egg reads as standing ON the diamond surface, extending upward from there.
+export function renderPlayerIso(ctx, playerX, playerY, direction, walkFrame, eggColor, camX, camY) {
+  const companion = window.__kq_companionEgg
+  const off = getSpriteOff()
+  if (!off || !companion) return
+
+  const { px: tpx, py: tpy } = isoProject(playerX, playerY, camX, camY)
+  const groundX = tpx + ISO_W / 2
+  const groundY = tpy + ISO_H / 2
+
+  const sCtx = off.getContext('2d')
+  sCtx.imageSmoothingEnabled = false
+  sCtx.clearRect(0, 0, 32, 32)
+  renderEggSprite(sCtx, { ...companion, t: performance.now() / 1000, canvasSize: 32 })
+  ctx.imageSmoothingEnabled = false
+
+  const spriteW = 28
+  const spriteH = 28
+  const dx = Math.round(groundX - spriteW / 2)
+  const dy = Math.round(groundY - spriteH)
+  ctx.drawImage(off, dx, dy, spriteW, spriteH)
+}
+
 // -- Collision --
 
 export function canMove(tileMap, col, row) {

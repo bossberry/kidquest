@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import {
   T, canMove, getCamera, renderMap, renderPlayer,
-  MAP_COLS, MAP_ROWS, isoProject, renderMapIso,
+  MAP_COLS, MAP_ROWS, isoProject, renderMapIso, renderPlayerIso,
 } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
@@ -357,12 +357,17 @@ export function useWorldGameLoop({
       ctx.clearRect(0, 0, vw, vh)
 
       if (window.__kq_isoDebug) {
-        // Stage 2/6: tile types drawn iso (still no entities/player — that's
-        // Stage 3+) — static camera centered on the map, unchanged from Stage 1.
+        // Stage 3/6: player egg drawn in iso space with the existing
+        // tile-space walk tween (g.displayX/displayY, unchanged) reprojected
+        // through isoProject() every frame — still a STATIC map-centered
+        // camera (camera-follow lands in Stage 5 alongside D-pad/collision
+        // remapping), so the player can walk toward/away from a fixed view
+        // this stage. Enemies/chests/portals still not drawn iso (Stage 4).
         const center = isoProject(MAP_COLS / 2, MAP_ROWS / 2, 0, 0)
         const isoCamX = center.px - vw / 2
         const isoCamY = center.py - vh / 2
         renderMapIso(ctx, tileMap, isoCamX, isoCamY, g.frame)
+        renderPlayerIso(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, isoCamX, isoCamY)
         return
       }
 

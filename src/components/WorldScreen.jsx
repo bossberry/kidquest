@@ -18,7 +18,7 @@ import { drawItem } from '../lib/itemArt.js'
 import WorldHUD, { HUD_CONTENT_H, HOME_ITEM_KEYS, BATTLE_ITEM_KEYS } from './world/WorldHUD.jsx'
 import MissionPanel from './world/MissionPanel.jsx'
 import {
-  drawChest, drawPlayerGlow, spawnChests, findSpecials,
+  spawnChests, findSpecials,
   getOwlLines, SIGN_LINES, STAGE_COLORS,
 } from '../lib/worldDrawHelpers.js'
 import { useCompanion } from '../context/CompanionContext.jsx'

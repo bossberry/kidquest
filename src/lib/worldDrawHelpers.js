@@ -1,33 +1,16 @@
 import { T, MAP_ROWS, MAP_COLS } from './tileEngine.js'
 
-const TILE = 16 // px per tile (matches tileEngine TILE constant)
-
-// ── Chest pixel art drawing ──────────────────────────────────────────────────
-
-export function drawChest(ctx, x, y, frame) {
-  const s = TILE
-  // Body
-  ctx.fillStyle = '#8b5e3c'
-  ctx.fillRect(x + 2, y + 5, s - 4, s - 7)
-  // Lid
-  ctx.fillStyle = '#a0713a'
-  ctx.fillRect(x + 2, y + 2, s - 4, 5)
-  // Gold trim on lid
-  ctx.fillStyle = '#ffd700'
-  ctx.fillRect(x + 2, y + 6, s - 4, 1)
-  // Gold lock
-  ctx.fillStyle = '#ffd700'
-  ctx.fillRect(x + Math.floor(s / 2) - 1, y + 7, 3, 3)
-  // Sparkle — alternates every 30 frames
-  ctx.fillStyle = frame % 60 < 30 ? 'rgba(255,255,255,0.9)' : 'rgba(255,215,0,0.5)'
-  ctx.fillRect(x + Math.floor(s / 2) - 1, y - 2, 2, 2)
-}
+// Still needed by drawMazePortal() below — that one is reused as-is for the
+// Pandora renderer (Stage 6) rather than rewritten, since it's a cosmetic
+// overlay effect whose exact tile-relative size isn't critical.
+const TILE = 16
 
 // ── Pandora-style chest (2026-07-02, Stage 5/6) ───────────────────────────────
-// Separate from drawChest() above — that stays untouched as the flat
-// renderer's chest. Anchored at a ground-contact point like every other
-// Pandora standing object (trees/rocks/enemies/player), with a matching
-// drop shadow.
+// The original flat-renderer drawChest() was removed in Stage 6 along with
+// the rest of the flat top-down renderer it belonged to — Pandora is now the
+// sole world-map renderer. Anchored at a ground-contact point like every
+// other Pandora standing object (trees/rocks/enemies/player), with a
+// matching drop shadow.
 
 export function drawPandoraChest(ctx, cx, groundY, frame) {
   ctx.fillStyle = 'rgba(0,0,0,0.25)'
@@ -83,22 +66,24 @@ export function spawnChests(tileMap, enemyDefs) {
 export const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
 // ── Player glow rendering ────────────────────────────────────────────────────
-
-export function drawPlayerGlow(ctx, px, py, frame) {
-  const cx = px + TILE / 2
-  const cy = py + TILE / 2
+// The original flat-renderer drawPlayerGlow() (tile-top-left-anchored) was
+// removed in Stage 6 along with the flat renderer itself. This is its
+// Pandora-scaled counterpart — same two-ring pulse, radii doubled to match
+// PANDORA_TILE=32 vs the old TILE=16, and takes an already-centered (cx, cy)
+// rather than a tile top-left corner since the Pandora player isn't tile-boxed.
+export function drawPandoraPlayerGlow(ctx, cx, cy, frame) {
   const pulse = (Math.sin(frame * 0.06) + 1) / 2
 
   ctx.strokeStyle = `rgba(255,255,180,${0.15 + pulse * 0.50})`
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.arc(cx, cy, TILE * 0.85, 0, Math.PI * 2)
+  ctx.arc(cx, cy, 34, 0, Math.PI * 2)
   ctx.stroke()
 
   ctx.strokeStyle = `rgba(255,255,220,${0.30 + pulse * 0.40})`
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.arc(cx, cy, TILE * 0.58, 0, Math.PI * 2)
+  ctx.arc(cx, cy, 23, 0, Math.PI * 2)
   ctx.stroke()
 }
 

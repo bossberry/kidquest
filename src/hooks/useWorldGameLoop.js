@@ -1,23 +1,13 @@
 import { useEffect } from 'react'
 import {
-  T, canMove, getCamera, renderMap, renderPlayer,
-  MAP_COLS, MAP_ROWS, isoProject, renderMapIso, renderPlayerIso,
+  T, canMove, MAP_COLS, MAP_ROWS,
   PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
-import { drawEnemy, drawEnemyPandora } from '../lib/drawEnemy.js'
-import { drawChest, drawPandoraChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
+import { drawEnemyPandora } from '../lib/drawEnemy.js'
+import { drawPandoraChest, drawPandoraPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
-const TILE = 16
 const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
-
-// Stage 1/6 iso-world-map debug toggle. Defaults to on for in-progress iso
-// work; flip `window.__kq_isoDebug = false` in the console to compare against
-// the original flat top-down renderer (zero behavior change when off).
-// Only sets the default once — won't clobber a value already toggled at runtime.
-if (typeof window !== 'undefined' && window.__kq_isoDebug === undefined) {
-  window.__kq_isoDebug = true
-}
 
 /**
  * useWorldGameLoop — owns the RAF render/update loop: enemy AI, collision-driven
@@ -30,7 +20,7 @@ if (typeof window !== 'undefined' && window.__kq_isoDebug === undefined) {
 export function useWorldGameLoop({
   canvasRef, gameRef, tileMapRef, enemiesRef, chestsRef, stateRef,
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
-  eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
+  HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
   fogOverlayRef, torchRingRef, mazeExitPosRef,
 }) {
   useEffect(() => {
@@ -258,67 +248,6 @@ export function useWorldGameLoop({
       return pendingBattle
     }
 
-    function renderEnemies(ctx, camX, camY, frame) {
-      const spriteSize = TILE * 2
-      enemiesRef.current.forEach(e => {
-        if (e.defeated) return
-        const sz = e.type === 'baby_zombie' ? Math.round(spriteSize * 0.6) : spriteSize
-        const cx = Math.round((e.col + 0.5) * TILE - camX)
-        let cy = Math.round((e.row + 0.5) * TILE - camY)
-
-        // Ghosts bob up and down gently
-        if (e.type === 'ghost_wisp') {
-          cy += Math.round(Math.sin((frame + e.col * 13) * 0.08) * 3)
-        }
-
-        const px = cx - sz / 2
-        const py = cy - sz / 2
-
-        if (e.type === 'ghost_wisp') {
-          ctx.save()
-          ctx.shadowColor = 'rgba(180,140,255,0.8)'
-          ctx.shadowBlur = 10
-          drawEnemy(ctx, e.type, sz, px, py)
-          ctx.restore()
-        } else {
-          drawEnemy(ctx, e.type, sz, px, py)
-        }
-        // Boss always shows red '!'
-        if (e.isWorldBoss) {
-          ctx.fillStyle = '#ff2020'
-          ctx.font = `bold ${TILE}px monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'bottom'
-          ctx.fillText('!', cx, py - 2)
-        }
-        // Woken bunny alert
-        if (e.type === 'sleepy_bunny' && e.woken) {
-          ctx.fillStyle = '#ffffff'
-          ctx.font = `bold ${TILE}px monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'bottom'
-          ctx.fillText('!', cx, py - 2)
-        }
-        // Snake aggro alert
-        if (e.type === 'snake' && e.aggroTimer > 0) {
-          ctx.fillStyle = '#ff4444'
-          ctx.font = `bold ${TILE}px monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'bottom'
-          ctx.fillText('!', cx, py - 2)
-        }
-      })
-    }
-
-    function renderChests(ctx, camX, camY, frame) {
-      chestsRef.current.forEach(chest => {
-        if (chest.opened) return
-        const px = Math.round(chest.col * TILE - camX)
-        const py = Math.round(chest.row * TILE - camY)
-        drawChest(ctx, px, py, frame)
-      })
-    }
-
     function loop(now) {
       if (!alive) return
       rafIdRef.current = requestAnimationFrame(loop)
@@ -357,114 +286,118 @@ export function useWorldGameLoop({
       const vh = canvas.height
       ctx.clearRect(0, 0, vw, vh)
 
-      if (window.__kq_pandoraDebug) {
-        // Stage 5/6 of the Pandora-style pseudo-3D world-map rewrite (this
-        // supersedes the isometric track above — different, non-isometric
-        // technique, kept behind its own flag so the two experiments never
-        // collide). Chests now Y-sorted into extraEntities alongside
-        // enemies/player (signs/NPCs are tile-baked standing objects, wired
-        // directly inside renderMapPandora's per-tile loop in tileEngine.js,
-        // same as trees/rocks). All interaction triggers (open/read/talk,
-        // tryMove's collision checks) are untouched shared game-state logic
-        // — only the drawing changed.
-        const mapPixW = MAP_COLS * PANDORA_TILE
-        const mapPixH = MAP_ROWS * PANDORA_TILE
-        const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
-        const rawCamY = g.displayY * PANDORA_TILE + PANDORA_TILE / 2 - vh / 2
-        const pandoraCamX = mapPixW <= vw ? -(vw - mapPixW) / 2 : Math.max(0, Math.min(rawCamX, mapPixW - vw))
-        const pandoraCamYBase = mapPixH <= vh ? -(vh - mapPixH) / 2 : Math.max(0, Math.min(rawCamY, mapPixH - vh))
-        const PANDORA_PANEL_H = 72 // matches the flat renderer's MissionPanel offset
-        const pandoraCamY = pandoraCamYBase - Math.round((HUD_CONTENT_H + PANDORA_PANEL_H) / 2)
-
-        const playerGroundX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
-        const playerGroundY = g.displayY * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
-        const pandoraEntities = [{ y: playerGroundY, draw: () => renderPlayerPandora(ctx, playerGroundX, playerGroundY) }]
-
-        for (const e of enemiesRef.current) {
-          if (e.defeated || e.dead) continue
-          const ex = e.col * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
-          const ey = e.row * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
-          pandoraEntities.push({ y: ey, draw: () => drawEnemyPandora(ctx, e.type, ex, ey, g.frame) })
-        }
-
-        for (const chest of chestsRef.current) {
-          if (chest.opened) continue
-          const cx = chest.col * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
-          const cy = chest.row * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
-          pandoraEntities.push({ y: cy, draw: () => drawPandoraChest(ctx, cx, cy, g.frame) })
-        }
-
-        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame, pandoraEntities)
-        return
-      }
-
-      if (window.__kq_isoDebug) {
-        // Stage 3/6: player egg drawn in iso space with the existing
-        // tile-space walk tween (g.displayX/displayY, unchanged) reprojected
-        // through isoProject() every frame — still a STATIC map-centered
-        // camera (camera-follow lands in Stage 5 alongside D-pad/collision
-        // remapping), so the player can walk toward/away from a fixed view
-        // this stage. Enemies/chests/portals still not drawn iso (Stage 4).
-        const center = isoProject(MAP_COLS / 2, MAP_ROWS / 2, 0, 0)
-        const isoCamX = center.px - vw / 2
-        const isoCamY = center.py - vh / 2
-        renderMapIso(ctx, tileMap, isoCamX, isoCamY, g.frame)
-        renderPlayerIso(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, isoCamX, isoCamY)
-        return
-      }
-
-      const { camX, camY: camYBase } = getCamera(g.displayX, g.displayY, vw, vh)
-      const PANEL_H = 72  // approximate height of MissionPanel
+      // Pandora-style pseudo-3D renderer (2026-07-02) — sole world-map
+      // renderer as of Stage 6/6. Fully replaces both the original flat
+      // top-down renderer and the isometric-diamond experiment that
+      // preceded this rewrite (both removed; see docs/CHANGELOG.md and the
+      // dated entries in docs/CHATBOT_NOTES.md for the staged history).
+      // Camera follows the player, clamped to map bounds; ground draws as
+      // one flat pass inside renderMapPandora(), then every standing/moving
+      // object (player, enemies, chests, plus signs/NPCs/trees/rocks baked
+      // into the per-tile loop in tileEngine.js) is Y-sorted by its
+      // ground-contact screen point so nearer things correctly occlude
+      // farther ones.
+      const mapPixW = MAP_COLS * PANDORA_TILE
+      const mapPixH = MAP_ROWS * PANDORA_TILE
+      const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
+      const rawCamY = g.displayY * PANDORA_TILE + PANDORA_TILE / 2 - vh / 2
+      const camX = mapPixW <= vw ? -(vw - mapPixW) / 2 : Math.max(0, Math.min(rawCamX, mapPixW - vw))
+      const camYBase = mapPixH <= vh ? -(vh - mapPixH) / 2 : Math.max(0, Math.min(rawCamY, mapPixH - vh))
+      const PANEL_H = 72 // approximate height of MissionPanel
       const camY = camYBase - Math.round((HUD_CONTENT_H + PANEL_H) / 2)
-      renderMap(ctx, tileMap, null, null, camX, camY, g.frame)
-      renderEnemies(ctx, camX, camY, g.frame)
-      renderChests(ctx, camX, camY, g.frame)
-      // World-map entry portal (shown on NW/NE/SW/SE screens)
-      if (mazePortalPosRef?.current) {
-        const ppx = Math.round(mazePortalPosRef.current.col * TILE - camX)
-        const ppy = Math.round(mazePortalPosRef.current.row * TILE - camY)
-        drawMazePortal(ctx, ppx, ppy, g.frame)
-      }
-      // Maze exit portal (shown only inside MAZE, at the opposite corner from entry)
-      if (screenIdRef?.current === 'MAZE' && mazeExitPosRef?.current) {
-        const epx = Math.round(mazeExitPosRef.current.col * TILE - camX)
-        const epy = Math.round(mazeExitPosRef.current.row * TILE - camY)
-        drawMazePortal(ctx, epx, epy, g.frame)
+
+      const inMaze = screenIdRef?.current === 'MAZE'
+      const playerGroundX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - camX
+      const playerGroundY = g.displayY * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+      const saiyanOn = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
+
+      const entities = [{
+        y: playerGroundY,
+        draw: () => {
+          // Ambient glow (non-maze screens only — maze uses the fog/torch
+          // DOM overlay instead, positioned below) drawn UNDER the player
+          // sprite, same layering as the original flat renderer.
+          if (!inMaze) drawPandoraPlayerGlow(ctx, playerGroundX, playerGroundY - 24, g.frame)
+          if (saiyanOn) {
+            ctx.save()
+            // Fast rainbow cycle: full 360° hue rotation every ~60 frames (≈1s @60fps)
+            const hue = (g.frame * 6) % 360
+            ctx.shadowColor = `hsl(${hue}, 100%, 60%)`
+            ctx.shadowBlur = 18
+            renderPlayerPandora(ctx, playerGroundX, playerGroundY)
+            ctx.restore()
+          } else {
+            renderPlayerPandora(ctx, playerGroundX, playerGroundY)
+          }
+        },
+      }]
+
+      for (const e of enemiesRef.current) {
+        if (e.defeated || e.dead) continue
+        const ex = e.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        let ey = e.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        if (e.type === 'ghost_wisp') ey += Math.sin((g.frame + e.col * 13) * 0.08) * 3
+        const showAlert = e.isWorldBoss || (e.type === 'sleepy_bunny' && e.woken) || (e.type === 'snake' && e.aggroTimer > 0)
+        const alertColor = e.isWorldBoss ? '#ff2020' : (e.type === 'snake' ? '#ff4444' : '#ffffff')
+        entities.push({
+          y: ey,
+          draw: () => {
+            drawEnemyPandora(ctx, e.type, ex, ey, g.frame)
+            if (showAlert) {
+              ctx.fillStyle = alertColor
+              ctx.font = 'bold 18px monospace'
+              ctx.textAlign = 'center'
+              ctx.textBaseline = 'bottom'
+              ctx.fillText('!', ex, ey - 32)
+            }
+          },
+        })
       }
 
-      const playerGlowX = Math.round(g.displayX * TILE - camX)
-      const playerGlowY = Math.round(g.displayY * TILE - camY)
-      if (screenIdRef?.current === 'MAZE') {
-        // Fog is a DOM overlay div — update its CSS mask + torch ring position every frame
+      for (const chest of chestsRef.current) {
+        if (chest.opened) continue
+        const cx = chest.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        const cy = chest.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        entities.push({ y: cy, draw: () => drawPandoraChest(ctx, cx, cy, g.frame) })
+      }
+
+      // World-map entry portal (shown on NW/NE/SW/SE screens) + maze exit
+      // portal (shown only inside MAZE) — reused as-is from the original
+      // flat renderer's cosmetic overlay effect, Y-sorted like everything
+      // else so the player correctly draws over/under it while walking past.
+      if (mazePortalPosRef?.current) {
+        const ppx = mazePortalPosRef.current.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        const ppy = mazePortalPosRef.current.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        entities.push({ y: ppy, draw: () => drawMazePortal(ctx, Math.round(ppx - 16), Math.round(ppy - 24), g.frame) })
+      }
+      if (inMaze && mazeExitPosRef?.current) {
+        const epx = mazeExitPosRef.current.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        const epy = mazeExitPosRef.current.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        entities.push({ y: epy, draw: () => drawMazePortal(ctx, Math.round(epx - 16), Math.round(epy - 24), g.frame) })
+      }
+
+      renderMapPandora(ctx, tileMap, camX, camY, g.frame, entities)
+
+      if (inMaze) {
+        // Fog is a DOM overlay div — update its CSS mask + torch ring position
+        // every frame, centered roughly on the player sprite's midpoint.
+        const fogCx = playerGroundX
+        const fogCy = playerGroundY - 24
         if (fogOverlayRef?.current) {
           const flicker = Math.sin(g.frame * 0.15) * 6 + Math.sin(g.frame * 0.37 + 1.3) * 4
           const radius = 78 + flicker
-          const mask = `radial-gradient(circle ${radius}px at ${playerGlowX}px ${playerGlowY}px, transparent 0%, transparent 60%, rgba(0,0,0,0.6) 88%, black 100%)`
+          const mask = `radial-gradient(circle ${radius}px at ${fogCx}px ${fogCy}px, transparent 0%, transparent 60%, rgba(0,0,0,0.6) 88%, black 100%)`
           fogOverlayRef.current.style.WebkitMaskImage = mask
           fogOverlayRef.current.style.maskImage = mask
         }
         if (torchRingRef?.current) {
           const flicker2 = Math.sin(g.frame * 0.15) * 6 + Math.sin(g.frame * 0.37 + 1.3) * 4
           const ringSize = 130 + flicker2 * 1.5
-          torchRingRef.current.style.left   = `${playerGlowX}px`
-          torchRingRef.current.style.top    = `${playerGlowY}px`
+          torchRingRef.current.style.left   = `${fogCx}px`
+          torchRingRef.current.style.top    = `${fogCy}px`
           torchRingRef.current.style.width  = `${ringSize}px`
           torchRingRef.current.style.height = `${ringSize}px`
         }
-      } else {
-        drawPlayerGlow(ctx, playerGlowX, playerGlowY, g.frame)
-      }
-      const saiyanOn = (stateRef.current.activeBoosts?.rainbow_star?.endsAt ?? 0) > Date.now()
-      if (saiyanOn) {
-        ctx.save()
-        // Fast rainbow cycle: full 360° hue rotation every ~60 frames (≈1 second at 60fps)
-        const hue = (g.frame * 6) % 360
-        ctx.shadowColor = `hsl(${hue}, 100%, 60%)`
-        ctx.shadowBlur = 18
-        renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
-        ctx.restore()
-      } else {
-        renderPlayer(ctx, g.displayX, g.displayY, g.dir, g.walkFrame, eggColorRef.current, camX, camY)
       }
     }
 

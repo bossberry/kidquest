@@ -20,245 +20,29 @@ export const CANVAS_H = 240
 export const MAP_COLS = 20
 export const MAP_ROWS = 15
 
-// -- Isometric (2:1) projection math — Stage 1 of the iso world-map rollout --
-// ISO_W/ISO_H describe the pixel footprint of one tile's diamond in iso space.
-export const ISO_W = TILE * 2 // 32px — width of one iso tile diamond
-export const ISO_H = TILE     // 16px — height of one iso tile diamond
-
-// Projects a tile-space (col, row) into iso screen pixels, offset by a camera
-// position that is itself already in iso pixel space (not tile-space).
-export function isoProject(col, row, camX, camY) {
-  const px = (col - row) * (ISO_W / 2) - camX
-  const py = (col + row) * (ISO_H / 2) - camY
-  return { px, py }
-}
-
-// Inverse of isoProject — converts iso screen pixels back to fractional
-// tile-space (col, row). Not used until a later stage (tap hit-testing), but
-// added now alongside its forward counterpart for symmetry.
-export function isoUnproject(px, py, camX, camY) {
-  const x = px + camX
-  const y = py + camY
-  const col = (x / (ISO_W / 2) + y / (ISO_H / 2)) / 2
-  const row = (y / (ISO_H / 2) - x / (ISO_W / 2)) / 2
-  return { col, row }
-}
-
 export const T = {
   GRASS: 0, TALL: 1, TREE: 2, PATH: 3, WATER: 4, WALL: 5,
   EXIT_N: 10, EXIT_S: 11, EXIT_E: 12, EXIT_W: 13,
   NPC: 20, SIGN: 21, FLOWER: 30, ITEM_SPOT: 31, ENEMY: 40,
 }
 
-// Tile colors (GB palette)
-const C = {
-  GRASS:      '#4a7a4a',
-  GRASS_DARK: '#3a6a3a',
-  TALL:       '#1a3a1a',
-  TALL_STRIPE:'#142e14',
-  TREE_BG:    '#0a2a0a',
-  TREE_IN:    '#1a4a1a',
-  PATH:       '#b8884a',
-  PATH_DARK:  '#a07838',
-  WATER_A:    '#3a5a90',
-  WATER_B:    '#2a4a80',
-  EXIT_ARROW: '#ffffff',
-  SIGN_BODY:  '#7a4a18',
-  SIGN_LINE:  '#f0e8d0',
-  FLOWER_CTR: '#ffffff',
-  FLOWER_PET: '#5ababa',
-  SPARKLE:    '#ffe040',
-  ISO_BG:       '#1a2a1a',
-  ISO_HIGHLIGHT:'#7aae7a',
-}
-
-// -- Tile renderers --
-
-function drawGrass(ctx, px, py) {
-  ctx.fillStyle = C.GRASS
-  ctx.fillRect(px, py, TILE, TILE)
-}
-
-function drawTall(ctx, px, py) {
-  ctx.fillStyle = C.TALL
-  ctx.fillRect(px, py, TILE, TILE)
-  ctx.fillStyle = C.TALL_STRIPE
-  for (let x = 0; x < TILE; x += 4) {
-    ctx.fillRect(px + x, py, 2, TILE)
-  }
-}
-
-function drawTree(ctx, px, py) {
-  ctx.fillStyle = C.TREE_BG
-  ctx.fillRect(px, py, TILE, TILE)
-  ctx.fillStyle = C.TREE_IN
-  ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4)
-}
-
-function drawPath(ctx, px, py) {
-  ctx.fillStyle = C.PATH
-  ctx.fillRect(px, py, TILE, TILE)
-  ctx.fillStyle = C.PATH_DARK
-  ctx.fillRect(px, py + TILE - 2, TILE, 2)
-}
-
-function drawWater(ctx, px, py, frame) {
-  ctx.fillStyle = frame < 30 ? C.WATER_A : C.WATER_B
-  ctx.fillRect(px, py, TILE, TILE)
-}
-
-function drawExit(ctx, px, py, type) {
-  drawPath(ctx, px, py)
-  ctx.fillStyle = C.EXIT_ARROW
-  ctx.font = '8px monospace'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  const arrows = { [T.EXIT_N]: '↑', [T.EXIT_S]: '↓', [T.EXIT_E]: '→', [T.EXIT_W]: '←' }
-  ctx.fillText(arrows[type] || '?', px + TILE / 2, py + TILE / 2)
-}
-
-function drawFlower(ctx, px, py) {
-  drawGrass(ctx, px, py)
-  const cx = px + 8, cy = py + 8
-  ctx.fillStyle = C.FLOWER_PET
-  const petals = [[0,-3],[3,0],[0,3],[-3,0]]
-  for (const [dx, dy] of petals) {
-    ctx.fillRect(cx + dx - 1, cy + dy - 1, 3, 3)
-  }
-  ctx.fillStyle = C.FLOWER_CTR
-  ctx.fillRect(cx - 1, cy - 1, 3, 3)
-}
-
-function drawSign(ctx, px, py) {
-  drawGrass(ctx, px, py)
-  ctx.fillStyle = C.SIGN_BODY
-  ctx.fillRect(px + 4, py + 3, 8, 7)
-  ctx.fillStyle = C.SIGN_LINE
-  ctx.fillRect(px + 5, py + 5, 6, 1)
-  ctx.fillRect(px + 5, py + 7, 4, 1)
-}
-
-function drawNPC(ctx, px, py, npcType) {
-  drawGrass(ctx, px, py)
-  if (npcType === 'owl') {
-    ctx.fillStyle = '#8B6914'
-    ctx.fillRect(px + 4, py + 2, 8, 8)
-    ctx.fillStyle = '#FFFACD'
-    ctx.fillRect(px + 5, py + 3, 2, 2)
-    ctx.fillRect(px + 9, py + 3, 2, 2)
-    ctx.fillStyle = '#FFA500'
-    ctx.fillRect(px + 7, py + 6, 2, 2)
-    ctx.fillStyle = '#8B6914'
-    ctx.fillRect(px + 4, py + 10, 3, 3)
-    ctx.fillRect(px + 9, py + 10, 3, 3)
-  } else {
-    ctx.fillStyle = '#40a860'
-    ctx.fillRect(px + 5, py + 2, 6, 10)
-    ctx.fillStyle = '#ffe0a0'
-    ctx.fillRect(px + 6, py + 2, 4, 4)
-  }
-}
-
-function drawEnemy(ctx, px, py, enemyType) {
-  drawGrass(ctx, px, py)
-  if (enemyType === 'bunny') {
-    ctx.fillStyle = '#f0e0e8'
-    ctx.fillRect(px + 4, py + 4, 8, 8)
-    ctx.fillStyle = '#f0b0b8'
-    ctx.fillRect(px + 5, py + 2, 2, 4)
-    ctx.fillRect(px + 9, py + 2, 2, 4)
-    ctx.fillStyle = '#d08090'
-    ctx.fillRect(px + 6, py + 7, 2, 2)
-    ctx.fillRect(px + 9, py + 10, 2, 2)
-    ctx.fillRect(px + 5, py + 10, 2, 2)
-  } else {
-    ctx.fillStyle = '#80c0f0'
-    ctx.beginPath()
-    ctx.arc(px + 8, py + 8, 5, 0, Math.PI * 2)
-    ctx.fill()
-  }
-}
-
-function drawItemSpot(ctx, px, py, frame) {
-  drawGrass(ctx, px, py)
-  const phase = Math.floor(frame / 15) % 4
-  const cx = px + 8, cy = py + 8
-  ctx.fillStyle = C.SPARKLE
-  if (phase === 0) {
-    ctx.fillRect(cx - 1, cy - 3, 2, 7)
-    ctx.fillRect(cx - 3, cy - 1, 7, 2)
-  } else if (phase === 1) {
-    ctx.fillRect(cx - 2, cy - 2, 2, 2)
-    ctx.fillRect(cx + 1, cy - 2, 2, 2)
-    ctx.fillRect(cx - 2, cy + 1, 2, 2)
-    ctx.fillRect(cx + 1, cy + 1, 2, 2)
-  } else if (phase === 2) {
-    ctx.fillRect(cx - 1, cy - 2, 2, 5)
-    ctx.fillRect(cx - 2, cy - 1, 5, 2)
-  } else {
-    ctx.fillRect(cx, cy - 1, 1, 3)
-    ctx.fillRect(cx - 1, cy, 3, 1)
-  }
-}
-
-// -- Map renderer --
-
-export function renderMap(ctx, tileMap, npcData, enemyData, camX, camY, frame) {
-  // Fill background (covers viewport area outside map bounds)
-  ctx.fillStyle = '#3a6a3a'
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-
-  const viewW = ctx.canvas.width
-  const viewH = ctx.canvas.height
-  const startCol = Math.max(0, Math.floor(camX / TILE))
-  const startRow = Math.max(0, Math.floor(camY / TILE))
-  const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / TILE))
-  const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / TILE))
-
-  for (let r = startRow; r < endRow; r++) {
-    for (let c = startCol; c < endCol; c++) {
-      const px = c * TILE - camX
-      const py = r * TILE - camY
-      const raw = tileMap[r]?.[c]
-      const tileType = typeof raw === 'object' ? raw.type : raw
-
-      switch (tileType) {
-        case T.GRASS:      drawGrass(ctx, px, py); break
-        case T.TALL:       drawTall(ctx, px, py); break
-        case T.TREE:       drawTree(ctx, px, py); break
-        case T.PATH:       drawPath(ctx, px, py); break
-        case T.WATER:      drawWater(ctx, px, py, frame); break
-        case T.EXIT_N:     drawExit(ctx, px, py, T.EXIT_N); break
-        case T.EXIT_S:     drawExit(ctx, px, py, T.EXIT_S); break
-        case T.EXIT_E:     drawExit(ctx, px, py, T.EXIT_E); break
-        case T.EXIT_W:     drawExit(ctx, px, py, T.EXIT_W); break
-        case T.FLOWER:     drawFlower(ctx, px, py); break
-        case T.SIGN:       drawSign(ctx, px, py); break
-        case T.NPC: {
-          const npc = typeof raw === 'object' ? raw : (npcData?.[r * MAP_COLS + c])
-          drawNPC(ctx, px, py, npc?.npc_type || 'default')
-          break
-        }
-        case T.ENEMY: {
-          const enemy = typeof raw === 'object' ? raw : (enemyData?.[r * MAP_COLS + c])
-          drawEnemy(ctx, px, py, enemy?.enemy_type || 'bunny')
-          break
-        }
-        case T.ITEM_SPOT:  drawItemSpot(ctx, px, py, frame); break
-        default:           drawGrass(ctx, px, py)
-      }
-    }
-  }
-}
-
-// -- Pandora-style pseudo-3D renderer (2026-07-02) --
-// Supersedes the isometric track above per a design pivot — a different,
-// non-isometric technique (Y-sorted top-down, painted textures, tall trees
-// with real height via canopies drawn above the tile). Kept behind its own
-// `window.__kq_pandoraDebug` flag and its own tile-size constant so it can
-// be built up in stages without disturbing either the original flat
-// renderer or the (now-superseded, left in place) isometric renderer.
+// -- Pandora-style pseudo-3D world-map renderer (2026-07-02) --
+// Sole world-map renderer as of Stage 6/6. This replaced two earlier
+// approaches, both fully removed from this file: the original flat
+// top-down GB-palette renderer this module started as, and an isometric
+// (2:1 diamond-projection) renderer built and then superseded mid-session
+// by a design pivot to this Y-sorted, non-isometric technique. See
+// docs/CHANGELOG.md and the dated entries in docs/CHATBOT_NOTES.md if the
+// staged history of either earlier approach is ever needed again — the
+// commits are still in git history.
 export const PANDORA_TILE = 32
+
+// Deterministic small-int hash for a tile coordinate — keeps per-tile
+// texture (grass speckles, path pebbles, tall-grass blade positions) stable
+// across frames instead of flickering every frame.
+function tileHash(col, row) {
+  return (col * 31 + row * 17) % 97
+}
 
 const P = {
   GRASS_BASE:    '#5a8a3c',
@@ -293,11 +77,15 @@ function drawPandoraGrass(ctx, px, py, col, row) {
     ctx.fillRect(px + dx, py + dy, 2, 2)
   }
 
-  // Faint highlight stripe along the top edge.
-  ctx.fillStyle = P.GRASS_HILITE
-  ctx.globalAlpha = 0.35
-  ctx.fillRect(px, py, PANDORA_TILE, 2)
-  ctx.globalAlpha = 1
+  // Faint highlight stripe along the top edge — Stage 6 polish: only ~55% of
+  // tiles get it (gated on the same hash) so it reads as broken/organic
+  // texture instead of a continuous grid-line running across every row.
+  if (h % 9 < 5) {
+    ctx.fillStyle = P.GRASS_HILITE
+    ctx.globalAlpha = 0.28
+    ctx.fillRect(px, py, PANDORA_TILE, 2)
+    ctx.globalAlpha = 1
+  }
 }
 
 function drawPandoraPath(ctx, px, py, col, row) {
@@ -475,11 +263,35 @@ function drawPandoraNPCStanding(ctx, px, py, npcType) {
 
   drawPandoraShadow(ctx, cx, groundY, 18, 5)
 
-  const bodyColor = npcType === 'owl' ? '#8B6914' : '#40a860'
+  // Stage 6 polish: owl gets a dedicated silhouette (pale face patches, beak,
+  // ear tufts) instead of a uniform brown blob that read as under-
+  // differentiated from an enemy at a glance.
+  if (npcType === 'owl') {
+    const bodyCy = groundY - 9
+    pandoraFriendlyBody(ctx, cx, bodyCy, 8, 9, '#8B6914')
+    const headCy = bodyCy - 12
+    pandoraFriendlyBody(ctx, cx, headCy, 7.5, 7, '#a67d1a')
+    ctx.fillStyle = '#FFFACD'
+    ctx.beginPath(); ctx.ellipse(cx - 3, headCy, 2.6, 3, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(cx + 3, headCy, 2.6, 3, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#1a1a1a'
+    ctx.beginPath(); ctx.arc(cx - 3, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx + 3, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#FFA500'
+    ctx.beginPath()
+    ctx.moveTo(cx - 2, headCy + 3); ctx.lineTo(cx + 2, headCy + 3); ctx.lineTo(cx, headCy + 6)
+    ctx.closePath(); ctx.fill()
+    ctx.fillStyle = '#8B6914'
+    ctx.beginPath(); ctx.moveTo(cx - 6, headCy - 6); ctx.lineTo(cx - 4, headCy - 11); ctx.lineTo(cx - 2, headCy - 6); ctx.closePath(); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(cx + 6, headCy - 6); ctx.lineTo(cx + 4, headCy - 11); ctx.lineTo(cx + 2, headCy - 6); ctx.closePath(); ctx.fill()
+    return
+  }
+
+  const bodyColor = '#40a860'
   const bodyCy = groundY - 8
   pandoraFriendlyBody(ctx, cx, bodyCy, 7, 8, bodyColor)
   const headCy = bodyCy - 11
-  pandoraFriendlyBody(ctx, cx, headCy, 7, 6.5, npcType === 'owl' ? '#8B6914' : '#ffe0a0')
+  pandoraFriendlyBody(ctx, cx, headCy, 7, 6.5, '#ffe0a0')
   // Waving arm
   ctx.strokeStyle = bodyColor
   ctx.lineWidth = 2.4
@@ -602,266 +414,6 @@ export function renderPlayerPandora(ctx, groundX, groundY) {
   ctx.drawImage(off, dx, dy, spriteW, spriteH)
 }
 
-// -- Isometric tile renderer --
-// Stage 1 drew every tile as a flat grass diamond. Stage 2 branches on the
-// real tile type and gives trees/tall-grass/signs a "raised" element above
-// the diamond. Raised elements are drawn in a SEPARATE second pass over the
-// whole map, after every floor diamond has already been painted — this is
-// what makes a tree's canopy visually occlude a "nearer" tile correctly
-// instead of getting clipped by that tile's flat floor diamond (which is
-// what would happen if floor + raised parts were interleaved in one
-// row-major pass, since a later-drawn floor tile would paint over any
-// earlier canopy pixels landing in its footprint). Within the raised pass,
-// row0→rowN-1 order is preserved so nearer raised objects (trees, in
-// particular) still correctly overlap farther ones when they intersect.
-
-// Draws one tile as a 4-point iso diamond at iso-pixel origin (px, py) — the
-// top-left corner of the diamond's bounding box, matching isoProject()'s output.
-function drawIsoTile(ctx, px, py, fillColor) {
-  const top    = { x: px + ISO_W / 2, y: py }
-  const right  = { x: px + ISO_W,     y: py + ISO_H / 2 }
-  const bottom = { x: px + ISO_W / 2, y: py + ISO_H }
-  const left   = { x: px,             y: py + ISO_H / 2 }
-
-  ctx.fillStyle = fillColor
-  ctx.beginPath()
-  ctx.moveTo(top.x, top.y)
-  ctx.lineTo(right.x, right.y)
-  ctx.lineTo(bottom.x, bottom.y)
-  ctx.lineTo(left.x, left.y)
-  ctx.closePath()
-  ctx.fill()
-
-  // Subtle top-left highlight (simulated light from upper-left) so adjacent
-  // tiles read as distinct diamonds rather than a solid blob.
-  ctx.strokeStyle = C.ISO_HIGHLIGHT
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(left.x, left.y)
-  ctx.lineTo(top.x, top.y)
-  ctx.lineTo(right.x, right.y)
-  ctx.stroke()
-}
-
-// Deterministic small-int hash for a tile coordinate — used to keep per-tile
-// texture (path dirt speckles) stable across frames instead of flickering.
-function tileHash(col, row) {
-  return (col * 31 + row * 17) % 97
-}
-
-// -- Floor drawers (pass 1 — flat, confined to the diamond) --
-
-function drawIsoGrass(ctx, px, py) {
-  drawIsoTile(ctx, px, py, C.GRASS)
-}
-
-function drawIsoPath(ctx, px, py, col, row) {
-  drawIsoTile(ctx, px, py, C.PATH)
-  const h = tileHash(col, row)
-  const cx = px + ISO_W / 2
-  const cy = py + ISO_H / 2
-  ctx.fillStyle = C.PATH_DARK
-  ctx.fillRect(cx - 7 + (h % 6), cy - 3 + (h % 3), 2, 1)
-  ctx.fillRect(cx + 2 + (h % 5), cy + 1 + (h % 2), 2, 1)
-}
-
-function drawIsoTallBase(ctx, px, py) {
-  drawIsoTile(ctx, px, py, C.TALL)
-}
-
-function drawIsoTreeBase(ctx, px, py) {
-  drawIsoTile(ctx, px, py, C.TREE_BG)
-}
-
-function drawIsoWater(ctx, px, py, frame) {
-  drawIsoTile(ctx, px, py, frame < 30 ? C.WATER_A : C.WATER_B)
-}
-
-function drawIsoFlower(ctx, px, py) {
-  // Flush with the tile surface (not a raised element) — petals flattened
-  // onto the diamond top, centered on the tile.
-  drawIsoTile(ctx, px, py, C.GRASS)
-  const cx = px + ISO_W / 2
-  const cy = py + ISO_H / 2
-  ctx.fillStyle = C.FLOWER_PET
-  const petals = [[0, -3], [3, 0], [0, 3], [-3, 0]]
-  for (const [dx, dy] of petals) ctx.fillRect(cx + dx - 1, cy + dy - 1, 2, 2)
-  ctx.fillStyle = C.FLOWER_CTR
-  ctx.fillRect(cx - 1, cy - 1, 2, 2)
-}
-
-function drawIsoSignBase(ctx, px, py) {
-  drawIsoTile(ctx, px, py, C.GRASS)
-}
-
-function drawIsoFloor(ctx, tileType, px, py, col, row, frame) {
-  switch (tileType) {
-    case T.GRASS:  drawIsoGrass(ctx, px, py); break
-    case T.PATH:   drawIsoPath(ctx, px, py, col, row); break
-    case T.TALL:   drawIsoTallBase(ctx, px, py); break
-    case T.TREE:   drawIsoTreeBase(ctx, px, py); break
-    case T.WATER:  drawIsoWater(ctx, px, py, frame); break
-    case T.FLOWER: drawIsoFlower(ctx, px, py); break
-    case T.SIGN:   drawIsoSignBase(ctx, px, py); break
-    // T.WALL is declared but never placed by any generator in tileMaps.js
-    // (verified — only referenced in canMove's collision list) — no
-    // dedicated iso visual added for it. T.EXIT_*/T.ITEM_SPOT/T.NPC/T.ENEMY
-    // fall through to the grass default too: exits/item-spot iso shapes are
-    // out of this stage's scope, and NPC/enemy tiles must render as plain
-    // grass underneath since their sprites aren't drawn until a later stage.
-    default:       drawIsoGrass(ctx, px, py)
-  }
-}
-
-// -- Raised drawers (pass 2 — extend upward from the tile's visual "ground"
-// anchor, i.e. the diamond's center depth, not its top vertex) --
-
-function drawIsoTallBlades(ctx, px, py) {
-  const cx = px + ISO_W / 2
-  const groundY = py + ISO_H / 2
-  ctx.strokeStyle = C.TALL_STRIPE
-  ctx.lineWidth = 2
-  const blades = [[-5, 6], [0, 8], [5, 6]]
-  for (const [dx, h] of blades) {
-    ctx.beginPath()
-    ctx.moveTo(cx + dx, groundY)
-    ctx.lineTo(cx + dx, groundY - h)
-    ctx.stroke()
-  }
-}
-
-function drawIsoTreeCanopy(ctx, px, py) {
-  const cx = px + ISO_W / 2
-  const groundY = py + ISO_H / 2
-
-  // Trunk: small dark box, base planted at the tile's ground anchor
-  const trunkW = 4, trunkH = 8
-  ctx.fillStyle = '#4a3018'
-  ctx.fillRect(cx - trunkW / 2, groundY - trunkH, trunkW, trunkH)
-
-  // Canopy: ellipse above the trunk, ~1.8x the tile (diamond) height tall —
-  // this is the part that spills upward into neighboring tiles' screen-space
-  // and relies on the two-pass draw order above to occlude correctly.
-  const canopyH = ISO_H * 1.8
-  const canopyW = ISO_W * 0.85
-  const canopyCy = groundY - trunkH - canopyH / 2 + 4
-  ctx.fillStyle = C.TREE_IN
-  ctx.beginPath()
-  ctx.ellipse(cx, canopyCy, canopyW / 2, canopyH / 2, 0, 0, Math.PI * 2)
-  ctx.fill()
-  // Darker underside for a touch of depth/shading
-  ctx.fillStyle = C.TREE_BG
-  ctx.beginPath()
-  ctx.ellipse(cx, canopyCy + canopyH / 2 - 3, canopyW / 2 - 2, 4, 0, 0, Math.PI * 2)
-  ctx.fill()
-}
-
-function drawIsoSignPost(ctx, px, py) {
-  const cx = px + ISO_W / 2
-  const groundY = py + ISO_H / 2
-
-  ctx.fillStyle = C.SIGN_BODY
-  ctx.fillRect(cx - 1, groundY - 8, 2, 8)
-  // Board — a darker-left/lighter-right pseudo-3D box so it reads as a sign
-  ctx.fillStyle = C.SIGN_BODY
-  ctx.fillRect(cx - 4, groundY - 12, 8, 5)
-  ctx.fillStyle = C.SIGN_LINE
-  ctx.fillRect(cx - 3, groundY - 11, 6, 1)
-  ctx.fillRect(cx - 3, groundY - 9, 4, 1)
-}
-
-function drawIsoRaised(ctx, tileType, px, py) {
-  switch (tileType) {
-    case T.TALL: drawIsoTallBlades(ctx, px, py); break
-    case T.TREE: drawIsoTreeCanopy(ctx, px, py); break
-    case T.SIGN: drawIsoSignPost(ctx, px, py); break
-    default: break
-  }
-}
-
-// Draws the full map every frame in back-to-front painter's-algorithm order
-// (row 0 → MAP_ROWS-1, col 0 → MAP_COLS-1 within each row) — no viewport
-// culling yet, matching the current tile-map's small entity count.
-export function renderMapIso(ctx, tileMap, camX, camY, frame = 0) {
-  ctx.fillStyle = C.ISO_BG
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-
-  const rows = tileMap?.length ?? MAP_ROWS
-
-  // Pass 1 — every tile's flat floor diamond.
-  for (let r = 0; r < rows; r++) {
-    const cols = tileMap?.[r]?.length ?? MAP_COLS
-    for (let c = 0; c < cols; c++) {
-      const raw = tileMap?.[r]?.[c]
-      const tileType = typeof raw === 'object' ? raw.type : raw
-      const { px, py } = isoProject(c, r, camX, camY)
-      drawIsoFloor(ctx, tileType, px, py, c, r, frame)
-    }
-  }
-
-  // Pass 2 — raised decorations, drawn after ALL floors so they're never
-  // clipped by a "closer" tile's flat diamond (see comment block above).
-  for (let r = 0; r < rows; r++) {
-    const cols = tileMap?.[r]?.length ?? MAP_COLS
-    for (let c = 0; c < cols; c++) {
-      const raw = tileMap?.[r]?.[c]
-      const tileType = typeof raw === 'object' ? raw.type : raw
-      const { px, py } = isoProject(c, r, camX, camY)
-      drawIsoRaised(ctx, tileType, px, py)
-    }
-  }
-}
-
-// -- Player sprite --
-
-const DIR_FRAMES = { down: 0, left: 1, right: 2, up: 3 }
-
-export function renderPlayer(ctx, playerX, playerY, direction, walkFrame, eggColor, camX, camY) {
-  const px = Math.round(playerX * TILE - camX)
-  const py = Math.round(playerY * TILE - camY)
-
-  const companion = window.__kq_companionEgg
-  const off = getSpriteOff()
-  if (off && companion) {
-    const sCtx = off.getContext('2d')
-    sCtx.imageSmoothingEnabled = false
-    sCtx.clearRect(0, 0, 32, 32)
-    renderEggSprite(sCtx, { ...companion, t: performance.now() / 1000, canvasSize: 32 })
-    ctx.imageSmoothingEnabled = false
-    ctx.drawImage(off, px, py, TILE, TILE)
-  }
-}
-
-// Iso counterpart of renderPlayer (Stage 3) — reprojects the same
-// interpolated tile-space (playerX, playerY) through isoProject() every
-// frame, so the existing walk-tween (still computed in tile-space floats in
-// useWorldGameLoop.js, unchanged) glides smoothly across the diamond floor
-// instead of snapping tile-to-tile. Anchors the sprite's bottom-center at
-// the tile's visual "ground" point (px+ISO_W/2, py+ISO_H/2) — the same
-// center-depth anchor used for tree trunks/sign posts in Stage 2 — so the
-// egg reads as standing ON the diamond surface, extending upward from there.
-export function renderPlayerIso(ctx, playerX, playerY, direction, walkFrame, eggColor, camX, camY) {
-  const companion = window.__kq_companionEgg
-  const off = getSpriteOff()
-  if (!off || !companion) return
-
-  const { px: tpx, py: tpy } = isoProject(playerX, playerY, camX, camY)
-  const groundX = tpx + ISO_W / 2
-  const groundY = tpy + ISO_H / 2
-
-  const sCtx = off.getContext('2d')
-  sCtx.imageSmoothingEnabled = false
-  sCtx.clearRect(0, 0, 32, 32)
-  renderEggSprite(sCtx, { ...companion, t: performance.now() / 1000, canvasSize: 32 })
-  ctx.imageSmoothingEnabled = false
-
-  const spriteW = 28
-  const spriteH = 28
-  const dx = Math.round(groundX - spriteW / 2)
-  const dy = Math.round(groundY - spriteH)
-  ctx.drawImage(off, dx, dy, spriteW, spriteH)
-}
-
 // -- Collision --
 
 export function canMove(tileMap, col, row) {
@@ -870,21 +422,6 @@ export function canMove(tileMap, col, row) {
   const t = typeof raw === 'object' ? raw.type : raw
   if (t === undefined) return false
   return ![T.TREE, T.WATER, T.WALL, T.NPC, T.SIGN, T.ENEMY].includes(t)
-}
-
-// -- Camera clamp (centers map when smaller than viewport) --
-
-export function getCamera(playerX, playerY, viewW, viewH) {
-  const mapPixW = MAP_COLS * TILE
-  const mapPixH = MAP_ROWS * TILE
-  // When map is narrower/shorter than viewport, center it (negative cam offsets map inward)
-  const camX = mapPixW <= viewW
-    ? -(viewW - mapPixW) / 2
-    : Math.max(0, Math.min(playerX * TILE - viewW / 2, mapPixW - viewW))
-  const camY = mapPixH <= viewH
-    ? -(viewH - mapPixH) / 2
-    : Math.max(0, Math.min(playerY * TILE - viewH / 2, mapPixH - viewH))
-  return { camX, camY }
 }
 
 // -- Exit check --

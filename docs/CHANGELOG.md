@@ -1,5 +1,28 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — World map: Pandora-style pseudo-3D rewrite (replaces flat + iso renderers)
+
+Full replacement of the world map's rendering system, built and verified in 6 stages. All gameplay logic (movement, collision, battle triggers, tall-grass encounters, chests, signs, NPCs, maze, boss, fog-of-war) is unchanged — only the drawing changed. An earlier isometric-diamond approach (3 stages, commits `bcd8e06`/`e702ce8`/`d0ad20f`) was built first, then replaced by a design pivot to this Y-sorted technique before it was finished; that iso code was left dormant behind a debug flag through Stages 1-5 of this rewrite and fully deleted in Stage 6 once Pandora was confirmed solid — recoverable from git history if ever needed.
+
+### src/lib/tileEngine.js
+- Removed entirely: the original flat 16px GB-palette tile renderer (`renderMap`, `drawGrass`/`drawTall`/`drawTree`/`drawPath`/`drawWater`/`drawExit`/`drawFlower`/`drawSign`/`drawNPC`/`drawEnemy`(local)/`drawItemSpot`, the `C` color palette, `getCamera`), the flat `renderPlayer`, and the entire isometric renderer (`isoProject`/`isoUnproject`, `ISO_W`/`ISO_H`, `drawIsoTile` and all `drawIso*` functions, `renderMapIso`, `renderPlayerIso`).
+- Added (across Stages 1-6): `PANDORA_TILE=32`; ground-tile drawers with stable per-tile texture (`drawPandoraGrass` speckle+highlight, `drawPandoraPath` pebbles, `drawPandoraTallGrass` leaning blades, `drawPandoraWater` 2-frame shimmer); standing-object drawers anchored at each tile's ground-contact point (`drawPandoraTree` — trunk+two-tone canopy+highlight, intentionally taller than one tile; `drawPandoraRock` — shaded boulder, reused for walls; `drawPandoraSignStanding`; `drawPandoraNPCStanding` — owl gets a dedicated beak/ear-tuft silhouette, other NPCs a generic waving-arm figure); `renderMapPandora(ctx, tileMap, camX, camY, frame, extraEntities)` — draws ground as one flat pass, then Y-sorts trees/rocks/signs/NPCs plus any caller-supplied dynamic entities (player/enemies/chests/portals) by ground-contact screen-Y and draws back-to-front; `renderPlayerPandora` — drop shadow + companion egg scaled to 40×48.
+
+### src/lib/drawEnemy.js
+- Added a second, fully independent sprite set: `drawEnemyPandora()` + `PANDORA_DRAW_FNS`, 10 rounded/volumetric enemy types (bunny, slime, fox, ghost, snake, egg_pawn, leaf_sprite, grumpy_mole, mushroom_imp, baby_zombie) with drop shadows and an upper-left-light/lower-right-shade convention via a shared `pBody()` helper. The original flat pixel-art set (`drawEnemy`/`DRAW_FNS`/`drawEnemyHurt`) is completely untouched — it's still the only enemy art the battle screen (`EnemyCanvas.jsx`) uses; live-verified a real battle still renders correctly after the rewrite.
+
+### src/lib/worldDrawHelpers.js
+- Removed the flat `drawChest` and `drawPlayerGlow`. Added `drawPandoraChest` (box+lid+clasp+shadow) and `drawPandoraPlayerGlow` (same two-ring pulse, radii doubled for the 32px tile size). `drawMazePortal` unchanged and reused as-is for both the entry portal and maze exit portal.
+
+### src/hooks/useWorldGameLoop.js
+- Removed the `window.__kq_isoDebug`/`window.__kq_pandoraDebug` flags and all conditional branching — the Pandora renderer is now unconditional, the sole render path. Player, enemies, and chests are Y-sorted together each frame via `renderMapPandora`'s `extraEntities` param. Ported every feature that previously only worked in the flat-renderer branch so nothing regressed when it was deleted: maze entry/exit portals (now Y-sorted like everything else, so the player draws correctly over/under them), maze fog-of-war + torch-ring DOM overlay positioning, the ambient player glow (skipped inside the maze, where fog/torch replaces it — same as before), and the saiyan/rainbow-star boost's rotating-hue shadow effect on the player sprite. Also added: enemy "!" alert indicators (woken bunny/snake aggro/world boss, previously flat-renderer-only) and the ghost_wisp gentle vertical bob.
+
+### src/components/WorldScreen.jsx
+- Removed a stale unused import (`drawChest`, `drawPlayerGlow` from `worldDrawHelpers.js` — imported but never called in this file even before this rewrite).
+
+### Verification
+Each of the 6 stages was independently verified live in Chrome (screenshots + zoomed crops + `read_console_messages`) before the next was authorized, following the same staged-review process used for the iso track. Final Stage 6 pass additionally verified: the sole (no-flag) renderer loads correctly on fresh navigation; a real battle triggered from the world map (walked directly onto an Egg Pawn) renders and plays correctly end-to-end, confirming the battle screen's enemy art is unaffected; zero console errors throughout. Not independently re-verified live this session: the maze fog/torch/portal port (reasoned carefully from the original flat-renderer code, not re-walked into a maze) and the saiyan-boost glow effect (no active boost item available to test) — both are straightforward ports of already-working logic, flagged for a follow-up spot-check if anyone notices an issue.
+
 ## 2026-07-02 — Audio expansion: new SFX/BGM tracks, sound toggle removed
 
 ### src/lib/audio.js

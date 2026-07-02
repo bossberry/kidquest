@@ -48,24 +48,40 @@ const P = {
   GRASS_BASE:    '#5c8a3c',
   GRASS_DOT:     '#3f6b28',
   GRASS_HILITE:  '#7aac54',
+  GRASS_LINE:    '#3a6a20',
   PATH_BASE:     '#c4a265',
   PATH_LIGHT:    '#d4b47f',
   PATH_DOT:      '#96794a',
+  PATH_LINE:     '#a08050',
   TALL_A:        '#4a7a2c',
   TALL_B:        '#6ab04c',
-  WATER_BASE:    '#2a6aaa',
-  WATER_SHIMMER: '#4a8acc',
+  WATER_BASE:    '#2a8aaa',
+  WATER_SHIMMER: '#4aaac8',
+  WATER_FOAM:    '#eafaff',
+  SHORE_FRINGE:  '#e0d0a0',
 }
 
 // Small palette of tree-canopy greens (Fix 3 — natural forest variation, not
 // clones) — picked from within the brief's #2d6a1e–#4a9a2c range.
 const TREE_CANOPY_COLORS = ['#2d6a1e', '#357a22', '#3d8a28', '#459228', '#4a9a2c']
 
+// -- Neighbor lookups (Round 2 polish) — used for water-edge foam, shoreline
+// fringes on adjacent land tiles, and palm-vs-round tree selection. `tileMap`
+// may be undefined/out-of-bounds at any given (r,c); treated as non-water.
+function tileTypeAt(tileMap, row, col) {
+  const raw = tileMap?.[row]?.[col]
+  return typeof raw === 'object' ? raw.type : raw
+}
+function isWaterAt(tileMap, row, col) {
+  return tileTypeAt(tileMap, row, col) === T.WATER
+}
+const NEIGHBOR_DIRS = [[-1, 0, 'top'], [1, 0, 'bottom'], [0, -1, 'left'], [0, 1, 'right']]
+
 // -- Pandora ground drawers (Stage 1 — flat ground layer only, no standing
 // objects/entities yet; those land in later stages alongside the Y-sort
 // depth system) --
 
-function drawPandoraGrass(ctx, px, py, col, row) {
+function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
   ctx.fillStyle = P.GRASS_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
@@ -103,9 +119,87 @@ function drawPandoraGrass(ctx, px, py, col, row) {
   ctx.globalAlpha = 0.08
   ctx.fillRect(px, py + PANDORA_TILE - 2, PANDORA_TILE, 2)
   ctx.globalAlpha = 1
+
+  // Round 2 Fix 3 — 2-3 subtle curved ground-contour strokes, seeded so
+  // they're stable, suggesting grass blades/terrain rather than a flat fill.
+  const lineCount = 2 + (h % 2)
+  for (let i = 0; i < lineCount; i++) {
+    const dh = tileHash(col * 17 + i * 3, row * 23 + i)
+    const lx = 4 + (dh % (PANDORA_TILE - 8))
+    const ly = 6 + ((dh * 7) % (PANDORA_TILE - 12))
+    const lw = 6 + (dh % 8)
+    ctx.strokeStyle = P.GRASS_LINE
+    ctx.globalAlpha = 0.12
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(px + lx, py + ly)
+    ctx.quadraticCurveTo(px + lx + lw / 2, py + ly - 3, px + lx + lw, py + ly)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  // Round 2 Fix 3 — shoreline fringe where this land tile touches water.
+  if (tileMap) {
+    for (const [dr, dc, side] of NEIGHBOR_DIRS) {
+      if (!isWaterAt(tileMap, row + dr, col + dc)) continue
+      ctx.fillStyle = P.SHORE_FRINGE
+      ctx.globalAlpha = 0.3
+      if (side === 'top')    ctx.fillRect(px, py, PANDORA_TILE, 4)
+      if (side === 'bottom') ctx.fillRect(px, py + PANDORA_TILE - 4, PANDORA_TILE, 4)
+      if (side === 'left')   ctx.fillRect(px, py, 4, PANDORA_TILE)
+      if (side === 'right')  ctx.fillRect(px + PANDORA_TILE - 4, py, 4, PANDORA_TILE)
+      ctx.globalAlpha = 1
+    }
+  }
+
+  // Round 2 Fix 5 — ambient scattered details (tufts/rocks/flowers), each
+  // gated on its own hash so the three don't correlate with each other or
+  // with the texture rolls above. Purely decorative, drawn as part of the
+  // ground layer (before standing objects/entities).
+  const tuftRoll = tileHash(col * 41 + 3, row * 59 + 7) % 100
+  if (tuftRoll < 25) {
+    const tx = px + 6 + (tuftRoll % (PANDORA_TILE - 12))
+    const ty = py + 8 + ((tuftRoll * 3) % (PANDORA_TILE - 14))
+    ctx.strokeStyle = tuftRoll % 2 === 0 ? P.TALL_A : P.TALL_B
+    ctx.lineWidth = 2
+    for (const lean of [-1, 1]) {
+      ctx.beginPath()
+      ctx.moveTo(tx, ty)
+      ctx.lineTo(tx + lean * 3, ty - 7)
+      ctx.stroke()
+    }
+  }
+
+  const rockRoll = tileHash(col * 83 + 11, row * 97 + 5) % 100
+  if (rockRoll < 8) {
+    const rx = px + 8 + (rockRoll % (PANDORA_TILE - 16))
+    const ry = py + 10 + ((rockRoll * 5) % (PANDORA_TILE - 18))
+    ctx.fillStyle = '#8a8a8a'
+    ctx.beginPath()
+    ctx.ellipse(rx, ry, 5 + (rockRoll % 3), 3 + (rockRoll % 2), 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.beginPath()
+    ctx.ellipse(rx - 1.5, ry - 1.5, 2, 1.2, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  const flowerRoll = tileHash(col * 13 + 29, row * 29 + 13) % 100
+  if (flowerRoll < 5) {
+    const fx = px + 6 + (flowerRoll % (PANDORA_TILE - 12))
+    const fy = py + 8 + ((flowerRoll * 7) % (PANDORA_TILE - 14))
+    const petalColor = ['#ff88aa', '#ffdd44', '#ffffff'][flowerRoll % 3]
+    ctx.strokeStyle = '#3f6b28'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(fx, fy + 4); ctx.lineTo(fx, fy); ctx.stroke()
+    ctx.fillStyle = petalColor
+    ctx.beginPath()
+    ctx.arc(fx, fy - 1, 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
 }
 
-function drawPandoraPath(ctx, px, py, col, row) {
+function drawPandoraPath(ctx, px, py, col, row, tileMap) {
   ctx.fillStyle = P.PATH_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
@@ -130,12 +224,41 @@ function drawPandoraPath(ctx, px, py, col, row) {
   ctx.globalAlpha = 0.08
   ctx.fillRect(px, py + PANDORA_TILE - 2, PANDORA_TILE, 2)
   ctx.globalAlpha = 1
+
+  // Round 2 Fix 3 — 2-3 parallel curved lines ("raked sand"/tire-track look).
+  const lineCount = 2 + (h % 2)
+  for (let i = 0; i < lineCount; i++) {
+    const dh = tileHash(col * 19 + i * 5, row * 29 + i * 2)
+    const ly = 5 + (i * 9) + (dh % 4)
+    ctx.strokeStyle = P.PATH_LINE
+    ctx.globalAlpha = 0.1
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(px + 2, py + ly)
+    ctx.quadraticCurveTo(px + PANDORA_TILE / 2, py + ly + (dh % 5) - 2, px + PANDORA_TILE - 2, py + ly)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  // Round 2 Fix 3 — shoreline fringe where this path touches water.
+  if (tileMap) {
+    for (const [dr, dc, side] of NEIGHBOR_DIRS) {
+      if (!isWaterAt(tileMap, row + dr, col + dc)) continue
+      ctx.fillStyle = P.SHORE_FRINGE
+      ctx.globalAlpha = 0.3
+      if (side === 'top')    ctx.fillRect(px, py, PANDORA_TILE, 4)
+      if (side === 'bottom') ctx.fillRect(px, py + PANDORA_TILE - 4, PANDORA_TILE, 4)
+      if (side === 'left')   ctx.fillRect(px, py, 4, PANDORA_TILE)
+      if (side === 'right')  ctx.fillRect(px + PANDORA_TILE - 4, py, 4, PANDORA_TILE)
+      ctx.globalAlpha = 1
+    }
+  }
 }
 
-function drawPandoraTallGrass(ctx, px, py, col, row) {
+function drawPandoraTallGrass(ctx, px, py, col, row, tileMap) {
   // Grass base underneath, then 6-8 vertical blade strokes in varying
   // greens with a slight per-blade left/right lean for a sway feel.
-  drawPandoraGrass(ctx, px, py, col, row)
+  drawPandoraGrass(ctx, px, py, col, row, tileMap)
   const h = tileHash(col, row)
   const bladeCount = 6 + (h % 3)
   for (let i = 0; i < bladeCount; i++) {
@@ -152,20 +275,63 @@ function drawPandoraTallGrass(ctx, px, py, col, row) {
   }
 }
 
-function drawPandoraWater(ctx, px, py, frame) {
+function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
   ctx.fillStyle = P.WATER_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
-  // Existing 2-frame flicker convention (frame < 30 vs >= 30), just drawn as
-  // shimmer lines instead of a flat color swap.
+  // Wave shimmer — lighter streaks that drift vertically over time (Round 2
+  // Fix 2 replaces the old 2-frame flicker-swap with continuous motion).
+  const t = Date.now() / 1000
   ctx.strokeStyle = P.WATER_SHIMMER
   ctx.lineWidth = 2
-  ctx.globalAlpha = 0.55
-  const rows = frame < 30 ? [10, 20] : [6, 16, 26]
-  for (const ly of rows) {
+  ctx.globalAlpha = 0.3
+  for (let i = 0; i < 3; i++) {
+    const baseY = 6 + i * 10
+    const ly = ((baseY + t * 4) % (PANDORA_TILE - 4)) + 2
     ctx.beginPath()
     ctx.moveTo(px + 4, py + ly)
     ctx.lineTo(px + PANDORA_TILE - 4, py + ly)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+
+  // Inner foam patches — 2-3 irregular light blobs that slowly drift, seeded
+  // per-tile so different water tiles don't move in lockstep.
+  const h = tileHash(col, row)
+  for (let i = 0; i < 3; i++) {
+    const dh = tileHash(col * 7 + i, row * 13 + i * 5)
+    const driftX = Math.sin(t * 0.5 + dh) * 3
+    const driftY = Math.cos(t * 0.4 + dh) * 2
+    const fx = px + 6 + (dh % (PANDORA_TILE - 12)) + driftX
+    const fy = py + 6 + ((dh * 3) % (PANDORA_TILE - 12)) + driftY
+    ctx.fillStyle = P.WATER_FOAM
+    ctx.globalAlpha = 0.2 + (dh % 3) * 0.06
+    ctx.beginPath()
+    ctx.ellipse(fx, fy, 3 + (dh % 3), 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+
+  // Edge foam — a wavy animated line along any border shared with a
+  // non-water tile (beach/shore edge), phase per Round 2's own formula.
+  const phase = (Date.now() / 500) % (Math.PI * 2)
+  ctx.strokeStyle = P.WATER_FOAM
+  ctx.lineWidth = 2
+  ctx.globalAlpha = 0.7
+  for (const [dr, dc, side] of NEIGHBOR_DIRS) {
+    if (tileMap && isWaterAt(tileMap, row + dr, col + dc)) continue
+    ctx.beginPath()
+    const steps = 6
+    for (let s = 0; s <= steps; s++) {
+      const frac = s / steps
+      const wave = Math.sin(phase + frac * Math.PI * 3 + h) * 2
+      let fx, fy
+      if (side === 'top')    { fx = px + frac * PANDORA_TILE; fy = py + 2 + wave }
+      if (side === 'bottom') { fx = px + frac * PANDORA_TILE; fy = py + PANDORA_TILE - 2 + wave }
+      if (side === 'left')   { fx = px + 2 + wave; fy = py + frac * PANDORA_TILE }
+      if (side === 'right')  { fx = px + PANDORA_TILE - 2 + wave; fy = py + frac * PANDORA_TILE }
+      if (s === 0) ctx.moveTo(fx, fy); else ctx.lineTo(fx, fy)
+    }
     ctx.stroke()
   }
   ctx.globalAlpha = 1
@@ -184,15 +350,21 @@ function drawPandoraShadow(ctx, cx, groundY, w, h) {
   ctx.fill()
 }
 
-function drawPandoraTree(ctx, px, py, col, row) {
+function drawPandoraTree(ctx, px, py, col, row, tileMap) {
   const cx = px + PANDORA_TILE / 2
   const groundY = py + PANDORA_TILE - 4
   const h = tileHash(col, row)
 
-  // Per-tree size/color variation (Fix 3) — seeded by tile position so it's
-  // stable across frames, breaks up the "identical clones = fence" look of
-  // a uniform tree border into something reading as a natural forest edge.
-  const canopyR = 18 + (h % 11)        // 18-28
+  // Round 2 Fix 4 — coastal tiles get a palm instead of a round tree.
+  const nearWater = tileMap && NEIGHBOR_DIRS.some(([dr, dc]) => isWaterAt(tileMap, row + dr, col + dc))
+  if (nearWater) { drawPandoraPalm(ctx, cx, groundY, h); return }
+
+  // Per-tree size/color variation — seeded by tile position so it's stable
+  // across frames, breaks up the "identical clones = fence" look of a
+  // uniform tree border into something reading as a natural forest edge.
+  // Round 2 Fix 4: canopy bumped up to 28-36px (was 18-28) for a more
+  // imposing presence.
+  const canopyR = 28 + (h % 9)         // 28-36
   const trunkH  = 10 + ((h * 3) % 9)   // 10-18
   const canopyColor = TREE_CANOPY_COLORS[h % TREE_CANOPY_COLORS.length]
 
@@ -213,7 +385,11 @@ function drawPandoraTree(ctx, px, py, col, row) {
     ctx.restore()
   }
 
-  drawPandoraShadow(ctx, cx, groundY, 40, 12)
+  // Round 2 Fix 4: shadow enlarged (50x14, was 40x12) and softened.
+  ctx.save()
+  ctx.globalAlpha = 0.6
+  drawPandoraShadow(ctx, cx, groundY, 50, 14)
+  ctx.restore()
 
   // Trunk, base planted at the ground point.
   const trunkW = 8
@@ -240,7 +416,25 @@ function drawPandoraTree(ctx, px, py, col, row) {
   ctx.fill()
   ctx.restore()
 
-  // Upper-left highlight blob (ambient light source convention).
+  // Round 2 Fix 4 — 3-4 small dark leaf clusters around the canopy rim to
+  // break up the perfect-circle silhouette.
+  const clusterCount = 3 + (h % 2)
+  for (let i = 0; i < clusterCount; i++) {
+    const dh = tileHash(col * 47 + i * 9, row * 61 + i)
+    const angle = (dh / 97) * Math.PI * 2
+    const lx = cx + Math.cos(angle) * canopyR * 0.85
+    const ly = canopyCy + Math.sin(angle) * canopyR * 0.85
+    ctx.save()
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = '#1d5010'
+    ctx.beginPath()
+    ctx.arc(lx, ly, 6 + (dh % 3), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+
+  // Upper-left highlight blob (ambient light source convention) + a second,
+  // smaller inner highlight for more depth (Round 2 Fix 4).
   ctx.save()
   ctx.globalAlpha = 0.5
   ctx.fillStyle = '#5ab040'
@@ -248,6 +442,64 @@ function drawPandoraTree(ctx, px, py, col, row) {
   ctx.arc(cx - 7, canopyCy - 7, canopyR * 0.55, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
+  ctx.save()
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = '#8ad868'
+  ctx.beginPath()
+  ctx.arc(cx - canopyR * 0.3, canopyCy - canopyR * 0.35, 12, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Round 2 Fix 4 — palm tree variant for tiles adjacent to water: curved
+// trunk, a fan of fronds, small coconut cluster. Ground-anchored the same
+// way as the round tree (drawPandoraShadow, then body extending upward).
+function drawPandoraPalm(ctx, cx, groundY, h) {
+  drawPandoraShadow(ctx, cx, groundY, 34, 10)
+
+  const trunkH = 30 + (h % 10) // 30-39, taller/leaner than a round tree
+  const lean = ((h % 7) - 3) * 1.5 // slight per-tree curve direction
+
+  // Curved trunk via a quadratic bezier.
+  ctx.strokeStyle = '#7a5a30'
+  ctx.lineWidth = 4
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(cx, groundY)
+  ctx.quadraticCurveTo(cx + lean * 2, groundY - trunkH * 0.6, cx + lean * 3.5, groundY - trunkH)
+  ctx.stroke()
+
+  const topX = cx + lean * 3.5
+  const topY = groundY - trunkH
+
+  // Fan of 5-6 fronds radiating from the trunk top.
+  const frondCount = 5 + (h % 2)
+  for (let i = 0; i < frondCount; i++) {
+    const dh = tileHash(i * 13 + 7, Math.round(h))
+    const angle = -Math.PI / 2 + (i - (frondCount - 1) / 2) * 0.42 + ((dh % 5) - 2) * 0.02
+    const len = 20 + (dh % 8)
+    const fx = topX + Math.cos(angle) * len
+    const fy = topY + Math.sin(angle) * len
+    ctx.save()
+    ctx.globalAlpha = 0.85
+    ctx.fillStyle = i % 2 === 0 ? '#2d6a1e' : '#3d8a28'
+    ctx.beginPath()
+    ctx.ellipse(
+      (topX + fx) / 2, (topY + fy) / 2,
+      len * 0.55, 5,
+      angle, 0, Math.PI * 2,
+    )
+    ctx.fill()
+    ctx.restore()
+  }
+
+  // Small coconut cluster at the frond base.
+  ctx.fillStyle = '#7a5a30'
+  for (const [dx, dy] of [[-3, 2], [3, 2], [0, -2]]) {
+    ctx.beginPath()
+    ctx.arc(topX + dx, topY + dy, 3, 0, Math.PI * 2)
+    ctx.fill()
+  }
 }
 
 function drawPandoraRock(ctx, px, py) {
@@ -420,14 +672,14 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
       const tileType = typeof raw === 'object' ? raw.type : raw
 
       switch (tileType) {
-        case T.PATH:  drawPandoraPath(ctx, px, py, c, r); break
-        case T.WATER: drawPandoraWater(ctx, px, py, frame); break
-        case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r); break
-        default:      drawPandoraGrass(ctx, px, py, c, r) // includes TREE/WALL ground + fallback + out-of-map
+        case T.PATH:  drawPandoraPath(ctx, px, py, c, r, tileMap); break
+        case T.WATER: drawPandoraWater(ctx, px, py, frame, c, r, tileMap); break
+        case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r, tileMap); break
+        default:      drawPandoraGrass(ctx, px, py, c, r, tileMap) // includes TREE/WALL ground + fallback + out-of-map
       }
 
       if (tileType === T.TREE) {
-        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r) })
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r, tileMap) })
       } else if (tileType === T.WALL) {
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
       } else if (tileType === T.SIGN) {

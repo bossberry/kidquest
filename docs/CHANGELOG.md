@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — World map visual polish (Pandora-style, round 2)
+
+Second polish pass on the Pandora-style world-map renderer. All gameplay logic unchanged.
+
+### src/components/WorldScreen.jsx
+- **Fix 1 (exit arrows + fade transition)**: new `exitsRef` scans the tile map once per screen (in `initScreen`) for every `T.EXIT_N/S/E/W` tile; `checkProximity()` (already run on every successful move, same function that drives `nearNPC`/`nearSign`) now also computes `nearExitDirs` — true per-direction when any exit tile of that type is within Manhattan distance 3. New always-mounted `ExitArrow` components at each screen edge toggle `opacity`/`pointerEvents` off `nearExitDirs[dir]` (200ms CSS transition, so it actually fades rather than popping) and pulse via a new `px-world-exit-arrow` keyframe animation when visible; tapping one calls the existing `handleExit(exitType)` directly (it's direction-driven, not tile-position-driven, so this works with no other changes). The pre-existing `transOverlay`-driven fade transition (already used by every screen change) was retuned rather than rebuilt: color `#14231a`→`#000`, duration 160ms→300ms (both `handleExit` and `confirmEnterMaze`), matching the round-trip "fade to black, load, fade back" the brief asked for.
+
+### src/lib/tileEngine.js
+- **Fix 2 (water)**: `drawPandoraWater` rewritten — base color `#2a8aaa`; wave shimmer now drifts continuously via `Date.now()`-based phase instead of the old 2-frame flicker-swap; added 2-3 inner foam patches that slowly drift per-tile; added animated wavy edge-foam along any border shared with a non-water neighbor (new `NEIGHBOR_DIRS`/`isWaterAt`/`tileTypeAt` helpers, reused by Fix 3/4 below too).
+- **Fix 3 (ground depth + shoreline)**: `drawPandoraGrass`/`drawPandoraPath` each gained 2-3 subtle curved contour/tire-track strokes (stable, hash-seeded) and a shoreline fringe on any edge touching water.
+- **Fix 4 (bigger trees + palm variant)**: `drawPandoraTree` canopy radius bumped to 28-36px (was 18-28), shadow enlarged+softened, added a second inner highlight and 3-4 rim leaf-clusters to break up the perfect-circle silhouette. New `drawPandoraPalm()` — curved trunk (bezier), 5-6 fan fronds, small coconut cluster — used automatically instead of the round tree when a tree tile is adjacent to water (no tileMaps.js changes; purely a rendering branch).
+- **Fix 5 (ambient density)**: `drawPandoraGrass` now also rolls, independently and hash-seeded, ~25% grass tufts, ~8% small rocks, ~5% tiny flowers per tile — purely decorative, drawn as part of the ground layer before any standing object/entity.
+
+### Verification
+Live-verified in Chrome: bigger trees with visible rim leaf-clusters and ambient grass tufts/flowers/rocks densely scattered across the map (zoomed crop confirms), zero console errors, build clean. **Not visually confirmed this pass**: the exit-arrow appearing/pulsing and the black fade transition specifically (automation movement didn't reliably cover the ~6 tiles needed to reach a real exit in the time available — a recurring limitation this session, not a code concern) — both reuse already-proven mechanisms (the same proximity-check pattern as NPC/sign detection, and a pre-existing fade system that's been running under every screen transition all session, just retuned in color/timing), so confidence is high despite the missing screenshot; and water/palm-tree rendering, since no live map currently places `T.WATER` tiles to visually confirm against (verified by code review + the "no live map uses water" fact already noted in earlier Stage 2 notes).
+
 ## 2026-07-02 — World map visual polish (Pandora-style, round 1)
 
 Follow-up visual polish pass on the Pandora-style world-map renderer (see the rewrite entry directly below). All gameplay logic unchanged.

@@ -62,6 +62,42 @@ function DpadArrow({ dir }) {
   )
 }
 
+// Round 2 Fix 1 (2026-07-02) — pulsing screen-edge exit indicator. Always
+// mounted (opacity/pointerEvents toggle on `visible`, not conditional
+// render) so the 200ms opacity transition can actually animate instead of
+// popping in/out.
+const EXIT_ARROW_POS = {
+  N: { top: 76, left: '50%', transform: 'translateX(-50%)' },
+  S: { bottom: 100, left: '50%', transform: 'translateX(-50%)' },
+  W: { left: 12, top: '50%', transform: 'translateY(-50%)' },
+  E: { right: 12, top: '50%', transform: 'translateY(-50%)' },
+}
+function ExitArrow({ dir, visible, onClick }) {
+  const rot = { N: 0, E: 90, S: 180, W: 270 }[dir]
+  return (
+    <button
+      className={visible ? 'px-world-exit-arrow' : 'px-world-round'}
+      onClick={onClick}
+      style={{
+        position: 'absolute', ...EXIT_ARROW_POS[dir],
+        width: 44, height: 44,
+        background: 'rgba(255,255,255,0.35)',
+        border: '2px solid rgba(255,255,255,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 200ms ease',
+        zIndex: 26, cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 16 16" style={{ transform: `rotate(${rot}deg)`, pointerEvents: 'none' }}>
+        <path d="M8 2 L14 12 L2 12 Z" fill="#fff" />
+      </svg>
+    </button>
+  )
+}
+
 const VALID_DYNAMIC = new Set(['NW', 'NE', 'SW', 'SE', 'BOSS', 'MAZE'])
 const BOSS_TILE = { col: 7, row: 3 }
 
@@ -89,6 +125,7 @@ export default function WorldScreen({ navigate }) {
   const [transOverlay, setTransOverlay] = useState(0)
   const [nearNPC, setNearNPC] = useState(null)
   const [nearSign, setNearSign] = useState(null)
+  const [nearExitDirs, setNearExitDirs] = useState({ N: false, S: false, E: false, W: false }) // Round 2 Fix 1
   const [dialogue, setDialogue] = useState(null)
   const [encounterFlash, setEncounterFlash] = useState(false)
 
@@ -96,6 +133,7 @@ export default function WorldScreen({ navigate }) {
   const gameRef      = useRef(null)
   const tileMapRef   = useRef(null)
   const specialsRef  = useRef({ npcs: [], signs: [] })
+  const exitsRef     = useRef([]) // [{ col, row, type }] — scanned per-screen (Round 2 Fix 1)
   const screenIdRef  = useRef(screenId)
   const transRef     = useRef(transitioning)
   const dialogueRef  = useRef(dialogue)
@@ -182,6 +220,17 @@ export default function WorldScreen({ navigate }) {
 
     tileMapRef.current  = tileMap
     specialsRef.current = findSpecials(tileMap)
+    // Round 2 Fix 1 — scan once per screen for exit-arrow proximity checks.
+    const exits = []
+    for (let r = 0; r < tileMap.length; r++) {
+      for (let c = 0; c < tileMap[r].length; c++) {
+        const raw = tileMap[r][c]
+        const t = typeof raw === 'object' ? raw.type : raw
+        if ([T.EXIT_N, T.EXIT_S, T.EXIT_E, T.EXIT_W].includes(t)) exits.push({ col: c, row: r, type: t })
+      }
+    }
+    exitsRef.current = exits
+    setNearExitDirs({ N: false, S: false, E: false, W: false })
     gameRef.current = {
       col: startPos.col, row: startPos.row,
       displayX: startPos.col, displayY: startPos.row,
@@ -346,6 +395,17 @@ export default function WorldScreen({ navigate }) {
     const near = (a) => Math.abs(a.col - col) + Math.abs(a.row - row) <= 2
     setNearNPC(npcs.find(near) || null)
     setNearSign(signs.find(near) || null)
+
+    // Round 2 Fix 1 — within 3 tiles (Manhattan) of any exit tile of a given
+    // direction shows that direction's pulsing edge arrow.
+    const nearExit = (a) => Math.abs(a.col - col) + Math.abs(a.row - row) <= 3
+    const exits = exitsRef.current
+    setNearExitDirs({
+      N: exits.some(e => e.type === T.EXIT_N && nearExit(e)),
+      S: exits.some(e => e.type === T.EXIT_S && nearExit(e)),
+      E: exits.some(e => e.type === T.EXIT_E && nearExit(e)),
+      W: exits.some(e => e.type === T.EXIT_W && nearExit(e)),
+    })
   }, [])
 
   // ── Screen transition ────────────────────────────────────────────────────────
@@ -395,8 +455,8 @@ export default function WorldScreen({ navigate }) {
       dispatch({ type: ACTIONS.MOVE_SCREEN, payload: targetId })
       dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: targetId })
       setTransOverlay(0)
-      transTimer.current = setTimeout(() => setTransitioning(false), 170)
-    }, 160)
+      transTimer.current = setTimeout(() => setTransitioning(false), 310)
+    }, 300)
   }, [dispatch, initScreen])
 
   // ── Player movement ──────────────────────────────────────────────────────────
@@ -504,8 +564,8 @@ export default function WorldScreen({ navigate }) {
       dispatch({ type: ACTIONS.MOVE_SCREEN, payload: 'MAZE' })
       dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: 'MAZE' })
       setTransOverlay(0)
-      transTimer.current = setTimeout(() => setTransitioning(false), 170)
-    }, 160)
+      transTimer.current = setTimeout(() => setTransitioning(false), 310)
+    }, 300)
   }
   const declineEnterMaze = () => setMazeConfirm(false)
 
@@ -641,11 +701,14 @@ export default function WorldScreen({ navigate }) {
         background: 'rgba(255,220,100,0.04)',
       }} />
 
-      {/* Fade overlay */}
+      {/* Fade-to-black map transition (Round 2 Fix 1, 2026-07-02) — smooth
+          cinematic 300ms fade out / 300ms fade back, tuned from the
+          pre-existing 160ms near-black fade (see handleExit/confirmEnterMaze
+          below, which drive transOverlay 0→1→0 on the same timing). */}
       <div style={{
-        position: 'absolute', inset: 0, background: '#14231a',
+        position: 'absolute', inset: 0, background: '#000',
         opacity: transOverlay, pointerEvents: 'none',
-        transition: 'opacity 160ms ease', zIndex: 20,
+        transition: 'opacity 300ms ease', zIndex: 20,
       }} />
 
       {/* Encounter flash */}
@@ -698,6 +761,13 @@ export default function WorldScreen({ navigate }) {
           WebkitTapHighlightColor: 'transparent',
         }}>📋 อ่าน</button>
       )}
+
+      {/* Exit-edge arrows — Round 2 Fix 1: pulsing indicator toward a nearby
+          exit; tapping triggers the same exit as walking into the tile. */}
+      <ExitArrow dir="N" visible={nearExitDirs.N} onClick={() => handleExit(T.EXIT_N)} />
+      <ExitArrow dir="S" visible={nearExitDirs.S} onClick={() => handleExit(T.EXIT_S)} />
+      <ExitArrow dir="W" visible={nearExitDirs.W} onClick={() => handleExit(T.EXIT_W)} />
+      <ExitArrow dir="E" visible={nearExitDirs.E} onClick={() => handleExit(T.EXIT_E)} />
 
       {/* D-pad — bottom center, overlays on canvas. Fix 4: circular tactile
           buttons on a translucent blurred backing circle, replacing the old

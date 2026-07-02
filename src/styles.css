@@ -607,6 +607,10 @@ button,input,select,textarea,.card,[class*="card"],[class*="btn"],[class*="panel
 button.px-world-round{border-radius:50%!important}
 button.px-world-pill{border-radius:30px!important}
 
+/* World map exit-edge arrows (Round 2 Fix 1, 2026-07-02) — gentle pulse loop. */
+@keyframes px-exit-arrow-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+button.px-world-exit-arrow{border-radius:50%!important;animation:px-exit-arrow-pulse 1s ease-in-out infinite}
+
 /* Pixel box panels */
 .px-box{background:var(--px-dark);border:var(--px-border-style);box-shadow:var(--px-shadow);border-radius:0;padding:12px}
 .px-box-light{background:var(--px-mid);border:2px solid var(--px-light);box-shadow:3px 3px 0 var(--px-dark);border-radius:0;padding:12px}

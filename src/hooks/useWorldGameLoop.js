@@ -5,7 +5,7 @@ import {
   PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
 import { drawEnemy, drawEnemyPandora } from '../lib/drawEnemy.js'
-import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
+import { drawChest, drawPandoraChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const TILE = 16
@@ -358,14 +358,15 @@ export function useWorldGameLoop({
       ctx.clearRect(0, 0, vw, vh)
 
       if (window.__kq_pandoraDebug) {
-        // Stage 4/6 of the Pandora-style pseudo-3D world-map rewrite (this
+        // Stage 5/6 of the Pandora-style pseudo-3D world-map rewrite (this
         // supersedes the isometric track above — different, non-isometric
         // technique, kept behind its own flag so the two experiments never
-        // collide). Enemies now drawn via drawEnemyPandora() (new, separate
-        // from the flat renderer's drawEnemy() — that stays untouched), each
-        // Y-sorted into the same extraEntities list as the player so a tall
-        // standing object (once trees have interior placements, e.g. the
-        // boss map's tree-wall corridors) can still occlude them correctly.
+        // collide). Chests now Y-sorted into extraEntities alongside
+        // enemies/player (signs/NPCs are tile-baked standing objects, wired
+        // directly inside renderMapPandora's per-tile loop in tileEngine.js,
+        // same as trees/rocks). All interaction triggers (open/read/talk,
+        // tryMove's collision checks) are untouched shared game-state logic
+        // — only the drawing changed.
         const mapPixW = MAP_COLS * PANDORA_TILE
         const mapPixH = MAP_ROWS * PANDORA_TILE
         const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
@@ -384,6 +385,13 @@ export function useWorldGameLoop({
           const ex = e.col * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
           const ey = e.row * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
           pandoraEntities.push({ y: ey, draw: () => drawEnemyPandora(ctx, e.type, ex, ey, g.frame) })
+        }
+
+        for (const chest of chestsRef.current) {
+          if (chest.opened) continue
+          const cx = chest.col * PANDORA_TILE + PANDORA_TILE / 2 - pandoraCamX
+          const cy = chest.row * PANDORA_TILE + PANDORA_TILE * 0.8 - pandoraCamY
+          pandoraEntities.push({ y: cy, draw: () => drawPandoraChest(ctx, cx, cy, g.frame) })
         }
 
         renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame, pandoraEntities)

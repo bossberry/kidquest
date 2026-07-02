@@ -23,6 +23,36 @@ export function drawChest(ctx, x, y, frame) {
   ctx.fillRect(x + Math.floor(s / 2) - 1, y - 2, 2, 2)
 }
 
+// ── Pandora-style chest (2026-07-02, Stage 5/6) ───────────────────────────────
+// Separate from drawChest() above — that stays untouched as the flat
+// renderer's chest. Anchored at a ground-contact point like every other
+// Pandora standing object (trees/rocks/enemies/player), with a matching
+// drop shadow.
+
+export function drawPandoraChest(ctx, cx, groundY, frame) {
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, 10, 3, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  const w = 18, h = 12
+  const top = groundY - h
+
+  // Box body
+  ctx.fillStyle = '#8a5a2a'
+  ctx.fillRect(cx - w / 2, top + 5, w, h - 5)
+  // Lid (darker) with a lighter top face for a touch of 3D perspective
+  ctx.fillStyle = '#6a4218'
+  ctx.fillRect(cx - w / 2, top, w, 6)
+  ctx.fillStyle = '#a97638'
+  ctx.fillRect(cx - w / 2 + 1, top, w - 2, 2)
+  // Metal clasp
+  ctx.fillStyle = frame % 60 < 30 ? '#ffd700' : '#e0b400'
+  ctx.beginPath()
+  ctx.arc(cx, top + 6, 1.8, 0, Math.PI * 2)
+  ctx.fill()
+}
+
 // ── Chest spawning ────────────────────────────────────────────────────────────
 
 export function spawnChests(tileMap, enemyDefs) {

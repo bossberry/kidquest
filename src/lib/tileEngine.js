@@ -447,6 +447,71 @@ function drawPandoraRock(ctx, px, py) {
   ctx.stroke()
 }
 
+function drawPandoraSignStanding(ctx, px, py) {
+  const cx = px + PANDORA_TILE / 2
+  const groundY = py + PANDORA_TILE - 4
+
+  drawPandoraShadow(ctx, cx, groundY, 12, 4)
+
+  // Post
+  ctx.fillStyle = '#7a4a18'
+  ctx.fillRect(cx - 1.5, groundY - 12, 3, 12)
+  // Board, beige, sitting on the post
+  ctx.fillStyle = '#e8d8b0'
+  ctx.fillRect(cx - 8, groundY - 20, 16, 10)
+  ctx.strokeStyle = '#a08050'
+  ctx.lineWidth = 1
+  ctx.strokeRect(cx - 8, groundY - 20, 16, 10)
+  // Squiggly "text" lines
+  ctx.strokeStyle = '#7a6040'
+  ctx.lineWidth = 1.2
+  ctx.beginPath(); ctx.moveTo(cx - 5, groundY - 16); ctx.lineTo(cx + 5, groundY - 16); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx - 5, groundY - 13); ctx.lineTo(cx + 2, groundY - 13); ctx.stroke()
+}
+
+function drawPandoraNPCStanding(ctx, px, py, npcType) {
+  const cx = px + PANDORA_TILE / 2
+  const groundY = py + PANDORA_TILE - 4
+
+  drawPandoraShadow(ctx, cx, groundY, 18, 5)
+
+  const bodyColor = npcType === 'owl' ? '#8B6914' : '#40a860'
+  const bodyCy = groundY - 8
+  pandoraFriendlyBody(ctx, cx, bodyCy, 7, 8, bodyColor)
+  const headCy = bodyCy - 11
+  pandoraFriendlyBody(ctx, cx, headCy, 7, 6.5, npcType === 'owl' ? '#8B6914' : '#ffe0a0')
+  // Waving arm
+  ctx.strokeStyle = bodyColor
+  ctx.lineWidth = 2.4
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(cx + 6, bodyCy - 2)
+  ctx.lineTo(cx + 11, bodyCy - 9)
+  ctx.stroke()
+  // Simple eyes
+  ctx.fillStyle = '#1a1a1a'
+  ctx.beginPath(); ctx.arc(cx - 2, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 2, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
+}
+
+// Small local helper shared by drawPandoraNPCStanding — a lighter-weight
+// version of the enemy sprites' pBody() volumetric shading (kept local since
+// tileEngine.js doesn't import drawEnemy.js and this is the only standing
+// tile-object that needs it, unlike trees/rocks which use flat fills).
+function pandoraFriendlyBody(ctx, cx, cy, rx, ry, base) {
+  ctx.fillStyle = base
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.save()
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.ellipse(cx - rx * 0.3, cy - ry * 0.35, rx * 0.4, ry * 0.4, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
 // Stage 2: trees + rocks/walls drawn as standing objects, Y-sorted by their
 // ground-contact point (screen Y) so nearer objects correctly occlude
 // farther ones — this is the core of the pseudo-3D depth feel. Ground tiles
@@ -493,6 +558,11 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py) })
       } else if (tileType === T.WALL) {
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
+      } else if (tileType === T.SIGN) {
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraSignStanding(ctx, px, py) })
+      } else if (tileType === T.NPC) {
+        const npcType = (typeof raw === 'object' && raw.npc_type) || 'default'
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraNPCStanding(ctx, px, py, npcType) })
       }
     }
   }

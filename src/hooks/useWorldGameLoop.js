@@ -357,12 +357,12 @@ export function useWorldGameLoop({
       ctx.clearRect(0, 0, vw, vh)
 
       if (window.__kq_isoDebug) {
-        // Stage 1/6: empty iso floor only — static camera centered on the map,
-        // no entities/player drawn yet (those land in later stages).
+        // Stage 2/6: tile types drawn iso (still no entities/player — that's
+        // Stage 3+) — static camera centered on the map, unchanged from Stage 1.
         const center = isoProject(MAP_COLS / 2, MAP_ROWS / 2, 0, 0)
         const isoCamX = center.px - vw / 2
         const isoCamY = center.py - vh / 2
-        renderMapIso(ctx, tileMap, isoCamX, isoCamY)
+        renderMapIso(ctx, tileMap, isoCamX, isoCamY, g.frame)
         return
       }
 

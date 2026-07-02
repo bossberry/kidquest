@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import {
   T, canMove, getCamera, renderMap, renderPlayer,
   MAP_COLS, MAP_ROWS, isoProject, renderMapIso, renderPlayerIso,
+  PANDORA_TILE, renderMapPandora,
 } from '../lib/tileEngine.js'
 import { drawEnemy } from '../lib/drawEnemy.js'
 import { drawChest, drawPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
@@ -355,6 +356,19 @@ export function useWorldGameLoop({
       const vw = canvas.width
       const vh = canvas.height
       ctx.clearRect(0, 0, vw, vh)
+
+      if (window.__kq_pandoraDebug) {
+        // Stage 1/6 of the Pandora-style pseudo-3D world-map rewrite (this
+        // supersedes the isometric track above — different, non-isometric
+        // technique, kept behind its own flag so the two experiments never
+        // collide). Ground tiles only this stage (grass/path/water/tall
+        // grass) — no trees/objects/entities/Y-sort yet, and still a STATIC
+        // map-centered camera since there's no player drawn yet to follow.
+        const pandoraCamX = (MAP_COLS / 2) * PANDORA_TILE - vw / 2
+        const pandoraCamY = (MAP_ROWS / 2) * PANDORA_TILE - vh / 2
+        renderMapPandora(ctx, tileMap, pandoraCamX, pandoraCamY, g.frame)
+        return
+      }
 
       if (window.__kq_isoDebug) {
         // Stage 3/6: player egg drawn in iso space with the existing

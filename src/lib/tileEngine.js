@@ -251,6 +251,147 @@ export function renderMap(ctx, tileMap, npcData, enemyData, camX, camY, frame) {
   }
 }
 
+// -- Pandora-style pseudo-3D renderer (2026-07-02) --
+// Supersedes the isometric track above per a design pivot — a different,
+// non-isometric technique (Y-sorted top-down, painted textures, tall trees
+// with real height via canopies drawn above the tile). Kept behind its own
+// `window.__kq_pandoraDebug` flag and its own tile-size constant so it can
+// be built up in stages without disturbing either the original flat
+// renderer or the (now-superseded, left in place) isometric renderer.
+export const PANDORA_TILE = 32
+
+const P = {
+  GRASS_BASE:    '#5a8a3c',
+  GRASS_DOT:     '#3f6b28',
+  GRASS_HILITE:  '#7aac54',
+  PATH_BASE:     '#c8a96e',
+  PATH_LIGHT:    '#d8bd8a',
+  PATH_DOT:      '#9a7d4e',
+  TALL_A:        '#4a7a2c',
+  TALL_B:        '#6ab04c',
+  WATER_BASE:    '#2a6aaa',
+  WATER_SHIMMER: '#4a8acc',
+}
+
+// -- Pandora ground drawers (Stage 1 — flat ground layer only, no standing
+// objects/entities yet; those land in later stages alongside the Y-sort
+// depth system) --
+
+function drawPandoraGrass(ctx, px, py, col, row) {
+  ctx.fillStyle = P.GRASS_BASE
+  ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
+
+  // 3-5 stable per-tile speckle dots (hashed from col/row, not per-frame
+  // random, so the texture doesn't flicker every frame).
+  const h = tileHash(col, row)
+  ctx.fillStyle = P.GRASS_DOT
+  const dotCount = 3 + (h % 3)
+  for (let i = 0; i < dotCount; i++) {
+    const dh = tileHash(col * 7 + i, row * 13 + i * 3)
+    const dx = 3 + (dh % (PANDORA_TILE - 6))
+    const dy = 3 + ((dh * 5) % (PANDORA_TILE - 6))
+    ctx.fillRect(px + dx, py + dy, 2, 2)
+  }
+
+  // Faint highlight stripe along the top edge.
+  ctx.fillStyle = P.GRASS_HILITE
+  ctx.globalAlpha = 0.35
+  ctx.fillRect(px, py, PANDORA_TILE, 2)
+  ctx.globalAlpha = 1
+}
+
+function drawPandoraPath(ctx, px, py, col, row) {
+  ctx.fillStyle = P.PATH_BASE
+  ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
+
+  // Lighter center, darker toward the tile edges.
+  ctx.fillStyle = P.PATH_LIGHT
+  ctx.globalAlpha = 0.4
+  ctx.fillRect(px + 6, py + 6, PANDORA_TILE - 12, PANDORA_TILE - 12)
+  ctx.globalAlpha = 1
+
+  // 4-6 stable pebble dots.
+  const h = tileHash(col, row)
+  ctx.fillStyle = P.PATH_DOT
+  const pebbleCount = 4 + (h % 3)
+  for (let i = 0; i < pebbleCount; i++) {
+    const dh = tileHash(col * 11 + i, row * 5 + i * 7)
+    const dx = 2 + (dh % (PANDORA_TILE - 4))
+    const dy = 2 + ((dh * 3) % (PANDORA_TILE - 4))
+    ctx.fillRect(px + dx, py + dy, 2, 1)
+  }
+}
+
+function drawPandoraTallGrass(ctx, px, py, col, row) {
+  // Grass base underneath, then 6-8 vertical blade strokes in varying
+  // greens with a slight per-blade left/right lean for a sway feel.
+  drawPandoraGrass(ctx, px, py, col, row)
+  const h = tileHash(col, row)
+  const bladeCount = 6 + (h % 3)
+  for (let i = 0; i < bladeCount; i++) {
+    const dh = tileHash(col * 3 + i * 5, row * 9 + i)
+    const bx = 3 + (dh % (PANDORA_TILE - 6))
+    const bh = 8 + (dh % 5)
+    const lean = (dh % 2 === 0) ? -1 : 1
+    ctx.strokeStyle = (dh % 3 === 0) ? P.TALL_B : P.TALL_A
+    ctx.lineWidth = (dh % 4 === 0) ? 2 : 1
+    ctx.beginPath()
+    ctx.moveTo(px + bx, py + PANDORA_TILE - 2)
+    ctx.lineTo(px + bx + lean * 3, py + PANDORA_TILE - 2 - bh)
+    ctx.stroke()
+  }
+}
+
+function drawPandoraWater(ctx, px, py, frame) {
+  ctx.fillStyle = P.WATER_BASE
+  ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
+
+  // Existing 2-frame flicker convention (frame < 30 vs >= 30), just drawn as
+  // shimmer lines instead of a flat color swap.
+  ctx.strokeStyle = P.WATER_SHIMMER
+  ctx.lineWidth = 2
+  ctx.globalAlpha = 0.55
+  const rows = frame < 30 ? [10, 20] : [6, 16, 26]
+  for (const ly of rows) {
+    ctx.beginPath()
+    ctx.moveTo(px + 4, py + ly)
+    ctx.lineTo(px + PANDORA_TILE - 4, py + ly)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+}
+
+// Stage 1: ground tiles only. Trees/rocks/walls/flowers/signs/chests/NPCs/
+// enemies/exits all fall through to plain grass this stage — they're not in
+// scope until Stage 2+ (standing objects + Y-sort) per the staged plan.
+export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0) {
+  ctx.fillStyle = P.GRASS_BASE
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  const viewW = ctx.canvas.width
+  const viewH = ctx.canvas.height
+  const startCol = Math.max(0, Math.floor(camX / PANDORA_TILE))
+  const startRow = Math.max(0, Math.floor(camY / PANDORA_TILE))
+  const endCol = Math.min(MAP_COLS, Math.ceil((camX + viewW) / PANDORA_TILE))
+  const endRow = Math.min(MAP_ROWS, Math.ceil((camY + viewH) / PANDORA_TILE))
+
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      const px = c * PANDORA_TILE - camX
+      const py = r * PANDORA_TILE - camY
+      const raw = tileMap[r]?.[c]
+      const tileType = typeof raw === 'object' ? raw.type : raw
+
+      switch (tileType) {
+        case T.PATH:  drawPandoraPath(ctx, px, py, c, r); break
+        case T.WATER: drawPandoraWater(ctx, px, py, frame); break
+        case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r); break
+        default:      drawPandoraGrass(ctx, px, py, c, r)
+      }
+    }
+  }
+}
+
 // -- Isometric tile renderer --
 // Stage 1 drew every tile as a flat grass diamond. Stage 2 branches on the
 // real tile type and gives trees/tall-grass/signs a "raised" element above

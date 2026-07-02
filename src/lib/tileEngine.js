@@ -39,9 +39,19 @@ export const PANDORA_TILE = 32
 
 // Deterministic small-int hash for a tile coordinate — keeps per-tile
 // texture (grass speckles, path pebbles, tall-grass blade positions) stable
-// across frames instead of flickering every frame.
+// across frames instead of flickering every frame. Always non-negative
+// (0-96): JS's `%` keeps the sign of the dividend, so without the second
+// `+97) % 97` wrap, negative col/row (routine now that Round 3 renders
+// out-of-bounds forest-fill tiles, which can be arbitrarily far negative)
+// produced a negative hash — which then produced negative indices into
+// small lookup arrays like TREE_CANOPY_COLORS. A negative array index in
+// JS returns `undefined`, and `ctx.fillStyle = undefined` is silently
+// IGNORED by canvas (the previous fillStyle stays in effect) — this was
+// causing canopy fills to inherit whatever was drawn immediately before
+// (often the trunk's dark brown), bleeding a solid brown patch across the
+// far off-map corners where both col and row went deeply negative.
 function tileHash(col, row) {
-  return (col * 31 + row * 17) % 97
+  return (((col * 31 + row * 17) % 97) + 97) % 97
 }
 
 const P = {
@@ -61,9 +71,10 @@ const P = {
   SHORE_FRINGE:  '#e0d0a0',
 }
 
-// Small palette of tree-canopy greens (Fix 3 — natural forest variation, not
-// clones) — picked from within the brief's #2d6a1e–#4a9a2c range.
-const TREE_CANOPY_COLORS = ['#2d6a1e', '#357a22', '#3d8a28', '#459228', '#4a9a2c']
+// Palette of tree-canopy greens (natural forest variation, not clones) —
+// widened in Round 3 to span #1d5010 (dark) to #5ab030 (bright) for more
+// contrast between neighboring trees.
+const TREE_CANOPY_COLORS = ['#1d5010', '#2d6a1e', '#357a22', '#3d8a28', '#459228', '#4a9a2c', '#5ab030']
 
 // -- Neighbor lookups (Round 2 polish) — used for water-edge foam, shoreline
 // fringes on adjacent land tiles, and palm-vs-round tree selection. `tileMap`
@@ -350,7 +361,7 @@ function drawPandoraShadow(ctx, cx, groundY, w, h) {
   ctx.fill()
 }
 
-function drawPandoraTree(ctx, px, py, col, row, tileMap) {
+function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
   const cx = px + PANDORA_TILE / 2
   const groundY = py + PANDORA_TILE - 4
   const h = tileHash(col, row)
@@ -359,52 +370,89 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap) {
   const nearWater = tileMap && NEIGHBOR_DIRS.some(([dr, dc]) => isWaterAt(tileMap, row + dr, col + dc))
   if (nearWater) { drawPandoraPalm(ctx, cx, groundY, h); return }
 
-  // Per-tree size/color variation — seeded by tile position so it's stable
-  // across frames, breaks up the "identical clones = fence" look of a
-  // uniform tree border into something reading as a natural forest edge.
-  // Round 2 Fix 4: canopy bumped up to 28-36px (was 18-28) for a more
-  // imposing presence.
-  const canopyR = 28 + (h % 9)         // 28-36
+  // Per-tree size/color/height variation — seeded by tile position so it's
+  // stable across frames. Round 3: canopy pushed way up (36-52px, was
+  // 28-36) so neighboring canopies visibly overlap into a continuous
+  // forest edge instead of reading as individual balls, plus a per-tree
+  // height offset so the tree line isn't perfectly level.
+  const canopyR = 36 + (h % 17)        // 36-52
   const trunkH  = 10 + ((h * 3) % 9)   // 10-18
+  const heightOffset = -8 + (tileHash(col * 71 + row, row * 83 + col) % 25) // -8..+16
   const canopyColor = TREE_CANOPY_COLORS[h % TREE_CANOPY_COLORS.length]
 
-  // Undergrowth — 2-3 dark blobs scattered at the base, drawn BEFORE the
-  // shadow/trunk so they read as bushes/ground shadow, not on top of them.
-  const bushCount = 2 + (h % 2)
-  for (let i = 0; i < bushCount; i++) {
-    const dh = tileHash(col * 5 + i * 7, row * 11 + i)
-    const bx = cx + ((dh % 21) - 10)
-    const by = groundY - 2 + ((dh % 5) - 2)
-    const br = 4 + (dh % 5) // 4-8
+  // `simple` (Round 3) — used only for the off-map forest-continuation fill
+  // (see renderMapPandora): skips the shadow ellipse + undergrowth blobs,
+  // since at the density needed to fill an unbounded viewport with
+  // overlapping 36-52px canopies, dozens of those semi-transparent dark
+  // layers were stacking on top of each other and compositing into a muddy
+  // brown/maroon mess instead of reading as "more forest" — plus it's a lot
+  // of otherwise-invisible (always-occluded-by-canopies) draw calls for
+  // tiles the player can never actually stand on. In-bounds trees are
+  // unaffected — they still get the full shadow+undergrowth treatment.
+  if (!simple) {
+    // Undergrowth — 3-5 dark blobs scattered at the base (bigger/more than
+    // before, to visually ground the now much-larger canopies), drawn
+    // BEFORE the shadow/trunk so they read as bushes/ground shadow.
+    const bushCount = 3 + (h % 3) // 3-5
+    for (let i = 0; i < bushCount; i++) {
+      const dh = tileHash(col * 5 + i * 7, row * 11 + i)
+      const bx = cx + ((dh % 29) - 14)
+      const by = groundY - 2 + ((dh % 5) - 2)
+      const br = 8 + (dh % 7) // 8-14
+      ctx.save()
+      ctx.globalAlpha = 0.35
+      ctx.fillStyle = '#1d4a10'
+      ctx.beginPath()
+      ctx.arc(bx, by, br, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+
     ctx.save()
-    ctx.globalAlpha = 0.4
-    ctx.fillStyle = '#1d4a10'
-    ctx.beginPath()
-    ctx.arc(bx, by, br, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.globalAlpha = 0.6
+    drawPandoraShadow(ctx, cx, groundY, 50, 14)
     ctx.restore()
   }
-
-  // Round 2 Fix 4: shadow enlarged (50x14, was 40x12) and softened.
-  ctx.save()
-  ctx.globalAlpha = 0.6
-  drawPandoraShadow(ctx, cx, groundY, 50, 14)
-  ctx.restore()
 
   // Trunk, base planted at the ground point.
   const trunkW = 8
   ctx.fillStyle = '#4a2f18'
   ctx.fillRect(cx - trunkW / 2, groundY - trunkH, trunkW, trunkH)
 
-  // Canopy — rim + fill, centered ~18px above the trunk top. Intentionally
-  // extends above the tile's top boundary (real height); Y-sort in the
-  // caller (not row order) is what makes this occlude correctly against
-  // neighboring standing objects.
-  const canopyCy = groundY - trunkH - 18
+  // Canopy — centered ~18px above the trunk top plus the per-tree height
+  // offset. Intentionally extends above the tile's top boundary (real
+  // height); Y-sort in the caller (not row order) is what makes this
+  // occlude correctly against neighboring standing objects.
+  const canopyCy = groundY - trunkH - 18 + heightOffset
+
+  // Round 3 Fix 2 — irregular lumpy silhouette instead of a perfect circle:
+  // main circle + 3-4 smaller offset circles, all filled solid before any
+  // shading pass so the lobes read as one continuous blob, not a snowman.
   ctx.fillStyle = canopyColor
   ctx.beginPath()
   ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2)
   ctx.fill()
+  const lobeCount = 3 + (h % 2) // 3-4
+  for (let i = 0; i < lobeCount; i++) {
+    const dh = tileHash(col * 53 + i * 11, row * 67 + i)
+    const angle = (dh / 97) * Math.PI * 2
+    const dist = canopyR * (0.55 + (dh % 4) * 0.1)
+    const lobeR = 8 + (dh % 7) // 8-14
+    ctx.beginPath()
+    ctx.arc(cx + Math.cos(angle) * dist, canopyCy + Math.sin(angle) * dist, lobeR, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Round 3 — the remaining decorative layers below (inner wash, rim leaf
+  // clusters, highlights) are ALL semi-transparent. At normal in-map tree
+  // density that's fine, but the `simple` off-map filler trees can overlap
+  // dozens-deep in the unbounded viewport fill, and stacking that many
+  // alpha<1 dark-green layers on top of each other composites into a muddy
+  // brown/maroon mess rather than "more forest" — so `simple` trees stop
+  // here (opaque canopy + lobes + trunk only, still varied in size/color/
+  // shape) and skip every alpha-blended layer below.
+  if (simple) return
+
   // Lighter inner fill (rim/fill two-tone) via a white-alpha wash over the
   // canopy color, rather than a second hardcoded hex — keeps the rim/fill
   // contrast per-tree-color-correct instead of clashing with the randomized hue.
@@ -412,41 +460,42 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap) {
   ctx.globalAlpha = 0.22
   ctx.fillStyle = '#ffffff'
   ctx.beginPath()
-  ctx.arc(cx, canopyCy, canopyR - 3, 0, Math.PI * 2)
+  ctx.arc(cx, canopyCy, canopyR - 4, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 
-  // Round 2 Fix 4 — 3-4 small dark leaf clusters around the canopy rim to
-  // break up the perfect-circle silhouette.
-  const clusterCount = 3 + (h % 2)
+  // 4-6 small dark leaf clusters around the canopy rim (more than before,
+  // scaled to the bigger canopy) to further break up the silhouette.
+  const clusterCount = 4 + (h % 3) // 4-6
   for (let i = 0; i < clusterCount; i++) {
     const dh = tileHash(col * 47 + i * 9, row * 61 + i)
     const angle = (dh / 97) * Math.PI * 2
-    const lx = cx + Math.cos(angle) * canopyR * 0.85
-    const ly = canopyCy + Math.sin(angle) * canopyR * 0.85
+    const lx = cx + Math.cos(angle) * canopyR * 0.9
+    const ly = canopyCy + Math.sin(angle) * canopyR * 0.9
     ctx.save()
     ctx.globalAlpha = 0.5
     ctx.fillStyle = '#1d5010'
     ctx.beginPath()
-    ctx.arc(lx, ly, 6 + (dh % 3), 0, Math.PI * 2)
+    ctx.arc(lx, ly, 7 + (dh % 4), 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   }
 
   // Upper-left highlight blob (ambient light source convention) + a second,
-  // smaller inner highlight for more depth (Round 2 Fix 4).
+  // smaller inner highlight for more depth — both scaled to canopyR now
+  // that trees vary more in size.
   ctx.save()
   ctx.globalAlpha = 0.5
   ctx.fillStyle = '#5ab040'
   ctx.beginPath()
-  ctx.arc(cx - 7, canopyCy - 7, canopyR * 0.55, 0, Math.PI * 2)
+  ctx.arc(cx - canopyR * 0.3, canopyCy - canopyR * 0.3, canopyR * 0.5, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
   ctx.save()
   ctx.globalAlpha = 0.3
   ctx.fillStyle = '#8ad868'
   ctx.beginPath()
-  ctx.arc(cx - canopyR * 0.3, canopyCy - canopyR * 0.35, 12, 0, Math.PI * 2)
+  ctx.arc(cx - canopyR * 0.35, canopyCy - canopyR * 0.4, 14, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 }
@@ -649,14 +698,17 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
 
   const viewW = ctx.canvas.width
   const viewH = ctx.canvas.height
-  // Fix 1 (2026-07-02): NOT clamped to [0, MAP_COLS)/[0, MAP_ROWS) — the
-  // loop covers the full viewport regardless of the real map's size, so
-  // when the map is smaller than the screen the ground texture (grass
-  // speckle/highlight, stable per the same tileHash) extends seamlessly
-  // past the map edge instead of leaving a flat, differently-toned void
-  // outside a visible "box". Cells outside the real tileMap array read as
-  // `undefined` and fall through to the same drawPandoraGrass default as
-  // any other untyped tile — no special-casing needed.
+  // Fix 1 (2026-07-02, refined Round 3): NOT clamped to [0, MAP_COLS)/
+  // [0, MAP_ROWS) — the loop covers the full viewport regardless of the
+  // real map's size. Round 3: cells truly outside the map bounds are no
+  // longer plain grass — they're forced to render as trees (forest
+  // continuation, seeded by the same stable tileHash as everything else),
+  // so the world reads as an endless forest surrounding the playable map
+  // instead of a rectangle sitting on a flat void. Collision/gameplay is
+  // completely unaffected — this override only exists inside this render
+  // loop's local `tileType`, never touches the actual tileMap array that
+  // canMove()/tryMove() read from, so the player is still only ever
+  // physically inside the real map.
   const startCol = Math.floor(camX / PANDORA_TILE)
   const startRow = Math.floor(camY / PANDORA_TILE)
   const endCol = Math.ceil((camX + viewW) / PANDORA_TILE)
@@ -668,8 +720,9 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
     for (let c = startCol; c < endCol; c++) {
       const px = c * PANDORA_TILE - camX
       const py = r * PANDORA_TILE - camY
-      const raw = tileMap[r]?.[c]
-      const tileType = typeof raw === 'object' ? raw.type : raw
+      const outOfBounds = r < 0 || r >= MAP_ROWS || c < 0 || c >= MAP_COLS
+      const raw = outOfBounds ? undefined : tileMap[r]?.[c]
+      const tileType = outOfBounds ? T.TREE : (typeof raw === 'object' ? raw.type : raw)
 
       switch (tileType) {
         case T.PATH:  drawPandoraPath(ctx, px, py, c, r, tileMap); break
@@ -679,7 +732,7 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
       }
 
       if (tileType === T.TREE) {
-        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r, tileMap) })
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r, tileMap, outOfBounds) })
       } else if (tileType === T.WALL) {
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
       } else if (tileType === T.SIGN) {

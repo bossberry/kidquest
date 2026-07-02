@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — World map visual polish (Pandora-style, round 3)
+
+Third polish pass, focused on two things: the map still reading as a rectangle on a background, and trees still reading as uniform balls. All gameplay logic unchanged.
+
+### src/lib/tileEngine.js
+- **Fix 1 (break the box)**: `renderMapPandora()`'s render loop now forces `tileType = T.TREE` for any cell truly outside `[0, MAP_COLS)`/`[0, MAP_ROWS)` (previously those cells silently fell through to plain grass). The forest now visually continues in every direction with no seam at the map edge. This only overrides the render loop's local `tileType` — the actual `tileMap` array `canMove()`/`tryMove()` read from is untouched, so the player is still only ever physically inside the real map.
+- **Fix 2 (bigger, organic trees)**: `drawPandoraTree` canopy radius bumped to 36-52px (was 28-36) so neighboring canopies visibly overlap into a continuous edge; added a per-tree height offset (-8 to +16px) so the tree line isn't perfectly level; canopies are now an irregular lumpy silhouette (main circle + 3-4 smaller offset lobes) instead of a perfect circle; widened `TREE_CANOPY_COLORS` from 5 to 7 shades spanning `#1d5010`-`#5ab030`; undergrowth increased to 3-5 bigger blobs (8-14px, was 4-8px).
+- **Bug found + fixed while implementing Fix 1**: `tileHash()` used plain `%`, which in JS keeps the sign of the dividend — so negative col/row (routine once Fix 1 renders arbitrarily-far out-of-bounds forest tiles) produced a *negative* hash. That negative value was then used as an array index into small palettes like `TREE_CANOPY_COLORS`; a negative JS array index returns `undefined`, and `ctx.fillStyle = undefined` is silently ignored by canvas (the previous fillStyle stays in effect) — so far off-map canopy fills were inheriting whatever was drawn immediately before them (often the trunk's dark brown), compositing into a solid brown/maroon patch in the far corners instead of forest. Fixed at the source: `tileHash` now wraps its result to always stay in `[0, 96]` (`(((...) % 97) + 97) % 97`). This was a latent bug in a helper used by nearly every ground/tree draw function — Round 1/2 never hit it because the render loop was still clamped to non-negative map coordinates back then.
+- Added a `simple` param to `drawPandoraTree`, used only for the off-map forest-fill trees: skips the shadow ellipse, undergrowth blobs, inner white wash, rim leaf-clusters, and highlight blobs — all the semi-transparent decorative layers that, at the density needed to fill an unbounded viewport with heavily-overlapping 36-52px canopies, were stacking dozens-deep and (independently of the `tileHash` bug above) muddying the color. In-map trees are unaffected and keep full detail.
+
+### Verification
+Live-verified in Chrome: zoomed crops before/after confirm the far-corner brown patch is completely gone and the forest reads as consistent green in every direction with visible lumpy/varied canopies; walked the player into an enemy to confirm movement/collision/battle-triggering still work correctly; zero console errors; build clean.
+
 ## 2026-07-02 — World map visual polish (Pandora-style, round 2)
 
 Second polish pass on the Pandora-style world-map renderer. All gameplay logic unchanged.

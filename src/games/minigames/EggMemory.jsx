@@ -3,22 +3,35 @@ import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
 import { shuffle } from '../../config/gameConfig.js'
 import { playTone } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
+import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
 const ELEMENT_EMOJIS = ['🔥', '💧', '⚡', '🌿', '🌑', '✨']
+const G = MINIGAMES.memory
 
 export default function EggMemory() {
-  const { dispatch } = useAppState()
+  const { state, dispatch } = useAppState()
+  const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'done'
   const [cards, setCards] = useState(null)
   const [flipped, setFlipped] = useState([])
   const [matched, setMatched] = useState(new Set())
   const [moves, setMoves] = useState(0)
   const [locked, setLocked] = useState(false)
-  const [done, setDone] = useState(false)
+  const [coinsEarned, setCoinsEarned] = useState(0)
 
-  useEffect(() => {
-    const pairs = ELEMENT_EMOJIS.map((sym, i) => ({ id: i, sym }))
-    setCards(shuffle([...pairs.map((p, i) => ({ ...p, key: i })), ...pairs.map((p, i) => ({ ...p, key: 6 + i }))]))
-  }, []) // eslint-disable-line
+  const lives = livesRemaining(state, 'memory')
+
+  const deal = () => setCards(shuffle([
+    ...ELEMENT_EMOJIS.map((sym, i) => ({ id: i, sym, key: i })),
+    ...ELEMENT_EMOJIS.map((sym, i) => ({ id: i, sym, key: 6 + i })),
+  ]))
+
+  const startGame = () => {
+    if (lives <= 0) return
+    dispatch({ type: ACTIONS.MEMORY_DEDUCT_LIFE })
+    setFlipped([]); setMatched(new Set()); setMoves(0); setLocked(false)
+    deal()
+    setPhase('playing')
+  }
 
   const flip = (idx) => {
     if (locked || flipped.includes(idx) || matched.has(idx)) return
@@ -32,12 +45,15 @@ export default function EggMemory() {
           const newMatched = new Set(matched); newMatched.add(newFlipped[0]); newMatched.add(newFlipped[1])
           setMatched(newMatched); playTone('correct'); spawnConfetti(4)
           if (newMatched.size === cards.length) {
-            setDone(true)
+            const finalMoves = moves + 1
+            const coins = finalMoves <= 12 ? 12 : finalMoves <= 16 ? 8 : finalMoves <= 22 ? 5 : 3
             const xp = Math.max(5, Math.round(30 - moves))
+            setCoinsEarned(coins)
+            setPhase('done')
             dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'thai', amount: xp } })
-            dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 5 } })
+            dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: coins } })
             dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0.8 } })
-            showItemToast('🎉 จับคู่ครบ! ' + (moves + 1) + ' ครั้ง · +' + xp + ' XP · 🪙 +5')
+            showItemToast('🎉 จับคู่ครบ! ' + finalMoves + ' ครั้ง · +' + xp + ' XP · 🪙 +' + coins)
           }
         } else { playTone('wrong') }
         setFlipped([]); setLocked(false)
@@ -45,20 +61,34 @@ export default function EggMemory() {
     }
   }
 
-  if (!cards) return <div style={{ padding: 40, color: 'var(--muted)', textAlign: 'center' }}>กำลังโหลด...</div>
+  if (phase === 'ready') return (
+    <div style={{ width:'100%', maxWidth:480, padding:20, fontFamily:'Mitr,sans-serif' }}>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, textAlign:'center', marginBottom:16 }}>{G.title}</div>
+      <div style={{ textAlign:'center', fontSize:14, color:'var(--muted)', marginBottom:16 }}>จับคู่ธาตุให้ครบทุกคู่ด้วยจำนวนครั้งน้อยที่สุด!</div>
+      <div style={{ display:'flex', justifyContent:'center', padding:'10px 14px', background:'var(--purple-l)', borderRadius:12, marginBottom:16, fontSize:20 }}>
+        {heartsStr(lives, G.max)}
+      </div>
+      {lives <= 0
+        ? <div style={{ textAlign:'center', padding:20, color:'var(--muted)' }}>มาเล่นใหม่พรุ่งนี้นะ! 🌙</div>
+        : <button onClick={startGame} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:12, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🃏 เริ่มเล่น!</button>
+      }
+    </div>
+  )
 
-  if (done) return (
+  if (phase === 'done') return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 64, marginBottom: 10 }}>🎉</div>
       <div style={{ fontFamily: "'Fredoka One',cursive", fontSize: 24, marginBottom: 8 }}>จับคู่ครบแล้ว!</div>
       <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 8 }}>{moves} ครั้ง</div>
-      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +5</div>
+      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{coinsEarned}</div>
       <button
-        onClick={() => { setDone(false); setFlipped([]); setMatched(new Set()); setMoves(0); setCards(shuffle([...cards])) }}
+        onClick={() => setPhase('ready')}
         style={{ width: '100%', background: 'var(--purple)', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontFamily: 'Mitr,sans-serif', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
       >🔄 เล่นอีกครั้ง</button>
     </div>
   )
+
+  if (!cards) return <div style={{ padding: 40, color: 'var(--muted)', textAlign: 'center' }}>กำลังโหลด...</div>
 
   return (
     <div style={{ width: '100%', maxWidth: 480, padding: 16, fontFamily: 'Mitr,sans-serif' }}>

@@ -3,17 +3,31 @@ import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
 import { TOWER_COLORS } from '../../config/gameConfig.js'
 import { playTone } from '../../lib/audio.js'
 import { spawnConfetti } from '../../components/Toasts.jsx'
+import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+
+const G = MINIGAMES.tower
+const towerCoinsFor = (score) => score >= 15 ? 10 : score >= 10 ? 7 : score >= 5 ? 4 : 2
 
 export default function EggTower() {
-  const { dispatch, eggProgressData } = useAppState()
+  const { state, dispatch, eggProgressData } = useAppState()
   const canvasRef = useRef(null)
   const gsRef = useRef(null)
   const animRef = useRef(null)
   const runRef = useRef(false)
+  const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'dead'
   const [score, setScore] = useState(0)
-  const [dead, setDead] = useState(false)
+
+  const lives = livesRemaining(state, 'tower')
+
+  const startGame = () => {
+    if (lives <= 0) return
+    dispatch({ type: ACTIONS.TOWER_DEDUCT_LIFE })
+    setScore(0)
+    setPhase('playing')
+  }
 
   useEffect(() => {
+    if (phase !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const stage = eggProgressData.stage
     const baseW = Math.round(canvas.width * (.45 + stage * .03))
@@ -34,25 +48,41 @@ export default function EggTower() {
       animRef.current = requestAnimationFrame(loop)
     }
     animRef.current = requestAnimationFrame(loop)
-    const place = () => placeFn(gs, canvas, setScore, setDead, runRef, animRef, dispatch)
+    const place = () => placeFn(gs, canvas, setScore, setPhase, runRef, animRef, dispatch)
     canvas.addEventListener('click', place)
     canvas.addEventListener('touchstart', place, { passive: true })
     const onKey = (e) => { if (e.code === 'Space') { e.preventDefault(); place() } }
     document.addEventListener('keydown', onKey)
     return () => { runRef.current = false; cancelAnimationFrame(animRef.current); canvas.removeEventListener('click', place); document.removeEventListener('keydown', onKey) }
-  }, []) // eslint-disable-line
+  }, [phase]) // eslint-disable-line
 
   const cW = Math.min(typeof window!=='undefined'?window.innerWidth:480, 480)
   const cH = Math.max(300, Math.min(420, typeof window!=='undefined'?window.innerHeight-130:400))
 
-  if (dead) {
-    const towerCoinsDisplay = Math.max(3, Math.min(8, 3 + Math.floor(score / 4)))
+  if (phase === 'ready') {
+    return (
+      <div style={{ width:'100%', maxWidth:480, padding:20, fontFamily:'Mitr,sans-serif' }}>
+        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, textAlign:'center', marginBottom:16 }}>{G.title}</div>
+        <div style={{ textAlign:'center', fontSize:14, color:'var(--muted)', marginBottom:16 }}>แตะเพื่อวางบล็อกให้ตรงกัน สร้างหอให้สูงที่สุด!</div>
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 14px', background:'var(--purple-l)', borderRadius:12, marginBottom:16, fontSize:20 }}>
+          {heartsStr(lives, G.max)}
+        </div>
+        {lives <= 0
+          ? <div style={{ textAlign:'center', padding:20, color:'var(--muted)' }}>มาเล่นใหม่พรุ่งนี้นะ! 🌙</div>
+          : <button onClick={startGame} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:12, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🏗️ เริ่มเล่น!</button>
+        }
+      </div>
+    )
+  }
+
+  if (phase === 'dead') {
+    const towerCoinsDisplay = towerCoinsFor(score)
     return (
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
         <div style={{ fontSize:64, marginBottom:10 }}>🏗️</div>
         <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:8 }}>Tower: {score} ชั้น!</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{towerCoinsDisplay}</div>
-        <button onClick={() => { setDead(false); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
+        <button onClick={() => { setPhase('ready'); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
       </div>
     )
   }
@@ -69,12 +99,12 @@ export default function EggTower() {
   )
 }
 
-function placeFn(gs, canvas, setScore, setDead, runRef, animRef, dispatch) {
+function placeFn(gs, canvas, setScore, setPhase, runRef, animRef, dispatch) {
   if (!runRef.current || !gs.current) return
   const top = gs.blocks[gs.blocks.length - 1]
   const oL = Math.max(gs.current.x, top.x), oR = Math.min(gs.current.x + gs.current.w, top.x + top.w)
   const overlap = oR - oL
-  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setDead(true); const xp = Math.max(2, gs.score*3); const towerCoins = Math.max(3, Math.min(8, 3 + Math.floor(gs.score / 4))); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: towerCoins } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
+  if (overlap <= 4) { runRef.current = false; cancelAnimationFrame(animRef.current); setPhase('dead'); const xp = Math.max(2, gs.score*3); const towerCoins = towerCoinsFor(gs.score); dispatch({ type: ACTIONS.ADD_XP, payload: { world: 'math', amount: xp } }); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: towerCoins } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: Math.min(1, gs.score/20) } }); return }
   playTone(overlap === gs.current.w ? 'streak' : 'correct')
   if (overlap === gs.current.w) spawnConfetti(3)
   const trimmed = { x: oL, y: top.y - 22, w: overlap, h: 20, color: TOWER_COLORS[gs.blocks.length % TOWER_COLORS.length] }

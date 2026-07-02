@@ -3,6 +3,12 @@ import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
 import { FISH_TYPES, ITEMS } from '../../config/gameConfig.js'
 import { playTone } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
+import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+
+const G = MINIGAMES.fishing
+// Rarer fish (lower spawn-weight `rarity`) award more coins.
+// 🐟.5→3  🐠.25→5  🐡.15→7  🦑.08→10  🐙.02→15
+const fishCoins = (r) => r <= .03 ? 15 : r <= .1 ? 10 : r <= .2 ? 7 : r <= .35 ? 5 : 3
 
 export default function EggFishing() {
   const { state, dispatch } = useAppState()
@@ -12,12 +18,25 @@ export default function EggFishing() {
   const runRef = useRef(false)
   const timerRef = useRef(null)
   const holdRef = useRef(false)
+  const coinsRef = useRef(0)
+  const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'done'
   const [timeLeft, setTimeLeft] = useState(60)
   const [caught, setCaught] = useState(0)
-  const [done, setDone] = useState(false)
+  const [coinsEarned, setCoinsEarned] = useState(0)
   const [caughtItems, setCaughtItems] = useState([])
 
+  const lives = livesRemaining(state, 'fishing')
+
+  const startGame = () => {
+    if (lives <= 0) return
+    dispatch({ type: ACTIONS.FISHING_DEDUCT_LIFE })
+    coinsRef.current = 0
+    setCaught(0); setCaughtItems([]); setCoinsEarned(0); setTimeLeft(60)
+    setPhase('playing')
+  }
+
   useEffect(() => {
+    if (phase !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const gY = canvas.height * .4
     const maxDepth = (state.happiness || 80) / 100 * (canvas.height - gY - 30)
@@ -32,11 +51,18 @@ export default function EggFishing() {
     }
     animRef.current = requestAnimationFrame(loop)
     timerRef.current = setInterval(() => setTimeLeft(t => {
-      if (t <= 1) { clearInterval(timerRef.current); runRef.current = false; setDone(true); dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: 5 } }); dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak:0, score:0 } }); return 0 }
+      if (t <= 1) {
+        clearInterval(timerRef.current); runRef.current = false
+        const total = coinsRef.current
+        setCoinsEarned(total); setPhase('done')
+        if (total > 0) dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: total } })
+        dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak:0, score:0 } })
+        return 0
+      }
       return t - 1
     }), 1000)
     return () => { runRef.current = false; cancelAnimationFrame(animRef.current); clearInterval(timerRef.current) }
-  }, []) // eslint-disable-line
+  }, [phase]) // eslint-disable-line
 
   const checkCatch = () => {
     const gs = gsRef.current; const canvas = canvasRef.current
@@ -47,6 +73,7 @@ export default function EggFishing() {
       if (Math.sqrt((gs.egg.x - f.x)**2 + (lineY - f.y)**2) < 24) {
         gs.fishes.splice(i, 1); spawnFish(gs, canvas)
         setCaught(c => c + 1)
+        coinsRef.current += fishCoins(f.rarity)
         playTone('streak')
         if (!state.items) return
         if (f.item === 'all') {
@@ -65,14 +92,28 @@ export default function EggFishing() {
   const cW = Math.min(typeof window!=='undefined'?window.innerWidth:480, 480)
   const cH = Math.max(240, Math.min(320, typeof window!=='undefined'?window.innerHeight-160:300))
 
-  if (done) return (
+  if (phase === 'ready') return (
+    <div style={{ width:'100%', maxWidth:480, padding:20, fontFamily:'Mitr,sans-serif' }}>
+      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, textAlign:'center', marginBottom:16 }}>{G.title}</div>
+      <div style={{ textAlign:'center', fontSize:14, color:'var(--muted)', marginBottom:16 }}>กดค้างเพื่อหย่อนเบ็ด ปลาหายากได้เหรียญมากกว่า! 🐙</div>
+      <div style={{ display:'flex', justifyContent:'center', padding:'10px 14px', background:'var(--blue-l, rgba(55,138,221,.15))', borderRadius:12, marginBottom:16, fontSize:20 }}>
+        {heartsStr(lives, G.max)}
+      </div>
+      {lives <= 0
+        ? <div style={{ textAlign:'center', padding:20, color:'var(--muted)' }}>มาเล่นใหม่พรุ่งนี้นะ! 🌙</div>
+        : <button onClick={startGame} style={{ width:'100%', background:'var(--blue)', color:'#fff', border:'none', borderRadius:12, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🎣 เริ่มเล่น!</button>
+      }
+    </div>
+  )
+
+  if (phase === 'done') return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
       <div style={{ fontSize:64, marginBottom:10 }}>🎣</div>
       <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:4 }}>หมดเวลา!</div>
       <div style={{ fontSize:16, marginBottom:8 }}>ตกปลาได้ {caught} ตัว</div>
       {caughtItems.length > 0 && <div style={{ fontSize:20, marginBottom:8 }}>{caughtItems.join(' ')}</div>}
-      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +5</div>
-      <button onClick={() => { setDone(false); setCaught(0); setCaughtItems([]); setTimeLeft(60) }} style={{ width:'100%', background:'var(--blue)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
+      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{coinsEarned}</div>
+      <button onClick={() => setPhase('ready')} style={{ width:'100%', background:'var(--blue)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
     </div>
   )
 
@@ -99,7 +140,7 @@ function spawnFish(gs, canvas) {
   const gY = canvas.height * .42
   let roll = Math.random(), cum = 0, ft = FISH_TYPES[0]
   for (const f of FISH_TYPES) { cum += f.rarity; if (roll < cum) { ft = f; break } }
-  gs.fishes.push({ x: Math.random()*(canvas.width-60)+30, y: gY+20+Math.random()*(canvas.height-gY-60), sym: ft.sym, item: ft.item, name: ft.name, vx: (Math.random()-.5)*2 })
+  gs.fishes.push({ x: Math.random()*(canvas.width-60)+30, y: gY+20+Math.random()*(canvas.height-gY-60), sym: ft.sym, item: ft.item, name: ft.name, rarity: ft.rarity, vx: (Math.random()-.5)*2 })
 }
 
 function updateFishing(gs, canvas, holding) {

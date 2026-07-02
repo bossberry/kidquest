@@ -4,8 +4,10 @@ import EggCanvas from '../../components/EggCanvas.jsx'
 import { ITEMS, shuffle } from '../../config/gameConfig.js'
 import { erSfxJump, erSfxRing, erSfxHit, erSfxSpeedUp, erSfxMilestone, erSfxGameOver, erSfxRecord, erSfxCountdown } from '../../lib/audio.js'
 import { showToast, spawnConfetti, showItemToast } from '../../components/Toasts.jsx'
+import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
 
 const ER_GRAV = 0.55, ER_GY = 0.74
+const G = MINIGAMES.eggrun
 
 export default function EggRun({ navigate }) {
   const { state, dispatch, eggStatsData, eggProgressData, totalXP } = useAppState()
@@ -16,13 +18,7 @@ export default function EggRun({ navigate }) {
   const runRef = useRef(false)
   const [countdownN, setCountdownN] = useState(3)
 
-  // Check lives
-  const checkLivesReset = () => {
-    const today = new Date().toLocaleDateString()
-    if ((state.lastRunDate || '') !== today) return 3
-    return state.eggRunLives ?? 0
-  }
-  const livesAvail = checkLivesReset()
+  const livesAvail = livesRemaining(state, 'eggrun')
 
   // Countdown
   useEffect(() => {
@@ -87,7 +83,7 @@ export default function EggRun({ navigate }) {
       if (rings >= 16) dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: 'food' } })
       showItemToast(ITEMS[k].emoji + ' ได้รับ ' + ITEMS[k].name + '!')
     }
-    const runCoins = rings >= 16 ? 8 : rings >= 6 ? 5 : 3
+    const runCoins = Math.min(15, (dist >= 200 ? 8 : dist >= 100 ? 5 : 3) + (rings >= 20 ? 5 : rings >= 10 ? 3 : 1))
     dispatch({ type: ACTIONS.ADD_COINS, payload: { amount: runCoins } })
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0 } })
   }, [phase]) // eslint-disable-line
@@ -98,7 +94,7 @@ export default function EggRun({ navigate }) {
   if (phase === 'stats') {
     return (
       <div style={{ width:'100%', maxWidth:480, padding:20, fontFamily:'Mitr,sans-serif' }}>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, textAlign:'center', marginBottom:16 }}>🏃 Egg Run</div>
+        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22, textAlign:'center', marginBottom:16 }}>{G.title}</div>
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:16, padding:16, display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
           <EggCanvas stats={eggStatsData} width={56} height={68} style={{ borderRadius:10, flexShrink:0 }} />
           <div style={{ flex:1 }}>
@@ -111,10 +107,10 @@ export default function EggRun({ navigate }) {
         <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 14px', background:'var(--amber-l)', borderRadius:12, marginBottom:14 }}>
           <span style={{ fontSize:13, color:'var(--amber-d)' }}>🏆 Best: {state.erBestDist||0}m</span>
           <span style={{ fontSize:13, color:'var(--amber-d)' }}>💛 {state.erBestRings||0} rings</span>
-          <span style={{ fontSize:13, color:'var(--amber-d)' }}>{'❤️'.repeat(livesAvail)}{'🖤'.repeat(Math.max(0,3-livesAvail))}</span>
+          <span style={{ fontSize:13, color:'var(--amber-d)' }}>{heartsStr(livesAvail, G.max)}</span>
         </div>
         {livesAvail <= 0
-          ? <div style={{ textAlign:'center', padding:20, color:'var(--muted)' }}>🌙 มาเรียนพรุ่งนี้เพื่อเล่นอีกครั้ง!</div>
+          ? <div style={{ textAlign:'center', padding:20, color:'var(--muted)' }}>มาเล่นใหม่พรุ่งนี้นะ! 🌙</div>
           : <button onClick={() => setPhase('countdown')} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:12, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🏃 เริ่มวิ่ง!</button>
         }
       </div>
@@ -125,7 +121,7 @@ export default function EggRun({ navigate }) {
     <div style={{ width:'100%', maxWidth:480 }}>
       <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif', fontSize:13 }}>
         <span>📏 <span id="er-dist-r">0</span>m</span>
-        <span>{'❤️'.repeat(Math.max(0,livesAvail-1))}{'🖤'.repeat(Math.max(0,3-(livesAvail-1)))}</span>
+        <span>{heartsStr(livesAvail - 1, G.max)}</span>
         <span style={{ color:'#B8860B' }}>💛 <span id="er-rings-r">0</span></span>
       </div>
       <div style={{ position:'relative' }}>
@@ -139,7 +135,7 @@ export default function EggRun({ navigate }) {
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:12, gap:8 }}>
             <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color:'#fff' }}>Game Over!</div>
             <div style={{ fontSize:16, color:'#fff', fontFamily:'Mitr,sans-serif' }}>📏 {Math.floor(gsRef.current?.dist||0)}m · 💛 {gsRef.current?.ringCount||0}</div>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.18)', border:'1px solid rgba(255,210,63,0.45)', borderRadius:20, padding:'3px 12px', fontFamily:'var(--font-pixel)', fontSize:10, color:'#FFD23F' }}>🪙 +{(gsRef.current?.ringCount||0)>=16?8:(gsRef.current?.ringCount||0)>=6?5:3}</div>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.18)', border:'1px solid rgba(255,210,63,0.45)', borderRadius:20, padding:'3px 12px', fontFamily:'var(--font-pixel)', fontSize:10, color:'#FFD23F' }}>🪙 +{Math.min(15, ((Math.floor(gsRef.current?.dist||0))>=200?8:(Math.floor(gsRef.current?.dist||0))>=100?5:3) + ((gsRef.current?.ringCount||0)>=20?5:(gsRef.current?.ringCount||0)>=10?3:1))}</div>
             <button onClick={() => setPhase('stats')} style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:10, padding:'10px 24px', color:'#fff', fontFamily:'Mitr,sans-serif', fontSize:14, cursor:'pointer', marginTop:4 }}>← Back</button>
           </div>
         )}

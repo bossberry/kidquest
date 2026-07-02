@@ -17,6 +17,8 @@ import { supabase } from '../lib/supabase.js'
 import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
 import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
+import { showToast } from './Toasts.jsx'
+import { unlockedGames, livesRemaining } from '../lib/minigameLives.js'
 
 // Map egg XP stage (0–8) to companion aura level (0–4) — used by the small header avatar
 // and the large hero egg.
@@ -133,6 +135,21 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
 
   const stageName = EGG_STAGE_NAMES[stage] || 'ไข่น้อย'
   const eggLevel  = activeEgg?.battleLevel ?? 1
+
+  // ── Minigame shortcut: random selection among unlocked games with lives left ──
+  const miniUnlocked  = unlockedGames(eggLevel)
+  const miniTotalLives = miniUnlocked.reduce((sum, k) => sum + livesRemaining(state, k), 0)
+  const launchRandomMinigame = () => {
+    playTone('tap')
+    const pool = miniUnlocked.filter(k => livesRemaining(state, k) > 0)
+    if (pool.length === 0) {
+      showToast('เกมทั้งหมดเล่นครบแล้ววันนี้! มาใหม่พรุ่งนี้นะ 🌙')
+      return
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)]
+    dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: pick })
+    navigate('game')
+  }
 
   // Egg-zone tap: armed item → use it; else post-hatch adds bond (+reaction), pre-hatch pets / triggers hatch.
   const onEggZoneTap = (e) => {
@@ -420,11 +437,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
         width:'100%', maxWidth:480, padding:'0 16px', flexShrink:0, marginBottom:8,
       }}>
         <button
-          onClick={() => {
-            playTone('tap')
-            dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: 'memory' })
-            navigate('game')
-          }}
+          onClick={launchRandomMinigame}
           style={{
             width:'100%', display:'flex', alignItems:'center', gap:12,
             background:'rgba(155,93,229,0.16)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
@@ -439,7 +452,7 @@ export default function Home({ navigate, soundOn, toggleSound, onOpenLogin, onOp
               fontFamily:'var(--font-thai)', fontSize:9, color:'rgba(255,255,255,0.6)',
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
             }}>
-              Egg Memory · Egg Run · อีก 3 เกม
+              สุ่มเกมจากที่ปลดล็อก · มีหัวใจ {miniTotalLives} ดวง
             </span>
           </div>
           <span style={{ fontFamily:'var(--font-pixel)', fontSize:14, color:C_BOND, flexShrink:0 }}>›</span>

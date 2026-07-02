@@ -227,13 +227,28 @@ Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
 - Static `.m4a` phonics files in `public/sounds/phonics/`
 
 ### Minigames (5, lazy-loaded)
-| Game | Unlock | Description |
-|------|--------|-------------|
-| EggRun | daily (10 rounds) | Endless runner, 3 lives/day |
-| EggCatch | 2 hatched eggs | Catch items, dodge rocks |
-| EggMemory | 4 hatched eggs | Match pairs of creature canvases |
-| EggTower | 6 hatched eggs | Stack blocks |
-| EggFishing | 10 hatched eggs | Timing-based fish for items |
+`src/lib/minigameLives.js` (2026-07-02) is the single source of truth for per-game daily lives
+and unlock gating — `MINIGAMES` config (world key, `livesKey`/`dateKey` state fields, `max`
+lives/day, `unlockLevel` vs. companion `battleLevel`, deduct-life reducer action, title),
+`livesRemaining(state, key)`, `unlockedGames(level)`, `heartsStr(remaining, max)`. Each game
+has its own `ready` phase (title + hearts row + start/locked-out button) before play starts;
+starting deducts one life via its `*_DEDUCT_LIFE` reducer case. Lives reset to `max` when the
+stored date (via shared `todayStr()`) no longer matches today.
+
+| Game | Unlock (companion battle level) | Lives/day | Description |
+|------|-----|-----------|-------------|
+| EggMemory | 0 (always) | 5 | Match pairs of element cards |
+| EggCatch | 2 | 5 | Catch items, dodge rocks |
+| EggRun | 6 | 3 | Endless runner |
+| EggTower | 6 | 5 | Stack blocks |
+| EggFishing | 10 | 3 | Timing-based fish for items, rarer fish = more coins |
+
+**No dedicated picker screen** — Home's "มินิเกม" shortcut card (`launchRandomMinigame` in
+`Home.jsx`) picks uniformly at random among unlocked games that still have lives today, shows
+the pooled total as "มีหัวใจ N ดวง", and toasts "เล่นครบแล้ว...พรุ่งนี้" if the pool is empty.
+`GameScreen.jsx` itself still has no unlock gating (renders whatever `currentWorld` is set to)
+— this remains the only gate. Resolves the "Minigame picker screen" decision that was pending
+Chatbot input (2026-07-01 Home redesign) with a lightweight MVP instead of a dedicated screen.
 
 ### Persistence & Auth
 - localStorage key `kq_state` — always-on, written every state change
@@ -244,7 +259,7 @@ Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
 - `state.gender` — `'male' | 'female' | 'unspecified'`
 - `state.stateVersion` — schema version (currently 1); `migrateStateShape()` deep-merges new nested fields on load
 - `state.lastSavedAt` — timestamp used for cloud conflict resolution (replaces `rounds` counter)
-- `resolveSync(local, remote)` — single source of truth for cloud conflict resolution in `state.js`. Whole-object last-write-wins by `lastSavedAt` (tie → remote). **Any reducer that mutates persisted state MUST stamp `lastSavedAt: Date.now()`**, otherwise a stale remote snapshot can win a later resolveSync and silently revert the change on reload (bugs fixed this way: `c74e83d` daily-login coins; 2026-07-01 cosmetics/room purchases). Reducers currently stamping it: `DAILY_LOGIN`, `BUY_ITEM`, `EQUIP_ITEM`, `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`.
+- `resolveSync(local, remote)` — single source of truth for cloud conflict resolution in `state.js`. Whole-object last-write-wins by `lastSavedAt` (tie → remote). **Any reducer that mutates persisted state MUST stamp `lastSavedAt: Date.now()`**, otherwise a stale remote snapshot can win a later resolveSync and silently revert the change on reload (bugs fixed this way: `c74e83d` daily-login coins; 2026-07-01 cosmetics/room purchases). Reducers currently stamping it: `DAILY_LOGIN`, `BUY_ITEM`, `EQUIP_ITEM`, `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM`, `REMOVE_ROOM_ITEM`, and (per the 2026-07-01 full-sweep) all mutating reducers including every minigame `*_DEDUCT_LIFE` case.
 - `SaveStatusIndicator.jsx` — fixed bottom-right badge showing saving/saved/error/offline via pub/sub (`onSaveStatusChange`)
 - Logout: `supabase.auth.signOut()` + `localStorage.removeItem(KEY)` + `dispatch(INIT, defaultState())` — fully clears local state
 - `_migrateBattleStats()` backfills all new fields for legacy eggs on load

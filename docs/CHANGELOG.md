@@ -1,5 +1,53 @@
 # Changelog — KidQuest
 
+## 2026-07-02 — Minigame daily-lives + unlock-gating system
+
+### src/lib/minigameLives.js (new)
+- Single source of truth for the 5 minigames' daily lives + unlock gating: `MINIGAMES` config
+  (per-game world key, `livesKey`/`dateKey` state fields, `max` lives/day, `unlockLevel`
+  compared against companion `battleLevel`, deduct-life reducer action, Thai title),
+  `livesRemaining(state, key)`, `unlockedGames(level)`, `heartsStr(remaining, max)`.
+
+### src/lib/state.js, src/context/StateContext.jsx
+- Added `memoryLives`/`lastMemoryDate` (5/day), `catchLives`/`lastCatchDate` (5/day),
+  `towerLives`/`lastTowerDate` (5/day), `fishingLives`/`lastFishingDate` (3/day) to
+  `defaultState()`, plus matching `MEMORY_DEDUCT_LIFE` / `CATCH_DEDUCT_LIFE` /
+  `TOWER_DEDUCT_LIFE` / `FISHING_DEDUCT_LIFE` reducer cases (same shape as the existing
+  `ER_DEDUCT_LIFE`), each stamping `lastSavedAt`.
+
+### src/games/minigames/{EggMemory,EggCatch,EggTower,EggFishing}.jsx
+- Each gained a `ready` phase (title + hearts row via `heartsStr` + start button, or a
+  "come back tomorrow" message when lives are exhausted) before play starts; starting
+  dispatches the game's `*_DEDUCT_LIFE` action. Coin-reward formulas rebalanced with more
+  tiers / higher variance (previously flat 3-tier caps).
+
+### src/games/minigames/EggRun.jsx — bug fix
+- Migrated to the shared `minigameLives.js` module, fixing a real pre-existing bug: EggRun's
+  own inline lives-reset check compared `state.lastRunDate` (stamped by the reducer using
+  `todayStr()`, e.g. `"2026-7-2"`) against `new Date().toLocaleDateString()` — the two date
+  formats never match, so EggRun's own ready screen was permanently stuck showing 3/3 hearts
+  regardless of how many runs were actually left that day (Home's shortcut card, which already
+  used `todayStr()` via `minigameLives.js`, had the correct count all along — only EggRun's own
+  screen was wrong). Confirmed the fix live: set matching-day partial lives via localStorage,
+  reloaded, and the ready screen now shows the correct partial heart count instead of a false
+  full reset. Coin formula also rebalanced (distance + ring tiers, capped at 15).
+
+### src/components/Home.jsx
+- Minigame shortcut card (`launchRandomMinigame`) no longer hardcodes Egg Memory — picks
+  uniformly at random among unlocked games (by companion battle level) that still have lives
+  today, and shows the pooled total ("มีหัวใจ N ดวง"); toasts a friendly message if the pool is
+  empty. Resolves the "Minigame picker screen" decision flagged 2026-07-01 (dedicated screen
+  vs. map-tile routing) with a lightweight MVP — no new screen, `GameScreen.jsx` still has no
+  unlock gating of its own.
+
+### Verification
+- Live-tested in Chrome against the running dev server (account "โชแปง"): all 5 ready screens
+  render correct hearts; Home's pooled total agrees with the sum of individual games; forced an
+  isolated EggRun test (zeroed the other 4 games' lives via localStorage, set `eggRunLives`
+  with today's date) to directly confirm the date-format fix; restored all daily-lives fields
+  to fresh afterward so no test data was left in the save (matches the project's established
+  no-test-residue convention). Zero console errors. `npm run build` clean (172 modules).
+
 ## 2026-07-01 — Friends room visit + cosmetics display
 
 ### ⚠️ NEW MIGRATION PENDING — MUST BE RUN MANUALLY

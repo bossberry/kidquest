@@ -82,6 +82,10 @@ export const ACTIONS = {
   SEEN_TEACH:         'SEEN_TEACH',
   ER_DEDUCT_LIFE:     'ER_DEDUCT_LIFE',
   ER_SAVE_SCORE:      'ER_SAVE_SCORE',
+  MEMORY_DEDUCT_LIFE:  'MEMORY_DEDUCT_LIFE',
+  CATCH_DEDUCT_LIFE:   'CATCH_DEDUCT_LIFE',
+  TOWER_DEDUCT_LIFE:   'TOWER_DEDUCT_LIFE',
+  FISHING_DEDUCT_LIFE: 'FISHING_DEDUCT_LIFE',
   UPDATE_HAPPINESS:   'UPDATE_HAPPINESS',
   CHECK_DAILY_RESET:  'CHECK_DAILY_RESET',
   DECAY_HAPPINESS:    'DECAY_HAPPINESS',
@@ -424,6 +428,34 @@ function reducer(state, action) {
       const reset = (state.lastRunDate || '') !== today
       const lives = reset ? 3 : (state.eggRunLives || 0)
       return { ...state, eggRunLives: Math.max(0, lives - 1), lastRunDate: today, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.MEMORY_DEDUCT_LIFE: {
+      const today = todayStr()
+      const reset = (state.lastMemoryDate || '') !== today
+      const lives = reset ? 5 : (state.memoryLives || 0)
+      return { ...state, memoryLives: Math.max(0, lives - 1), lastMemoryDate: today, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.CATCH_DEDUCT_LIFE: {
+      const today = todayStr()
+      const reset = (state.lastCatchDate || '') !== today
+      const lives = reset ? 5 : (state.catchLives || 0)
+      return { ...state, catchLives: Math.max(0, lives - 1), lastCatchDate: today, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.TOWER_DEDUCT_LIFE: {
+      const today = todayStr()
+      const reset = (state.lastTowerDate || '') !== today
+      const lives = reset ? 5 : (state.towerLives || 0)
+      return { ...state, towerLives: Math.max(0, lives - 1), lastTowerDate: today, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.FISHING_DEDUCT_LIFE: {
+      const today = todayStr()
+      const reset = (state.lastFishingDate || '') !== today
+      const lives = reset ? 3 : (state.fishingLives || 0)
+      return { ...state, fishingLives: Math.max(0, lives - 1), lastFishingDate: today, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ER_SAVE_SCORE: {

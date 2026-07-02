@@ -3,6 +3,9 @@ import { useAppState, ACTIONS } from '../../context/StateContext.jsx'
 import { ITEMS, CATCH_ITEMS, shuffle } from '../../config/gameConfig.js'
 import { playTone } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
+import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+
+const G = MINIGAMES.catch
 
 export default function EggCatch() {
   const { state, dispatch, eggStatsData } = useAppState()
@@ -10,10 +13,20 @@ export default function EggCatch() {
   const gsRef = useRef(null)
   const animRef = useRef(null)
   const runRef = useRef(false)
-  const [phase, setPhase] = useState('playing') // 'playing'|'dead'
+  const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'dead'
   const [score, setScore] = useState(0)
 
+  const lives = livesRemaining(state, 'catch')
+
+  const startGame = () => {
+    if (lives <= 0) return
+    dispatch({ type: ACTIONS.CATCH_DEDUCT_LIFE })
+    setScore(0)
+    setPhase('playing')
+  }
+
   useEffect(() => {
+    if (phase !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const eggSpd = 5 + Math.min(3, (state.xpThai||0)+(state.xpEng||0)+(state.xpMath||0))/200
     const gs = { egg:{x:canvas.width/2,y:canvas.height-40,w:36,h:36,dir:0,speed:eggSpd}, items:[], lives:3, score:0, frame:0, eggOff:null }
@@ -30,20 +43,37 @@ export default function EggCatch() {
     const keys={};const onKD=e=>{keys[e.key]=true;if(gs.egg){if(keys['ArrowLeft']||keys['a'])gs.egg.dir=-1;if(keys['ArrowRight']||keys['d'])gs.egg.dir=1}};const onKU=()=>{if(gs.egg)gs.egg.dir=0}
     document.addEventListener('keydown',onKD);document.addEventListener('keyup',onKU)
     return()=>{runRef.current=false;cancelAnimationFrame(animRef.current);document.removeEventListener('keydown',onKD);document.removeEventListener('keyup',onKU)}
-  },[]) // eslint-disable-line
+  },[phase]) // eslint-disable-line
 
   const cW=Math.min(typeof window!=='undefined'?window.innerWidth:480,480)
   const cH=Math.max(240,Math.min(340,typeof window!=='undefined'?window.innerHeight-160:300))
 
+  if(phase==='ready'){
+    return(
+      <div style={{width:'100%',maxWidth:480,padding:20,fontFamily:'Mitr,sans-serif'}}>
+        <div style={{fontFamily:"'Fredoka One',cursive",fontSize:22,textAlign:'center',marginBottom:16}}>{G.title}</div>
+        <div style={{textAlign:'center',fontSize:14,color:'var(--muted)',marginBottom:16}}>รับของดี 💛🍎💎 หลบก้อนหิน 🪨💣!</div>
+        <div style={{display:'flex',justifyContent:'center',padding:'10px 14px',background:'var(--green-l)',borderRadius:12,marginBottom:16,fontSize:20}}>
+          {heartsStr(lives, G.max)}
+        </div>
+        {lives <= 0
+          ? <div style={{textAlign:'center',padding:20,color:'var(--muted)'}}>มาเล่นใหม่พรุ่งนี้นะ! 🌙</div>
+          : <button onClick={startGame} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:12,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🧺 เริ่มเล่น!</button>
+        }
+      </div>
+    )
+  }
+
   if(phase==='dead'){
-    const catchCoinsDisplay = score >= 20 ? 8 : score >= 8 ? 5 : 3
+    const rings = Math.floor(score/3)
+    const catchCoinsDisplay = rings>=40?12:rings>=25?8:rings>=10?5:3
     return(
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
         <div style={{fontSize:64,marginBottom:10}}>🧺</div>
         <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,marginBottom:8}}>Game Over!</div>
         <div style={{fontSize:16,marginBottom:8}}>คะแนน: {score}</div>
         <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.12)',border:'1px solid rgba(255,210,63,0.35)',borderRadius:20,padding:'4px 14px',marginBottom:16,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{catchCoinsDisplay}</div>
-        <button onClick={()=>{setPhase('playing');setScore(0)}} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🔄 เล่นอีกครั้ง</button>
+        <button onClick={()=>{setPhase('ready');setScore(0)}} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🔄 เล่นอีกครั้ง</button>
       </div>
     )
   }
@@ -111,7 +141,7 @@ function handleReward(score,dispatch){
     dispatch({type:ACTIONS.DROP_ITEM,payload:{key:k}})
     showItemToast(ITEMS[k].emoji+' ได้รับ '+ITEMS[k].name+'!')
   }
-  const catchCoins = score >= 20 ? 8 : score >= 8 ? 5 : 3
+  const catchCoins = rings>=40?12:rings>=25?8:rings>=10?5:3
   dispatch({type:ACTIONS.ADD_COINS,payload:{amount:catchCoins}})
   dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak:0,score:0}})
 }

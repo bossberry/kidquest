@@ -78,6 +78,7 @@ If yes: warn first, explain the violation, suggest smaller alternative, proceed 
 - New state field → `defaultState()` in `state.js` + reducer in `StateContext.jsx`.
 - New level → `LEVELS[world]` + `TEACH_CONTENT` + update `maxLevels` in `useFinishRound`.
 - New SFX → `playTone()` in `src/lib/audio.js`.
+- New full-screen/edit screen → `BOTTOM_NAV_H = 80` bottom-nav clearance convention (see `Room.jsx`/`Collection.jsx`/`Home.jsx`), not a new value.
 
 ---
 

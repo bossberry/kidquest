@@ -1,5 +1,35 @@
 # Changelog — KidQuest
 
+## 2026-07-03 — Home screen: full-screen walking room, floating action buttons
+
+The Home screen previously showed the room in a fixed-size box with the companion egg as a separate static overlay on top, and had three fixed UI rows below the room (minigame shortcut card, item tray, explore button). This redesigns it so the iso room fills the entire screen and the companion egg genuinely walks around inside it as the interactive element, with every action now a small floating icon button over the room.
+
+### Two false premises corrected before implementation
+The original request assumed (1) the room's existing walker already wandered the iso floor naturally, and (2) `DecoratedRoom` needed a `mode: 'home'|'edit'` prop so `Room.jsx`'s editor behavior wouldn't regress. Neither was true. The walker (`DecoratedRoom.jsx`'s `makeEntity`/`updateEntity`) was a leftover from the pre-iso room — it bounced left-right along one fixed horizontal line with no concept of the diamond-shaped floor, which is exactly why Home has always set `showWalker={false}` and used a separate static egg overlay instead. And `grep`-ing every importer of `DecoratedRoom` turned up exactly one: `Home.jsx` — `Room.jsx` has its own separate canvas and never touches `DecoratedRoom` at all, so there was no compatibility constraint to design around. Both were corrected in the brief before delegating: real iso-floor-aware wander logic was written from scratch (reusing `Room.jsx`'s own `hitTestZone`/`slotCenter` functions for tap-to-floor-point conversion instead of inventing new inverse-projection math), and `DecoratedRoom` was freely restructured as Home's exclusive component.
+
+### src/components/DecoratedRoom.jsx (rewritten)
+- Canvas now sizes to its container via `ResizeObserver` (same pattern `Room.jsx` already uses), so the room scales to fill whatever space it's given.
+- The walker picks genuine iso tile-space wander targets — `project(0.5+rand*(FLOOR_COLS-1), 0.5+rand*(FLOOR_ROWS-1), 0)` — and eases toward them in screen space (valid because the iso projection is affine, so a straight line in tile-space is a straight line on screen too). Idle/jump/spin states carry over conceptually from the old walker; "stop and look around" is the existing idle pause.
+- Real tap handling on the canvas: near the walker → an `onPetTap` callback (Home routes this to its existing pet/bond/hatch logic, unchanged); elsewhere on the floor → `hitTestZone(g, px, py, 'floor')` + `slotCenter` (Room.jsx's own functions, not reimplemented) → the walker tweens there, bounces + plays the existing pet SFX on arrival, then holds briefly before resuming free wander.
+- New imperative `apiRef.walkToScreen(x, y)` (clamped to the floor diamond via `clampToFloorG`, so the egg never visually walks into a wall) — lets the parent summon the egg to an arbitrary screen point, used when an item button is tapped.
+- Live walker position is published every frame two ways: `walkerPosRef.current = {x,y}` for on-demand reads, and `followRef.current.style.transform` — a DOM "follow layer" that tracks the egg with zero React re-renders, replacing the old assumption that the egg sits at a fixed screen position.
+
+### src/components/Home.jsx (rewritten)
+- Room container is now `position:absolute; inset:0` with the established `BOTTOM_NAV_H` bottom-clearance convention (same as this session's `Room.jsx`/`Collection.jsx` redesigns) — no separate rows below it anymore.
+- Header and status bar are now translucent floating overlays pinned to the top (more transparent than before), not layout rows that shrink the room.
+- Minigame card, item tray, and explore button rows are gone. Replaced with floating circular buttons: 🎮 minigame (top-left, live lives-count badge, calls the unchanged `launchRandomMinigame`), 🗺️ explore (bottom-right, unchanged `ENTER_WORLD` dispatch + `navigate('world')` + `playTone('start')`), and a 2×2 item cluster (🍗🎀👟⭐, bottom-left) that fully preserves the old item tray's count-badge / armed-highlight / active-and-cooldown-timer / dimmed-when-empty logic, just re-skinned as circles instead of cards.
+- Item button taps now also cue the egg to trot over to the button's real screen position (`getBoundingClientRect()` on the button, converted to room-container-relative coordinates, passed to `apiRef.walkToScreen`) before the existing arm-then-use effects fire.
+- Reaction emoji / heal-float / tap-particles moved into the new DOM follow-layer so they visually originate from the egg's actual current position instead of a fixed screen-center offset.
+- Hatch CTA (pre-hatch new players only) re-anchored to bottom-center since the egg can no longer be assumed to sit at a fixed spot.
+- `useHomeAmbience`/`useCreatureInteraction`/`useHomeInteractions` are unchanged internally — only their trigger UI moved to the new floating buttons / canvas tap routing.
+
+### Verification
+- Reviewed both full diffs. Confirmed via `grep` that `DecoratedRoom` really is Home's exclusive consumer (`RoomVisit.jsx`/the FriendsScreen thumbnail use the separate, unrelated `RoomScene.jsx`; `Room.jsx` untouched). Hand-verified the iso corner-projection math in `clampToFloorG` by working through `roomScene.js`'s actual `project()` formula.
+- The implementing agent used a temporary login-bypass in `App.jsx` to drive the real app during its own development — confirmed fully reverted (`git diff --stat src/App.jsx` showed zero changes) before accepting the work. Its dev-server-killing cleanup step also killed the coordinator's own running dev server; restarted before further verification.
+- `npm run build` clean.
+- **Live end-to-end test with the test account**: full-screen room renders with no dead space around it; tapping far on the floor walks the egg to the exact tapped tile (confirmed visually, egg moved from center to the tapped tile precisely); tapping the egg directly changes its expression (pet interaction firing); tapping the food item button showed the armed highlight AND the egg visibly walking toward the button, clamped near the wall; tapping again used the item (count badge 2→1, armed state cleared); the minigame button's live lives-badge rendered correctly; the explore button navigated to the world map and back to Home cleanly with no console errors at any point.
+
+
 ## 2026-07-03 — Shop redesigned as a full-screen "dressing room"; furniture tab removed
 
 The Shop/Collection screen had a furniture tab (now redundant — furniture buys directly from Room's own item picker) and a cramped tabbed-list layout. This redesigns it into a cosmetics-only, full-screen "dressing room" experience.

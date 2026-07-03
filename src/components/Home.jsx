@@ -1,8 +1,10 @@
-// Home.jsx — main hub (redesigned 2026-07-01, egg enlarged 2026-07-01; sound toggle removed 2026-07-02, sound always on):
-//   header (avatar · stage · name | 🔥streak · 🪙coins) → status bar (HP · XP · Bond)
-//   → full-bleed DecoratedRoom (room art only, showWalker=false) with a large centered
-//     tappable EggCanvas on top (the star of the screen) + a floating Lv pill
-//   → minigame shortcut card → item tray → explore button.
+// Home.jsx — main hub (full-screen room redesign 2026-07-03):
+//   The isometric room fills the whole screen. The companion egg WALKS around the
+//   floor inside it (DecoratedRoom, iso-aware wander AI) and is the interactive
+//   element. Header (avatar/name/stage · streak · coins) and status bar (HP/XP/Bond)
+//   are translucent floating overlays pinned to the top. All actions are small
+//   floating icon buttons overlaid on the room: 🎮 minigame, 🗺️ explore, and the
+//   4-item cluster (🍗 food · 🎀 ribbon · 👟 shoes · ⭐ rainbow star).
 // BottomNav is rendered by App.jsx (not here).
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
@@ -10,7 +12,7 @@ import EggCanvas from './EggCanvas.jsx'
 import DecoratedRoom from './DecoratedRoom.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
+import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import { drawItem } from '../lib/itemArt.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { supabase } from '../lib/supabase.js'
@@ -20,8 +22,9 @@ import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
 import { showToast } from './Toasts.jsx'
 import { unlockedGames, livesRemaining } from '../lib/minigameLives.js'
 
-// Map egg XP stage (0–8) to companion aura level (0–4) — used by the small header avatar
-// and the large hero egg.
+const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
+
+// Map egg XP stage (0–8) to companion aura level (0–4) — used by the small header avatar.
 function stageToAura(s) {
   if (s >= 8) return 4
   if (s >= 6) return 3
@@ -29,7 +32,7 @@ function stageToAura(s) {
   if (s >= 2) return 1
   return 0
 }
-// Map CSS-animation state name (from useCreatureInteraction) to EggCanvas anim/mood props.
+// Map CSS-animation state name (from useCreatureInteraction) to egg-sprite anim/mood.
 function cssAnimToEggAnim(cssAnim) {
   if (cssAnim === 'sleepy' || cssAnim === 'relax') return 'sleepy'
   if (cssAnim === 'excited' || cssAnim === 'reunion') return 'excited'
@@ -71,10 +74,18 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     return () => subscription.unsubscribe()
   }, [])
   const [creatureBounce, setCreatureBounce] = useState(false)
-  const [bondReaction, setBondReaction]     = useState(null) // floating emoji reaction over egg zone
+  const [bondReaction, setBondReaction]     = useState(null) // floating emoji reaction over egg
   const [healFloat, setHealFloat]         = useState(null)  // null | id
 
   const initVisitRef    = useRef(state.lastHomeVisit)
+
+  // Room walker bridge — DecoratedRoom writes live position into followRef's transform
+  // and exposes an imperative walkToScreen() through roomApiRef.
+  const roomContainerRef = useRef(null)
+  const followRef        = useRef(null)
+  const roomApiRef       = useRef(null)
+  const walkerPosRef     = useRef({ x: 0, y: 0 })
+  const itemBtnRefs      = useRef({})
 
   const { stage } = eggProgressData
   const eggsHatched       = (state.hatchedEggs || []).length
@@ -153,9 +164,7 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     navigate('game')
   }
 
-  // ── unlock_new: detect a minigame crossing its unlock-level threshold during
-  // this session (not on initial mount/reload — the ref seeds to the current
-  // unlocked set so nothing looks "new" right after loading the app). ─────────
+  // ── unlock_new: detect a minigame crossing its unlock-level threshold ──────
   const prevUnlockedRef = useRef(null)
   useEffect(() => {
     if (prevUnlockedRef.current === null) {
@@ -167,17 +176,35 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     prevUnlockedRef.current = new Set(miniUnlocked)
   }, [eggLevel]) // eslint-disable-line
 
-  // Egg-zone tap: armed item → use it; else post-hatch adds bond (+reaction), pre-hatch pets / triggers hatch.
-  const onEggZoneTap = (e) => {
+  // Egg tap (routed up from DecoratedRoom when a tap lands near the walker):
+  // armed item → use it; else post-hatch adds bond (+reaction), pre-hatch pets / triggers hatch.
+  const onEggTap = (e) => {
     if (activeItem) { handleTapItem(activeItem); return }
     if (eggsHatched > 0) { handleCreatureTap(e); return }
     handleEggTap(e)
   }
 
+  // Item button tap: cue the walker to trot over to the button, then run the
+  // existing arm-then-use flow (handleTapItem). Effects anchor to the walker
+  // (via the follow layer) which is now standing at the button.
+  const onItemButton = (key) => {
+    const btn = itemBtnRefs.current[key]
+    const cont = roomContainerRef.current
+    if (btn && cont && roomApiRef.current?.walkToScreen) {
+      const b = btn.getBoundingClientRect()
+      const c = cont.getBoundingClientRect()
+      roomApiRef.current.walkToScreen(b.left + b.width / 2 - c.left, b.top + b.height / 2 - c.top)
+    }
+    handleTapItem(key)
+  }
+
+  const spriteAnim = cssAnimToEggAnim(eggAnim)
+  const spriteMood = cssAnimToMood(eggAnim)
+
   return (
     <div id="egg-home" style={{
-      display:'flex', flexDirection:'column', alignItems:'center',
-      width:'100%', height:'100dvh', overflowX:'hidden', overflowY:'hidden',
+      width:'100%', height:'100dvh', position:'relative',
+      overflowX:'hidden', overflowY:'hidden',
     }}>
 
       {/* Flying food overlay */}
@@ -191,7 +218,7 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
         </div>
       )}
 
-      {/* Ambient events — rare visual moments */}
+      {/* Ambient events — rare visual moments (full-screen, don't track the walker) */}
       {ambientEvent?.type === 'butterfly' && (
         <div key={`amb-${ambientEvent.id}`} style={{
           position:'fixed', top:'38%', left:0,
@@ -242,134 +269,158 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
         </div>
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{
-        width:'100%', maxWidth:480, padding:'10px 16px', flexShrink:0,
-        display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
-        background:'rgba(10,8,22,0.72)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        borderBottom:'2px solid var(--px-border)',
+      {/* ── Full-screen room (fills everything above the bottom nav) ─────────── */}
+      <div ref={roomContainerRef} style={{
+        position:'absolute', inset:0, marginBottom:BOTTOM_NAV_H,
+        overflow:'hidden',
       }}>
-        {/* Left: avatar (tap → profile/login) + stage + name */}
-        <button
-          onClick={() => (isLoggedIn ? onOpenProfile?.() : onOpenLogin?.())}
-          style={{
-            display:'flex', alignItems:'center', gap:8, minWidth:0,
-            background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left',
-          }}
-        >
-          <div style={{
-            width:34, height:34, flexShrink:0, borderRadius:'50%', overflow:'hidden',
-            border:'2px solid rgba(255,255,255,0.2)', background:'rgba(0,0,0,0.35)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-          }}>
-            <EggCanvas stage={stage} aura={stageToAura(stage)} width={40} height={40} style={{ display:'block' }} />
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:1, minWidth:0 }}>
-            <span style={{
-              fontFamily:'var(--font-thai)', fontSize:13, fontWeight:800,
-              color:'var(--px-yellow)', lineHeight:1.1, whiteSpace:'nowrap',
-              overflow:'hidden', textOverflow:'ellipsis', maxWidth:130,
-            }}>
-              {state.name || 'โปรไฟล์'}
-            </span>
-            <span style={{
-              fontFamily:'var(--font-thai)', fontSize:9, color:'rgba(255,255,255,0.55)',
-              lineHeight:1.1, whiteSpace:'nowrap',
-            }}>
-              {stageName}
-            </span>
-          </div>
-        </button>
+        {/* The interactive walking-egg room */}
+        <DecoratedRoom
+          style={{ position:'absolute', inset:0, zIndex:0 }}
+          apiRef={roomApiRef}
+          followRef={followRef}
+          walkerPosRef={walkerPosRef}
+          onPetTap={onEggTap}
+          onSwipe={handleCreatureSwipe}
+          anim={spriteAnim}
+          mood={spriteMood}
+        />
 
-        {/* Right: streak pill · coin pill · sound toggle */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-          <div style={{
-            display:'flex', alignItems:'center', gap:3,
-            background:'rgba(255,107,53,0.16)', border:`1px solid ${C_STREAK}66`,
-            padding:'3px 7px',
-          }}>
-            <span style={{ fontSize:11 }}>🔥</span>
-            <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_STREAK, letterSpacing:0.5 }}>
-              {state.loginStreak || 0}
-            </span>
+        {/* Follow layer — reaction emoji / heal float / tap particles track the egg.
+            DecoratedRoom sets this div's transform to the egg's live screen position. */}
+        <div ref={followRef} style={{
+          position:'absolute', left:0, top:0, zIndex:8,
+          pointerEvents:'none', willChange:'transform',
+        }}>
+          <div style={{ position:'absolute', left:0, top:-58, transform:'translateX(-50%)', textAlign:'center' }}>
+            {bondReaction && (
+              <div key={`br-${bondReaction}`} style={{
+                fontSize:26, animation:'dmg-float 0.85s ease-out forwards',
+              }}>
+                {bondReaction}
+              </div>
+            )}
+            {healFloat && (
+              <div key={healFloat} style={{
+                fontFamily:'var(--font-pixel)', fontSize:11, color:'#44ee44',
+                animation:'dmg-float 1.1s ease-out forwards',
+              }}>
+                +100 HP
+              </div>
+            )}
           </div>
-          <div style={{
-            display:'flex', alignItems:'center', gap:3,
-            background:'rgba(255,210,63,0.15)', border:`1px solid ${C_COIN}66`,
-            padding:'3px 7px',
-          }}>
-            <span style={{ fontSize:11 }}>🪙</span>
-            <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_COIN, letterSpacing:0.5 }}>
-              {state.coins || 0}
-            </span>
-          </div>
+          {particles.map(p => (
+            <div key={p.id} style={{
+              position:'absolute', top:0, left:0,
+              marginTop:p.dy, marginLeft:p.dx,
+              animation:`particle-rise ${p.dur}ms ease forwards`,
+            }}>
+              <div style={{
+                width: p.type==='hearts'?8:6, height: p.type==='hearts'?8:6,
+                background: p.type==='hearts'?'#ff6677':'#ffdd44',
+                boxShadow: `0 0 4px ${p.type==='hearts'?'#ff6677':'#ffdd44'}`,
+              }} />
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* ── Status bar (HP · XP · Bond) ────────────────────────────────────── */}
-      <div style={{
-        width:'100%', maxWidth:480, padding:'6px 16px', flexShrink:0,
-        display:'flex', alignItems:'center', gap:10, maxHeight:36,
-        background:'rgba(10,8,22,0.55)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
-        borderBottom:'1px solid var(--px-border)',
-      }}>
-        {[
-          { emoji:'❤️', pct:hpPct,   color:C_STREAK },
-          { emoji:'⭐', pct:xpPct,   color:C_COIN },
-          { emoji:'💕', pct:bondPct, color:C_BOND },
-        ].map(({ emoji, pct, color }, i) => (
-          <div key={i} style={{ flex:1, display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-            <span style={{ fontSize:12, flexShrink:0 }}>{emoji}</span>
-            <div style={{
-              flex:1, height:7, background:'rgba(0,0,0,0.5)',
-              border:'1px solid rgba(255,255,255,0.12)', overflow:'hidden',
-            }}>
-              <div style={{ width:`${pct}%`, height:'100%', background:color, transition:'width 0.4s ease' }} />
+        {/* ── Top overlay: header + status bar (translucent, float over the room) ── */}
+        <div style={{
+          position:'absolute', top:0, left:0, right:0, zIndex:12,
+          display:'flex', flexDirection:'column', alignItems:'center',
+          pointerEvents:'none',
+        }}>
+          {/* Header */}
+          <div style={{
+            width:'100%', maxWidth:480, padding:'10px 16px',
+            display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+            background:'rgba(10,8,22,0.40)', backdropFilter:'blur(5px)', WebkitBackdropFilter:'blur(5px)',
+          }}>
+            <button
+              onClick={() => (isLoggedIn ? onOpenProfile?.() : onOpenLogin?.())}
+              style={{
+                display:'flex', alignItems:'center', gap:8, minWidth:0, pointerEvents:'auto',
+                background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{
+                width:34, height:34, flexShrink:0, borderRadius:'50%', overflow:'hidden',
+                border:'2px solid rgba(255,255,255,0.2)', background:'rgba(0,0,0,0.35)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <EggCanvas stage={stage} aura={stageToAura(stage)} width={40} height={40} style={{ display:'block' }} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:1, minWidth:0 }}>
+                <span style={{
+                  fontFamily:'var(--font-thai)', fontSize:13, fontWeight:800,
+                  color:'var(--px-yellow)', lineHeight:1.1, whiteSpace:'nowrap',
+                  overflow:'hidden', textOverflow:'ellipsis', maxWidth:130,
+                  textShadow:'0 1px 4px rgba(0,0,0,0.7)',
+                }}>
+                  {state.name || 'โปรไฟล์'}
+                </span>
+                <span style={{
+                  fontFamily:'var(--font-thai)', fontSize:9, color:'rgba(255,255,255,0.7)',
+                  lineHeight:1.1, whiteSpace:'nowrap', textShadow:'0 1px 3px rgba(0,0,0,0.7)',
+                }}>
+                  {stageName}
+                </span>
+              </div>
+            </button>
+
+            <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+              <div style={{
+                display:'flex', alignItems:'center', gap:3,
+                background:'rgba(255,107,53,0.20)', border:`1px solid ${C_STREAK}66`,
+                padding:'3px 7px',
+              }}>
+                <span style={{ fontSize:11 }}>🔥</span>
+                <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_STREAK, letterSpacing:0.5 }}>
+                  {state.loginStreak || 0}
+                </span>
+              </div>
+              <div style={{
+                display:'flex', alignItems:'center', gap:3,
+                background:'rgba(255,210,63,0.18)', border:`1px solid ${C_COIN}66`,
+                padding:'3px 7px',
+              }}>
+                <span style={{ fontSize:11 }}>🪙</span>
+                <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_COIN, letterSpacing:0.5 }}>
+                  {state.coins || 0}
+                </span>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* ── Egg zone — transparent, room walker shows through; tap to pet ───── */}
-      <div
-        onClick={onEggZoneTap}
-        onTouchStart={onEggZoneTap}
-        onTouchMove={handleCreatureSwipe}
-        style={{
-          flex:1, width:'100%', maxWidth:480, minHeight:0,
-          position:'relative', cursor:'pointer', overflow:'hidden',
-          display:'flex', flexDirection:'column', alignItems:'center',
-        }}
-      >
-        {/* Full-bleed decorated room — art only; the large hero egg below is the interactive element */}
-        <DecoratedRoom style={{ position:'absolute', inset:0, zIndex:0 }} showWalker={false} />
-
-        {/* Large hero companion egg — centered, tappable, the star of the screen */}
-        <div style={{
-          position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-          zIndex:6, display:'flex', alignItems:'center', justifyContent:'center',
-        }}>
+          {/* Status bar (HP · XP · Bond) */}
           <div style={{
-            transform: creatureBounce ? 'scale(1.12)' : 'scale(1)',
-            transition:'transform 0.32s cubic-bezier(.2,1.5,.5,1)',
+            width:'100%', maxWidth:480, padding:'5px 16px',
+            display:'flex', alignItems:'center', gap:10,
+            background:'rgba(10,8,22,0.28)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
           }}>
-            <EggCanvas
-              stage={stage}
-              aura={stageToAura(stage)}
-              anim={cssAnimToEggAnim(eggAnim)}
-              mood={cssAnimToMood(eggAnim)}
-              width={200} height={236}
-              className={eggGlow ? `egg-glow-${eggGlow}` : undefined}
-              style={{ display:'block' }}
-            />
+            {[
+              { emoji:'❤️', pct:hpPct,   color:C_STREAK },
+              { emoji:'⭐', pct:xpPct,   color:C_COIN },
+              { emoji:'💕', pct:bondPct, color:C_BOND },
+            ].map(({ emoji, pct, color }, i) => (
+              <div key={i} style={{ flex:1, display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                <span style={{ fontSize:12, flexShrink:0 }}>{emoji}</span>
+                <div style={{
+                  flex:1, height:7, background:'rgba(0,0,0,0.5)',
+                  border:'1px solid rgba(255,255,255,0.14)', overflow:'hidden',
+                }}>
+                  <div style={{ width:`${pct}%`, height:'100%', background:color, transition:'width 0.4s ease' }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Floating Lv · stage-name pill, top-center */}
+        {/* Floating Lv · stage-name pill */}
         <div style={{
-          marginTop:12, zIndex:5, pointerEvents:'none',
-          display:'inline-flex', alignItems:'center', gap:6,
-          background:'rgba(10,8,22,0.62)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+          position:'absolute', top:92, left:'50%', transform:'translateX(-50%)', zIndex:7,
+          pointerEvents:'none', display:'inline-flex', alignItems:'center', gap:6,
+          background:'rgba(10,8,22,0.55)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
           border:'1px solid rgba(255,255,255,0.15)', padding:'4px 12px',
         }}>
           <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_COIN, letterSpacing:0.5 }}>
@@ -381,172 +432,133 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
           </span>
         </div>
 
-        {/* Floating reaction emoji + heal float — above the large egg's head */}
-        <div style={{
-          position:'absolute', top:'calc(50% - 138px)', left:'50%', transform:'translateX(-50%)',
-          pointerEvents:'none', zIndex:20,
-        }}>
-          {bondReaction && (
-            <div key={`br-${bondReaction}`} style={{
-              fontSize:26, textAlign:'center',
-              animation:'dmg-float 0.85s ease-out forwards',
-            }}>
-              {bondReaction}
-            </div>
-          )}
-          {healFloat && (
-            <div key={healFloat} style={{
-              fontFamily:'var(--font-pixel)', fontSize:11, color:'#44ee44', textAlign:'center',
-              animation:'dmg-float 1.1s ease-out forwards',
-            }}>
-              +100 HP
-            </div>
-          )}
-        </div>
-
-        {/* Tap particles — centered on the large egg */}
-        {particles.length > 0 && (
-          <div style={{ position:'absolute', top:'50%', left:'50%', pointerEvents:'none', zIndex:10 }}>
-            {particles.map(p => (
-              <div key={p.id} style={{
-                position:'absolute', top:0, left:0,
-                marginTop: p.dy, marginLeft: p.dx,
-                animation:`particle-rise ${p.dur}ms ease forwards`,
-                pointerEvents:'none',
-              }}>
-                <div style={{ width: p.type==='hearts'?8:6, height: p.type==='hearts'?8:6, background: p.type==='hearts'?'#ff6677':'#ffdd44', boxShadow: `0 0 4px ${p.type==='hearts'?'#ff6677':'#ffdd44'}` }} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Hatch CTA — only for a brand-new player whose first egg is ready */}
-        {readyToHatch && eggsHatched === 0 && (
-          <div style={{ position:'absolute', bottom:14, left:0, right:0, display:'flex', justifyContent:'center', zIndex:15 }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); dispatch({ type: ACTIONS.SET_HATCHING, payload: true }) }}
-              className="px-btn px-btn-yellow"
-              aria-label="แตะเพื่อฟักไข่"
-              style={{
-                fontFamily:'var(--font-thai)', fontSize:12, minHeight:44,
-                display:'inline-flex', alignItems:'center', gap:6,
-                animation:'challenger-pulse 1s ease-in-out infinite',
-              }}
-            >
-              <span style={{ fontSize:22, lineHeight:1 }}>👆</span>
-              แตะ!
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Minigame shortcut card ─────────────────────────────────────────── */}
-      <div style={{
-        width:'100%', maxWidth:480, padding:'0 16px', flexShrink:0, marginBottom:8,
-      }}>
+        {/* 🎮 Minigame — floating, upper-left */}
         <button
           onClick={launchRandomMinigame}
+          aria-label={`มินิเกม (มีหัวใจ ${miniTotalLives} ดวง)`}
           style={{
-            width:'100%', display:'flex', alignItems:'center', gap:12,
-            background:'rgba(155,93,229,0.16)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
-            border:`2px solid ${C_BOND}`, boxShadow:`3px 3px 0 rgba(0,0,0,0.4)`,
-            padding:'10px 14px', cursor:'pointer', textAlign:'left',
+            position:'absolute', top:96, left:14, zIndex:10,
+            width:54, height:54, borderRadius:'50%', padding:0,
+            background:'rgba(10,8,22,0.60)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+            border:'2px solid rgba(155,93,229,0.85)', boxShadow:'0 3px 10px rgba(0,0,0,0.5)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
           }}
         >
-          <span style={{ fontSize:24, flexShrink:0 }}>🎮</span>
-          <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:3 }}>
-            <span style={{ fontFamily:'var(--font-thai)', fontSize:14, fontWeight:800, color:'#fff' }}>มินิเกม</span>
-            <span style={{
-              fontFamily:'var(--font-thai)', fontSize:9, color:'rgba(255,255,255,0.6)',
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            }}>
-              สุ่มเกมจากที่ปลดล็อก · มีหัวใจ {miniTotalLives} ดวง
-            </span>
-          </div>
-          <span style={{ fontFamily:'var(--font-pixel)', fontSize:14, color:C_BOND, flexShrink:0 }}>›</span>
+          <span style={{ fontSize:28, lineHeight:1 }}>🎮</span>
+          {miniTotalLives > 0 && (
+            <span className="px-badge" style={{ position:'absolute', top:-4, right:-4 }}>{miniTotalLives}</span>
+          )}
         </button>
-      </div>
 
-      {/* ── Item tray ──────────────────────────────────────────────────────── */}
-      <div style={{
-        width:'100%', maxWidth:480, padding:'8px 16px', flexShrink:0,
-        display:'flex', justifyContent:'center',
-        background:'rgba(10,8,22,0.72)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        borderTop:'2px solid var(--px-border)',
-      }}>
-        <div style={{ display:'flex', gap:10 }}>
-        {ITEM_DEFS.map(({ key, label }) => {
-          const count    = state.homeItems?.[key] || 0
-          const isActive = activeItem === key
-          const boost    = state.activeBoosts?.[key]
-          const now      = Date.now()
-          const cooldownMs = HOME_ITEMS[key]?.cooldown ?? 0
-          const status = (() => {
-            if (!boost) return 'ready'
-            if (now < boost.endsAt) return 'active'
-            if (cooldownMs && now < boost.endsAt + cooldownMs) return 'cooldown'
-            return 'ready'
-          })()
-          const cooldownRemaining = boost
-            ? Math.max(0, Math.ceil((boost.endsAt + cooldownMs - now) / 60000))
-            : 0
-          const activeRemaining = boost
-            ? Math.max(0, Math.ceil((boost.endsAt - now) / 60000))
-            : 0
-          return (
-            <div
-              key={key}
-              onClick={() => status !== 'cooldown' && count > 0 && handleTapItem(key)}
-              className="px-item-card"
-              style={{
-                width:66, padding:'8px 4px 6px',
-                opacity: status === 'cooldown' ? 0.4 : count > 0 ? 1 : 0.35,
-                cursor: status === 'cooldown' || count <= 0 ? 'default' : 'pointer',
-                border: isActive ? '2px solid var(--px-purple)' : undefined,
-                transform: isActive ? 'scale(1.1) translateY(-3px)' : 'scale(1)',
-                boxShadow: isActive ? '3px 3px 0 var(--px-purple)' : undefined,
-              }}
-            >
-              <canvas ref={r => r && drawItem(r, key)} width={28} height={28} style={{ width:28, height:28, imageRendering:'pixelated', display:'block', margin:'0 auto 3px' }} />
-              <span style={{ fontFamily:'var(--font-thai)', fontSize:9, color:'var(--px-light)', display:'block', textAlign:'center' }}>{label}</span>
-              <span style={{
-                fontFamily:'var(--font-pixel)', fontSize:6, display:'block', textAlign:'center', marginTop:2,
-                color: status === 'active' ? '#EF9F27' : status === 'cooldown' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.5)',
-              }}>
-                {status === 'active' ? `${activeRemaining}m` : status === 'cooldown' ? `${cooldownRemaining}m` : 'พร้อม'}
-              </span>
-              {status === 'active' && (
-                <div style={{
-                  position:'absolute', top:0, left:0, right:0, bottom:0,
-                  border:'2px solid #EF9F27', pointerEvents:'none',
-                }} />
-              )}
-              {status === 'ready' && count > 0 && (
-                <div className="px-badge" style={{ position:'absolute', top:-5, right:-5 }}>{count}</div>
-              )}
-            </div>
-          )
-        })}
-        </div>
-      </div>
-
-      {/* ── Explore button ─────────────────────────────────────────────────── */}
-      <div style={{
-        width:'100%', maxWidth:480, padding:'8px 16px 10px', flexShrink:0,
-        background:'rgba(10,8,22,0.72)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
-        borderTop:'2px solid var(--px-border)',
-      }}>
+        {/* 🗺️ Explore — floating, lower-right */}
         <button
           onClick={() => {
             playTone('start')
             dispatch({ type: ACTIONS.ENTER_WORLD, payload: { region: 'green-meadow', screen: 'BM' } })
             navigate('world')
           }}
-          className="px-btn px-btn-purple"
-          style={{ width:'100%', height:50, fontFamily:'var(--font-thai)', fontSize:15, fontWeight:800 }}
+          aria-label="ออกสำรวจ"
+          style={{
+            position:'absolute', bottom:18, right:14, zIndex:10,
+            width:60, height:60, borderRadius:'50%', padding:0,
+            background:'rgba(155,93,229,0.30)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+            border:'2px solid rgba(155,93,229,0.95)', boxShadow:'0 3px 12px rgba(0,0,0,0.55)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+            animation:'challenger-pulse 2.4s ease-in-out infinite',
+          }}
         >
-          🗺️ ออกสำรวจ!
+          <span style={{ fontSize:30, lineHeight:1 }}>🗺️</span>
         </button>
+
+        {/* Item cluster (🍗🎀👟⭐) — floating, lower-left, 2×2 */}
+        <div style={{
+          position:'absolute', bottom:16, left:14, zIndex:10,
+          display:'grid', gridTemplateColumns:'repeat(2, 52px)', gap:9,
+        }}>
+          {ITEM_DEFS.map(({ key, label }) => {
+            const count    = state.homeItems?.[key] || 0
+            const isActive = activeItem === key
+            const boost    = state.activeBoosts?.[key]
+            const now      = Date.now()
+            const cooldownMs = HOME_ITEMS[key]?.cooldown ?? 0
+            const status = (() => {
+              if (!boost) return 'ready'
+              if (now < boost.endsAt) return 'active'
+              if (cooldownMs && now < boost.endsAt + cooldownMs) return 'cooldown'
+              return 'ready'
+            })()
+            const cooldownRemaining = boost
+              ? Math.max(0, Math.ceil((boost.endsAt + cooldownMs - now) / 60000))
+              : 0
+            const activeRemaining = boost
+              ? Math.max(0, Math.ceil((boost.endsAt - now) / 60000))
+              : 0
+            const disabled = status === 'cooldown' || count <= 0
+            return (
+              <button
+                key={key}
+                ref={el => { itemBtnRefs.current[key] = el }}
+                onClick={() => { if (!disabled) onItemButton(key) }}
+                aria-label={`${label}${count > 0 ? ` ×${count}` : ''}`}
+                disabled={disabled}
+                style={{
+                  position:'relative', width:52, height:52, borderRadius:'50%', padding:0,
+                  background:'rgba(10,8,22,0.60)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+                  border: isActive ? '2px solid var(--px-purple)' : '2px solid rgba(255,255,255,0.28)',
+                  boxShadow: isActive
+                    ? '0 0 0 3px rgba(155,93,229,0.45), 0 3px 8px rgba(0,0,0,0.5)'
+                    : '0 3px 8px rgba(0,0,0,0.5)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  cursor: disabled ? 'default' : 'pointer',
+                  opacity: status === 'cooldown' ? 0.4 : count > 0 ? 1 : 0.4,
+                  transform: isActive ? 'scale(1.12)' : 'scale(1)',
+                  transition:'transform .2s ease',
+                }}
+              >
+                <canvas
+                  ref={r => r && drawItem(r, key)}
+                  width={28} height={28}
+                  style={{ width:28, height:28, imageRendering:'pixelated', pointerEvents:'none', display:'block' }}
+                />
+                {status === 'ready' && count > 0 && (
+                  <span className="px-badge" style={{ position:'absolute', top:-4, right:-4 }}>{count}</span>
+                )}
+                {status !== 'ready' && (
+                  <span style={{
+                    position:'absolute', bottom:-3, left:0, right:0,
+                    fontFamily:'var(--font-pixel)', fontSize:6, textAlign:'center',
+                    color: status === 'active' ? '#EF9F27' : 'rgba(255,255,255,0.6)',
+                  }}>
+                    {status === 'active' ? `${activeRemaining}m` : `${cooldownRemaining}m`}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Hatch CTA — only for a brand-new player whose first egg is ready.
+            Anchored bottom-center (the egg now wanders, so it can't sit on it). */}
+        {readyToHatch && eggsHatched === 0 && (
+          <div style={{
+            position:'absolute', bottom:88, left:0, right:0,
+            display:'flex', justifyContent:'center', zIndex:15,
+          }}>
+            <button
+              onClick={() => dispatch({ type: ACTIONS.SET_HATCHING, payload: true })}
+              className="px-btn px-btn-yellow"
+              aria-label="แตะเพื่อฟักไข่"
+              style={{
+                fontFamily:'var(--font-thai)', fontSize:13, minHeight:44,
+                display:'inline-flex', alignItems:'center', gap:6,
+                animation:'challenger-pulse 1s ease-in-out infinite',
+              }}
+            >
+              <span style={{ fontSize:22, lineHeight:1 }}>👆</span>
+              แตะเพื่อฟักไข่!
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

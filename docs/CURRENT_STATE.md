@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-07-03 (Fix cross-device sync data-loss bug)_
+_Last updated: 2026-07-03 (Shop redesigned as a dressing room)_
 
 ---
 
@@ -19,22 +19,22 @@ The child using this app can't reliably read yet, so every tappable element must
 - **Visual polish** (`roomScene.js`, `!small` render path only — the FriendsScreen 72×80 thumbnail skips all of this): warm vignette darkening the floor's far corners, faint wallpaper-stripe texture + a dark ceiling-corner gradient strip on both walls, a soft ambient warm-light glow near the top-center, and a soft hanging shadow behind wall items (floor items already had `groundShadow()`).
 - **Slot keys**: `roomLayout` keys are `"{zone}_{a}_{b}"` strings — `floor_{col}_{row}` (col 0-5, row 0-3), `left_wall_{y}_{z}` (y 0-3, z 1-2), `right_wall_{x}_{z}` (x 0-5, z 1-2) — **unchanged by the 2026-07-03 redesign**, same schema as the iso rewrite.
 - **Furniture catalog**: 12 items in `src/lib/roomItems.js`, each with `allowedZones` — floor: plant, rug, lamp, stuffed animal, chair, desk, toy chest, bookshelf, bed, fish tank; wall (both walls): window+curtains, wall art.
-- **Shop integration**: Collection furniture tab shows each item's tier badge + zone badge(s) so the child knows where it can go before buying; buy with `BUY_ROOM_ITEM` → coins deducted → item added to `ownedRoomItems`.
+- **Shop integration**: furniture is bought directly from Room's own item-picker bottom sheet (see the "Room / Den Decoration" entry above) — as of the 2026-07-03 Shop redesign, `Collection.jsx` no longer has a furniture tab at all; buy with `BUY_ROOM_ITEM` → coins deducted → item added to `ownedRoomItems`.
 - **State**: `state.ownedRoomItems: string[]` (default `[]`), `state.roomLayout: { [slotKey]: itemId }` (default `{}`) — untouched by the redesign.
 - **Migration** (`migrateStateShape` in `state.js`): a saved `roomLayout` whose keys are all numeric strings (old flat grid) is reset to `{}` and `lastSavedAt` is bumped. New-format / empty layouts pass through untouched. `ownedRoomItems` is NEVER modified by migration.
 - **Actions**: `BUY_ROOM_ITEM`, `PLACE_ROOM_ITEM` (`{ slotKey, itemId }`), `REMOVE_ROOM_ITEM` (`{ slotKey }`) — payload shapes unchanged.
 - **Navigation**: 5-tab BottomNav — หน้าหลัก / ร้านค้า / ห้อง / รีพอร์ต / เพื่อน
 - **Deferred**: multi-room expansion (1 room is all that exists now); real swipe-to-dismiss on the bottom sheet (tap-outside-scrim only for now, a deliberate scope call — see `docs/CHATBOT_NOTES.md`).
 
-### Cosmetic Shop + Wardrobe (2026-06-30)
+### Cosmetic Shop — "dressing room" (2026-06-30; live try-on 2026-07-01; full redesign 2026-07-03)
 - **Items**: 18 pixel-art cosmetics — 10 head (bow, party hat, beanie, cap, headband stars, flower crown, top hat, wizard hat, gold crown, jeweled crown) + 8 face (blush, freckles, flower cheek, mustache, round glasses, eye mask, sunglasses, star glasses)
 - **Tiers**: small 30–60 coins / mid 150–250 / big 500–800
 - **State**: `state.ownedItems: string[]` (default `[]`), `state.equipped: { head: null|string, face: null|string }` (default `{head:null,face:null}`); both backfilled on load for existing players
-- **Actions**: `BUY_ITEM { id, price, slot }` — deducts coins, adds to ownedItems, auto-equips; `EQUIP_ITEM { id, slot }` — toggles equipped slot (tap again = unequip)
+- **Actions**: `BUY_ITEM { id, price, slot }` — deducts coins, adds to ownedItems, **auto-equips** (confirmed in the reducer — this is why the 2026-07-03 redesign's CTA can do "buy + equip" as one dispatch); `EQUIP_ITEM { id, slot }` — toggles equipped slot (tap again = unequip)
 - **Render pipeline**: `drawCosmetics(ctx, o, equipped)` called as step 9 in both `src/egg/EggCanvas.jsx` (core React canvas) AND `src/egg/renderEggSprite.js` (non-React walker pipeline), inside pose transform — hats/glasses draw over everything including expression
 - **Auto-wired everywhere**: App-level `src/components/EggCanvas.jsx` wrapper reads `state.equipped` automatically; all existing `<EggCanvas>` usages (Home large egg, Battle, Map, popups) show equipped items without per-screen changes. The `DecoratedRoom.jsx` room walker (Home background) also reads `state.equipped` into its companion ref → cosmetics now visible on the walking egg too
-- **Shop screen**: `Collection.jsx` cosmetics tab — coin balance header, **large companion preview egg at top** (real element/eye/gender/stage/aura), HEAD/FACE tab switcher, 2-column item grid, per-item isolated icon egg, buy/equip toggle buttons, toast feedback
-- **Live try-on preview** (2026-07-01): tapping any item card instantly shows it on the big preview egg. Unowned item → local-only `preview` state (never persisted, no coins spent) with a "👀 ลองใส่" tag; buy via "ซื้อ 🪙price" to make it real. Owned item → real `EQUIP_ITEM` toggle. `previewEquipped = preview ? { ...equipped, [slot]: id } : undefined` overrides the big egg's `equipped` prop only; `state.equipped` is untouched until a real buy/equip. Preview resets on unmount/buy/equip/tab-switch — leaving the shop never persists an unbought try-on
+- **Shop screen redesign (2026-07-03)** — `Collection.jsx` is now cosmetics-ONLY, a full-screen "dressing room": the furniture tab/section was deleted entirely (furniture purchasing moved to `Room.jsx`'s own item picker, unrelated system, unaffected — `roomItems.js`/`ACTIONS.BUY_ROOM_ITEM`/`state.ownedRoomItems` untouched). Layout: a floating header overlay (🪙 coins left, ✕ close → `navigate('home')`, threaded as a new prop from `App.jsx`), a ~43vh egg zone with a canvas-drawn "dressing room" background (warm gradient, gold-framed oval mirror, wardrobe, vanity-bulb glow arc, animated gold sparkles, wooden floor, potted plant — all vector/canvas, no images) behind a large 190px `EggCanvas` + a `Lv.N · [stage name]` pill (reuses the same `battleLevel`/`EGG_STAGE_NAMES` pattern as `Home.jsx`), a 🎩 หัว / 😎 หน้า slot-switcher (replaces the old head/face sub-tabs), a scrollable 3-column item grid, and a single floating bottom CTA button that reflects whatever's currently selected (✅ ใส่ / ❌ ถอด / 🛒 ซื้อ+ใส่ 🪙N / disabled 🔒 ยังไม่มีเงิน / disabled 👀 แตะเพื่อลองใส่ when nothing's selected) — tapping a card now only *selects/previews* it (owned or not, consistent single interaction model), never toggles equip directly; equip/unequip/buy is exclusively the CTA's job. Item names use real CSS ellipsis truncation, not a fixed character count, since several names (e.g. มงกุฎอัญมณี) run past what a short fixed slice would allow. `BottomNav` stays mounted (same full-screen convention as the `Room.jsx` redesign) with matching bottom clearance; a fade gradient sits just above the floating CTA so a scrolled-to-the-fold item row fades out instead of hard-cutting under the button (found and fixed during live verification on a shorter viewport).
+- **Live try-on preview** (2026-07-01, mechanism unchanged by the 2026-07-03 redesign — just re-wired to new UI): tapping any item card instantly shows it on the big preview egg. `previewEquipped = preview ? { ...equipped, [slot]: id } : undefined` overrides the big egg's `equipped` prop only; `state.equipped` is untouched until a real buy/equip via the CTA. Preview resets on unmount/buy/equip/slot-switch — leaving the shop never persists an unbought try-on.
 
 ### Coin Economy (Earn-only — 2026-06-27)
 - **Balance**: `state.coins` (integer ≥ 0); migrated on load so existing players start at 0
@@ -201,12 +201,7 @@ Approved top-to-bottom layout (visual/UX redesign; no game logic changed):
 - **Removed from Home**: party portrait bar, compact evolution-progress bar (`compactEvoInfo`), large overlaid static `EggCanvas`, the old "ลูบ!" pet button, saiyan-rainbow wrapper on the (now-removed) big canvas. `useHomeAmbience` / `useCreatureInteraction` / `useHomeInteractions` hooks all still wired (ambient events, stage-up banner, growth banner, combos, item effects preserved).
 
 ### Collection Screen (`Collection.jsx`)
-- CreatureJourney: evolution roadmap shown under each party creature card; ○/⚡/✅ per step (teen/final); shows Lv, Tier, Bond requirements; BABY→TEEN→FINAL stage bar
-- 2 tabs: ทีม (party with HP bars + level + ★ ตัวหลัก badge) + กระเป๋า (ItemBag)
-- ItemBag: two sections — "ไอเทมดูแลครีเอเจอร์" (homeItems: food/ribbon/shoes/rainbow_star) + "ไอเทมในการสู้" (battleItems: scroll/thunder/gem/mirror/clover); divider between sections; `drawItem` canvas per slot; count badge; dimmed when count=0
-- Pixel art header: "COLLECTION" in font-pixel yellow; dark background matching Home screen
-- Creature cards: 90×90 pixel art `drawCreature` canvas per creature
-- `CreatureDetailPopup.jsx`: 120×120 pixel art canvas + element glow, Level + evo stage, ATK/DEF/SPD/HP grid, bond meter bar, born-stats XP bars
+_(This section described a pre-companion-migration version of the screen — party tabs, ItemBag, `CreatureDetailPopup.jsx` — none of which exist anymore; left uncorrected for a long time, fixed 2026-07-03.)_ See "Cosmetic Shop — 'dressing room'" above for what `Collection.jsx` actually is today: a cosmetics-only full-screen dressing room, no tabs, no item bag, no creature cards. The item bag UI lives on the Home screen's item tray; party/creature management is the single-companion model described elsewhere in this doc (`Home.jsx`, `PartySelect.jsx`).
 
 ### Report Screen
 - Pixel art dark theme (matches Home/Collection)

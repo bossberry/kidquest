@@ -1,5 +1,33 @@
 # Changelog — KidQuest
 
+## 2026-07-03 — Shop redesigned as a full-screen "dressing room"; furniture tab removed
+
+The Shop/Collection screen had a furniture tab (now redundant — furniture buys directly from Room's own item picker) and a cramped tabbed-list layout. This redesigns it into a cosmetics-only, full-screen "dressing room" experience.
+
+### src/components/Collection.jsx (full rewrite)
+- Furniture system fully deleted: the `topTab` state, the furniture-rendering block, `FurniturePreview`, `ZONE_LABEL`, `handleBuyFurniture`, `isOwnedRoom`, and the `ROOM_ITEMS` import are all gone (confirmed via grep — zero remaining references). `src/lib/roomItems.js`, `ACTIONS.BUY_ROOM_ITEM`, and `state.ownedRoomItems` are untouched — only Collection's UI for them was removed.
+- New `DressingRoomBackground` component: a canvas-drawn scene behind the egg — warm cream→pink→lavender gradient, a gold-bezier-framed oval mirror with a shine highlight, 7 warm-glow "vanity bulb" circles arced above it, a warm-wood wardrobe with two door panels and gold knobs, a potted plant, and a wooden floor strip. The static scene draws once to an offscreen canvas and is blitted each frame; only 7 small gold sparkle stars actually animate (rotate/pulse via `requestAnimationFrame`), keeping the render loop cheap.
+- Layout: a floating header overlay (🪙 coins left, ✕ close right), a ~43vh egg zone (190px `EggCanvas` + a `Lv.N · [stage name]` pill, reusing the same `battleLevel`/`EGG_STAGE_NAMES` pattern `Home.jsx` already uses) over the dressing-room background, a 🎩 หัว / 😎 หน้า slot switcher, a scrollable 3-column item grid, and a single floating full-width CTA button at the bottom.
+- **Interaction model changed**: tapping any card (owned or not) now only *selects/previews* it — never toggles equip directly. The bottom CTA is the sole confirm action, reflecting the selected item's state: `✅ ใส่` (equip) / `❌ ถอด` (unequip) / `🛒 ซื้อ + ใส่ 🪙N` (buy, confirmed `BUY_ITEM` auto-equips so this is one dispatch) / disabled `🔒 ยังไม่มีเงิน`. This replaces the old inconsistent behavior where owned cards toggled equip on tap but unowned cards only previewed.
+- Item cards show three visual states via border/badge: equipped (gold border + glow + ✓ badge), owned-not-equipped (subtle white border), and locked (dimmed + 🔒 + price badge). Item names use real CSS ellipsis truncation (`white-space:nowrap; overflow:hidden; text-overflow:ellipsis`) rather than a fixed character count — several real item names (มงกุฎอัญมณี, ที่คาดผมดาว) run well past a short fixed slice and would otherwise truncate into nonsense fragments.
+- The exact live try-on mechanism from 2026-07-01 (`preview` state, `previewEquipped` override, reset-on-unmount/buy/equip) is unchanged, just re-wired to the new UI.
+- `BottomNav` stays mounted (same full-screen convention established by the recent `Room.jsx` redesign) with matching bottom clearance, rather than hiding it via an `App.jsx` change.
+
+### src/App.jsx
+- `<Collection />` now receives `navigate={navigate}` (previously received no props at all) — needed for the new ✕ close button to actually go anywhere (`navigate('home')`).
+
+### Bug found and fixed during live verification (not caught by code review)
+On a shorter viewport, the floating CTA button hard-overlapped a row of item cards on the initial (unscrolled) page load — everything was still fully reachable by scrolling, but the flat overlap edge looked like a rendering glitch. Fixed with a small `pointer-events:none` fade-gradient overlay positioned just above the CTA, so scrolled content now visually fades into the button zone instead of cutting off hard.
+
+### Verification
+- Reviewed the full diff, independently confirmed via grep that all furniture-related code/imports are gone, confirmed `BUY_ITEM` really does auto-equip by reading the reducer case directly (not just trusting the implementing agent's report), confirmed `EGG_STAGE_NAMES`/`battleLevel`/`playTone('tap')` are all real exports/fields (not assumptions).
+- `npm run build` clean.
+- **First full live end-to-end test of a Shop-area change** (previous Shop/cosmetics work in this problem area had only ever been code-review-verified): using the new test account, logged in fresh, opened the dressing room, confirmed the scene renders correctly, tapped an unowned item and confirmed instant live preview on the egg, tapped the CTA and confirmed a real purchase (coins 10010 → 9965, exactly −45; item got its ✓ badge; egg genuinely wearing it, not just previewing), switched slots (head↔face) and confirmed state was preserved correctly per-slot, and confirmed the close button returns to Home with the newly-equipped item visible on the Home room walker too — full round-trip confirmed.
+
+### Docs corrected while updating (found stale, unrelated to this session's code changes)
+`CURRENT_STATE.md` had a furniture-tab reference in the Room section left over from before this redesign, and an entire "Collection Screen" doc block that had been describing a pre-companion-migration version of the screen (party tabs, ItemBag, `CreatureDetailPopup.jsx`) for a long time, none of which exist anymore. Both corrected.
+
+
 ## 2026-07-03 — Fix critical cross-device sync data-loss bug
 
 Bug report: a device with real progress (coins, items, XP, hatched companion) synced to Supabase could get silently overwritten with blank/default data when the same account was opened fresh on a different device. A prior report-only audit this session traced the exact root cause; this entry fixes it.

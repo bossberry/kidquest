@@ -128,7 +128,7 @@ export default function App() {
           onOpenProfile={() => setProfileOpen(true)}
         />
       )}
-      {screen === 'collection' && <Collection />}
+      {screen === 'collection' && <Collection navigate={navigate} />}
       {screen === 'room' && <Room />}
       {screen === 'report' && <Report />}
       {screen === 'game' && <GameScreen navigate={navigate} />}

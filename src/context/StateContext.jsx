@@ -1,6 +1,6 @@
 // StateContext.jsx — global state store (useReducer + Context). Single source of truth for all game state; persists to localStorage and Supabase.
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
-import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
+import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, markInitialSyncComplete, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
@@ -1074,19 +1074,34 @@ export function StateProvider({ children }) {
     // restored from localStorage. Blindly dispatching INIT in that case reverts XP,
     // items, and other progress the player just earned.
     loadState().then(remote => {
-      if (!remote) return
-      const cur = stateRef.current
-      // Run merge on remote data so Supabase state gets cleaned up too
-      const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1
-      const remoteFinal = remoteNeedsMerge ? _mergeAllCreaturesIntoOne(remote) : remote
+      if (remote) {
+        const cur = stateRef.current
+        // Run merge on remote data so Supabase state gets cleaned up too
+        const remoteNeedsMerge = (remote.hatchedEggs?.length ?? 0) > 1
+        const remoteFinal = remoteNeedsMerge ? _mergeAllCreaturesIntoOne(remote) : remote
 
-      const { winner, remoteWon, reason } = resolveSync(cur, remoteFinal)
-      console.log('[KQ:load]', remoteWon ? 'remote wins' : 'local wins', '—', reason)
-      if (remoteWon) {
-        dispatch({ type: ACTIONS.INIT, payload: winner })
-      } else {
-        syncToSupabase(cur)
+        // resolveSync closes Issue D's timing gap via maintenance-immune fields:
+        // even though the DECAY_HAPPINESS / CHECK_DAILY_RESET / DAILY_LOGIN
+        // dispatches above have already inflated cur.lastSavedAt (and possibly
+        // added daily coins) by the time this async callback runs, resolveSync()
+        // now also compares real-progress fields those dispatches never touch, so
+        // an empty new device can't beat real cloud progress on timestamp alone.
+        const { winner, remoteWon, reason } = resolveSync(cur, remoteFinal)
+        console.log('[KQ:load]', remoteWon ? 'remote wins' : 'local wins', '—', reason)
+        if (remoteWon) {
+          dispatch({ type: ACTIONS.INIT, payload: winner })
+        } else {
+          syncToSupabase(cur)
+        }
       }
+    }).catch(e => {
+      console.log('[KQ:load] resolveSync chain failed:', e?.message)
+    }).finally(() => {
+      // Initial load/sync is done (or safely failed) — unblock saveState(). Using
+      // finally() guarantees saves are never permanently disabled even if the
+      // promise rejects (loadState() has its own try/catch and always resolves,
+      // but this is belt-and-suspenders per Fix 2).
+      markInitialSyncComplete()
     })
 
     // Startup guard: if user is logged in but local hatchedEggs is empty, force pull from cloud

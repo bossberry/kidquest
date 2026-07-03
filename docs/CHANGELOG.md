@@ -1,5 +1,40 @@
 # Changelog — KidQuest
 
+## 2026-07-03 — Fix critical cross-device sync data-loss bug
+
+Bug report: a device with real progress (coins, items, XP, hatched companion) synced to Supabase could get silently overwritten with blank/default data when the same account was opened fresh on a different device. A prior report-only audit this session traced the exact root cause; this entry fixes it.
+
+### Root cause (three compounding issues)
+1. `defaultState()` stamped `lastSavedAt: Date.now()` even for genuinely blank state, so a brand-new device's empty local state was timestamp-indistinguishable from a real recent save.
+2. The mount-time `useEffect(() => saveState(state), [state])` in `StateContext.jsx` fires on the very first render, and `saveState()` unconditionally calls `syncToSupabase()` — so the blank state from #1 could be pushed to Supabase before the async `loadState()` fetch had resolved and corrected the in-memory state.
+3. `resolveSync()`'s only safety net checked `hatchedEggs.length`; everything else (coins, items, xp, level) fell through to a raw timestamp comparison with no protection.
+
+### src/lib/state.js
+- `defaultState().lastSavedAt` changed from `Date.now()` to `0` — "never actually saved." Only `saveState()` stamps a real timestamp now.
+- New module-level `_initialSyncComplete` flag with exported `markInitialSyncComplete()`/`isInitialSyncComplete()`.
+- New exported `hasRealProgress(s)` — true only if `hatchedEggs`, `xpThai+xpEng+xpMath`, `rounds`, `ownedItems`, `ownedRoomItems`, `grade`, or `badges` show real progress. Deliberately excludes `coins`/`happiness`/login-streak fields — see "the timing gap" below for why.
+- `resolveSync()` gained two new early-return branches, added *before* the existing final timestamp-comparison fallback (which is otherwise untouched): (a) `local.lastSavedAt === 0 && remote.lastSavedAt > 0` → remote wins; (b) `hasRealProgress(remote) && !hasRealProgress(local)` → remote wins.
+- `saveState()`: added `if (!_initialSyncComplete) return` at the top (blocks localStorage write AND the Supabase push together — the whole function is a no-op until the initial sync resolves), and a second guard checking the *original* input's `lastSavedAt`/`hasRealProgress()` before the internal re-stamp (checking the re-stamped copy would make this dead code, since `saveState` always re-stamps to `Date.now()` before persisting).
+- `syncToSupabase()`: the same blank/never-saved guard, independently — this is the only guard protecting the direct callers that bypass `saveState()` entirely (`loadState()`'s post-migration re-push, the `SIGNED_IN` auth listener's two `syncToSupabase` call sites).
+
+### src/context/StateContext.jsx
+- Imports `markInitialSyncComplete`.
+- The mount-time `loadState().then(remote => {...})` chain gained a `.catch()` (logs, doesn't rethrow) and a `.finally(() => markInitialSyncComplete())` — so the initial-sync gate is guaranteed to lift even if the fetch fails, never permanently disabling saves for the rest of the session.
+
+### The timing gap (the part that made this a genuinely hard bug, not just a 3-line fix)
+The mount effect dispatches `DECAY_HAPPINESS`, `CHECK_DAILY_RESET`, and (for a returning player whose `lastLoginDate` isn't today) `DAILY_LOGIN` synchronously, all of which stamp `lastSavedAt: Date.now()` in the reducer — and this happens *before* `loadState()`'s network round-trip resolves. That means by the time `resolveSync()` actually runs, the "local" side it's comparing against is no longer a pristine `lastSavedAt: 0` default — it's already been inflated to "now" by dispatches that fired within the same page load, purely as routine daily maintenance. A purely timestamp-based fix would still lose the race for the most realistic real-world trigger: a *returning* player opening their account on a new device, not just a literally-brand-new account.
+
+`hasRealProgress()` is the fix for this — it's built only from fields those four maintenance dispatches never write to (confirmed by reading each reducer case directly: `DECAY_HAPPINESS`/`CHECK_DAILY_RESET` touch `happiness`/`lastLogin`/`dailyRounds`/`lastPlayDate`; `DAILY_LOGIN` touches `coins`/`loginStreak`/`lastLoginDate`; none touch `hatchedEggs`, xp, `rounds`, `ownedItems`, `ownedRoomItems`, `grade`, or `badges`). So even after maintenance dispatches inflate `local.lastSavedAt` and possibly bump `local.coins`, an empty new device is still correctly recognized as empty, and real remote progress still wins. Deliberately excluding `coins` also means this fix does **not** regress the existing, intentional same-device behavior where a fresh `DAILY_LOGIN` timestamp is allowed to win the final tiebreak against a slightly-older remote save (that's what lets the daily coin bonus persist through the async reload on the *same* device).
+
+### Process
+The user's original fix spec (4 literal steps) was sound for issues 1-3 but didn't account for the timing gap above. The coordinating session traced this independently by reading the actual mount-effect code before delegating, and briefed the implementing Opus subagent with the gap as a required fix (not just the literal spec) — the agent then independently re-derived and confirmed the same gap, and chose the `hasRealProgress()` approach over the two alternatives suggested (reordering the mount effect, or snapshotting pristine state) after tracing that both alternatives would have regressed the daily-login-coins behavior.
+
+### Verification
+- Coordinator read the full diff line-by-line and independently re-verified the core claim by grepping the actual `DECAY_HAPPINESS`/`CHECK_DAILY_RESET`/`DAILY_LOGIN` reducer cases in `StateContext.jsx` to confirm none of them write to any field `hasRealProgress()` tracks.
+- `npm run build` clean.
+- **Live end-to-end test** (first time a fix in this problem area has been verified against the real running app + real Supabase data, using the new test account — see `CLAUDE.md`): cleared `localStorage` to simulate a brand-new device, logged into the test account fresh. Confirmed via `localStorage` inspection that the real cloud data (9999 coins, 8 owned cosmetics, 12 owned room items) loaded correctly — not wiped. Console log confirmed the exact new `resolveSync` branch that fired: `"local never saved (lastSavedAt 0), remote has a real save"`. Reloaded again on the same (now-populated) device and confirmed no regression — data stayed intact, resolved via the normal `"local wins"` timestamp path since local was now genuinely newer.
+
+
 ## 2026-07-03 — Room UX redesign: full-screen canvas, tap-anywhere, unified bottom sheet
 
 Screenshot review of the isometric room flagged two problems: the room canvas was small and floated in a lot of empty dark space, and the child had to tap a zone tab (floor/left wall/right wall) before they could tap a slot to decorate. This session fixes both and adds decorating feedback (sparkle + bounce on placement) and ambient visual polish.

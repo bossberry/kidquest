@@ -15,6 +15,37 @@ function emitSaveStatus(status) {
   saveStatusListeners.forEach(fn => fn(status))
 }
 
+// ── Initial-sync gate (Fix 2) ────────────────────────────────────────────────
+// Blocks saveState() from pushing anything (localStorage OR Supabase) until the
+// initial loadState()/resolveSync()/INIT chain has finished. Without this, the
+// `useEffect(() => saveState(state), [state])` in StateContext fires on the very
+// first render and can push an empty/default state up to Supabase BEFORE the
+// async cloud fetch has resolved and corrected the in-memory state — overwriting
+// real cloud progress with a blank wipe.
+let _initialSyncComplete = false
+export function markInitialSyncComplete() { _initialSyncComplete = true }
+export function isInitialSyncComplete() { return _initialSyncComplete }
+
+// hasRealProgress — true only if a state carries progress that a player could
+// actually LOSE. Intentionally restricted to fields that are NEVER written by the
+// first-mount maintenance dispatches (DECAY_HAPPINESS / CHECK_DAILY_RESET /
+// DAILY_LOGIN / ER_SAVE_SCORE). Those dispatches stamp lastSavedAt and can bump
+// coins/happiness/login fields, so those fields are unreliable for "is this an
+// untouched default?" — but creatures, XP, rounds, owned items, grade and badges
+// only ever change through real gameplay. This is the maintenance-immune signal
+// resolveSync() uses to close Issue D's timing gap.
+export function hasRealProgress(s) {
+  if (!s) return false
+  if ((s.hatchedEggs?.length ?? 0) > 0) return true
+  if ((s.xpThai || 0) + (s.xpEng || 0) + (s.xpMath || 0) > 0) return true
+  if ((s.rounds || 0) > 0) return true
+  if ((s.ownedItems?.length ?? 0) > 0) return true
+  if ((s.ownedRoomItems?.length ?? 0) > 0) return true
+  if ((s.grade || 0) > 0) return true
+  if ((s.badges || 0) > 0) return true
+  return false
+}
+
 export function defaultState() {
   return {
     name: '', grade: 0,
@@ -97,7 +128,11 @@ export function defaultState() {
     equipped: { head: null, face: null },
     ownedRoomItems: [],
     roomLayout: {},
-    lastSavedAt: Date.now(),
+    // 0 means "never actually saved". Real saves always stamp Date.now() via
+    // saveState(). A pristine defaultState() must be distinguishable from a real
+    // recent save so resolveSync() never lets an empty new device beat real cloud
+    // progress (data-loss bug, Fix 1).
+    lastSavedAt: 0,
   }
 }
 
@@ -284,6 +319,32 @@ export function resolveSync(local, remote) {
 
   const remoteTime = remote?.lastSavedAt ?? 0
   const localTime = local?.lastSavedAt ?? 0
+
+  // Fix 3a — local was never actually saved (lastSavedAt 0) but remote holds a
+  // real save. A pristine defaultState() (Fix 1) reports 0 here, so this catches
+  // a brand-new device whose local timestamp has NOT been inflated by a
+  // maintenance dispatch. (On the mount path a maintenance dispatch usually
+  // stamps `now` before this runs, so this branch is a cheap safety net for other
+  // callers such as the SIGNED_IN listener; the field-based check below is what
+  // actually protects the mount path.)
+  if (localTime === 0 && remoteTime > 0) {
+    return { winner: remote, remoteWon: true, reason: 'local never saved (lastSavedAt 0), remote has a real save' }
+  }
+
+  // Fix 3b — remote holds real, losable progress while local is an untouched
+  // default. This is the maintenance-IMMUNE guard: first-mount dispatches
+  // (DECAY_HAPPINESS / CHECK_DAILY_RESET / DAILY_LOGIN / ER_SAVE_SCORE) inflate
+  // lastSavedAt and can add daily-login coins, which would silently defeat any
+  // purely timestamp-based check (Issue D). hasRealProgress() ignores every field
+  // those dispatches touch, so an empty new device is still recognised as empty
+  // even after they run — and real remote progress correctly wins. When local DOES
+  // have real progress this branch never fires, so the intentional DAILY_LOGIN
+  // timestamp bump (which lets same-device daily coins win the fallback below) is
+  // preserved and this fix introduces no regression.
+  if (hasRealProgress(remote) && !hasRealProgress(local)) {
+    return { winner: remote, remoteWon: true, reason: 'remote has real progress, local is an untouched default' }
+  }
+
   const remoteWon = (remoteTime > 0 || localTime > 0)
     ? remoteTime >= localTime
     : (remote?.rounds || 0) >= (local?.rounds || 0)
@@ -415,6 +476,19 @@ export async function loadState() {
 
 // Push any state object to Supabase (used by StateContext on SIGNED_IN)
 export async function syncToSupabase(s, { notify = false } = {}) {
+  // Fix 4 (defense-in-depth) — never upsert a blank, never-saved snapshot on top
+  // of real cloud data. This lives in syncToSupabase() (not just saveState()) so
+  // it also protects the direct callers that bypass saveState(): loadState()'s
+  // migration re-push and the SIGNED_IN auth listener. A state that carries no
+  // real progress AND was never stamped (lastSavedAt falsy/0) has nothing worth
+  // persisting and could only wipe a good remote row, so refuse it.
+  // NOTE: saveState() re-stamps lastSavedAt to Date.now() before calling here, so
+  // this never blocks a legitimate save routed through saveState(); it only guards
+  // the un-restamped objects the direct callers pass.
+  if (!(s?.lastSavedAt > 0) && !hasRealProgress(s)) {
+    console.log('[KQ:sync] skipped — blank/never-saved state, refusing to overwrite cloud')
+    return
+  }
   try {
     if (!supabase) { console.log('[KQ:sync] no client'); if (notify) emitSaveStatus('offline'); return }
     const { data: { user } } = await supabase.auth.getUser()
@@ -435,6 +509,16 @@ export async function syncToSupabase(s, { notify = false } = {}) {
 }
 
 export function saveState(s, { notify = false } = {}) {
+  // Fix 2 — do not persist anything until the initial load/sync has resolved.
+  // Prevents the first-render `saveState(state)` (and the maintenance dispatches
+  // that follow it) from racing ahead of loadState() and pushing an empty default
+  // to Supabase before resolveSync() has had a chance to pull the real cloud row.
+  if (!_initialSyncComplete) return
+  // Fix 4 — guard the ORIGINAL input (before the re-stamp below). If the caller
+  // handed us a state that was never really saved (lastSavedAt falsy/0) AND holds
+  // no real progress, refuse rather than stamp+persist a blank wipe. Checking the
+  // re-stamped copy would make this dead code since we always stamp Date.now().
+  if (!(s?.lastSavedAt > 0) && !hasRealProgress(s)) return
   const withTimestamp = { ...s, lastSavedAt: Date.now() }
   localStorage.setItem(KEY, JSON.stringify(withTimestamp))
   if (notify) emitSaveStatus('saving')

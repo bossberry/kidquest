@@ -147,3 +147,11 @@ The notification must:
 - Level unlock: ≥80% accuracy; fanfare: ≥90%
 - Egg algorithm: LOCKED — `eggAlgorithm.js` must never be modified
 - Preferred model for everyday tasks: Claude Sonnet (not Opus)
+
+## Live Browser Testing
+
+A test account exists for live UI verification with Chrome automation, so agents don't need to ask for credentials each session. Credentials live in `docs/TEST_CREDENTIALS.local.md` — **gitignored, not in this repo** (this is a public GitHub repo; a plaintext password must never enter git history). If that file is missing on a machine, ask Boss for a copy rather than guessing or recreating it.
+
+- URL: https://kidquest-omega.vercel.app
+- The test account has coins/items/level pre-loaded for testing all features.
+- **NEVER use this account to test destructive DB operations against any UUID but its own — never Chopin's UUID (`647513b5-dcd9-4363-83a9-880122195f4d`).**

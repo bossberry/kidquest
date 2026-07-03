@@ -1,16 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
-import { drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey } from '../lib/roomScene.js'
+import { drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter } from '../lib/roomScene.js'
+import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 
-const SCENE_H = 380   // px — iso room canvas height
+const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
 
-const ZONE_TABS = [
-  { zone: 'floor',      label: 'พื้น', icon: '🟫' },
-  { zone: 'left_wall',  label: 'ซ้าย', icon: '⬅️' },
-  { zone: 'right_wall', label: 'ขวา', icon: '➡️' },
-]
+const ZONE_LABELS = {
+  floor:      { icon: '🟫', text: 'วางของบนพื้น' },
+  left_wall:  { icon: '⬅️', text: 'แขวนที่ผนังซ้าย' },
+  right_wall: { icon: '➡️', text: 'แขวนที่ผนังขวา' },
+}
 
 // ── SlotCanvas: renders one furniture item onto a small canvas ──────────────
 function SlotCanvas({ item, size = 48 }) {
@@ -32,28 +33,48 @@ function SlotCanvas({ item, size = 48 }) {
   )
 }
 
-// ── ItemThumb: small card in the placement picker ───────────────────────────
-function ItemThumb({ item, onTap }) {
+// ── ItemCard: one card in the picker grid — owned / locked / elsewhere ──────
+function ItemCard({ item, cardState, shaking, onTap }) {
+  const locked    = cardState === 'locked'
+  const elsewhere = cardState === 'elsewhere'
+  const owned     = cardState === 'owned'
   return (
     <div
       onClick={onTap}
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        minWidth: 72, padding: '8px 6px 6px',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 10, cursor: 'pointer',
-        WebkitTapHighlightColor: 'transparent',
-        flexShrink: 0,
+        width: 90, height: 100, borderRadius: 12, padding: '10px 6px 8px',
+        boxSizing: 'border-box', position: 'relative',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+        background: owned ? 'rgba(255,210,63,0.10)' : 'rgba(255,255,255,0.04)',
+        border: `1.5px solid ${owned ? 'rgba(255,210,63,0.65)' : elsewhere ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'}`,
+        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+        opacity: elsewhere ? 0.55 : 1,
+        animation: shaking ? 'battle-shake 0.4s' : 'none',
       }}
     >
-      <SlotCanvas item={item} size={48} />
+      <div style={{ opacity: locked ? 0.35 : 1 }}>
+        <SlotCanvas item={item} size={56} />
+      </div>
       <span style={{
-        fontFamily: 'var(--font-thai)', fontSize: 11, color: '#ffffff',
-        textAlign: 'center', lineHeight: 1.2,
+        fontFamily: 'var(--font-thai)', fontSize: 12,
+        color: locked ? 'rgba(255,255,255,0.4)' : '#ffffff',
+        textAlign: 'center', lineHeight: 1.15,
       }}>
         {item.nameTh}
       </span>
+      {elsewhere && (
+        <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 12 }}>📍</span>
+      )}
+      {locked && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 10,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+          background: 'rgba(10,8,20,0.62)',
+        }}>
+          <span style={{ fontSize: 18 }}>🔒</span>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#FFD23F' }}>🪙{item.price}</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -61,50 +82,144 @@ function ItemThumb({ item, onTap }) {
 // ── Main Room screen ─────────────────────────────────────────────────────────
 export default function Room() {
   const { state, dispatch } = useAppState()
-  const [activeZone, setActiveZone] = useState('floor')
-  const [pickerKey, setPickerKey] = useState(null)   // empty slot key awaiting placement / swap
-  const [actionKey, setActionKey] = useState(null)   // occupied slot key for remove/swap
+  const [selectedSlot, setSelectedSlot] = useState(null)   // { key, zone } | null — drives the unified sheet
   const [toast, setToast] = useState(null)
+  const [shakeItemId, setShakeItemId] = useState(null)
 
   const coins      = state.coins ?? 0
   const ownedRoom  = state.ownedRoomItems ?? []
   const roomLayout = state.roomLayout ?? {}
 
-  const wrapRef   = useRef(null)
-  const canvasRef = useRef(null)
-  const geomRef   = useRef(null)   // { g, W, H } — geometry the visible canvas was drawn with
+  const wrapRef    = useRef(null)
+  const canvasRef  = useRef(null)
+  const overlayRef = useRef(null)
+  const geomRef    = useRef(null)   // { g, W, H } — geometry the visible canvas was last drawn with
 
-  // The slot currently highlighted (whichever sheet is open)
-  const selectedKey = actionKey || pickerKey || null
+  // Refs mirroring the latest render-relevant data so the rAF loop (which lives
+  // outside React's render cycle) never reads a stale closure.
+  const layoutRef      = useRef(roomLayout)
+  const selectedKeyRef = useRef(null)
+  layoutRef.current      = roomLayout
+  selectedKeyRef.current = selectedSlot?.key ?? null
+
+  // Tap-hint fade + placement-bounce + sparkle animation state (rAF-driven, Room-editor-only).
+  const hintOpacityRef   = useRef(0)
+  const lastActivityRef  = useRef(0)
+  const justPlacedKeyRef = useRef(null)
+  const justPlacedAtRef  = useRef(0)
+  const effectsRef       = useRef([])
+  const rafRef           = useRef(null)
+  const lastFrameRef     = useRef(0)
 
   useEffect(() => {
     playBGM('room')
     return () => stopBGM()
   }, [])
 
-  const redraw = useCallback(() => {
+  const drawFrame = useCallback((hintOpacity, bounceKey, bounceScale) => {
     const canvas = canvasRef.current
-    const wrap   = wrapRef.current
-    if (!canvas || !wrap) return
-    const W = wrap.clientWidth || 360
-    const H = SCENE_H
-    if (canvas.width !== W)  canvas.width = W
-    if (canvas.height !== H) canvas.height = H
+    if (!canvas) return
+    const W = canvas.width, H = canvas.height
+    if (!W || !H) return
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
-    drawRoomScene(ctx, { W, H, roomLayout, small: false, hint: false, activeZone, selectedKey })
+    drawRoomScene(ctx, {
+      W, H, roomLayout: layoutRef.current, small: false, hint: false,
+      selectedKey: selectedKeyRef.current,
+      showTapHints: true, hintOpacity,
+      bounceKey, bounceScale,
+    })
     geomRef.current = { g: computeRoomGeometry(W, H, false), W, H }
-  }, [roomLayout, activeZone, selectedKey])
+  }, [])
 
-  useEffect(() => { redraw() }, [redraw])
+  // Single rAF loop drives three things at once: the "+" hint fade in/out, the
+  // brief placement drop-in bounce, and the sparkle burst overlay. It stops
+  // itself once everything has settled (hints fully faded, no bounce, no
+  // sparkles) so the screen doesn't burn CPU forever — wake() restarts it.
+  const loop = useCallback((now) => {
+    const dt = lastFrameRef.current ? Math.min(50, now - lastFrameRef.current) : 16
+    lastFrameRef.current = now
 
+    const idle = now - lastActivityRef.current
+    const target = idle > 3000 ? 0 : 1
+    const cur = hintOpacityRef.current
+    const rate = target > cur ? (1 / 0.4) : (1 / 0.6)   // ease in ~400ms, ease out ~600ms
+    let next = cur + Math.sign(target - cur) * rate * (dt / 1000)
+    if ((target - cur) * (target - next) <= 0) next = target
+    hintOpacityRef.current = Math.max(0, Math.min(1, next))
+
+    let bounceKey = null, bounceScale = 1
+    if (justPlacedKeyRef.current) {
+      const bt = now - justPlacedAtRef.current
+      const dur = 220
+      if (bt < dur) {
+        const t = bt / dur
+        bounceScale = t < 0.4 ? (t / 0.4) * 1.2 : 1.2 - ((t - 0.4) / 0.6) * 0.2
+        bounceKey = justPlacedKeyRef.current
+      } else {
+        justPlacedKeyRef.current = null
+      }
+    }
+
+    const overlay = overlayRef.current
+    const octx = overlay?.getContext('2d')
+    if (octx) {
+      if (effectsRef.current.length > 0) effectsRef.current = tickEffects(octx, effectsRef.current, dt)
+      else octx.clearRect(0, 0, overlay.width, overlay.height)
+    }
+
+    drawFrame(hintOpacityRef.current, bounceKey, bounceScale)
+
+    const hintsSettled = hintOpacityRef.current <= 0.001 && target === 0
+    const stillActive = !hintsSettled || !!bounceKey || effectsRef.current.length > 0
+    if (stillActive) rafRef.current = requestAnimationFrame(loop)
+    else rafRef.current = null
+  }, [drawFrame])
+
+  const wake = useCallback(() => {
+    lastActivityRef.current = performance.now()
+    if (!rafRef.current) {
+      lastFrameRef.current = 0
+      rafRef.current = requestAnimationFrame(loop)
+    }
+  }, [loop])
+
+  // Mount: fade hints in, start the loop.
   useEffect(() => {
-    const onResize = () => redraw()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [redraw])
+    wake()
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [wake])
 
-  const placedIds = Object.values(roomLayout)
+  // Keep the canvas backing store matched to the wrapper's real size. Flex sizing
+  // doesn't reliably fire a window 'resize' event, so use ResizeObserver instead.
+  useEffect(() => {
+    const wrap    = wrapRef.current
+    const canvas  = canvasRef.current
+    const overlay = overlayRef.current
+    if (!wrap || !canvas) return
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const W = Math.round(entry.contentRect.width)
+        const H = Math.round(entry.contentRect.height)
+        if (W <= 0 || H <= 0) continue
+        if (canvas.width !== W)  canvas.width = W
+        if (canvas.height !== H) canvas.height = H
+        if (overlay) {
+          if (overlay.width !== W)  overlay.width = W
+          if (overlay.height !== H) overlay.height = H
+        }
+        drawFrame(hintOpacityRef.current, null, 1)
+      }
+    })
+    ro.observe(wrap)
+    return () => ro.disconnect()
+  }, [drawFrame])
+
+  // Redraw immediately on layout/selection change even when the animation loop
+  // has settled and stopped (e.g. placing/removing an item while hints are faded).
+  useEffect(() => {
+    if (!rafRef.current) drawFrame(hintOpacityRef.current, null, 1)
+  }, [roomLayout, selectedSlot, drawFrame])
 
   function flash(msg) {
     setToast(msg)
@@ -112,248 +227,203 @@ export default function Room() {
   }
 
   function handleCanvasClick(e) {
+    wake()
     const canvas = canvasRef.current
     const g = geomRef.current?.g
     if (!canvas || !g) return
     const rect = canvas.getBoundingClientRect()
     const px = (e.clientX - rect.left) * (canvas.width / rect.width)
     const py = (e.clientY - rect.top)  * (canvas.height / rect.height)
-    const hit = hitTestZone(g, px, py, activeZone)
+    const hit = hitTestZone(g, px, py)   // zone-agnostic — figures out which zone was tapped
     if (!hit) return
-    if (roomLayout[hit.key]) setActionKey(hit.key)
-    else                     setPickerKey(hit.key)
+    setSelectedSlot({ key: hit.key, zone: hit.zone })
   }
 
-  // Items owned + allowed in the picker's zone + not already placed elsewhere
-  function pickChoices(slotKey) {
-    const zone = parseSlotKey(slotKey)?.zone
-    if (!zone) return []
-    return ROOM_ITEMS.filter(i =>
-      ownedRoom.includes(i.id) &&
-      (i.allowedZones || []).includes(zone) &&
-      !placedIds.includes(i.id)
-    )
+  // owned+unplaced (or placed in THIS slot) → 'owned' (tappable, gold)
+  // owned but placed in a DIFFERENT slot   → 'elsewhere' (grey, tap = toast)
+  // not owned                              → 'locked' (faded + 🔒 + price)
+  function cardStateFor(item) {
+    if (!ownedRoom.includes(item.id)) return 'locked'
+    const placedAt = Object.keys(roomLayout).find(k => roomLayout[k] === item.id)
+    if (placedAt && placedAt !== selectedSlot?.key) return 'elsewhere'
+    return 'owned'
   }
 
   function handlePlace(item) {
-    dispatch({ type: ACTIONS.PLACE_ROOM_ITEM, payload: { slotKey: pickerKey, itemId: item.id } })
+    const key = selectedSlot?.key
+    if (!key) return
+    dispatch({ type: ACTIONS.PLACE_ROOM_ITEM, payload: { slotKey: key, itemId: item.id } })
     playSFX('furniture_place')
-    setPickerKey(null)
+
+    // Placement feedback: sparkle burst at the slot + a brief drop-in bounce.
+    const g = geomRef.current?.g
+    const p = parseSlotKey(key)
+    if (g && p) {
+      const c = slotCenter(g, p.zone, p.a, p.b)
+      effectsRef.current.push(mkSparks(c.sx, c.sy))
+    }
+    justPlacedKeyRef.current = key
+    justPlacedAtRef.current  = performance.now()
+    wake()
+
+    setSelectedSlot(null)
     flash(`วาง${item.nameTh}แล้ว! 🏠`)
   }
 
+  function handleLockedTap(item) {
+    setShakeItemId(item.id)
+    setTimeout(() => setShakeItemId(null), 420)
+    flash('ไปซื้อที่ร้านค้าก่อนนะ')
+  }
+
   function handleRemove() {
-    const itemId = roomLayout[actionKey]
+    const key = selectedSlot?.key
+    if (!key) return
+    const itemId = roomLayout[key]
     const item = ROOM_ITEMS.find(i => i.id === itemId)
-    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotKey: actionKey } })
+    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotKey: key } })
     playSFX('furniture_remove')
-    setActionKey(null)
+    setSelectedSlot(null)
     flash(item ? `เก็บ${item.nameTh}แล้ว` : 'เก็บของแล้ว')
   }
 
-  function handleZoneTab(zone) {
-    setActiveZone(zone)
-    setPickerKey(null)
-    setActionKey(null)
-  }
-
-  const pickerChoices = pickerKey ? pickChoices(pickerKey) : []
-  const actionItemId  = actionKey ? roomLayout[actionKey] : null
-  const actionZone    = actionKey ? parseSlotKey(actionKey)?.zone : null
-  const swapChoices   = actionKey
-    ? ROOM_ITEMS.filter(i =>
-        ownedRoom.includes(i.id) &&
-        (i.allowedZones || []).includes(actionZone) &&
-        i.id !== actionItemId &&
-        !placedIds.includes(i.id))
-    : []
+  const zone       = selectedSlot?.zone ?? null
+  const zoneItems  = zone ? ROOM_ITEMS.filter(i => (i.allowedZones || []).includes(zone)) : []
+  const occupiedId = selectedSlot ? roomLayout[selectedSlot.key] : null
+  const occupiedItem = occupiedId ? ROOM_ITEMS.find(i => i.id === occupiedId) : null
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'stretch',
-      width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden',
-      background: '#0a0a12', paddingBottom: 80, boxSizing: 'border-box',
+      width: '100%', height: '100%', background: '#0a0a12', boxSizing: 'border-box',
     }}>
 
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '13px 18px 10px',
-        borderBottom: '2px solid rgba(255,255,255,0.08)',
-      }}>
-        <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#EF9F27', letterSpacing: 3 }}>
-          ROOM
-        </span>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          background: 'rgba(255,210,63,0.12)', border: '1px solid rgba(255,210,63,0.35)',
-          borderRadius: 20, padding: '4px 12px',
-          fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#FFD23F',
-        }}>
-          🪙 {coins}
-        </span>
-      </div>
-
-      {/* Iso room scene — single canvas doing both draw + hit-test */}
+      {/* Iso room scene — fills all available space above the bottom nav */}
       <div ref={wrapRef} style={{
-        position: 'relative', width: '100%',
-        height: SCENE_H, flexShrink: 0, overflow: 'hidden',
+        position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden',
+        marginBottom: BOTTOM_NAV_H,
       }}>
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
           style={{
-            display: 'block', width: '100%', height: '100%',
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
             imageRendering: 'pixelated', cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
           }}
         />
+        {/* Sparkle-burst overlay — cleared/redrawn independently of the scene canvas */}
+        <canvas
+          ref={overlayRef}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+        />
+
+        {/* Header — small overlay pill pinned to the top-left, doesn't eat layout space */}
+        <div style={{
+          position: 'absolute', top: 10, left: 10, zIndex: 2, pointerEvents: 'none',
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(10,8,20,0.55)', backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20,
+          padding: '6px 14px 6px 14px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#EF9F27', letterSpacing: 2 }}>
+            ROOM
+          </span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#FFD23F',
+          }}>
+            🪙 {coins}
+          </span>
+        </div>
+
+        {/* Hint text — pinned bottom overlay, taps pass through to the canvas */}
+        <div style={{
+          position: 'absolute', bottom: 8, left: 0, right: 0, zIndex: 2, pointerEvents: 'none',
+          fontFamily: 'var(--font-thai)', fontSize: 11,
+          color: 'rgba(255,255,255,0.45)', textAlign: 'center',
+          textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+        }}>
+          แตะที่ห้องเพื่อแต่งได้เลย
+        </div>
       </div>
 
-      {/* Zone switcher */}
-      <div style={{
-        display: 'flex', gap: 8, justifyContent: 'center',
-        padding: '12px 18px 4px',
-      }}>
-        {ZONE_TABS.map(t => {
-          const on = activeZone === t.zone
-          return (
-            <button
-              key={t.zone}
-              onClick={() => handleZoneTab(t.zone)}
-              style={{
-                flex: 1, maxWidth: 120, cursor: 'pointer',
-                borderRadius: 10, padding: '7px 0', minHeight: 44,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 700,
-                background: on ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.05)',
-                color: on ? '#FFD23F' : 'rgba(255,255,255,0.5)',
-                border: on ? '1.5px solid rgba(255,210,63,0.5)' : '1.5px solid transparent',
-                WebkitTapHighlightColor: 'transparent',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ fontSize: 24, lineHeight: 1 }}>{t.icon}</span>
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Hint text below room */}
-      <div style={{
-        padding: '8px 18px 6px',
-        fontFamily: 'var(--font-thai)', fontSize: 12,
-        color: 'rgba(255,255,255,0.35)', textAlign: 'center',
-      }}>
-        แตะช่องว่างเพื่อวางของ • แตะของที่วางไว้เพื่อเปลี่ยน/เก็บ
-      </div>
-
-      {/* ── Placement picker modal ─────────────────────────────────────── */}
-      {pickerKey !== null && (
+      {/* ── Unified item picker / action sheet ─────────────────────────── */}
+      {selectedSlot && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9100,
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         }}>
           <div
-            onClick={() => setPickerKey(null)}
+            onClick={() => setSelectedSlot(null)}
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
           />
           <div style={{
             position: 'relative', zIndex: 1,
-            background: '#1a1040',
-            borderRadius: '18px 18px 0 0',
-            padding: '18px 16px',
+            height: '40vh', display: 'flex', flexDirection: 'column',
+            background: 'rgba(26,16,64,0.90)', backdropFilter: 'blur(14px)',
+            borderRadius: '24px 24px 0 0',
+            padding: '16px 16px 0',
             paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
             animation: 'fadeInUp 0.22s ease both',
+            boxSizing: 'border-box',
           }}>
             <div style={{
               fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
-              color: '#FFD23F', marginBottom: 14, textAlign: 'center',
+              color: '#FFD23F', marginBottom: 10, textAlign: 'center', flexShrink: 0,
             }}>
-              เลือกของที่จะวาง
+              {ZONE_LABELS[zone]?.icon} {ZONE_LABELS[zone]?.text}
             </div>
 
-            {pickerChoices.length === 0 ? (
-              <div style={{
-                padding: '20px 0', textAlign: 'center',
-                fontFamily: 'var(--font-thai)', fontSize: 13,
-                color: 'rgba(255,255,255,0.45)', lineHeight: 1.7,
-              }}>
-                ยังไม่มีของสำหรับตรงนี้<br />
-                <span style={{ color: '#FFD23F' }}>ซื้อในร้านค้าก่อนนะ</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-                {pickerChoices.map(item => (
-                  <ItemThumb key={item.id} item={item} onTap={() => handlePlace(item)} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Action modal (remove / swap for occupied slot) ─────────────── */}
-      {actionKey !== null && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9100,
-          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-        }}>
-          <div
-            onClick={() => setActionKey(null)}
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
-          />
-          <div style={{
-            position: 'relative', zIndex: 1,
-            background: '#1a1040',
-            borderRadius: '18px 18px 0 0',
-            padding: '18px 16px',
-            paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
-            animation: 'fadeInUp 0.22s ease both',
-          }}>
-            {actionItemId && (() => {
-              const cur = ROOM_ITEMS.find(i => i.id === actionItemId)
-              return cur ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                  <SlotCanvas item={cur} size={52} />
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
-                      {cur.nameTh}
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-                      วางอยู่ในห้อง
-                    </div>
+            {occupiedItem && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexShrink: 0 }}>
+                <SlotCanvas item={occupiedItem} size={52} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
+                    {occupiedItem.nameTh}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                    วางอยู่ในห้อง
                   </div>
                 </div>
-              ) : null
-            })()}
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={handleRemove}
-                aria-label="ย้ายออก"
-                style={{
-                  flex: 1, border: '1.5px solid rgba(255,80,80,0.4)', cursor: 'pointer',
-                  background: 'rgba(255,80,80,0.18)', borderRadius: 10,
-                  padding: '10px 0', minHeight: 44, fontSize: 24, lineHeight: 1,
-                }}
-              >
-                🗑️
-              </button>
-              {swapChoices.length > 0 && (
                 <button
-                  onClick={() => { const k = actionKey; setActionKey(null); setPickerKey(k) }}
-                  aria-label="เปลี่ยน"
+                  onClick={handleRemove}
+                  aria-label="เอาออก"
                   style={{
-                    flex: 1, border: 'none', cursor: 'pointer',
-                    background: 'rgba(255,210,63,0.18)', borderRadius: 10,
-                    padding: '10px 0', minHeight: 44, fontSize: 24, lineHeight: 1,
+                    flexShrink: 0,
+                    border: '1.5px solid rgba(255,80,80,0.4)', cursor: 'pointer',
+                    background: 'rgba(255,80,80,0.18)', borderRadius: 10,
+                    padding: '8px 14px', fontFamily: 'var(--font-thai)', fontSize: 13,
+                    color: '#ffffff', whiteSpace: 'nowrap',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  🔄
+                  🗑️ เอาออก
                 </button>
-              )}
+              </div>
+            )}
+
+            <div style={{
+              flex: 1, minHeight: 0, overflowY: 'auto',
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+              justifyItems: 'center', paddingBottom: 10,
+            }}>
+              {zoneItems.map(item => {
+                const cs = cardStateFor(item)
+                return (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    cardState={cs}
+                    shaking={shakeItemId === item.id}
+                    onTap={() => {
+                      if (cs === 'locked') handleLockedTap(item)
+                      else if (cs === 'owned') handlePlace(item)
+                      else flash(`${item.nameTh} วางอยู่ที่อื่นแล้ว`)
+                    }}
+                  />
+                )
+              })}
             </div>
           </div>
         </div>
@@ -362,7 +432,7 @@ export default function Room() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: BOTTOM_NAV_H + 16, left: '50%', transform: 'translateX(-50%)',
           background: 'rgba(30,20,60,0.95)', border: '1px solid rgba(255,210,63,0.4)',
           borderRadius: 20, padding: '10px 22px',
           fontFamily: 'var(--font-thai)', fontSize: 14, color: '#FFD23F',

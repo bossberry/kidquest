@@ -93,10 +93,19 @@ function pointInQuad(px, py, q) {
   return true
 }
 
-// Convert a tap (screen px) → { zone, a, b, key } within the given active zone,
-// or null. Restricting to one zone disambiguates overlapping wall/floor screen
-// regions (that is exactly what the zone-switcher tabs are for).
+// Convert a tap (screen px) → { zone, a, b, key }, or null.
+// When `zone` is provided, only that zone is tested (disambiguates overlapping
+// wall/floor screen regions). When `zone` is falsy, all three zones are tested
+// in visual-priority order (floor is drawn on top, so it wins ties) and the
+// first hit is returned — this powers the "tap anywhere" editor flow.
 export function hitTestZone(g, px, py, zone) {
+  if (!zone) {
+    for (const zn of ['floor', 'left_wall', 'right_wall']) {
+      const hit = hitTestZone(g, px, py, zn)
+      if (hit) return hit
+    }
+    return null
+  }
   if (zone === 'floor') {
     for (let r = FLOOR_ROWS - 1; r >= 0; r--)
       for (let c = 0; c < FLOOR_COLS; c++)
@@ -151,6 +160,54 @@ function drawFloor(ctx, g) {
       fillQuad(ctx, floorQuad(g, c, r), light ? '#D9BA8C' : '#CDA875', 'rgba(120,84,48,0.28)')
     }
   }
+  if (g.small) return
+  // Subtle warm vignette: darker toward the far corners of the floor diamond.
+  const corners = [g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0), g.project(FLOOR_COLS, FLOOR_ROWS, 0), g.project(0, FLOOR_ROWS, 0)]
+  const cx = (corners[0].sx + corners[2].sx) / 2, cy = (corners[0].sy + corners[2].sy) / 2
+  const radius = Math.max(g.TW * FLOOR_COLS, g.TH * FLOOR_ROWS) * 0.6
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(corners[0].sx, corners[0].sy)
+  for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i].sx, corners[i].sy)
+  ctx.closePath()
+  ctx.clip()
+  const vg = ctx.createRadialGradient(cx, cy, radius * 0.15, cx, cy, radius)
+  vg.addColorStop(0, 'rgba(40,20,8,0)')
+  vg.addColorStop(1, 'rgba(30,16,6,0.32)')
+  ctx.fillStyle = vg
+  ctx.fillRect(0, 0, g.W, g.H)
+  ctx.restore()
+}
+
+// Subtle wallpaper texture + top-edge "ceiling" shadow strip, clipped to a wall face.
+// Full-size render path only — skipped for the small thumbnail where it'd just read muddy.
+function wallPolish(ctx, g, face) {
+  if (g.small) return
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(face[0].sx, face[0].sy)
+  for (let i = 1; i < face.length; i++) ctx.lineTo(face[i].sx, face[i].sy)
+  ctx.closePath()
+  ctx.clip()
+  const minX = Math.min(...face.map(p => p.sx)), maxX = Math.max(...face.map(p => p.sx))
+  const minY = Math.min(...face.map(p => p.sy)), maxY = Math.max(...face.map(p => p.sy))
+  // faint diagonal stripe wallpaper texture
+  ctx.strokeStyle = 'rgba(120,90,60,0.05)'
+  ctx.lineWidth = 1
+  const span = (maxX - minX) + (maxY - minY)
+  for (let d = 0; d < span; d += 9) {
+    ctx.beginPath()
+    ctx.moveTo(minX + d, minY)
+    ctx.lineTo(minX + d - (maxY - minY), maxY)
+    ctx.stroke()
+  }
+  // dark gradient strip along the top edge (implies a ceiling corner)
+  const topGrad = ctx.createLinearGradient(0, minY, 0, minY + (maxY - minY) * 0.22)
+  topGrad.addColorStop(0, 'rgba(20,10,5,0.28)')
+  topGrad.addColorStop(1, 'rgba(20,10,5,0)')
+  ctx.fillStyle = topGrad
+  ctx.fillRect(minX, minY, maxX - minX, (maxY - minY) * 0.22)
+  ctx.restore()
 }
 
 function drawLeftWall(ctx, g) {
@@ -160,6 +217,7 @@ function drawLeftWall(ctx, g) {
     g.project(0, FLOOR_ROWS, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
   fillQuad(ctx, face, '#F3E6D2')
+  wallPolish(ctx, g, face)
   // faint tile grid
   ctx.strokeStyle = 'rgba(150,120,88,0.16)'; ctx.lineWidth = 1
   for (let y = 1; y < FLOOR_ROWS; y++) {
@@ -185,6 +243,7 @@ function drawRightWall(ctx, g) {
     g.project(FLOOR_COLS, 0, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
   fillQuad(ctx, face, '#E7D3B4')
+  wallPolish(ctx, g, face)
   ctx.strokeStyle = 'rgba(140,110,78,0.16)'; ctx.lineWidth = 1
   for (let x = 1; x < FLOOR_COLS; x++) {
     const a = g.project(x, 0, 0), b = g.project(x, 0, WALL_HEIGHT)
@@ -225,33 +284,89 @@ function drawHighlight(ctx, g, key) {
   fillQuad(ctx, q, 'rgba(255,210,63,0.34)', 'rgba(255,210,63,0.9)')
 }
 
-// ── Furniture ────────────────────────────────────────────────────────────────
-function drawFloorFurniture(ctx, g, layout) {
-  // back-to-front so nearer items overlap farther ones
-  for (let r = 0; r < FLOOR_ROWS; r++) {
-    for (let c = 0; c < FLOOR_COLS; c++) {
-      const id = layout[`floor_${c}_${r}`]
-      if (!id) continue
-      const item = ROOM_ITEMS.find(i => i.id === id)
-      if (!item) continue
-      const p = slotAnchor(g, 'floor', c, r)
-      ctx.save(); item.draw(ctx, p.sx, p.sy, g.TW); ctx.restore()
+// Room-editor-only: faint pulsing "+" on every empty slot across all three zones,
+// and a soft glow behind every occupied slot. `opacity` is driven by Room.jsx's
+// own rAF fade loop — this function is purely a stateless draw at that opacity.
+function drawTapHints(ctx, g, layout, opacity) {
+  if (opacity <= 0) return
+  for (const zone of ZONES) {
+    for (const key of zoneSlotKeys(zone)) {
+      const p = parseSlotKey(key)
+      const c = slotCenter(g, zone, p.a, p.b)
+      if (layout[key]) {
+        // soft glow behind a placed item
+        ctx.save()
+        ctx.globalAlpha = opacity * 0.5
+        const glowR = g.TH * 0.9
+        const glow = ctx.createRadialGradient(c.sx, c.sy, 0, c.sx, c.sy, glowR)
+        glow.addColorStop(0, 'rgba(255,210,63,0.28)')
+        glow.addColorStop(1, 'rgba(255,210,63,0)')
+        ctx.fillStyle = glow
+        ctx.beginPath(); ctx.arc(c.sx, c.sy, glowR, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
+      } else {
+        ctx.save()
+        ctx.globalAlpha = opacity * 0.3
+        ctx.strokeStyle = '#FFD23F'
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        const s = Math.max(4, g.TH * 0.16)
+        ctx.beginPath()
+        ctx.moveTo(c.sx - s, c.sy); ctx.lineTo(c.sx + s, c.sy)
+        ctx.moveTo(c.sx, c.sy - s); ctx.lineTo(c.sx, c.sy + s)
+        ctx.stroke()
+        ctx.restore()
+      }
     }
   }
 }
 
-function drawWallFurniture(ctx, g, layout, zone) {
+// ── Furniture ────────────────────────────────────────────────────────────────
+// bounceKey/bounceScale: Room.jsx-only "just placed" pop animation — the one
+// matching slot is drawn scaled up/down around its anchor point for a brief
+// window after placement. Both default to no-op for all other callers.
+function drawFloorFurniture(ctx, g, layout, bounceKey, bounceScale) {
+  // back-to-front so nearer items overlap farther ones
+  for (let r = 0; r < FLOOR_ROWS; r++) {
+    for (let c = 0; c < FLOOR_COLS; c++) {
+      const key = `floor_${c}_${r}`
+      const id = layout[key]
+      if (!id) continue
+      const item = ROOM_ITEMS.find(i => i.id === id)
+      if (!item) continue
+      const p = slotAnchor(g, 'floor', c, r)
+      ctx.save()
+      if (key === bounceKey) { ctx.translate(p.sx, p.sy); ctx.scale(bounceScale, bounceScale); ctx.translate(-p.sx, -p.sy) }
+      item.draw(ctx, p.sx, p.sy, g.TW)
+      ctx.restore()
+    }
+  }
+}
+
+function drawWallFurniture(ctx, g, layout, zone, bounceKey, bounceScale) {
   const skew = zone === 'left_wall' ? -(g.TH / g.TW) : (g.TH / g.TW) // ±0.5 → matches wall slope
   const n = zone === 'left_wall' ? FLOOR_ROWS : FLOOR_COLS
   for (const z of WALL_Z_ROWS) {
     for (let a = 0; a < n; a++) {
-      const id = layout[`${zone}_${a}_${z}`]
+      const key = `${zone}_${a}_${z}`
+      const id = layout[key]
       if (!id) continue
       const item = ROOM_ITEMS.find(i => i.id === id)
       if (!item) continue
       const p = slotAnchor(g, zone, a, z)
+      // soft hanging shadow — wall items have no built-in contact shadow like floor items do
+      ctx.save()
+      ctx.globalAlpha = 0.22
+      const shR = g.TW * 0.28
+      const sh = ctx.createRadialGradient(p.sx, p.sy + shR * 0.3, 0, p.sx, p.sy + shR * 0.3, shR)
+      sh.addColorStop(0, '#000000')
+      sh.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = sh
+      ctx.beginPath(); ctx.arc(p.sx, p.sy + shR * 0.3, shR, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
       ctx.save()
       ctx.transform(1, skew, 0, 1, p.sx, p.sy)
+      if (key === bounceKey) ctx.scale(bounceScale, bounceScale)
       item.draw(ctx, 0, 0, g.TW)
       ctx.restore()
     }
@@ -259,11 +374,20 @@ function drawWallFurniture(ctx, g, layout, zone) {
 }
 
 /**
- * drawRoomScene(ctx, { W, H, roomLayout, small, hint, activeZone, selectedKey })
- *   activeZone  — editor only: draws faint yellow outlines on that zone's empty slots
- *   selectedKey — editor only: strong yellow highlight on the currently selected slot
+ * drawRoomScene(ctx, { W, H, roomLayout, small, hint, activeZone, selectedKey,
+ *                       showTapHints, hintOpacity, bounceKey, bounceScale })
+ *   activeZone   — editor only: draws faint yellow outlines on that zone's empty slots
+ *   selectedKey  — editor only: strong yellow highlight on the currently selected slot
+ *   showTapHints — Room.jsx editor only: when true, draws the all-zone "+" tap hints
+ *                  (see drawTapHints). All other callers (DecoratedRoom, RoomVisit,
+ *                  the FriendsScreen thumbnail via RoomScene.jsx) leave this false.
+ *   hintOpacity  — 0..1 opacity for the tap hints, driven by Room.jsx's own rAF fade loop
+ *   bounceKey/bounceScale — Room.jsx-only "just placed" pop animation on one slot
  */
-export function drawRoomScene(ctx, { W, H, roomLayout, small = false, hint = true, activeZone = null, selectedKey = null }) {
+export function drawRoomScene(ctx, {
+  W, H, roomLayout, small = false, hint = true, activeZone = null, selectedKey = null,
+  showTapHints = false, hintOpacity = 0, bounceKey = null, bounceScale = 1,
+}) {
   const layout = roomLayout ?? {}
   const g = computeRoomGeometry(W, H, small)
 
@@ -279,12 +403,27 @@ export function drawRoomScene(ctx, { W, H, roomLayout, small = false, hint = tru
   drawLeftWall(ctx, g)
   drawFloor(ctx, g)
 
+  if (!small) {
+    // faint warm "ceiling light" ambient glow near the top-center of the scene
+    ctx.save()
+    ctx.globalCompositeOperation = 'lighter'
+    const lx = W / 2, ly = H * 0.12, lr = Math.max(W, H) * 0.5
+    const amb = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr)
+    amb.addColorStop(0, 'rgba(255,214,150,0.10)')
+    amb.addColorStop(1, 'rgba(255,214,150,0)')
+    ctx.fillStyle = amb
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
+  }
+
   if (activeZone) drawZoneHints(ctx, g, activeZone, layout)
 
   // furniture: wall items first (behind), then floor items row-by-row
-  drawWallFurniture(ctx, g, layout, 'right_wall')
-  drawWallFurniture(ctx, g, layout, 'left_wall')
-  drawFloorFurniture(ctx, g, layout)
+  drawWallFurniture(ctx, g, layout, 'right_wall', bounceKey, bounceScale)
+  drawWallFurniture(ctx, g, layout, 'left_wall', bounceKey, bounceScale)
+  drawFloorFurniture(ctx, g, layout, bounceKey, bounceScale)
+
+  if (showTapHints) drawTapHints(ctx, g, layout, hintOpacity)
 
   if (selectedKey) drawHighlight(ctx, g, selectedKey)
 

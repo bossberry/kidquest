@@ -1,5 +1,40 @@
 # Changelog — KidQuest
 
+## 2026-07-03 — Room UX redesign: full-screen canvas, tap-anywhere, unified bottom sheet
+
+Screenshot review of the isometric room flagged two problems: the room canvas was small and floated in a lot of empty dark space, and the child had to tap a zone tab (floor/left wall/right wall) before they could tap a slot to decorate. This session fixes both and adds decorating feedback (sparkle + bounce on placement) and ambient visual polish.
+
+### src/lib/roomScene.js
+- `hitTestZone(g, px, py, zone)` — `zone` is now optional. Omitting it tests `floor → left_wall → right_wall` in that order (floor wins ties, matching its draw-on-top order) and returns the first hit — this is what powers "tap anywhere, no zone selection needed." Single-zone callers are unaffected.
+- New `drawTapHints(ctx, g, layout, opacity)` — draws a faint pulsing gold "+" on every empty slot across all three zones, and a soft gold glow behind every occupied slot. Gated behind a new `showTapHints` param on `drawRoomScene` (default `false`) so only `Room.jsx` opts in — `DecoratedRoom.jsx`, `RoomScene.jsx` (RoomVisit + the FriendsScreen thumbnail) never show these.
+- `drawFloorFurniture`/`drawWallFurniture` gained optional `bounceKey`/`bounceScale` params — when a slot key matches, that one item is drawn scale-transformed around its anchor point, powering the placement "drop-in" bounce. Both default to no-op.
+- `drawWallFurniture` now draws a soft radial hanging-shadow behind every wall item (wall items previously had none; floor items already had a contact shadow via `groundShadow()` in `roomItems.js`).
+- `drawFloor`: added a warm vignette (radial gradient clipped to the floor diamond, darker toward the far corners) — skipped when `small`.
+- New `wallPolish()` helper: faint diagonal wallpaper-stripe texture + a dark top-edge gradient strip (implying a ceiling corner), clipped to each wall face — skipped when `small`.
+- `drawRoomScene`: added a faint warm ambient-light radial glow near the top-center of the scene (`!small` only, composited with `lighter`). New params `showTapHints`, `hintOpacity`, `bounceKey`, `bounceScale` all default to off, so every existing call site's behavior is unchanged unless it explicitly opts in.
+
+### src/components/Room.jsx (near-total rewrite)
+- **Full-screen canvas**: removed the fixed `SCENE_H = 380` — the canvas wrapper is now `flex: 1` inside the screen's flex column, filling all space above the fixed bottom nav. `computeRoomGeometry` already scales the iso projection to whatever W×H it's given, so the room now renders large and immersive instead of a small box surrounded by empty dark space. A `ResizeObserver` on the wrapper keeps the canvas backing store matched to its real rendered size (flex sizing doesn't reliably fire a `window.resize` event).
+- **Header** ("ROOM" label + coin count) moved from a separate bordered bar into a small translucent/blurred pill pinned `position:absolute` to the top-left of the canvas — costs no layout space.
+- **Zone-tab switcher deleted entirely** (`ZONE_TABS`, `activeZone` state, `handleZoneTab`) — `handleCanvasClick` now calls the new zone-agnostic `hitTestZone(g, px, py)` directly, so tapping anywhere on the room (floor or either wall) works without any manual zone selection.
+- **Tap hints**: a single self-stopping `requestAnimationFrame` loop (`loop`/`wake`) drives the all-zone "+" hint opacity (ease in ~400ms on entry/tap, ease out ~600ms after ~3s idle), the placement bounce, and a sparkle overlay — all in one loop so the screen isn't running three separate animation timers. The loop stops itself once everything has settled (hints fully faded, no bounce, no active particles) and restarts on the next tap, so it doesn't burn CPU indefinitely while the child is just looking at the room.
+- **Unified bottom sheet**: the old two separate modals (`pickerKey` placement sheet, `actionKey` remove/swap sheet) are merged into one, driven by a single `selectedSlot: { key, zone }` state, opened by tapping any slot (empty or occupied). Sheet height `40vh`, blurred dark panel, `24px` top-radius. Header shows the auto-detected zone (🟫 วางของบนพื้น / ⬅️ แขวนที่ผนังซ้าย / ➡️ แขวนที่ผนังขวา). If the slot is occupied, the current item is shown at the top with a "🗑️ เอาออก" remove button. Below that, a 3-column grid (`ItemCard`, ~90×100px) now shows the **full catalog** for that zone, not just owned+unplaced items — three visual states: gold border/tappable (owned+unplaced → places it, sparkle+bounce+SFX), grey+📍/dimmed (owned but placed in a different slot → toast, no direct steal), faded+🔒+price (not owned → shake animation + "ไปซื้อที่ร้านค้าก่อนนะ" toast, sheet stays open — no purchase happens here, that's Shop-only).
+- **Placement feedback**: `mkSparks`/`tickEffects` from `src/lib/particles.js` (the same particle system already used for battle hit effects — no new particle code written) draw a sparkle burst at the slot's screen position on a second `pointer-events:none` overlay canvas; the placed item pops in via a 0→1.2→1.0 scale bounce over ~220ms. `furniture_place`/`furniture_remove` SFX calls are unchanged.
+
+### Scope / deviations (deliberate, with reasoning)
+- **No dedicated swap button.** Since `PLACE_ROOM_ITEM` overwrites a slot unconditionally, tapping any other owned+unplaced item while a slot is occupied already swaps it — the unified grid makes a separate "🔄" control redundant.
+- **Swipe-to-dismiss skipped** (spec explicitly allowed this) — relying on tap-outside-the-scrim only. A real drag/swipe gesture handler was judged disproportionate effort for the value here.
+- `roomLayout` schema (`"{zone}_{a}_{b}"` keys), `ownedRoomItems`, and the `PLACE_ROOM_ITEM`/`REMOVE_ROOM_ITEM` payload shapes are all completely unchanged — this was a rendering/interaction redesign only.
+
+### Process note
+The implementing Opus subagent hit the same background session-quota wall documented in the Pandora world-map work — it landed only the `hitTestZone` change in `roomScene.js` before being cut off. Once the quota reset (confirmed via `date` against the reset estimate, ~1hr later), the same agent was resumed via its transcript (not restarted fresh) and completed the remaining 4 fixes with full context intact.
+
+### Verification
+- Reviewed the full diff of both files line-by-line (not just the agent's self-report). Confirmed via `grep` that `DecoratedRoom.jsx:93` and `RoomScene.jsx:63` (used by `RoomVisit.jsx` and the FriendsScreen thumbnail) pass none of the new `drawRoomScene` params, so they render exactly as before, picking up only the non-gated ambient polish (vignette/wallpaper/light), which is intended.
+- `npm run build` clean.
+- Attempted a genuine live-UI check by mounting `<StateProvider><Room/></StateProvider>` standalone in the browser via dynamic `import()` — this sidesteps the Supabase login gate entirely, since `Room.jsx` only needs app state, not auth. Hit a Vite dev-server HMR artifact instead: the direct `import('/src/context/StateContext.jsx')` and `Room.jsx`'s own internal import of the same file resolved to two different HMR-versioned module instances (visible in the stack trace as two different `?t=...` query timestamps), so `useAppState`'s context lookup failed with "must be used inside StateProvider" even though a `StateProvider` was genuinely mounted above it — a testing-harness limitation, not an app bug. Cleaned up the injected test DOM and restored the browser's original `localStorage['kq_state']` before finishing. Fell back to code-review-only verification for the live-render behavior, same limitation noted in the prior two sessions.
+
+
 ## 2026-07-03 — Icon-first UI pass: no more text-only buttons
 
 An audit (report-only, separate session) catalogued every button/tab/action in the app and found ~41 that showed only Thai/English text with no icon — unreadable to a 5-year-old who can't read yet. This session converted all of them to icon-primary, with text reduced to a tiny optional secondary label (or dropped where the icon is unambiguous on its own).

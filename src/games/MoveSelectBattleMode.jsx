@@ -641,9 +641,11 @@ export default function MoveSelectBattleMode({
                 if (subject === 'thai') speakTh(ttsText)
                 else speakEn(ttsText)
               }}
+              aria-label="ฟังอีกครั้ง"
               style={{
                 background: 'transparent', border: 'none',
-                fontSize: 18, cursor: 'pointer', verticalAlign: 'middle',
+                fontSize: 28, cursor: 'pointer', verticalAlign: 'middle',
+                minWidth: 44, minHeight: 44, lineHeight: 1,
               }}
             >
               🔊
@@ -735,28 +737,34 @@ export default function MoveSelectBattleMode({
               <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
                 <button
                   onClick={() => { setPendingItem(null); useBattleItem(key) }}
+                  aria-label="ใช้เลย"
                   style={{
                     background: item.color, color: '#fff',
                     border: 'none', borderRadius: 6,
-                    padding: '8px 18px', fontSize: 14,
+                    padding: '8px 18px', minHeight: 44,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                     fontFamily: 'var(--font-thai)', cursor: 'pointer',
                     touchAction: 'manipulation',
                   }}
                 >
-                  ใช้เลย!
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>⚡</span>
+                  <span style={{ fontSize: 11 }}>ใช้</span>
                 </button>
                 <button
                   onClick={() => setPendingItem(null)}
+                  aria-label="ยกเลิก"
                   style={{
                     background: 'rgba(255,255,255,0.08)',
                     color: 'rgba(255,255,255,0.65)',
                     border: '1px solid rgba(255,255,255,0.18)',
-                    borderRadius: 6, padding: '8px 18px', fontSize: 14,
+                    borderRadius: 6, padding: '8px 18px', minHeight: 44,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                     fontFamily: 'var(--font-thai)', cursor: 'pointer',
                     touchAction: 'manipulation',
                   }}
                 >
-                  ยกเลิก
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>✖️</span>
+                  <span style={{ fontSize: 11 }}>ยกเลิก</span>
                 </button>
               </div>
             </div>
@@ -889,9 +897,11 @@ export default function MoveSelectBattleMode({
             <button
               onClick={onComplete || onNext}
               className="px-btn px-btn-dark"
-              style={{ marginTop:8, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation' }}
+              aria-label="กลับสำรวจ"
+              style={{ marginTop:8, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation', display:'inline-flex', alignItems:'center', gap:8 }}
             >
-              กลับสำรวจ
+              <span style={{ fontSize:22, lineHeight:1 }}>🏃💨</span>
+              <span style={{ fontSize:11 }}>กลับ</span>
             </button>
           )}
         </div>
@@ -919,8 +929,9 @@ export default function MoveSelectBattleMode({
           <button
             onClick={handleDismissTeach}
             className="px-btn px-btn-purple"
-            style={{ marginTop:22, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation' }}
+            style={{ marginTop:22, fontFamily:'var(--font-thai)', fontSize:16, touchAction:'manipulation', display:'inline-flex', alignItems:'center', gap:8 }}
           >
+            <span style={{ fontSize:22, lineHeight:1 }}>⚔️</span>
             เริ่มต่อสู้!
           </button>
         </div>

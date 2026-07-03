@@ -426,12 +426,15 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
             <button
               onClick={(e) => { e.stopPropagation(); dispatch({ type: ACTIONS.SET_HATCHING, payload: true }) }}
               className="px-btn px-btn-yellow"
+              aria-label="แตะเพื่อฟักไข่"
               style={{
-                fontFamily:'var(--font-thai)', fontSize:14,
+                fontFamily:'var(--font-thai)', fontSize:12, minHeight:44,
+                display:'inline-flex', alignItems:'center', gap:6,
                 animation:'challenger-pulse 1s ease-in-out infinite',
               }}
             >
-              แตะเพื่อฟักไข่!
+              <span style={{ fontSize:22, lineHeight:1 }}>👆</span>
+              แตะ!
             </button>
           </div>
         )}

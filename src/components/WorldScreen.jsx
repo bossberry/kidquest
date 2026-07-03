@@ -737,29 +737,29 @@ export default function WorldScreen({ navigate }) {
       />
 
       {/* NPC talk button — Fix 4: Pandora-style prominent action button
-          (purple gradient, chunky tactile shadow). Kept the text label
-          (not icon-only) so the action stays legible for a young child. */}
+          (purple gradient, chunky tactile shadow). Icon-only (2026-07-03
+          icon-first pass) — 💬 reads as "talk" on its own. */}
       {nearNPC && !dialogue && (
-        <button onClick={openNPC} className="px-world-pill" style={{
+        <button onClick={openNPC} className="px-world-pill" aria-label="คุย" style={{
           position: 'absolute', bottom: 16, right: 16, zIndex: 25,
           background: 'linear-gradient(180deg, #8B5CF6, #6D28D9)', border: 'none', borderRadius: 30,
-          padding: '10px 20px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
-          fontSize: 14, color: '#fff', cursor: 'pointer',
+          padding: '8px', minWidth: 52, minHeight: 52, fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 28, lineHeight: 1, color: '#fff', cursor: 'pointer',
           boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
           WebkitTapHighlightColor: 'transparent',
-        }}>💬 คุย</button>
+        }}>💬</button>
       )}
 
       {/* Sign read button — same treatment as the NPC talk button above. */}
       {nearSign && !dialogue && !nearNPC && (
-        <button onClick={openSign} className="px-world-pill" style={{
+        <button onClick={openSign} className="px-world-pill" aria-label="อ่าน" style={{
           position: 'absolute', bottom: 16, right: 16, zIndex: 25,
           background: 'linear-gradient(180deg, #8B5CF6, #6D28D9)', border: 'none', borderRadius: 30,
-          padding: '10px 20px', fontFamily: 'Mitr,sans-serif', fontWeight: 700,
-          fontSize: 14, color: '#fff', cursor: 'pointer',
+          padding: '8px', minWidth: 52, minHeight: 52, fontFamily: 'Mitr,sans-serif', fontWeight: 700,
+          fontSize: 28, lineHeight: 1, color: '#fff', cursor: 'pointer',
           boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
           WebkitTapHighlightColor: 'transparent',
-        }}>📋 อ่าน</button>
+        }}>📋</button>
       )}
 
       {/* Exit-edge arrows — Round 2 Fix 1: pulsing indicator toward a nearby
@@ -867,14 +867,17 @@ export default function WorldScreen({ navigate }) {
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setBossConfirm(false)}
+                aria-label="หนีก่อน"
                 style={{
-                  flex: 1, padding: '10px 0', borderRadius: 8,
+                  flex: 1, padding: '8px 0', borderRadius: 8, minHeight: 44,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                   background: '#2a1010', border: '1px solid #553030',
-                  color: '#c09090', fontFamily: 'Mitr,sans-serif', fontSize: 14,
+                  color: '#c09090', fontFamily: 'Mitr,sans-serif',
                   cursor: 'pointer',
                 }}
               >
-                หนีก่อน
+                <span style={{ fontSize: 24, lineHeight: 1 }}>🏃</span>
+                <span style={{ fontSize: 11 }}>หนี</span>
               </button>
               <button
                 onClick={enterBossBattle}
@@ -910,16 +913,24 @@ export default function WorldScreen({ navigate }) {
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>เข้าไปสำรวจไหม?</span>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={declineEnterMaze} style={{
-                padding: '8px 16px', background: 'transparent',
+              <button onClick={declineEnterMaze} aria-label="ยังก่อน" style={{
+                padding: '8px 16px', background: 'transparent', minHeight: 44,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                 border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8,
-                color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
-              }}>ยังก่อน</button>
-              <button onClick={confirmEnterMaze} style={{
-                padding: '8px 16px', background: '#a040e0',
+                color: 'rgba(255,255,255,0.7)', fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
+              }}>
+                <span style={{ fontSize: 24, lineHeight: 1 }}>←</span>
+                <span style={{ fontSize: 11 }}>ยังก่อน</span>
+              </button>
+              <button onClick={confirmEnterMaze} aria-label="เข้าไปสำรวจ" style={{
+                padding: '8px 16px', background: '#a040e0', minHeight: 44,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
                 border: '1px solid #c060ff', borderRadius: 8,
-                color: '#fff', fontSize: 13, fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
-              }}>เข้าไปสำรวจ!</button>
+                color: '#fff', fontFamily: 'Mitr,sans-serif', cursor: 'pointer',
+              }}>
+                <span style={{ fontSize: 24, lineHeight: 1 }}>🌀</span>
+                <span style={{ fontSize: 11 }}>เข้า</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1068,16 +1079,17 @@ export default function WorldScreen({ navigate }) {
 
             <button
               onClick={() => setItemBagOpen(false)}
+              aria-label="ปิด"
               style={{
-                width:'100%', padding:'8px 0',
+                width:'100%', padding:'8px 0', minHeight:44,
                 background:'transparent',
                 border:'1px solid rgba(255,255,255,0.1)',
-                color:'rgba(255,255,255,0.4)',
-                fontFamily:'var(--font-pixel)', fontSize:8,
-                cursor:'pointer', letterSpacing:1,
+                color:'rgba(255,255,255,0.55)',
+                fontSize:24, lineHeight:1,
+                cursor:'pointer',
               }}
             >
-              CLOSE
+              ✖️
             </button>
           </div>
         </div>

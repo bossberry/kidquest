@@ -219,21 +219,24 @@ export default function Collection() {
             border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden',
           }}>
             {[
-              { key: 'head', label: 'หัว' },
-              { key: 'face', label: 'หน้า' },
-            ].map(({ key, label }) => (
+              { key: 'head', label: 'หัว', icon: '🎩' },
+              { key: 'face', label: 'หน้า', icon: '😎' },
+            ].map(({ key, label, icon }) => (
               <button
                 key={key}
                 onClick={() => setWearableTab(key)}
                 style={{
-                  flex: 1, border: 'none', cursor: 'pointer', padding: '8px 0',
-                  fontFamily: 'var(--font-thai)', fontSize: 14, fontWeight: 600,
+                  flex: 1, border: 'none', cursor: 'pointer', padding: '6px 0',
+                  minHeight: 44,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 600,
                   background: wearableTab === key ? 'rgba(255,210,63,0.14)' : 'transparent',
                   color: wearableTab === key ? '#FFD23F' : 'rgba(255,255,255,0.45)',
                   borderBottom: wearableTab === key ? '2px solid #FFD23F' : '2px solid transparent',
                   transition: 'all 0.15s',
                 }}
               >
+                <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
                 {label}
               </button>
             ))}
@@ -300,16 +303,18 @@ export default function Collection() {
                   {owned_ ? (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleSelectWearable(item) }}
+                      aria-label={eqd ? 'ถอดออก' : 'ใส่'}
                       style={{
                         border: 'none', cursor: 'pointer', borderRadius: 8,
-                        padding: '7px 14px', width: '100%',
-                        fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
-                        background: eqd ? 'rgba(255,255,255,0.1)' : 'rgba(255,210,63,0.22)',
-                        color: eqd ? 'rgba(255,255,255,0.5)' : '#FFD23F',
+                        padding: '7px 14px', width: '100%', minHeight: 44,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 22, lineHeight: 1,
+                        background: eqd ? 'rgba(255,210,63,0.12)' : 'rgba(255,210,63,0.22)',
+                        boxShadow: eqd ? '0 0 10px rgba(255,210,63,0.55)' : 'none',
                         transition: 'all 0.15s',
                       }}
                     >
-                      {eqd ? 'ถอดออก' : 'ใส่'}
+                      {eqd ? '❌' : '✅'}
                     </button>
                   ) : (
                     <button
@@ -419,10 +424,12 @@ export default function Collection() {
                   <button
                     onClick={() => !ownedR && handleBuyFurniture(item)}
                     disabled={ownedR || !canAfford}
+                    aria-label={ownedR ? 'วางในห้อง' : `ซื้อ ${item.price}`}
                     style={{
                       border: 'none',
                       cursor: ownedR ? 'default' : canAfford ? 'pointer' : 'not-allowed',
-                      borderRadius: 8, padding: '7px 14px', width: '100%',
+                      borderRadius: 8, padding: '7px 14px', width: '100%', minHeight: 44,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                       fontFamily: ownedR ? 'var(--font-thai)' : 'var(--font-pixel)',
                       fontSize: ownedR ? 12 : 9, letterSpacing: ownedR ? 0 : 1,
                       fontWeight: 700,
@@ -437,7 +444,9 @@ export default function Collection() {
                       transition: 'all 0.15s',
                     }}
                   >
-                    {ownedR ? 'วางในห้อง' : `🪙 ${item.price}`}
+                    {ownedR
+                      ? (<><span style={{ fontSize: 20, lineHeight: 1 }}>🏠</span>วาง</>)
+                      : `🪙 ${item.price}`}
                   </button>
                 </div>
               )

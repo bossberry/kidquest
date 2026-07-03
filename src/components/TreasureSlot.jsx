@@ -322,18 +322,21 @@ export default function TreasureSlot({ onClose, onReward, subject='thai' }) {
       {floatIn && (
         <button
           onClick={handleCollect}
+          aria-label="รับของ"
           style={{
             background:'transparent',
             border:'2px solid #FFD700',
             color:'#FFD700',
-            fontFamily:'var(--font-thai)', fontSize:14,
-            padding:'10px 32px',
+            fontFamily:'var(--font-thai)', fontSize:11,
+            display:'inline-flex', flexDirection:'column', alignItems:'center', gap:2,
+            padding:'8px 30px', minHeight:44,
             cursor:'pointer',
             marginTop:8,
             animation:'fadeInUp 0.4s ease 0.6s both',
           }}
         >
-          รับของ!
+          <span style={{ fontSize:26, lineHeight:1 }}>🎁</span>
+          รับ!
         </button>
       )}
     </div>

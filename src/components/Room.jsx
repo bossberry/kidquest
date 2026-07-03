@@ -7,9 +7,9 @@ import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 const SCENE_H = 380   // px — iso room canvas height
 
 const ZONE_TABS = [
-  { zone: 'floor',      label: 'พื้น' },
-  { zone: 'left_wall',  label: 'ผนังซ้าย' },
-  { zone: 'right_wall', label: 'ผนังขวา' },
+  { zone: 'floor',      label: 'พื้น', icon: '🟫' },
+  { zone: 'left_wall',  label: 'ซ้าย', icon: '⬅️' },
+  { zone: 'right_wall', label: 'ขวา', icon: '➡️' },
 ]
 
 // ── SlotCanvas: renders one furniture item onto a small canvas ──────────────
@@ -222,9 +222,10 @@ export default function Room() {
               key={t.zone}
               onClick={() => handleZoneTab(t.zone)}
               style={{
-                flex: 1, maxWidth: 120, border: 'none', cursor: 'pointer',
-                borderRadius: 10, padding: '9px 0',
-                fontFamily: 'var(--font-thai)', fontSize: 14, fontWeight: 700,
+                flex: 1, maxWidth: 120, cursor: 'pointer',
+                borderRadius: 10, padding: '7px 0', minHeight: 44,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 700,
                 background: on ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.05)',
                 color: on ? '#FFD23F' : 'rgba(255,255,255,0.5)',
                 border: on ? '1.5px solid rgba(255,210,63,0.5)' : '1.5px solid transparent',
@@ -232,6 +233,7 @@ export default function Room() {
                 transition: 'all 0.15s',
               }}
             >
+              <span style={{ fontSize: 24, lineHeight: 1 }}>{t.icon}</span>
               {t.label}
             </button>
           )
@@ -330,28 +332,26 @@ export default function Room() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={handleRemove}
+                aria-label="ย้ายออก"
                 style={{
-                  flex: 1, border: 'none', cursor: 'pointer',
+                  flex: 1, border: '1.5px solid rgba(255,80,80,0.4)', cursor: 'pointer',
                   background: 'rgba(255,80,80,0.18)', borderRadius: 10,
-                  padding: '10px 0',
-                  fontFamily: 'var(--font-thai)', fontSize: 14, fontWeight: 700,
-                  color: '#ff8080',
+                  padding: '10px 0', minHeight: 44, fontSize: 24, lineHeight: 1,
                 }}
               >
-                ย้ายออก
+                🗑️
               </button>
               {swapChoices.length > 0 && (
                 <button
                   onClick={() => { const k = actionKey; setActionKey(null); setPickerKey(k) }}
+                  aria-label="เปลี่ยน"
                   style={{
                     flex: 1, border: 'none', cursor: 'pointer',
                     background: 'rgba(255,210,63,0.18)', borderRadius: 10,
-                    padding: '10px 0',
-                    fontFamily: 'var(--font-thai)', fontSize: 14, fontWeight: 700,
-                    color: '#FFD23F',
+                    padding: '10px 0', minHeight: 44, fontSize: 24, lineHeight: 1,
                   }}
                 >
-                  เปลี่ยน
+                  🔄
                 </button>
               )}
             </div>

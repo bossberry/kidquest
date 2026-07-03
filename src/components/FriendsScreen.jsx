@@ -228,7 +228,7 @@ function FriendsTab({ userId }) {
             disabled={addCode.length < 6 || sending || !supabase}
             className="px-btn"
             style={{ ...FONT_TH, fontSize: 14, textTransform: 'none', letterSpacing: 0, opacity: addCode.length >= 6 && !sending ? 1 : 0.5 }}>
-            {sending ? 'กำลังส่ง...' : 'ส่งคำขอเพื่อน ➕'}
+            {sending ? '⏳ กำลังส่ง...' : 'ส่งคำขอเพื่อน ➕'}
           </button>
         </div>
       </section>
@@ -546,14 +546,18 @@ function MysteryTab() {
 
                 {/* View stats button — preserves the existing ดูสเตตัส → ท้าเล่น modal flow */}
                 <button onClick={(e) => { e.stopPropagation(); setSelected(a) }}
+                  aria-label="ดูสเตตัส"
                   style={{
-                    flexShrink: 0, ...FONT_TH, fontSize: 11, cursor: 'pointer',
+                    flexShrink: 0, ...FONT_TH, fontSize: 10, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                    minWidth: 44, minHeight: 44, justifyContent: 'center',
                     background: 'transparent', border: '2px solid var(--px-border)',
-                    color: 'var(--px-light)', padding: '7px 10px',
+                    color: 'var(--px-light)', padding: '5px 8px',
                     boxShadow: '2px 2px 0 var(--px-black)', whiteSpace: 'nowrap',
                     WebkitTapHighlightColor: 'transparent',
                   }}>
-                  ดูสเตตัส
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>📊</span>
+                  สเตตัส
                 </button>
               </div>
             )

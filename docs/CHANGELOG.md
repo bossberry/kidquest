@@ -1,5 +1,66 @@
 # Changelog — KidQuest
 
+## 2026-07-03 — Icon-first UI pass: no more text-only buttons
+
+An audit (report-only, separate session) catalogued every button/tab/action in the app and found ~41 that showed only Thai/English text with no icon — unreadable to a 5-year-old who can't read yet. This session converted all of them to icon-primary, with text reduced to a tiny optional secondary label (or dropped where the icon is unambiguous on its own).
+
+### src/components/BottomNav.jsx
+- The 5 tabs previously showed a plain colored square (not a real icon) + text. Now show real icons: 🏠 หน้าหลัก, 🛒 ร้านค้า, 🏡 ห้อง, 📊 รีพอร์ต, 👥 เพื่อน. Icon 26px, label 10px. Active tab: icon scales to 1.15× with a gold glow (`rgba(240,208,32,0.9)` drop-shadow, matching the app's existing gold accent). 44px min touch height.
+
+### src/components/Collection.jsx
+- Wearable sub-tabs (หัว/หน้า, previously plain text) now show 🎩/😎 above the label.
+- Equip toggle button on owned wearable cards is now icon-only: ✅ to equip, ❌ to unequip (previously the words "ใส่"/"ถอดออก"); the equipped state gets a gold glow.
+- Furniture "place" button (previously "วางในห้อง") now shows a 🏠 icon alongside a shortened "วาง" label.
+- Buy buttons (already had 🪙 + price) untouched — already icon-first.
+
+### src/components/Room.jsx
+- Zone switcher (previously plain text พื้น/ผนังซ้าย/ผนังขวา) now shows 🟫 พื้น / ⬅️ ซ้าย / ➡️ ขวา.
+- Slot action-sheet buttons (previously "ย้ายออก"/"เปลี่ยน" text) are now icon-only: 🗑️ (remove, kept its red danger tint/border) and 🔄 (swap).
+
+### src/games/MoveSelectBattleMode.jsx
+- TTS replay button (already had 🔊) enlarged to 28px, icon-only, 44px touch target.
+- Item-use-confirmation buttons (previously "ใช้เลย!"/"ยกเลิก" text-only): now ⚡+"ใช้" and ✖️+"ยกเลิก" — kept a tiny text label on both, since going fully icon-only risked ambiguity between "use" and "cancel" in the middle of a battle.
+- Victory "กลับสำรวจ" return button now shows 🏃💨 above a shortened "กลับ" label.
+- Teach-intro dismiss button ("เริ่มต่อสู้!") gets an ⚔️ icon prefix but keeps its full text — this is a new player's very first battle instruction, judged not safe to shorten.
+
+### src/components/WorldScreen.jsx
+- NPC talk (💬 คุย) and sign read (📋 อ่าน) buttons — already had emoji, now icon-only at 28px (both were already prominent purple pill buttons; only the visible word was dropped).
+- Boss-encounter flee button ("หนีก่อน" text-only) now shows 🏃 + tiny "หนี".
+- Maze entry confirm dialog ("ยังก่อน"/"เข้าไปสำรวจ!" text-only) now shows ← + "ยังก่อน" and 🌀 + "เข้า".
+- Item-bag close button (previously plain English "CLOSE" text) is now a ✖️ icon.
+- A stale code comment above the NPC button claiming "kept the text label... so the action stays legible" was corrected to describe the new icon-only state (found during review — the comment predated this pass and was left contradicting the code).
+
+### src/components/FriendsScreen.jsx
+- "ดูสเตตัส" (view-stats, text-only) now shows 📊 + tiny "สเตตัส".
+- Friend-request sending state gets a ⏳ prefix.
+- Accept/decline (✓/✕), copy-code (📋/✅), and send-request (➕) buttons already had icons — verified, left untouched.
+
+### src/components/Home.jsx
+- New-player hatch CTA shrunk from the full sentence "แตะเพื่อฟักไข่!" to 👆 + tiny "แตะ!" — the actual egg sprite is already rendered above this button, so a redundant 🥚 emoji was avoided.
+
+### src/components/TreasureSlot.jsx
+- Collect button (previously "รับของ!" text-only) now shows 🎁 + tiny "รับ!".
+
+### Scope / verification notes
+- No game logic, state shape, reducers, dispatched actions, or learning content changed anywhere — this was a labels/icons/CSS-only pass. Legacy unreachable practice screens (`GameThai`/`GameMath`/`GamePhonics`/`GameMathBattle`/`GameShop`/`LevelSelector` — confirmed via the earlier audit that nothing in the live app routes to them) were explicitly out of scope and untouched.
+- Implemented by a fresh Opus subagent working from a detailed per-file spec; the coordinating session reviewed every file's diff individually before accepting (confirmed each change was minimal, scoped, and matched the spec) and fixed the one stale comment noted above.
+- `npm run build` clean.
+- Live verification: only `BottomNav.jsx` was visually confirmed in the running app (standalone-mounted via a dynamic-import test harness in Chrome, screenshot-verified — icons render crisp, active-tab glow works, labels legible). The other 7 files could not be exercised live because the app is fully gated behind Supabase login with no test credentials available this session (same limitation hit in the prior two sessions); those were verified by direct code review instead.
+
+## 2026-07-03 — Battle screen enemies given the Pandora art style
+
+`EnemyCanvas.jsx` (the battle-screen enemy sprite, used at size 120 and 80 in `MoveSelectBattleMode.jsx`) switched from the original flat pixel-art enemy set to the rounded/volumetric "Pandora-style" set that was built for the world map — so enemies look consistent whether the child is walking the map or fighting one.
+
+### src/components/battle/EnemyCanvas.jsx
+- Now imports `drawEnemyPandora` instead of `drawEnemy`/`drawEnemyHurt`. Draws into a fixed 70×70 virtual coordinate space (`cx=35, groundY=41` — the ground-contact anchor convention the Pandora functions already use), scaled by `size / 70` to fit whatever canvas size it's given. That virtual space was sized by checking every enemy type's vertical/horizontal extent so nothing clips: bunny ears (tallest reach, ~36 units above ground) and ghost wisp's ambient halo (widest low-alpha spread, 24-unit radius circle centered on the ground point) both clear the canvas edge with margin.
+- `frame` is passed as a static `0` — slime wobble and ghost wisp's vertical bob (both driven by `frame` on the world map) don't animate in battle. This matches the old flat art's behavior (also static); adding a battle-screen animation loop was out of scope for an art-style swap.
+- No Pandora equivalent exists for `drawEnemyHurt`'s eye-swap-on-hit detail — dropped. Hit feedback is unchanged: the existing `hitFlash` CSS filter (flash white) and `enemyDefeating` fall/fade animation.
+- The original flat sprite set (`drawEnemy()`/`DRAW_FNS`/`drawEnemyHurt()` in `drawEnemy.js`) has no remaining callers anywhere in the app — left in place as dead code rather than deleted, since removing it wasn't part of this task's scope.
+
+### Verification
+- `npm run build` clean.
+- Could not exercise a real battle live (the app is behind a Supabase login gate; no test credentials available this session). Verified instead via a dynamic-import test harness injected into the running dev server's page (same technique used for the Room decoration system's verification): rendered all 10 enemy types at both battle canvas sizes (120px, 80px), screenshot-confirmed each renders distinctly and fully on-canvas with no clipping (zoomed in specifically on the two tightest-fit types — bunny ears, ghost wisp halo), zero console errors.
+
 ## 2026-07-02 — Isometric Room decoration system
 
 Converted the Room / Den decoration screen from a flat top-down 12-slot CSS grid to a true 2:1 isometric interior. All existing state/reducers preserved; slot-key schema changed with a safe migration.

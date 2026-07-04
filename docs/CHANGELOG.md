@@ -1,5 +1,27 @@
 # Changelog — KidQuest
 
+## 2026-07-04 — World map visual overhaul: Ragnarok Online style tiles
+
+Implemented by an Opus subagent working directly on `tileEngine.js`/`drawEnemy.js`/`useWorldGameLoop.js` per the user's "Ragnarok Online style" brief (vibrant grass, pseudo-3D trees with dark outlines, stone dungeon with visible walls, warm torch light). Coordinator reviewed the full diff and live-verified in the browser with the test account before committing.
+
+### src/lib/tileEngine.js
+- **Water**: `WATER_BASE`/`WATER_SHIMMER` brightened to a clearly-blue `#2b83c4`/`#5fb2e8`; added 1-2 seeded, time-blinking sparkle glints on top of the existing shimmer/foam animation.
+- **Tall grass**: added seeded wildflower dots (~45% of tiles, 1-2 pink/yellow/white/violet blooms).
+- **Trees**: trunk is now two-tone (darker side face + lighter front face) with a 1px dark outline, replacing the flat rect; canopy gained a crisp ~2px dark outline (drawn as an oversized near-black pass behind the colored fill, so there are no internal seam lines from the overlapping lobe circles) — this replaces the old "transparent bubble" look with an opaque, clearly-outlined RO-style canopy.
+- **Rocks**: added a dark outline stroke.
+- **New dungeon theme** — `drawMazeFloor()` (dark stone flagstone floor, seeded shade variation, worn-stone speckles, grout-seam bevels) and `drawMazeWall()` (pseudo-3D stone block: lighter torch-lit top face, darker cracked front face extending above the tile for correct Y-sort height, brick seams, cast shadow, dark outline). `renderMapPandora()` gained an `isMaze` parameter (default `false`) that routes `T.GRASS`/`T.TREE` cells to the dungeon painters instead of grass/tree — no tile-type or collision data changed, purely which paint function runs.
+
+### src/hooks/useWorldGameLoop.js
+One-line fix: the existing `inMaze` flag (already computed for the fog/torch overlay) is now also passed as `renderMapPandora`'s new `isMaze` argument — previously the dungeon painters above would have been unreachable dead code even once written, since the MAZE screen was still rendering the ordinary overworld grass/tree art under the fog overlay.
+
+### src/lib/drawEnemy.js
+`pBody()` (the shared volumetric-shading helper every Pandora enemy type is built from) now strokes a `rgba(0,0,0,0.7)` 2px dark outline around each body ellipse after the fills — gives every enemy type a crisp RO-style contour. Ground shadows (`pShadow`) already existed and were untouched.
+
+### Confirmed already correct, left untouched
+Fog mask gradient (`transparent → rgba(0,0,0,0.6) → black`, achromatic) and torch ring (`rgba(255,190,100,0.35)` border) were already warm/amber, not green — no fix needed there. Player egg's drop shadow already existed (`renderPlayerPandora`).
+
+Verified: `npm run build` clean. Live-tested in the browser with the test account — wildflowers, outlined trees/enemies, and player shadow all confirmed rendering correctly on the real running map, zero console errors. Dungeon floor/wall art verified via a standalone canvas harness (screenshot-confirmed distinct stone-dungeon look) since the MAZE screen only spawns periodically in real play. No gameplay/collision/movement/encounter logic touched.
+
 ## 2026-07-04 — 10 new wall furniture items for the Room decoration screen
 
 ### src/lib/roomItems.js

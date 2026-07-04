@@ -376,7 +376,7 @@ export function useWorldGameLoop({
         entities.push({ y: epy, draw: () => drawMazePortal(ctx, epx, epy, g.frame) })
       }
 
-      renderMapPandora(ctx, tileMap, camX, camY, g.frame, entities)
+      renderMapPandora(ctx, tileMap, camX, camY, g.frame, entities, inMaze)
 
       if (inMaze) {
         // Fog is a DOM overlay div — update its CSS mask + torch ring position

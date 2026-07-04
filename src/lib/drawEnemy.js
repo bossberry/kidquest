@@ -469,6 +469,15 @@ function pBody(ctx, cx, cy, rx, ry, base, light, dark) {
   ctx.ellipse(cx + rx * 0.3, cy + ry * 0.35, rx * 0.45, ry * 0.4, 0, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
+  // Dark outline (2026-07-04) — redraw the body ellipse as a stroke after the
+  // fills for the RO-style crisp cartoon edge. Every Pandora enemy is built
+  // from this primitive, so this outlines them all (head/body/segments each
+  // get their own contour). Fill logic above is unchanged.
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+  ctx.stroke()
 }
 
 function pSleepyBunny(ctx, cx, groundY) {

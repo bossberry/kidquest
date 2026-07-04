@@ -69,8 +69,8 @@ const P = {
   PATH_LINE:     '#b08f5c',
   TALL_A:        '#548a34',
   TALL_B:        '#78c058',
-  WATER_BASE:    '#2a8aaa',
-  WATER_SHIMMER: '#4aaac8',
+  WATER_BASE:    '#2b83c4',
+  WATER_SHIMMER: '#5fb2e8',
   WATER_FOAM:    '#eafaff',
   SHORE_FRINGE:  '#e0d0a0',
 }
@@ -289,6 +289,27 @@ function drawPandoraTallGrass(ctx, px, py, col, row, tileMap) {
     ctx.lineTo(px + bx + lean * 3, py + PANDORA_TILE - 2 - bh)
     ctx.stroke()
   }
+
+  // Wildflower dots nestled among the blades — ~45% of tall-grass tiles get
+  // 1-2 small colored blooms (pink/yellow/white/violet), seeded so stable.
+  const flowerRoll = tileHash(col * 37 + 5, row * 41 + 9) % 100
+  if (flowerRoll < 45) {
+    const blooms = 1 + (flowerRoll % 2)
+    for (let i = 0; i < blooms; i++) {
+      const dh = tileHash(col * 43 + i * 9, row * 53 + i * 3)
+      const fx = px + 5 + (dh % (PANDORA_TILE - 10))
+      const fy = py + PANDORA_TILE - 6 - (dh % 8)
+      const petal = ['#ff88aa', '#ffdd44', '#ffffff', '#c890ff'][dh % 4]
+      ctx.fillStyle = petal
+      ctx.beginPath()
+      ctx.arc(fx, fy, 1.8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#ffd23c'
+      ctx.beginPath()
+      ctx.arc(fx, fy, 0.7, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
 }
 
 function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
@@ -327,6 +348,21 @@ function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
     ctx.fill()
   }
   ctx.globalAlpha = 1
+
+  // Sparkle twinkles — 1-2 tiny bright points that blink on/off over time
+  // (seeded phase per-tile), adding the crisp glint of an RO water surface.
+  for (let i = 0; i < 2; i++) {
+    const dh = tileHash(col * 19 + i * 7, row * 23 + i * 3)
+    const twinkle = Math.sin(t * 2.2 + dh) * 0.5 + 0.5
+    if (twinkle < 0.6) continue
+    const sx = px + 5 + (dh % (PANDORA_TILE - 10))
+    const sy = py + 5 + ((dh * 3) % (PANDORA_TILE - 10))
+    ctx.fillStyle = '#ffffff'
+    ctx.globalAlpha = (twinkle - 0.6) * 2.2
+    ctx.fillRect(sx, sy, 2, 1)
+    ctx.fillRect(sx, sy - 0.5, 1, 2)
+    ctx.globalAlpha = 1
+  }
 
   // Edge foam — a wavy animated line along any border shared with a
   // non-water tile (beach/shore edge), phase per Round 2's own formula.
@@ -419,10 +455,19 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
     ctx.restore()
   }
 
-  // Trunk, base planted at the ground point.
+  // Trunk, base planted at the ground point — two-tone: a darker right "side"
+  // face with a lighter "front" face over most of the width, plus a dark
+  // outline, giving the trunk RO-style volume instead of a flat brown bar.
   const trunkW = 8
-  ctx.fillStyle = '#4a2f18'
-  ctx.fillRect(cx - trunkW / 2, groundY - trunkH, trunkW, trunkH)
+  const trunkX = cx - trunkW / 2
+  const trunkTop = groundY - trunkH
+  ctx.fillStyle = '#33200f'                 // darker side (right) face
+  ctx.fillRect(trunkX, trunkTop, trunkW, trunkH)
+  ctx.fillStyle = '#5a3a1e'                 // lighter front face
+  ctx.fillRect(trunkX, trunkTop, trunkW - 3, trunkH)
+  ctx.strokeStyle = 'rgba(20,12,6,0.85)'    // dark outline
+  ctx.lineWidth = 1
+  ctx.strokeRect(trunkX + 0.5, trunkTop + 0.5, trunkW - 1, trunkH - 1)
 
   // Canopy — centered ~18px above the trunk top plus the per-tree height
   // offset. Intentionally extends above the tile's top boundary (real
@@ -433,18 +478,30 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
   // Round 3 Fix 2 — irregular lumpy silhouette instead of a perfect circle:
   // main circle + 3-4 smaller offset circles, all filled solid before any
   // shading pass so the lobes read as one continuous blob, not a snowman.
-  ctx.fillStyle = canopyColor
-  ctx.beginPath()
-  ctx.arc(cx, canopyCy, canopyR, 0, Math.PI * 2)
-  ctx.fill()
+  // 2026-07-04 — build the blob list once so we can draw a dark OUTLINE pass
+  // (same blobs, +2px, in a near-black forest green) BEHIND the colored fill.
+  // The oversized dark shapes peek out ~2px around the whole union silhouette,
+  // giving RO's signature crisp outline WITHOUT any internal seam lines (a
+  // plain per-circle stroke would draw the overlapping inner arcs too).
+  const blobs = [{ x: cx, y: canopyCy, r: canopyR }]
   const lobeCount = 3 + (h % 2) // 3-4
   for (let i = 0; i < lobeCount; i++) {
     const dh = tileHash(col * 53 + i * 11, row * 67 + i)
     const angle = (dh / 97) * Math.PI * 2
     const dist = canopyR * (0.55 + (dh % 4) * 0.1)
     const lobeR = 8 + (dh % 7) // 8-14
+    blobs.push({ x: cx + Math.cos(angle) * dist, y: canopyCy + Math.sin(angle) * dist, r: lobeR })
+  }
+  ctx.fillStyle = '#0d2b09' // dark outline (drawn first, oversized)
+  for (const b of blobs) {
     ctx.beginPath()
-    ctx.arc(cx + Math.cos(angle) * dist, canopyCy + Math.sin(angle) * dist, lobeR, 0, Math.PI * 2)
+    ctx.arc(b.x, b.y, b.r + 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = canopyColor
+  for (const b of blobs) {
+    ctx.beginPath()
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -569,6 +626,12 @@ function drawPandoraRock(ctx, px, py) {
   ctx.beginPath()
   ctx.ellipse(cx, top + rh / 2, rw / 2, rh / 2, 0, 0, Math.PI * 2)
   ctx.fill()
+  // Dark outline (2026-07-04) for RO-style pop.
+  ctx.strokeStyle = 'rgba(30,30,34,0.8)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.ellipse(cx, top + rh / 2, rw / 2, rh / 2, 0, 0, Math.PI * 2)
+  ctx.stroke()
   // Darker left face.
   ctx.save()
   ctx.globalAlpha = 0.55
@@ -682,6 +745,106 @@ function pandoraFriendlyBody(ctx, cx, cy, rx, ry, base) {
   ctx.restore()
 }
 
+// -- Maze dungeon theme (2026-07-04) --
+// The maze map is built (in tileMaps.js) from the SAME tile types as the
+// overworld — T.TREE for impassable walls, T.GRASS for the carved corridors —
+// so collision/generation stay byte-for-byte identical. The dungeon LOOK is
+// produced purely here in the renderer: when renderMapPandora is called with
+// isMaze=true, T.GRASS floor cells route to drawMazeFloor and T.TREE wall
+// cells route to drawMazeWall instead of the grass/tree drawers. Nothing about
+// the stored tile type or canMove() changes — only which paint function runs.
+
+function drawMazeFloor(ctx, px, py, col, row) {
+  const h = tileHash(col, row)
+  // Cool dark stone-grey base with a subtle seeded per-tile shade so the floor
+  // reads as laid flagstones rather than one flat fill.
+  const shade = h % 3
+  ctx.fillStyle = shade === 0 ? '#3a3f4a' : shade === 1 ? '#343947' : '#2e333e'
+  ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
+
+  // 2-3 lighter worn-stone speckle patches.
+  const patchCount = 2 + (h % 2)
+  for (let i = 0; i < patchCount; i++) {
+    const dh = tileHash(col * 7 + i, row * 13 + i * 3)
+    const dx = 3 + (dh % (PANDORA_TILE - 6))
+    const dy = 3 + ((dh * 5) % (PANDORA_TILE - 6))
+    ctx.fillStyle = 'rgba(130,140,158,0.16)'
+    ctx.beginPath()
+    ctx.ellipse(px + dx, py + dy, 3 + (dh % 3), 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Flagstone grout: dark seam along the right + bottom edges, with a faint
+  // light bevel along the top + left, so each tile reads as a raised block.
+  ctx.strokeStyle = 'rgba(14,17,23,0.7)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(px + PANDORA_TILE - 0.5, py); ctx.lineTo(px + PANDORA_TILE - 0.5, py + PANDORA_TILE)
+  ctx.moveTo(px, py + PANDORA_TILE - 0.5); ctx.lineTo(px + PANDORA_TILE, py + PANDORA_TILE - 0.5)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(150,160,180,0.10)'
+  ctx.beginPath()
+  ctx.moveTo(px + 0.5, py); ctx.lineTo(px + 0.5, py + PANDORA_TILE)
+  ctx.moveTo(px, py + 0.5); ctx.lineTo(px + PANDORA_TILE, py + 0.5)
+  ctx.stroke()
+}
+
+function drawMazeWall(ctx, px, py, col, row) {
+  const h = tileHash(col, row)
+  // A pseudo-3D stone block: the front face extends slightly ABOVE the tile
+  // (like the overworld trees) so Y-sorting gives the wall real height, with a
+  // lighter top face catching the torchlight, a darker cracked front face, a
+  // dark outline, and a cast shadow on the floor below.
+  const left = px
+  const w = PANDORA_TILE
+  const topH = 8                    // thickness of the lit top face
+  const rise = 6                    // how far the block extends above its tile
+  const top = py - rise
+  const fullH = PANDORA_TILE + rise
+
+  // Cast shadow on the floor tile just below.
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'
+  ctx.fillRect(left + 2, py + PANDORA_TILE - 2, w, 4)
+
+  // Front (darker) face.
+  ctx.fillStyle = '#474b56'
+  ctx.fillRect(left, top + topH, w, fullH - topH)
+  // Top (lighter, torch-lit) face.
+  ctx.fillStyle = '#6b7280'
+  ctx.fillRect(left, top, w, topH)
+
+  // Faint warm torch glow on the top face (dungeons are lit by torchlight).
+  ctx.fillStyle = 'rgba(255,180,90,0.10)'
+  ctx.fillRect(left, top, w, topH)
+
+  // Horizontal crack/mortar lines across the front face.
+  ctx.strokeStyle = 'rgba(18,20,26,0.55)'
+  ctx.lineWidth = 1
+  const frontH = fullH - topH
+  for (let i = 1; i <= 2; i++) {
+    const ly = top + topH + i * (frontH / 3) + ((h % 3) - 1)
+    ctx.beginPath()
+    ctx.moveTo(left + 1, ly); ctx.lineTo(left + w - 1, ly)
+    ctx.stroke()
+  }
+  // One seeded vertical brick seam.
+  const vx = left + 4 + (h % (w - 8))
+  ctx.beginPath()
+  ctx.moveTo(vx, top + topH); ctx.lineTo(vx, top + fullH - 2)
+  ctx.stroke()
+
+  // Seam between the top and front faces.
+  ctx.strokeStyle = 'rgba(12,14,18,0.5)'
+  ctx.beginPath()
+  ctx.moveTo(left, top + topH); ctx.lineTo(left + w, top + topH)
+  ctx.stroke()
+
+  // Dark outline around the whole block — the RO "pop".
+  ctx.strokeStyle = 'rgba(10,12,16,0.85)'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(left + 0.75, top + 0.75, w - 1.5, fullH - 1.5)
+}
+
 // Stage 2: trees + rocks/walls drawn as standing objects, Y-sorted by their
 // ground-contact point (screen Y) so nearer objects correctly occlude
 // farther ones — this is the core of the pseudo-3D depth feel. Ground tiles
@@ -697,8 +860,10 @@ function pandoraFriendlyBody(ctx, cx, cy, rx, ry, base) {
 // player this stage, enemies from Stage 4. `y` must already be in the same
 // camera-adjusted screen-space as the tree/rock entries below (world Y minus
 // camY), so it sorts correctly against them.
-export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntities = []) {
-  ctx.fillStyle = P.GRASS_BASE
+export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntities = [], isMaze = false) {
+  // Dark stone backdrop in the maze (so out-of-frame gaps read as dungeon, not
+  // a green flash); sunny grass base everywhere else.
+  ctx.fillStyle = isMaze ? '#1a1d24' : P.GRASS_BASE
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
   const viewW = ctx.canvas.width
@@ -733,11 +898,15 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
         case T.PATH:  drawPandoraPath(ctx, px, py, c, r, tileMap); break
         case T.WATER: drawPandoraWater(ctx, px, py, frame, c, r, tileMap); break
         case T.TALL:  drawPandoraTallGrass(ctx, px, py, c, r, tileMap); break
-        default:      drawPandoraGrass(ctx, px, py, c, r, tileMap) // includes TREE/WALL ground + fallback + out-of-map
+        default:      isMaze
+          ? drawMazeFloor(ctx, px, py, c, r)                       // dungeon stone floor under everything
+          : drawPandoraGrass(ctx, px, py, c, r, tileMap)           // includes TREE/WALL ground + fallback + out-of-map
       }
 
       if (tileType === T.TREE) {
-        standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraTree(ctx, px, py, c, r, tileMap, outOfBounds) })
+        standing.push({ y: py + PANDORA_TILE - 4, draw: () => (isMaze
+          ? drawMazeWall(ctx, px, py, c, r)                        // dungeon stone wall (same T.TREE tile, dungeon paint)
+          : drawPandoraTree(ctx, px, py, c, r, tileMap, outOfBounds)) })
       } else if (tileType === T.WALL) {
         standing.push({ y: py + PANDORA_TILE - 4, draw: () => drawPandoraRock(ctx, px, py) })
       } else if (tileType === T.SIGN) {
@@ -754,9 +923,12 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
 
   // Warm ambient sunlight wash (2026-07-05) — the map read flat/overcast
   // without it; a very faint warm tint over the whole frame (ground, trees,
-  // player, everything) unifies the scene into a sunnier outdoor feel.
-  ctx.fillStyle = 'rgba(255,220,150,0.06)'
-  ctx.fillRect(0, 0, viewW, viewH)
+  // player, everything) unifies the scene into a sunnier outdoor feel. Skipped
+  // in the maze, where the fog/torch overlay owns the lighting mood instead.
+  if (!isMaze) {
+    ctx.fillStyle = 'rgba(255,220,150,0.06)'
+    ctx.fillRect(0, 0, viewW, viewH)
+  }
 }
 
 // -- Pandora player sprite (Stage 3) --

@@ -3,7 +3,7 @@ import React from 'react'
 export default function BottomNav({ current, navigate }) {
   const tabs = [
     { key: 'home',       label: 'หน้าหลัก', icon: '🏠' },
-    { key: 'collection', label: 'ร้านค้า',   icon: '🛒' },
+    { key: 'collection', label: 'แต่งตัว',   icon: '🛒' },
     { key: 'room',       label: 'ห้อง',      icon: '🏡' },
     { key: 'report',     label: 'รีพอร์ต',   icon: '📊' },
     { key: 'friends',    label: 'เพื่อน',    icon: '👥' },

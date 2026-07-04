@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-07-05 (Fix: maze portal rendering + world map colors brightened)_
+_Last updated: 2026-07-05 (Shop polish: renamed ห้องแต่งตัว, icon-only item cards)_
 
 ---
 
@@ -27,7 +27,10 @@ The child using this app can't reliably read yet, so every tappable element must
 - **Navigation**: 5-tab BottomNav — หน้าหลัก / ร้านค้า / ห้อง / รีพอร์ต / เพื่อน
 - **Deferred**: multi-room expansion (1 room is all that exists now); real swipe-to-dismiss on the bottom sheet (tap-outside-scrim only for now, a deliberate scope call — see `docs/CHATBOT_NOTES.md`).
 
-### Cosmetic Shop — "dressing room" (2026-06-30; live try-on 2026-07-01; full redesign 2026-07-03)
+### Cosmetic Shop — "dressing room" (2026-06-30; live try-on 2026-07-01; full redesign 2026-07-03; polish 2026-07-05)
+- **Screen renamed "ห้องแต่งตัว"** — a centered title was added to the floating header overlay (the redesign had none); `BottomNav.jsx`'s tab label changed from "ร้านค้า" to "แต่งตัว" (icon unchanged, 🛒).
+- **Item grid — icon-only, no egg preview**: item cards previously showed each cosmetic drawn on a small isolated `EggCanvas` (a mini egg wearing just that one item). Replaced with a new `ItemIcon` component that calls the item's own `draw(ctx, {px,ox,oy,faceX,t})` function directly (each `COSMETIC_ITEMS` entry's draw fn — documented at the top of `eggCosmeticLayer.js` — only ever draws the cosmetic itself onto an implied 18×18-cell egg-relative coordinate frame; it never touches the egg body/eyes, so calling it standalone with a synthetic frame is all that's needed — no egg pipeline involved at all). The synthetic frame is sized so both extremes across all 18 items fit without clipping (tallest: wizard hat tip at y≈-10; lowest: blush at y≈+11). Cards grew to `minHeight:96`, item name font bumped to 13px bold, names pre-truncated to 6 Thai characters + "…" (was CSS-width-based ellipsis). Badges repositioned/simplified: ✓ (equipped) or 🔒 (can't-afford) top-right, 🪙 price bottom-right for any unowned item, and a dark overlay drawn over just the icon (not the whole card) for the can't-afford state.
+- **Slot switcher bigger**: `minHeight` 48→52, icon 22px→28px, active tab's label color changed from dark brown to white for more contrast against the gold background.
 - **Items**: 18 pixel-art cosmetics — 10 head (bow, party hat, beanie, cap, headband stars, flower crown, top hat, wizard hat, gold crown, jeweled crown) + 8 face (blush, freckles, flower cheek, mustache, round glasses, eye mask, sunglasses, star glasses)
 - **Tiers**: small 30–60 coins / mid 150–250 / big 500–800
 - **State**: `state.ownedItems: string[]` (default `[]`), `state.equipped: { head: null|string, face: null|string }` (default `{head:null,face:null}`); both backfilled on load for existing players

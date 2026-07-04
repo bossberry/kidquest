@@ -1,5 +1,24 @@
 # Changelog — KidQuest
 
+## 2026-07-05 — Shop polish: renamed "ห้องแต่งตัว", icon-only item cards, bigger slot switcher
+
+A feedback-driven polish pass on the dressing-room redesign shipped earlier this week. Implemented directly (small, well-scoped, no subagent).
+
+### src/components/Collection.jsx
+- Added a centered "ห้องแต่งตัว" title to the floating header overlay — the redesign never had a visible screen title.
+- New `ItemIcon` component replaces the old per-card mini-egg preview (`<EggCanvas>` wearing just that one item). Each `COSMETIC_ITEMS` entry's own `draw(ctx, {px, ox, oy, faceX, t})` function only ever draws the cosmetic itself — it's documented at the top of `eggCosmeticLayer.js` as operating on an 18×18-cell egg-relative coordinate grid, and never touches the egg body or eyes — so calling it directly with a synthetic frame gives an icon-only render with zero egg pipeline involved and zero changes needed to `eggCosmeticLayer.js`. The synthetic frame's scale/offset were derived from actually reading the coordinate convention and several draw functions (not guessed), sized so every item's real extent fits without clipping — the tallest (wizard hat tip, y≈-10) and lowest (blush, y≈+11) both have margin.
+- Item cards grew (`minHeight: 96`, was ~80), name font 12px→13px and regular→bold, names now pre-truncated to 6 Thai characters + "…" (was CSS width-based ellipsis).
+- Badges repositioned and simplified: ✓ (equipped) or 🔒 (can't afford) top-right only, 🪙 price bottom-right for any unowned item, and — new — a dark overlay drawn over just the icon (not the whole card) specifically for the can't-afford state, replacing the previous whole-card opacity dim.
+- Slot switcher: `minHeight` 48→52, icon 22px→28px, active tab's label color changed from dark brown to white for better contrast against its gold background.
+
+### src/components/BottomNav.jsx
+- The Collection tab's label changed from "ร้านค้า" to "แต่งตัว" (icon unchanged, 🛒).
+
+### Verification
+- `npm run build` clean.
+- Live-verified with the test account: title renders correctly, bottom-nav label updated, every item icon across both หัว/หน้า tabs renders with zero egg body visible — including the two trickiest edge cases (the tiny bow accessory, which is naturally much smaller than a hat at the same shared scale, and the compact 3-spike gold crown, which renders as a small but recognizable crown) — truncated names display correctly, and the active slot tab's white text reads clearly against its gold background.
+
+
 ## 2026-07-05 — Fix: maze portal missing + world map colors brightened
 
 Two reported world-map issues, fixed directly (no subagent — small, well-scoped).

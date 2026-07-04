@@ -3,6 +3,16 @@
 ## Claude Code Handoff
 _(Claude Code appends here after each session)_
 
+**2026-07-05 — Shop polish: renamed "ห้องแต่งตัว", icon-only item cards, bigger slot switcher:**
+- Context: quick feedback-driven polish on the dressing-room redesign — user said "Use Sonnet" (small, well-scoped, matches everyday-task guidance), implemented directly.
+- The trickiest part was making item cards icon-only (no egg underneath) without touching `eggCosmeticLayer.js` — read its top-of-file docs carefully first and found each cosmetic's `draw()` function already only draws the item itself (an 18×18-cell egg-relative coordinate convention, documented explicitly), never the egg body/eyes. So calling it directly with a synthetic `{px,ox,oy,faceX}` frame (no real egg involved at all) was all that was needed — derived the frame's scale/offset from actually reading several draw functions' real y-ranges (head items reach y≈-10 for tall hats, face items reach y≈+11) rather than guessing, so nothing clips.
+- Built: header title "ห้องแต่งตัว" added (there wasn't one before), `BottomNav.jsx`'s "ร้านค้า" label → "แต่งตัว", new `ItemIcon` component, bigger cards (96px) with 6-char-truncated bold names, repositioned badges (✓/🔒 top-right, price bottom-right, dark overlay over just the icon when unaffordable — not the whole card), bigger slot switcher with white active-tab text.
+- Verified: `npm run build` clean, live-tested with the test account — checked every item in both head/face tabs rendered correctly with zero egg visible, specifically zoomed in on the two trickiest scale extremes (the tiny bow accessory and the compact gold crown) to confirm they still read recognizably at the shared icon scale.
+- Not finished: nothing in scope.
+- Blockers/risks found: none.
+- Ready to start next: Phase 4 NPC System; content expansion; optional Room polish (desk/chair iso faces, flagged many sessions ago).
+- Needs Chatbot decision first: nothing blocking.
+
 **2026-07-05 — Fix: maze portal missing + world map colors brightened:**
 - Context: two world-map bug reports — the maze portal (ประตูมิติ) was reported missing, and map colors looked dull/grey. User said "Use Sonnet" this time (small, well-scoped fix, matches `CLAUDE.md`'s guidance) — implemented directly, no subagent.
 - Root cause on the portal, found by reading the code before touching anything: `drawMazePortal()` sized itself off a stale local `TILE=16` constant left over from the pre-Pandora flat renderer, while its caller (`useWorldGameLoop.js`) had already moved to `PANDORA_TILE=32` for positioning and was passing an offset assuming the callee matched — it didn't. Ran a quick standalone calculation (not just code-reading) to confirm the exact error before editing: the portal was rendering ~8-16px off-position and at half its correct radius. This confirmed the portal was never removed from map generation (the spawn logic in `WorldScreen.jsx` is untouched and correct) — it was just rendering too small/misplaced to notice, exactly the "tile exists but isn't rendering visually" diagnosis from the user's own prompt.

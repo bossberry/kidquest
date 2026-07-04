@@ -58,6 +58,40 @@ function drawSparkle(c, x, y, r, alpha, rot) {
   c.restore()
 }
 
+// ── ItemIcon: the cosmetic item alone, no egg body/eyes underneath ─────────
+// Each COSMETIC_ITEMS entry's own draw(ctx, {px, ox, oy, faceX, t}) fn draws
+// ONLY the hat/glasses/etc — it never touches the egg body itself, so calling
+// it directly (skipping the rest of the egg render pipeline) is all that's
+// needed for an icon-only preview. Coordinate convention is documented at the
+// top of eggCosmeticLayer.js: a baby egg is an 18×18 "cell" grid, faceX=9 is
+// the horizontal center, head items draw above y=0 (up to y≈-10 for tall
+// hats), face items draw around y≈7-13. ox/oy here are the grid's left/top
+// edge in canvas px — sized so both extremes (tallest hat, lowest face item)
+// fit with a small margin regardless of which slot is showing.
+function ItemIcon({ item, size = 76 }) {
+  const canvasRef = useRef(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !item) return
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, size, size)
+    const usableH = size * 0.85
+    const padTop  = size * 0.075
+    const cellPx  = usableH / 25   // content spans y -10..+13 (23 units) + margin
+    const ox = size / 2 - 9 * cellPx
+    const oy = padTop + 10 * cellPx
+    item.draw(ctx, { px: cellPx, ox, oy, faceX: 9, t: 0 })
+  }, [item, size])
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      style={{ display: 'block', imageRendering: 'pixelated' }}
+    />
+  )
+}
+
 function DressingRoomBackground() {
   const canvasRef = useRef(null)
 
@@ -355,12 +389,19 @@ export default function Collection({ navigate }) {
       background: '#fdf1e3', boxSizing: 'border-box',
     }}>
 
-      {/* Floating header overlay — coin balance left, close right */}
+      {/* Floating header overlay — coin balance left, title center, close right */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 14px', pointerEvents: 'none',
       }}>
+        <span style={{
+          position: 'absolute', left: '50%', top: 14, transform: 'translateX(-50%)',
+          fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#5b4020',
+          textShadow: '0 1px 3px rgba(255,255,255,0.6)', whiteSpace: 'nowrap',
+        }}>
+          ห้องแต่งตัว
+        </span>
         <span style={{
           pointerEvents: 'auto',
           display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -453,19 +494,20 @@ export default function Collection({ navigate }) {
               key={key}
               onClick={() => setSlot(key)}
               style={{
-                flex: 1, minHeight: 48, cursor: 'pointer', borderRadius: 14,
+                flex: 1, minHeight: 52, cursor: 'pointer', borderRadius: 14,
                 border: active ? '1px solid rgba(224,163,46,0.9)' : '1px solid rgba(91,70,54,0.14)',
                 background: active
                   ? 'linear-gradient(180deg, #FFDf7a, #F2B838)'
-                  : 'rgba(91,70,54,0.06)',
+                  : 'rgba(91,70,54,0.10)',
                 boxShadow: active ? '0 3px 10px rgba(242,184,56,0.4)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
-                color: active ? '#5b4020' : 'rgba(91,70,54,0.5)',
+                color: active ? '#ffffff' : 'rgba(91,70,54,0.55)',
+                textShadow: active ? '0 1px 2px rgba(150,90,0,0.4)' : 'none',
                 transition: 'all 0.15s',
               }}
             >
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{icon}</span>
               {label}
             </button>
           )
@@ -478,14 +520,14 @@ export default function Collection({ navigate }) {
         padding: '6px 14px',
         paddingBottom: BOTTOM_NAV_H + 90,
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {items.map(item => {
             const owned_    = isOwned(item)
             const eqd       = isEquipped(item)
             const selected  = isSelected(item)
             const canAfford = coins >= item.price
             const locked    = !owned_ && !canAfford
-            const iconEq    = { head: null, face: null, [item.slot]: item.id }
+            const shortName = item.nameTh.length > 6 ? item.nameTh.slice(0, 6) + '…' : item.nameTh
 
             // Border: equipped = gold; owned = subtle white; else normal
             const border = eqd
@@ -504,15 +546,14 @@ export default function Collection({ navigate }) {
                 key={item.id}
                 onClick={() => handleTapCard(item)}
                 style={{
-                  position: 'relative', cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                  background: '#ffffff', border, borderRadius: 14,
-                  padding: '10px 6px 8px', boxShadow,
-                  opacity: locked ? 0.55 : 1,
-                  transition: 'box-shadow 0.15s, border-color 0.15s, opacity 0.15s',
+                  position: 'relative', cursor: 'pointer', minHeight: 96,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                  background: '#ffffff', border, borderRadius: 16,
+                  padding: '12px 6px 9px', boxShadow,
+                  transition: 'box-shadow 0.15s, border-color 0.15s',
                 }}
               >
-                {/* Equipped ✓ badge (top-right) */}
+                {/* Equipped ✓ badge (top-right) — owned+equipped only */}
                 {eqd && (
                   <span style={{
                     position: 'absolute', top: -7, right: -7, zIndex: 2,
@@ -524,10 +565,19 @@ export default function Collection({ navigate }) {
                     ✓
                   </span>
                 )}
-                {/* Price badge (top-right) for unowned items */}
+                {/* Lock badge (top-right) — unowned + can't afford only */}
+                {locked && (
+                  <span style={{
+                    position: 'absolute', top: -7, right: -7, zIndex: 3, fontSize: 15,
+                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))',
+                  }}>
+                    🔒
+                  </span>
+                )}
+                {/* Coin price badge (bottom-right) — any unowned item */}
                 {!owned_ && (
                   <span style={{
-                    position: 'absolute', top: -7, right: -7, zIndex: 2,
+                    position: 'absolute', bottom: -6, right: -6, zIndex: 2,
                     display: 'inline-flex', alignItems: 'center', gap: 2,
                     background: canAfford ? '#F2B838' : 'rgba(120,100,90,0.9)',
                     color: '#fff', borderRadius: 20, padding: '2px 8px',
@@ -537,27 +587,27 @@ export default function Collection({ navigate }) {
                     🪙{item.price}
                   </span>
                 )}
-                {/* Lock icon (top-left) for unaffordable items */}
-                {locked && (
-                  <span style={{
-                    position: 'absolute', top: -6, left: -6, zIndex: 2, fontSize: 15,
-                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
-                  }}>
-                    🔒
-                  </span>
-                )}
 
-                {/* Isolated icon egg wearing just this item */}
-                <EggCanvas width={62} height={74} anim="idle" equipped={iconEq} />
+                {/* Item icon alone — no egg body/eyes underneath */}
+                <div style={{ position: 'relative' }}>
+                  <ItemIcon item={item} size={76} />
+                  {/* Dark overlay over just the icon — can't-afford only */}
+                  {locked && (
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: 8, zIndex: 1,
+                      background: 'rgba(20,14,10,0.45)',
+                    }} />
+                  )}
+                </div>
 
-                {/* Item name — one line, ellipsis if too long */}
+                {/* Item name — pre-truncated to 6 Thai chars, one line */}
                 <div style={{
                   width: '100%', textAlign: 'center',
-                  fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 600,
+                  fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
                   color: '#5b4636', lineHeight: 1.2,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
-                  {item.nameTh}
+                  {shortName}
                 </div>
               </div>
             )

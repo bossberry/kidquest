@@ -629,8 +629,11 @@ button.px-world-exit-arrow{border-radius:50%!important;animation:px-exit-arrow-p
 .px-auth-input::placeholder{color:var(--px-light);opacity:0.6}
 
 /* HP bars */
-.px-hp-bar-outer{background:var(--px-black);border:2px solid var(--px-border);height:10px;width:100%;box-shadow:inset 1px 1px 0 var(--px-darkest)}
-.px-hp-bar-inner{height:100%;transition:width 400ms steps(20);image-rendering:pixelated}
+.px-hp-bar-outer{background:var(--px-black);border:2px solid var(--px-border);height:10px;width:100%;box-shadow:inset 1px 1px 0 var(--px-darkest);overflow:hidden}
+.px-hp-bar-inner{position:relative;height:100%;transition:width 400ms steps(20);image-rendering:pixelated;box-shadow:0 0 5px currentColor,inset 0 0 2px rgba(255,255,255,0.4)}
+.px-hp-bar-shine{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(255,255,255,0.28) 0%,rgba(255,255,255,0.08) 45%,rgba(0,0,0,0.12) 100%)}
+.px-hp-bar-inner.px-hp-crit{animation:hp-crit-pulse 1s ease-in-out infinite}
+@keyframes hp-crit-pulse{0%,100%{opacity:1}50%{opacity:0.65}}
 
 /* Pixel XP bar */
 .px-xp-bar-outer{background:var(--px-black);border:2px solid var(--px-border);height:8px}

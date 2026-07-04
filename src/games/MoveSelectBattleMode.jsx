@@ -10,6 +10,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import PixelItemIcon from '../components/PixelItemIcon.jsx'
 import { BATTLE_ITEMS } from '../config/itemConfig.js'
 import GBHPBar from '../components/battle/GBHPBar.jsx'
+import BattleBackground from '../components/battle/BattleBackground.jsx'
 import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
 import MoveCard from '../components/battle/MoveCard.jsx'
 import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
@@ -393,6 +394,9 @@ export default function MoveSelectBattleMode({
         background:'linear-gradient(180deg, #1a2a1a 0%, #1e3020 40%, #2a4020 100%)',
         overflow:'hidden', borderBottom:'2px solid #3a6a3a',
       }}>
+
+        {/* Painted atmospheric scene (behind everything) */}
+        <BattleBackground subject={subject} />
 
         {/* Canvas effect overlay */}
         <canvas

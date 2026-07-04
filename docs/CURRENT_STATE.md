@@ -1,5 +1,5 @@
 # Current State — KidQuest
-_Last updated: 2026-07-05 (Shop polish: renamed ห้องแต่งตัว, icon-only item cards)_
+_Last updated: 2026-07-05 (Battle screen visual upgrade: per-subject canvas backgrounds + HP bar polish)_
 
 ---
 
@@ -134,6 +134,7 @@ The child using this app can't reliably read yet, so every tappable element must
 - Navigate-to-world deferred until player taps through chest
 
 ### Battle System (World Battles)
+- **Visual upgrade (2026-07-05)**: the battlefield's flat single CSS gradient (shared by every subject) was replaced with `BattleBackground.jsx` — a painted, atmospheric per-subject canvas scene inserted as a new lowest-z-index layer behind the existing `effectCanvasRef`/`overlayCanvasRef` particle canvases. Same "paint once to an offscreen canvas, animate only the moving bits" technique as `Collection.jsx`'s `DressingRoomBackground`: math→Crystal Cave (purple gradient, glowing crystal formations, faint ground runes, drifting light motes), thai→Enchanted Forest (layered tree silhouettes framing the edges, fog band, hash-seeded grass texture, drifting/pulsing fireflies), eng→Sky Arena (aurora band, soft clouds, twinkling stars, a floating stone platform edge for depth) — all three bake in a ground line + radial vignette. Sizes itself via its own `ResizeObserver` on the shared `battleFieldRef` (does not touch `useBattleEffects.js`, which owns the two particle canvases and is unrelated). `GBHPBar.jsx`/`styles.css` also got a glow (`box-shadow:currentColor`), a glossy shine overlay, and a critical-HP pulse animation (`pct<20`) — the existing `width 400ms steps(20)` fill transition is unchanged. Enemy rounding/volumetric shading and ground-contact shadows were investigated as part of this task and found to already exist (from the earlier `EnemyCanvas.jsx` → `drawEnemyPandora` switch and `EggCanvas`'s `drawGroundShadow` call) — nothing new was added there to avoid duplicating them. `particles.js`, `useBattleEffects.js`, and all combat/question/answer logic are unchanged.
 - `MoveSelectBattleMode.jsx` (711 lines, refactored) — answer choices = attack moves
 - Real HP combat: hit damage = `max(1, creatureStats.ATK − enemy.def) × mult`; miss = SPD/200 dodge + DEF reduction
 - Element attack system: 1 random element per battle × 4 tiers (T0–T3 by combo streak); 24 canvas animations in `elementAnimations.js`; `playElementSFX()` 6×4 Web Audio tones

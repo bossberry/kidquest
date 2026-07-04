@@ -1,5 +1,35 @@
 # Changelog — KidQuest
 
+## 2026-07-05 — Battle screen visual upgrade: per-subject canvas backgrounds + HP bar polish
+
+Implemented via an Opus subagent (big visual work, per the user's request), grounded and reviewed by the coordinator first.
+
+### Correcting the brief before implementation
+Two of the five requested fixes turned out to already be done, from an earlier fix in this same session: `EnemyCanvas.jsx` already calls `drawEnemyPandora` (not the old flat `fillRect` pixel art — that's now 100% dead code with zero callers), whose `pBody()`/`pShadow()` helpers already draw rounded, volumetric, ground-shadowed enemies; and the player's `EggCanvas` already calls `drawGroundShadow` every frame. The agent verified both directly against the live code before writing anything, and added nothing duplicate — the real new work was the background scenes and the HP bar polish.
+
+### src/components/battle/BattleBackground.jsx (new)
+Painted, atmospheric per-subject battlefield scene, replacing the single flat CSS gradient previously shared by every subject. Uses the same "paint once to an offscreen canvas, animate only the moving bits" technique as `Collection.jsx`'s `DressingRoomBackground`:
+- **Math → Crystal Cave**: purple-to-midnight gradient, glowing crystal/stalactite formations on the edges and hanging from the top (`shadowBlur` glow), faint hexagon rune shapes on the ground, drifting light motes.
+- **Thai → Enchanted Forest**: dark-forest-to-lighter-horizon gradient, layered tree silhouettes framing the edges (foreground darker than background), a fog band, hash-seeded (not `Math.random()`) grass texture, drifting/pulsing fireflies.
+- **English → Sky Arena**: navy gradient, a faint aurora band, soft overlapping-ellipse clouds, twinkling stars, a floating stone platform edge with a top/front face for depth.
+- All three bake in a subtle ground line and a low-opacity vignette.
+- Sizes itself via its own `ResizeObserver` on the shared `battleFieldRef`; inserted as the lowest-z-index layer in `MoveSelectBattleMode.jsx`, behind the existing `effectCanvasRef`/`overlayCanvasRef` particle canvases. Does not modify `useBattleEffects.js`.
+
+### src/components/battle/GBHPBar.jsx + src/styles.css
+- HP bar fill now glows in its own color (`box-shadow: 0 0 5px currentColor`).
+- A glossy white-to-transparent shine overlay on the fill.
+- A pulse animation (opacity 1↔0.65, ~1Hz) when HP drops below 20%.
+- The existing `width 400ms steps(20)` fill transition is unchanged.
+
+### Untouched (as required)
+`src/lib/particles.js`, `src/hooks/useBattleEffects.js`, all attack/hit/combo/question/answer logic, `eggAlgorithm.js`.
+
+### Verification
+- `npm run build` clean.
+- The agent dynamically mounted the real production component tree (`StateProvider` + `CompanionProvider` + `MoveSelectBattleMode` — the exact modules the live app uses) in the running dev server to see all three scenes fully composited with real enemy/egg sprites and HP bars.
+- The coordinator separately spot-checked by mounting `BattleBackground` standalone for all three subjects side-by-side and confirmed the ambient particles are genuinely animating (fireflies visibly drifted position between two screenshots taken a few seconds apart).
+
+
 ## 2026-07-05 — Shop polish: renamed "ห้องแต่งตัว", icon-only item cards, bigger slot switcher
 
 A feedback-driven polish pass on the dressing-room redesign shipped earlier this week. Implemented directly (small, well-scoped, no subagent).

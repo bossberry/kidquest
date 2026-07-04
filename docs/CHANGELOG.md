@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-07-04 — 10 new wall furniture items for the Room decoration screen
+
+### src/lib/roomItems.js
+Added 10 new wall-mounted furniture items to `ROOM_ITEMS`, following the existing `fillRect`-only pixel-art convention (no `ctx.arc`/paths — circular shapes like the trophy cup, round mirror, and clock face are built from stacked `fillRect` rows, the same technique `groundShadow()` already uses). Read the file fully first and confirmed via a research pass how `Room.jsx`/`roomScene.js` call wall items: the canvas is pre-translated/skewed to each slot's anchor and `draw()` is always invoked as `draw(ctx, 0, 0, g.TW)`, so every new item's art extends upward (negative dy) from a bottom-anchored origin, matching `drawWindowCurtain`/`drawWallArt`'s existing range.
+
+**left_wall (6):** `fairy_lights` (80, small — glowing bulb string, `shadowBlur` glow, hash-free deterministic droop), `trophy` (120, mid — wall bracket + golden cup), `chalkboard` (150, mid — wooden frame, chalk scribbles/star/doodle), `bookshelf_wall` (180, mid — 3-shelf frame with alternating colored book spines), `world_map_poster` (200, mid — framed poster with blocky continents), `mirror_round` (220, mid — pixel-circle gold-framed mirror).
+
+**right_wall (4):** `wall_lamp_right` (90, small — bracket lamp with warm glowing bulb), `photo_frame` (130, mid — 3-frame triangle cluster), `window_drapes` (160, mid — teal-curtain window variant), `cuckoo_clock` (280, big — wooden clock with pointed roof, face/hands, and a little bird).
+
+**Note:** the brief's item #7 was specified as id `window_curtain`, but that id already exists in the catalog (the current "window" item already has curtain panels, contrary to the brief's description of it as a plain window). To avoid silently shadowing the existing entry, the new item was given a distinct id (`window_drapes`) and a different curtain color (teal vs. the original's pink) so it reads as a deliberate second variant rather than a duplicate.
+
+Verified: all 10 ids resolve via `ROOM_ITEMS.find`, render correctly when invoked with the real `draw(ctx, 0, 0, TW)` wall-slot convention (checked live in the browser), existing 12 items and their ids/prices/zones are untouched, and `npm run build` is clean.
+
 ## 2026-07-05 — Battle screen visual upgrade: per-subject canvas backgrounds + HP bar polish
 
 Implemented via an Opus subagent (big visual work, per the user's request), grounded and reviewed by the coordinator first.

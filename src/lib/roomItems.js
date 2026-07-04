@@ -353,6 +353,199 @@ function drawFishTank(ctx, cx, cy, sz) {
   rS(ctx,cx,cy, -20,-22, 40,4, '#334455', sz)
 }
 
+function drawBookshelfWall(ctx, cx, cy, sz) {
+  // Wall-mounted bookshelf: flat frame + 2 dividers (3 shelves) + alternating books
+  const wood = '#8B6340', dark = '#5C3820'
+  rS(ctx,cx,cy, -18,-24, 36,46, dark, sz)
+  rS(ctx,cx,cy, -15,-22, 30,42, wood, sz)
+  rS(ctx,cx,cy, -15,-8,  30,3, dark, sz)   // divider 1
+  rS(ctx,cx,cy, -15,8,   30,3, dark, sz)   // divider 2
+  const cols = ['#E83C3C','#3399FF','#44CC44','#FFD23F']
+  let bx = -14
+  cols.forEach(col => { rS(ctx,cx,cy, bx,-21, 6,12, col, sz); bx += 7 })
+  bx = -14
+  ;[...cols].reverse().forEach(col => { rS(ctx,cx,cy, bx,-6, 6,12, col, sz); bx += 7 })
+  bx = -14
+  cols.forEach(col => { rS(ctx,cx,cy, bx,9, 6,12, col, sz); bx += 7 })
+}
+
+function drawTrophy(ctx, cx, cy, sz) {
+  // Small wall bracket shelf holding a golden trophy cup
+  const wood = '#8B6340', dark = '#5C3820', gold = '#FFD23F', goldDark = '#D4A017'
+  // Bracket
+  rS(ctx,cx,cy, -3,2,  3,6, dark, sz)
+  rS(ctx,cx,cy, -9,4,  4,3, dark, sz)
+  rS(ctx,cx,cy, 5,4,   4,3, dark, sz)
+  rS(ctx,cx,cy, -13,-2, 26,4, wood, sz)
+  rS(ctx,cx,cy, -13,-2, 26,1, '#C09060', sz)
+  // Trophy cup (sits on shelf)
+  rS(ctx,cx,cy, -6,-24, 12,3, gold, sz)     // rim
+  rS(ctx,cx,cy, -9,-21, 3,5,  gold, sz)     // left handle
+  rS(ctx,cx,cy, 6,-21,  3,5,  gold, sz)     // right handle
+  rS(ctx,cx,cy, -5,-21, 10,5, gold, sz)     // upper cup
+  rS(ctx,cx,cy, -4,-16, 8,4,  goldDark, sz) // lower cup (narrower/shaded)
+  rS(ctx,cx,cy, -1,-12, 2,6,  goldDark, sz) // stem
+  rS(ctx,cx,cy, -5,-6,  10,3, gold, sz)     // base wide
+  rS(ctx,cx,cy, -6,-3,  12,2, dark, sz)     // base foot
+}
+
+function drawFairyLights(ctx, cx, cy, sz) {
+  // Horizontal wire with 9 glowing bulbs, alternating warm colors, soft glow
+  const s = sz / 48
+  ctx.fillStyle = '#544838'
+  ctx.fillRect(cx - 20 * s, cy - 14 * s, 40 * s, 1.5 * s)
+  const colors = ['#FFD23F', '#FF6E9C', '#66CCFF']
+  const n = 9
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1)
+    const dx = (-18 + t * 36) * s
+    const dy = (-14 + Math.sin(t * Math.PI) * 3) * s
+    const col = colors[i % colors.length]
+    ctx.save()
+    ctx.shadowColor = col
+    ctx.shadowBlur = 6 * s
+    ctx.fillStyle = col
+    ctx.fillRect(cx + dx - 1.5 * s, cy + dy, 3 * s, 4 * s)
+    ctx.restore()
+  }
+}
+
+function drawWorldMapPoster(ctx, cx, cy, sz) {
+  // Framed poster: ocean background + blocky continent shapes
+  const frame = '#3A2818', ocean = '#4488C0', land = '#4CAF50', landDark = '#3E8C35'
+  rS(ctx,cx,cy, -18,-22, 36,38, frame, sz)
+  rS(ctx,cx,cy, -15,-19, 30,32, ocean, sz)
+  rS(ctx,cx,cy, -13,-15, 8,6,  land, sz)
+  rS(ctx,cx,cy, -12,-9,  6,5,  landDark, sz)
+  rS(ctx,cx,cy, -2,-16,  10,5, land, sz)
+  rS(ctx,cx,cy, 0,-10,   7,6,  landDark, sz)
+  rS(ctx,cx,cy, -8,-2,   9,6,  land, sz)
+  rS(ctx,cx,cy, 4,-3,    8,7,  landDark, sz)
+  rS(ctx,cx,cy, -3,5,    6,4,  land, sz)
+}
+
+function drawChalkboard(ctx, cx, cy, sz) {
+  // Wooden-framed chalkboard with chalk scribbles, a star, and a small doodle
+  const wood = '#8B6340', board = '#1E3A2A', chalk = '#F5F0E0'
+  rS(ctx,cx,cy, -18,-20, 36,32, wood, sz)
+  rS(ctx,cx,cy, -15,-17, 30,26, board, sz)
+  // Wavy scribble lines
+  rS(ctx,cx,cy, -11,-11, 6,2, chalk, sz)
+  rS(ctx,cx,cy, -6,-9,   6,2, chalk, sz)
+  rS(ctx,cx,cy, -11,-7,  6,2, chalk, sz)
+  // Star
+  rS(ctx,cx,cy, 5,-13, 2,6, chalk, sz)
+  rS(ctx,cx,cy, 2,-11, 8,2, chalk, sz)
+  rS(ctx,cx,cy, 3,-13, 2,2, chalk, sz)
+  rS(ctx,cx,cy, 7,-13, 2,2, chalk, sz)
+  rS(ctx,cx,cy, 3,-8,  2,2, chalk, sz)
+  rS(ctx,cx,cy, 7,-8,  2,2, chalk, sz)
+  // Small house doodle
+  rS(ctx,cx,cy, -10,2, 8,6, chalk, sz)
+  rS(ctx,cx,cy, -8,-1, 4,3, chalk, sz)
+  // Chalk tray + stick
+  rS(ctx,cx,cy, -15,10, 30,3, wood, sz)
+  rS(ctx,cx,cy, -4,8,  6,2, '#ffffff', sz)
+}
+
+function drawMirrorRound(ctx, cx, cy, sz) {
+  // Round mirror: pixel-circle gold frame + slightly-lighter glass, built from
+  // stacked fillRect rows (same technique as groundShadow's row list above).
+  const s = sz / 48
+  const gold = '#D4AF37', goldDark = '#A67C1E', glass = '#DCEAF2', glassLite = '#EFF7FC'
+  const frameRows = [[-13,5],[-11,9],[-8,12],[-5,14],[-2,15],[1,15],[4,14],[7,12],[10,9],[12,5]]
+  for (const [dy, hw] of frameRows) R(ctx, cx, cy, -hw*s, dy*s, hw*2*s, 3*s, gold)
+  const glassRows = [[-10,7],[-7,10],[-4,12],[-1,13],[2,13],[5,12],[8,10],[11,7]]
+  for (const [dy, hw] of glassRows) R(ctx, cx, cy, -hw*s, dy*s, hw*2*s, 3*s, glass)
+  ctx.globalAlpha = 0.5
+  R(ctx, cx, cy, -6*s, -5*s, 4*s, 10*s, glassLite)
+  ctx.globalAlpha = 1
+  R(ctx, cx, cy, -2*s, -17*s, 4*s, 3*s, goldDark) // hanger
+}
+
+function drawWindowDrapes(ctx, cx, cy, sz) {
+  // Window with wide teal drapes (distinct variant from the original window_curtain item)
+  const wood = '#8B6340', glass = '#B8D8F0', curtain = '#2E9C8C', curtainDark = '#1E7C6C', tie = '#FFD9E8'
+  rS(ctx,cx,cy, -18,-22, 36,38, wood, sz)
+  rS(ctx,cx,cy, -14,-18, 12,14, glass, sz)
+  rS(ctx,cx,cy, 2,-18,   12,14, glass, sz)
+  rS(ctx,cx,cy, -14,-2,  12,14, glass, sz)
+  rS(ctx,cx,cy, 2,-2,    12,14, glass, sz)
+  rS(ctx,cx,cy, -22,-24, 8,40, curtain, sz)
+  rS(ctx,cx,cy, 14,-24,  8,40, curtain, sz)
+  rS(ctx,cx,cy, -22,-24, 8,6,  curtainDark, sz)
+  rS(ctx,cx,cy, 14,-24,  8,6,  curtainDark, sz)
+  rS(ctx,cx,cy, -20,2, 5,4, tie, sz)
+  rS(ctx,cx,cy, 15,2,  5,4, tie, sz)
+  ctx.globalAlpha = 0.4
+  rS(ctx,cx,cy, -12,-16, 9,10, '#DDEEFF', sz)
+  rS(ctx,cx,cy, 3,-16,   9,10, '#DDEEFF', sz)
+  ctx.globalAlpha = 1
+}
+
+function drawWallLampRight(ctx, cx, cy, sz) {
+  // Bracket lamp: wall plate + arm + lampshade + warm glowing bulb
+  const s = sz / 48
+  const metal = '#5A5A66', shade = '#3A3A4A', shadeIn = '#FFDFA0'
+  ctx.fillStyle = metal
+  ctx.fillRect(cx - 3 * s, cy - 6 * s, 6 * s, 6 * s)   // wall plate
+  ctx.fillRect(cx - 1 * s, cy - 4 * s, 14 * s, 3 * s)  // arm
+  ctx.fillStyle = shade
+  ctx.fillRect(cx + 6 * s, cy - 16 * s, 14 * s, 4 * s) // shade lower
+  ctx.fillRect(cx + 8 * s, cy - 19 * s, 10 * s, 4 * s) // shade upper
+  // Ambient wall glow wash
+  ctx.save()
+  ctx.globalAlpha = 0.18
+  ctx.fillStyle = '#FFD23F'
+  ctx.fillRect(cx - 2 * s, cy - 22 * s, 28 * s, 20 * s)
+  ctx.restore()
+  // Bulb glow
+  ctx.save()
+  ctx.shadowColor = '#FFD23F'
+  ctx.shadowBlur = 8 * s
+  ctx.fillStyle = shadeIn
+  ctx.fillRect(cx + 8 * s, cy - 13 * s, 10 * s, 6 * s)
+  ctx.restore()
+}
+
+function drawPhotoFrame(ctx, cx, cy, sz) {
+  // Cluster of 3 small frames arranged in a triangle
+  const frame = '#B8860B'
+  // Top frame — landscape
+  rS(ctx,cx,cy, -7,-24, 14,12, frame, sz)
+  rS(ctx,cx,cy, -5,-22, 10,8, '#8FBFE0', sz)
+  rS(ctx,cx,cy, -5,-16, 10,2, '#5D9C55', sz)
+  // Bottom-left frame — family
+  rS(ctx,cx,cy, -18,-8, 14,12, frame, sz)
+  rS(ctx,cx,cy, -16,-6, 10,8, '#F0C89A', sz)
+  rS(ctx,cx,cy, -13,-3, 4,5, '#5C3820', sz)
+  rS(ctx,cx,cy, -9,-3,  4,5, '#8B6340', sz)
+  // Bottom-right frame — pet
+  rS(ctx,cx,cy, 4,-8, 14,12, frame, sz)
+  rS(ctx,cx,cy, 6,-6, 10,8, '#E8C8D8', sz)
+  rS(ctx,cx,cy, 9,-3, 5,5, '#D4A07A', sz)
+  rS(ctx,cx,cy, 10,-5, 2,2, '#5C3820', sz)
+}
+
+function drawCuckooClock(ctx, cx, cy, sz) {
+  // Wooden cuckoo clock: pointed roof, carved body, clock face + hands, little bird
+  const s = sz / 48
+  const wood = '#6B4A28', dark = '#4A3018', face = '#F5F0E0', gold = '#D4AF37', accent = '#8B6340'
+  const roofRows = [[-26,3],[-24,6],[-22,9],[-20,12],[-18,15]]
+  for (const [dy, hw] of roofRows) R(ctx, cx, cy, -hw*s, dy*s, hw*2*s, 3*s, dark)
+  rS(ctx,cx,cy, -14,-18, 28,34, wood, sz)
+  rS(ctx,cx,cy, -12,-16, 24,10, accent, sz)  // carved trim band
+  const faceRows = [[-8,6],[-5,8],[-2,8],[1,8],[4,6]]
+  for (const [dy, hw] of faceRows) R(ctx, cx, cy, -hw*s, dy*s, hw*2*s, 3*s, face)
+  rS(ctx,cx,cy, -1,-6, 2,6, dark, sz)  // hour hand
+  rS(ctx,cx,cy, -1,-3, 7,2, dark, sz)  // minute hand
+  rS(ctx,cx,cy, -2,-4, 3,3, gold, sz)  // center pin
+  rS(ctx,cx,cy, -10,8, 20,10, accent, sz)  // lower door panel
+  rS(ctx,cx,cy, -3,10, 6,6, dark, sz)      // door detail
+  rS(ctx,cx,cy, -3,-24, 6,4, '#8B4A2A', sz) // little bird
+  rS(ctx,cx,cy, -1,-26, 2,2, gold, sz)      // beak
+}
+
 // ── CATALOG ────────────────────────────────────────────────────────────────
 
 // allowedZones controls which iso zones an item may be placed in:
@@ -376,4 +569,16 @@ export const ROOM_ITEMS = [
   // ─── BIG (500+ coins) ───
   { id: 'bed',            nameTh: 'เตียง',          price: 500, tier: 'big',   allowedZones: ['floor'],                    draw: withGround(drawBed) },
   { id: 'fish_tank',      nameTh: 'ตู้ปลา',        price: 600, tier: 'big',   allowedZones: ['floor'],                    draw: withGround(drawFishTank) },
+  // ─── WALL — left_wall ───
+  { id: 'fairy_lights',    nameTh: 'ไฟประดับ',   price: 80,  tier: 'small', allowedZones: ['left_wall'],  draw: drawFairyLights },
+  { id: 'trophy',          nameTh: 'ถ้วยรางวัล', price: 120, tier: 'mid',   allowedZones: ['left_wall'],  draw: drawTrophy },
+  { id: 'chalkboard',      nameTh: 'กระดานดำ',   price: 150, tier: 'mid',   allowedZones: ['left_wall'],  draw: drawChalkboard },
+  { id: 'bookshelf_wall',  nameTh: 'ชั้นผนัง',    price: 180, tier: 'mid',   allowedZones: ['left_wall'],  draw: drawBookshelfWall },
+  { id: 'world_map_poster',nameTh: 'แผนที่โลก',   price: 200, tier: 'mid',   allowedZones: ['left_wall'],  draw: drawWorldMapPoster },
+  { id: 'mirror_round',    nameTh: 'กระจกกลม',    price: 220, tier: 'mid',   allowedZones: ['left_wall'],  draw: drawMirrorRound },
+  // ─── WALL — right_wall ───
+  { id: 'wall_lamp_right', nameTh: 'โคมผนัง',     price: 90,  tier: 'small', allowedZones: ['right_wall'], draw: drawWallLampRight },
+  { id: 'photo_frame',     nameTh: 'กรอบรูป',     price: 130, tier: 'mid',   allowedZones: ['right_wall'], draw: drawPhotoFrame },
+  { id: 'window_drapes',   nameTh: 'ม่านหน้าต่าง', price: 160, tier: 'mid',   allowedZones: ['right_wall'], draw: drawWindowDrapes },
+  { id: 'cuckoo_clock',    nameTh: 'นาฬิกาไม้',   price: 280, tier: 'big',   allowedZones: ['right_wall'], draw: drawCuckooClock },
 ]

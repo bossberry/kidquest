@@ -368,12 +368,12 @@ export function useWorldGameLoop({
       if (mazePortalPosRef?.current) {
         const ppx = mazePortalPosRef.current.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
         const ppy = mazePortalPosRef.current.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
-        entities.push({ y: ppy, draw: () => drawMazePortal(ctx, Math.round(ppx - 16), Math.round(ppy - 24), g.frame) })
+        entities.push({ y: ppy, draw: () => drawMazePortal(ctx, ppx, ppy, g.frame) })
       }
       if (inMaze && mazeExitPosRef?.current) {
         const epx = mazeExitPosRef.current.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
         const epy = mazeExitPosRef.current.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
-        entities.push({ y: epy, draw: () => drawMazePortal(ctx, Math.round(epx - 16), Math.round(epy - 24), g.frame) })
+        entities.push({ y: epy, draw: () => drawMazePortal(ctx, epx, epy, g.frame) })
       }
 
       renderMapPandora(ctx, tileMap, camX, camY, g.frame, entities)

@@ -1,9 +1,4 @@
-import { T, MAP_ROWS, MAP_COLS } from './tileEngine.js'
-
-// Still needed by drawMazePortal() below — that one is reused as-is for the
-// Pandora renderer (Stage 6) rather than rewritten, since it's a cosmetic
-// overlay effect whose exact tile-relative size isn't critical.
-const TILE = 16
+import { T, MAP_ROWS, MAP_COLS, PANDORA_TILE } from './tileEngine.js'
 
 // ── Pandora-style chest (2026-07-02, Stage 5/6) ───────────────────────────────
 // The original flat-renderer drawChest() was removed in Stage 6 along with
@@ -88,45 +83,63 @@ export function drawPandoraPlayerGlow(ctx, cx, cy, frame) {
 }
 
 // ── Maze portal rendering ────────────────────────────────────────────────────
-
-export function drawMazePortal(ctx, x, y, frame) {
-  const s = TILE
-  const cx = x + s / 2
-  const cy = y + s / 2
+// FIX (2026-07-05): this took a top-left-ish (x, y) and sized itself off a
+// stale `TILE = 16` constant left over from the pre-Pandora flat renderer,
+// while its caller (useWorldGameLoop.js) computed the offset assuming the
+// modern PANDORA_TILE=32 scale — so the portal rendered at half the correct
+// size AND 8-16px off from where it was supposed to be, reading as a faint,
+// misplaced blob rather than a landmark (reported as "missing"). Now takes an
+// already-centered (cx, groundY) like drawPandoraChest/drawPandoraPlayerGlow,
+// and sizes off PANDORA_TILE so it matches the rest of the world's scale.
+export function drawMazePortal(ctx, cx, groundY, frame) {
+  const s = PANDORA_TILE
   const pulse = (Math.sin(frame * 0.08) + 1) / 2
+  const cy = groundY - s * 0.2   // a hair above ground, like a hovering rune circle
+
+  // Ground shadow — grounds it like every other standing/floating object
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, s * 0.4, s * 0.13, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Soft outer bloom
+  ctx.fillStyle = `rgba(180,100,255,${0.08 + pulse * 0.10})`
+  ctx.beginPath()
+  ctx.arc(cx, cy, s * 1.15, 0, Math.PI * 2)
+  ctx.fill()
 
   // Outer glow rings
-  ctx.strokeStyle = `rgba(160,60,220,${0.25 + pulse * 0.35})`
-  ctx.lineWidth = 3
+  ctx.strokeStyle = `rgba(160,60,220,${0.35 + pulse * 0.45})`
+  ctx.lineWidth = 4
   ctx.beginPath()
-  ctx.arc(cx, cy, s * 0.9, 0, Math.PI * 2)
+  ctx.arc(cx, cy, s * 0.85, 0, Math.PI * 2)
   ctx.stroke()
 
-  ctx.strokeStyle = `rgba(200,120,255,${0.4 + pulse * 0.4})`
-  ctx.lineWidth = 2
+  ctx.strokeStyle = `rgba(210,140,255,${0.5 + pulse * 0.5})`
+  ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.arc(cx, cy, s * 0.6, 0, Math.PI * 2)
+  ctx.arc(cx, cy, s * 0.58, 0, Math.PI * 2)
   ctx.stroke()
 
   // Swirling core
-  ctx.fillStyle = `rgba(120,40,180,${0.7 + pulse * 0.3})`
+  ctx.fillStyle = `rgba(130,50,190,${0.8 + pulse * 0.2})`
   ctx.beginPath()
-  ctx.arc(cx, cy, s * 0.38, 0, Math.PI * 2)
+  ctx.arc(cx, cy, s * 0.4, 0, Math.PI * 2)
   ctx.fill()
 
-  ctx.fillStyle = `rgba(220,160,255,${0.6 + pulse * 0.4})`
+  ctx.fillStyle = `rgba(235,190,255,${0.7 + pulse * 0.3})`
   ctx.beginPath()
-  ctx.arc(cx, cy, s * 0.2, 0, Math.PI * 2)
+  ctx.arc(cx, cy, s * 0.21, 0, Math.PI * 2)
   ctx.fill()
 
   // Orbiting sparkle particles
-  const sparkleAngle = (frame * 0.05) % (Math.PI * 2)
-  for (let i = 0; i < 3; i++) {
-    const a = sparkleAngle + (i * Math.PI * 2 / 3)
-    const sx = cx + Math.cos(a) * s * 0.75
-    const sy = cy + Math.sin(a) * s * 0.75
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
-    ctx.fillRect(sx - 1, sy - 1, 2, 2)
+  const sparkleAngle = (frame * 0.06) % (Math.PI * 2)
+  for (let i = 0; i < 4; i++) {
+    const a = sparkleAngle + (i * Math.PI * 2 / 4)
+    const sx = cx + Math.cos(a) * s * 0.8
+    const sy = cy + Math.sin(a) * s * 0.8
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.fillRect(sx - 1.5, sy - 1.5, 3, 3)
   }
 }
 

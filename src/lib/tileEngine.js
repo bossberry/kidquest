@@ -54,17 +54,21 @@ function tileHash(col, row) {
   return (((col * 31 + row * 17) % 97) + 97) % 97
 }
 
+// FIX (2026-07-05): the map read dull/grey on real screens — brightened and
+// warmed the whole ground/path palette (grass/path bases + their derived
+// dot/hilite/line shades moved in step, so the texture still reads cohesive
+// rather than a bright base with mismatched muddy detail colors on top).
 const P = {
-  GRASS_BASE:    '#5c8a3c',
-  GRASS_DOT:     '#3f6b28',
-  GRASS_HILITE:  '#7aac54',
-  GRASS_LINE:    '#3a6a20',
-  PATH_BASE:     '#c4a265',
-  PATH_LIGHT:    '#d4b47f',
-  PATH_DOT:      '#96794a',
-  PATH_LINE:     '#a08050',
-  TALL_A:        '#4a7a2c',
-  TALL_B:        '#6ab04c',
+  GRASS_BASE:    '#6aaa3c',
+  GRASS_DOT:     '#4a7e30',
+  GRASS_HILITE:  '#8cc468',
+  GRASS_LINE:    '#437a26',
+  PATH_BASE:     '#d4a96a',
+  PATH_LIGHT:    '#e6c187',
+  PATH_DOT:      '#a8875a',
+  PATH_LINE:     '#b08f5c',
+  TALL_A:        '#548a34',
+  TALL_B:        '#78c058',
   WATER_BASE:    '#2a8aaa',
   WATER_SHIMMER: '#4aaac8',
   WATER_FOAM:    '#eafaff',
@@ -72,9 +76,10 @@ const P = {
 }
 
 // Palette of tree-canopy greens (natural forest variation, not clones) —
-// widened in Round 3 to span #1d5010 (dark) to #5ab030 (bright) for more
-// contrast between neighboring trees.
-const TREE_CANOPY_COLORS = ['#1d5010', '#2d6a1e', '#357a22', '#3d8a28', '#459228', '#4a9a2c', '#5ab030']
+// brightened/warmed 2026-07-05 to span #3a9a22 (rich) to #5abf30 (bright),
+// up from the previous #1d5010-#5ab030 range which read muddy/grey on real
+// screens — trees now pop more clearly against the ground.
+const TREE_CANOPY_COLORS = ['#3a9a22', '#3fa024', '#45a627', '#4aad29', '#4fb32b', '#55b92e', '#5abf30']
 
 // -- Neighbor lookups (Round 2 polish) — used for water-edge foam, shoreline
 // fringes on adjacent land tiles, and palm-vs-round tree selection. `tileMap`
@@ -746,6 +751,12 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
 
   standing.sort((a, b) => a.y - b.y)
   standing.forEach(s => s.draw())
+
+  // Warm ambient sunlight wash (2026-07-05) — the map read flat/overcast
+  // without it; a very faint warm tint over the whole frame (ground, trees,
+  // player, everything) unifies the scene into a sunnier outdoor feel.
+  ctx.fillStyle = 'rgba(255,220,150,0.06)'
+  ctx.fillRect(0, 0, viewW, viewH)
 }
 
 // -- Pandora player sprite (Stage 3) --

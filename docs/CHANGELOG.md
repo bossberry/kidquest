@@ -1,5 +1,29 @@
 # Changelog — KidQuest
 
+## 2026-07-05 — Fix: maze portal missing + world map colors brightened
+
+Two reported world-map issues, fixed directly (no subagent — small, well-scoped).
+
+### Fix 1: the maze portal was effectively invisible
+`drawMazePortal()` in `src/lib/worldDrawHelpers.js` still sized itself off a local `TILE = 16` constant left over from the pre-Pandora flat renderer. Its caller, `useWorldGameLoop.js`, had been updated to the modern `PANDORA_TILE = 32` scale for positioning but still passed `drawMazePortal` a top-left-style offset (`ppx - 16, ppy - 24`) assuming the callee would size itself to match — it didn't. Confirmed the exact error before touching any code: the portal was rendering ~8-16px off from its real position and at roughly half its correct radius, reading as a faint, misplaced blob rather than a landmark — not literally removed from map generation (the spawn logic in `WorldScreen.jsx` was untouched and working correctly), just effectively invisible.
+
+- `drawMazePortal(ctx, cx, groundY, frame)` now takes an already-centered point, matching the convention `drawPandoraChest`/`drawPandoraPlayerGlow` already use, and scales everything off `PANDORA_TILE` instead of the stale `TILE`.
+- Both call sites in `useWorldGameLoop.js` (the world-map entry portal and the maze exit portal) now pass the true center directly — no more manual offset math.
+- Made it more visually prominent per the request: added a soft outer bloom, bigger glow rings, a brighter core, a ground shadow (so it reads as grounded like every other standing object), and 4 orbiting sparkles instead of 3.
+- The now-unused `const TILE = 16` and its explanatory comment were removed from `worldDrawHelpers.js`.
+
+### Fix 2: world map colors read dull/grey
+Brightened and warmed the ground/path palette (`P` in `src/lib/tileEngine.js`) and the tree canopy palette:
+- `GRASS_BASE` `#5c8a3c` → `#6aaa3c`, `PATH_BASE` `#c4a265` → `#d4a96a`, tall-grass `#4a7a2c`/`#6ab04c` → `#548a34`/`#78c058`. Each color's derived dot/hilite/line shades were moved in step with its base so the speckle/pebble texture still reads cohesive, rather than a bright base with mismatched muddy detail colors sitting on top of it.
+- `TREE_CANOPY_COLORS` widened and brightened from `#1d5010–#5ab030` to `#3a9a22–#5abf30` (7-step gradient, same array length so the existing per-tree variation logic is unaffected) — trees now pop more clearly against the ground.
+- Added a faint warm ambient wash (`rgba(255,220,150,0.06)`) composited over the entire frame at the end of `renderMapPandora()`, after ground, trees, and every Y-sorted entity (player, enemies, chests, portals) — a single unifying tint for a sunnier outdoor feel instead of the previous flat/overcast look.
+
+### Verification
+- `npm run build` clean.
+- Confirmed the exact portal positioning/scale bug with a quick standalone calculation before editing any code.
+- Live-verified with the test account: the brighter/warmer palette is visually confirmed on the real running world map. For the portal fix, rather than relying on the test account happening to have an active maze portal on the current screen, verified `drawMazePortal`'s corrected behavior via a dynamic-import test harness — imported the function directly and rendered it standalone on a bare canvas at a known `(cx, groundY)`, screenshot-confirmed it renders centered exactly where called, with a clear, distinctive purple swirl + glow + orbiting sparkles.
+
+
 ## 2026-07-04 — Fix critical bug: furniture was unbuyable anywhere
 
 The 2026-07-03 Shop redesign removed the furniture tab from `Collection.jsx` on the assumption that `Room.jsx` would sell furniture directly. It doesn't — `Room.jsx`'s locked-item tap only ever showed a "ไปซื้อที่ร้านค้าก่อนนะ" (go buy it at the shop) toast, pointing at a shop tab that no longer exists. Combined, these two changes made furniture completely unbuyable anywhere in the app.

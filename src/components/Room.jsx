@@ -34,7 +34,7 @@ function SlotCanvas({ item, size = 48 }) {
 }
 
 // ── ItemCard: one card in the picker grid — owned / locked / elsewhere ──────
-function ItemCard({ item, cardState, shaking, onTap }) {
+function ItemCard({ item, cardState, onTap }) {
   const locked    = cardState === 'locked'
   const elsewhere = cardState === 'elsewhere'
   const owned     = cardState === 'owned'
@@ -49,7 +49,6 @@ function ItemCard({ item, cardState, shaking, onTap }) {
         border: `1.5px solid ${owned ? 'rgba(255,210,63,0.65)' : elsewhere ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'}`,
         cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
         opacity: elsewhere ? 0.55 : 1,
-        animation: shaking ? 'battle-shake 0.4s' : 'none',
       }}
     >
       <div style={{ opacity: locked ? 0.35 : 1 }}>
@@ -84,7 +83,7 @@ export default function Room() {
   const { state, dispatch } = useAppState()
   const [selectedSlot, setSelectedSlot] = useState(null)   // { key, zone } | null — drives the unified sheet
   const [toast, setToast] = useState(null)
-  const [shakeItemId, setShakeItemId] = useState(null)
+  const [buyTarget, setBuyTarget] = useState(null)   // ROOM_ITEMS entry currently up for purchase-confirm, or null
 
   const coins      = state.coins ?? 0
   const ownedRoom  = state.ownedRoomItems ?? []
@@ -236,6 +235,7 @@ export default function Room() {
     const py = (e.clientY - rect.top)  * (canvas.height / rect.height)
     const hit = hitTestZone(g, px, py)   // zone-agnostic — figures out which zone was tapped
     if (!hit) return
+    setBuyTarget(null)
     setSelectedSlot({ key: hit.key, zone: hit.zone })
   }
 
@@ -270,10 +270,22 @@ export default function Room() {
     flash(`วาง${item.nameTh}แล้ว! 🏠`)
   }
 
+  // Furniture is bought right here — the Shop screen has no furniture tab
+  // (removed 2026-07-03, on the assumption Room would sell it; this closes
+  // that gap). Tapping a locked card opens a small buy-confirm view; buying
+  // dispatches BUY_ROOM_ITEM then immediately places it in the open slot,
+  // so the child buys AND places in one flow without leaving Room.
   function handleLockedTap(item) {
-    setShakeItemId(item.id)
-    setTimeout(() => setShakeItemId(null), 420)
-    flash('ไปซื้อที่ร้านค้าก่อนนะ')
+    setBuyTarget(item)
+  }
+
+  function handleBuyRoomItem(item) {
+    if (coins < item.price) { flash('เหรียญไม่พอ!'); return }
+    dispatch({ type: ACTIONS.BUY_ROOM_ITEM, payload: { id: item.id, price: item.price } })
+    playSFX('coin_purchase')
+    setBuyTarget(null)
+    handlePlace(item)   // React applies dispatches in order, so ownedRoomItems
+                         // already includes `item.id` by the time this runs.
   }
 
   function handleRemove() {
@@ -355,7 +367,7 @@ export default function Room() {
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         }}>
           <div
-            onClick={() => setSelectedSlot(null)}
+            onClick={() => { setSelectedSlot(null); setBuyTarget(null) }}
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
           />
           <div style={{
@@ -375,56 +387,102 @@ export default function Room() {
               {ZONE_LABELS[zone]?.icon} {ZONE_LABELS[zone]?.text}
             </div>
 
-            {occupiedItem && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexShrink: 0 }}>
-                <SlotCanvas item={occupiedItem} size={52} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
-                    {occupiedItem.nameTh}
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                    วางอยู่ในห้อง
-                  </div>
+            {buyTarget ? (
+              // ── Buy-confirm view — furniture has no shop screen of its own
+              // (removed 2026-07-03), so buying happens right here, right before
+              // placing it in the slot the child was just trying to fill.
+              <div style={{
+                flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 14,
+              }}>
+                <SlotCanvas item={buyTarget} size={72} />
+                <div style={{ fontFamily: 'var(--font-thai)', fontSize: 16, fontWeight: 700, color: '#ffffff', textAlign: 'center' }}>
+                  {buyTarget.nameTh}
                 </div>
-                <button
-                  onClick={handleRemove}
-                  aria-label="เอาออก"
-                  style={{
-                    flexShrink: 0,
-                    border: '1.5px solid rgba(255,80,80,0.4)', cursor: 'pointer',
-                    background: 'rgba(255,80,80,0.18)', borderRadius: 10,
-                    padding: '8px 14px', fontFamily: 'var(--font-thai)', fontSize: 13,
-                    color: '#ffffff', whiteSpace: 'nowrap',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  🗑️ เอาออก
-                </button>
-              </div>
-            )}
-
-            <div style={{
-              flex: 1, minHeight: 0, overflowY: 'auto',
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
-              justifyItems: 'center', paddingBottom: 10,
-            }}>
-              {zoneItems.map(item => {
-                const cs = cardStateFor(item)
-                return (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    cardState={cs}
-                    shaking={shakeItemId === item.id}
-                    onTap={() => {
-                      if (cs === 'locked') handleLockedTap(item)
-                      else if (cs === 'owned') handlePlace(item)
-                      else flash(`${item.nameTh} วางอยู่ที่อื่นแล้ว`)
+                <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 320 }}>
+                  <button
+                    onClick={() => setBuyTarget(null)}
+                    aria-label="ย้อนกลับ"
+                    style={{
+                      flex: 1, border: '1.5px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.06)', borderRadius: 10,
+                      padding: '12px 0', fontFamily: 'var(--font-thai)', fontSize: 14,
+                      color: 'rgba(255,255,255,0.7)', WebkitTapHighlightColor: 'transparent',
                     }}
-                  />
-                )
-              })}
-            </div>
+                  >
+                    ← ย้อนกลับ
+                  </button>
+                  <button
+                    onClick={() => handleBuyRoomItem(buyTarget)}
+                    disabled={coins < buyTarget.price}
+                    aria-label={`ซื้อ ${buyTarget.price}`}
+                    style={{
+                      flex: 2, border: 'none',
+                      cursor: coins < buyTarget.price ? 'default' : 'pointer',
+                      background: coins < buyTarget.price ? 'rgba(255,255,255,0.08)' : 'rgba(255,210,63,0.22)',
+                      borderRadius: 10, padding: '12px 0',
+                      fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
+                      color: coins < buyTarget.price ? 'rgba(255,255,255,0.3)' : '#FFD23F',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                  >
+                    🛒 ซื้อ 🪙{buyTarget.price}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {occupiedItem && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexShrink: 0 }}>
+                    <SlotCanvas item={occupiedItem} size={52} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
+                        {occupiedItem.nameTh}
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                        วางอยู่ในห้อง
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRemove}
+                      aria-label="เอาออก"
+                      style={{
+                        flexShrink: 0,
+                        border: '1.5px solid rgba(255,80,80,0.4)', cursor: 'pointer',
+                        background: 'rgba(255,80,80,0.18)', borderRadius: 10,
+                        padding: '8px 14px', fontFamily: 'var(--font-thai)', fontSize: 13,
+                        color: '#ffffff', whiteSpace: 'nowrap',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
+                      🗑️ เอาออก
+                    </button>
+                  </div>
+                )}
+
+                <div style={{
+                  flex: 1, minHeight: 0, overflowY: 'auto',
+                  display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+                  justifyItems: 'center', paddingBottom: 10,
+                }}>
+                  {zoneItems.map(item => {
+                    const cs = cardStateFor(item)
+                    return (
+                      <ItemCard
+                        key={item.id}
+                        item={item}
+                        cardState={cs}
+                        onTap={() => {
+                          if (cs === 'locked') handleLockedTap(item)
+                          else if (cs === 'owned') handlePlace(item)
+                          else flash(`${item.nameTh} วางอยู่ที่อื่นแล้ว`)
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

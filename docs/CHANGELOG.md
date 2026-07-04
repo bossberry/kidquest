@@ -1,5 +1,21 @@
 # Changelog — KidQuest
 
+## 2026-07-04 — Fix critical bug: furniture was unbuyable anywhere
+
+The 2026-07-03 Shop redesign removed the furniture tab from `Collection.jsx` on the assumption that `Room.jsx` would sell furniture directly. It doesn't — `Room.jsx`'s locked-item tap only ever showed a "ไปซื้อที่ร้านค้าก่อนนะ" (go buy it at the shop) toast, pointing at a shop tab that no longer exists. Combined, these two changes made furniture completely unbuyable anywhere in the app.
+
+### src/components/Room.jsx
+- Tapping a locked furniture card in the slot picker now opens a small buy-confirm view inside the same bottom sheet — item preview, name, a "← ย้อนกลับ" back button, and a "🛒 ซื้อ 🪙{price}" buy button (disabled and greyed out if the child can't afford it).
+- Buying dispatches `ACTIONS.BUY_ROOM_ITEM` and then immediately `ACTIONS.PLACE_ROOM_ITEM` for the slot that was open, reusing the existing `handlePlace` function so the same sparkle-burst/bounce/toast/sheet-close feedback fires — the child buys and places furniture in one flow without ever leaving the Room screen. This dispatch ordering is safe: React applies queued `dispatch()` calls against the progressively-updated reducer state in sequence within the same event handler, so by the time `PLACE_ROOM_ITEM`'s reducer runs its `ownedRoomItems.includes(itemId)` ownership gate, the just-bought item is already present.
+- Removed `shakeItemId`/the `shaking` prop on `ItemCard` — dead code left over from the old toast-only interaction, no longer needed now that tapping a locked item does something real.
+- `BUY_ROOM_ITEM`'s reducer case was already stamping `lastSavedAt` from an earlier cross-device-sync-related sweep — confirmed, not changed.
+
+### Verification
+- `npm run build` clean.
+- Live-tested with the test account: opened the Room slot picker, tapped a locked chair (🔒150 coins), confirmed the buy-confirm view rendered correctly, tapped buy, and confirmed coins deducted exactly (9965 → 9815) with the chair appearing placed in the tapped slot and the sheet closing automatically.
+- Corrected two `CURRENT_STATE.md` passages that (at the time they were written) incorrectly described Room's locked-item tap as a working "buy" path when it was actually just a dead-end toast.
+
+
 ## 2026-07-03 — Home screen: full-screen walking room, floating action buttons
 
 The Home screen previously showed the room in a fixed-size box with the companion egg as a separate static overlay on top, and had three fixed UI rows below the room (minigame shortcut card, item tray, explore button). This redesigns it so the iso room fills the entire screen and the companion egg genuinely walks around inside it as the interactive element, with every action now a small floating icon button over the room.

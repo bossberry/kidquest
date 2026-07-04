@@ -1,5 +1,34 @@
 # Changelog — KidQuest
 
+## 2026-07-04 — 5-world expansion + per-world tile-palette theme system
+
+Grew the world-level system from 3 to 5 tiers, each with a genuinely distinct RO-style visual theme, and — the core of the task — wired the previously-dead `theme` config key into the renderer so the themes actually show up in the tile map (before this, all worlds rendered with one hardcoded palette).
+
+### src/config/worldConfig.js
+- `WORLD_LEVELS` expanded 3 → 5: **Green Meadow** (`grassland`), **Coral Coast** (`beach`), **Dark Forest** (`forest`), **Frost Peak** (`snow`), **Sky Kingdom** (`sky`). Ordering is an elevation/difficulty climb (meadow→shore→forest→snow peak→sky).
+- Boss stats scaled progressively across the 5 tiers: HP 120→150→180→220→260, ATK 8→9→11→13→15, DEF 4→5→6→7→8. All bosses reuse existing enemy sprites (grumpy_mole / bouncy_slime / snake / fox_kit / egg_pawn); Thai boss names fit each theme (โมลราชา / ราชาวุ้นทะเล / งูราชา / ราชาจิ้งจอกหิมะ / ราชาหุ่นเวหา). Enemy pools reuse only existing types.
+- New exported `WORLD_THEME_ICON` map (grassland 🌿 / beach 🌊 / forest 🌲 / snow ❄️ / sky ☁️) for icon-first UI.
+- **Scope note:** the old tier 2 "Crystal Cave / cave" was *retired*. The detailed special-variant spec covered grassland/beach/forest/snow/sky (5 fully-specified themes); "cave" had no rendering spec. Rather than invent cave art and leave the fully-specified sky theme unused, I followed the user's own stated ordering (meadow→beach→forest→snow→sky). Dark Forest is kept (moved to tier 2, snake boss intact). Flagged in CHATBOT_NOTES as a Chatbot decision (keep cave as a 6th world, or leave retired). `unlockRequirement.battleWins` kept as documentation-only config (null/20/40/70/110) — it is dead config, read nowhere; advancement is boss-defeat-gated. Flagged as a second decision (should battleWins ever become real gating).
+
+### src/lib/tileEngine.js
+- Replaced the single hardcoded global palette `P` + `TREE_CANOPY_COLORS` with a `THEMES` object (5 themes), a module-level `currentTheme`, and an exported `setWorldTheme(name)`. Every draw function now reads `currentTheme.*` instead of `P.*` (mechanical rename; grassland's values are byte-for-byte the old palette, so world 0 is visually unchanged).
+- Each theme carries the same base color key set (`GRASS_*`/`PATH_*`/`TALL_*`/`WATER_*`/`SHORE_FRINGE`/`TREE_CANOPY_COLORS`) plus STRUCTURAL flags that gate real per-theme tile variants (not just recolours): `GROUND_STYLE` (grass/sand/snow/cloud), `DECOR` (flower/mushroom/star/none), `TREE_STYLE` (round/pine/beanstalk), `ALWAYS_PALM`, `TRUNK_W`.
+- **Beach**: `ALWAYS_PALM` makes *every* tree a palm (extends the existing near-water palm swap, not a duplicate path) + sandy tan ground with horizontal ripple strokes instead of grass tufts.
+- **Forest**: darker ground/canopy palette, wider gnarled tree trunks (`TRUNK_W` 11 vs 8), toadstools (round red cap + white spots + stem, new `drawMushroom()`) replacing the flower decoration in grass + tall-grass.
+- **Snow**: new `drawPandoraPine()` — stacked-triangle conifer silhouette (dark-outline pass + coloured fill + lit-face + snow cap/dabs) replacing the round canopy; faint white snowflake dots on the ground; frozen grey-blue lake (recoloured water).
+- **Sky**: new `drawPandoraBeanstalk()` — tall golden zig-zag stalk with paired leaves + curled sprout top; fluffy overlapping-ellipse cloud puffs for the ground fill; 4-point star twinkles (new `drawFourStar()`); gold path.
+- Every variant is seeded off the existing `tileHash(col,row)` so textures stay frame-stable (no flicker), same pattern as all existing texture detail.
+- **Untouched:** `drawMazeFloor`/`drawMazeWall` and the `isMaze` branch — the maze reads none of `currentTheme`, so the dungeon looks pixel-identical regardless of world. Collision/exit/entry logic and `tileMaps.js` tile-type layout unchanged (only which paint function each tile type routes to).
+
+### src/components/WorldScreen.jsx
+- `setWorldTheme(...)` synced in one clean place: a `useEffect` on `[state.worldLevel]` (runs on mount and on the runtime boss-defeat tier advance, which flips `worldLevel` while mounted) + a synchronous call in render for the first-frame case.
+- World-unlock banner enhanced (existing `worldUnlockBanner` state, not a new system): theme-coloured border/glow from the newly-unlocked world's `bgColors` + theme emoji, and a confetti burst on a new dedicated overlay canvas reusing the EXISTING `mkSparks`/`tickEffects` from `particles.js` (no new particle code).
+
+### src/components/world/WorldHUD.jsx
+- Mini-map footer now shows the current world's theme emoji badge (icon-first: a pre-reader can identify the world by icon) beside the cleared-map count.
+
+Verified: `npm run build` clean, zero errors. All 5 themes render-verified live in Chrome via a dynamic-import canvas harness (the project's established fallback for hard-to-reach content) — each confirmed genuinely distinct (all-palm sandy beach; pine+snowcap+frozen-lake snow; beanstalk+cloud+gold-path sky; dark+mushroom forest; unchanged grassland). Maze confirmed pixel-identical across two different themes' renders (stone floor/walls ignore `currentTheme`). Could not live-test inside the running app (title-screen login gate + the auto-mode classifier blocked entering test-account credentials); movement/collision/battle regression is argued from the diff touching only paint-routing/config/render-sync, never `canMove`/`tryMove`/`getExitAt`/`tileMaps` generation/combat logic.
+
 ## 2026-07-04 — World map visual overhaul: Ragnarok Online style tiles
 
 Implemented by an Opus subagent working directly on `tileEngine.js`/`drawEnemy.js`/`useWorldGameLoop.js` per the user's "Ragnarok Online style" brief (vibrant grass, pseudo-3D trees with dark outlines, stone dungeon with visible walls, warm torch light). Coordinator reviewed the full diff and live-verified in the browser with the test account before committing.

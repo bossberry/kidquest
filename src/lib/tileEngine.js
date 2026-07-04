@@ -54,32 +54,87 @@ function tileHash(col, row) {
   return (((col * 31 + row * 17) % 97) + 97) % 97
 }
 
-// FIX (2026-07-05): the map read dull/grey on real screens — brightened and
-// warmed the whole ground/path palette (grass/path bases + their derived
-// dot/hilite/line shades moved in step, so the texture still reads cohesive
-// rather than a bright base with mismatched muddy detail colors on top).
-const P = {
-  GRASS_BASE:    '#6aaa3c',
-  GRASS_DOT:     '#4a7e30',
-  GRASS_HILITE:  '#8cc468',
-  GRASS_LINE:    '#437a26',
-  PATH_BASE:     '#d4a96a',
-  PATH_LIGHT:    '#e6c187',
-  PATH_DOT:      '#a8875a',
-  PATH_LINE:     '#b08f5c',
-  TALL_A:        '#548a34',
-  TALL_B:        '#78c058',
-  WATER_BASE:    '#2b83c4',
-  WATER_SHIMMER: '#5fb2e8',
-  WATER_FOAM:    '#eafaff',
-  SHORE_FRINGE:  '#e0d0a0',
+// -- Per-world theme palettes (2026-07-04) --
+// Each of the 5 world tiers (worldConfig.js WORLD_LEVELS) maps to one theme
+// here via its `theme` key. `setWorldTheme(name)` swaps the module-level
+// `currentTheme` the draw functions below read from — so a world-level change
+// genuinely re-skins the tile map (ground/path/water/tree palette + a handful
+// of structural flags), not just recolours the HUD.
+//
+// Every theme MUST supply the same base key set the draw functions consume
+// (GRASS_*/PATH_*/TALL_*/WATER_*/SHORE_FRINGE/TREE_CANOPY_COLORS) — those are
+// the literal properties drawPandoraGrass/Path/TallGrass/Water/Tree read.
+// Beyond the colour keys, a small set of STRUCTURAL flags gate the per-theme
+// special tile variants (palms, pine/beanstalk trees, sand/snow/cloud ground
+// texture, mushroom/star decoration) that make each world read as a distinct
+// place rather than a recolour:
+//   GROUND_STYLE : 'grass' | 'sand' | 'snow' | 'cloud'  — ground base texture
+//   DECOR        : 'flower' | 'mushroom' | 'star' | 'none' — scattered accents
+//   TREE_STYLE   : 'round' | 'pine' | 'beanstalk'       — standing-tree shape
+//   ALWAYS_PALM  : true  → every tree is a palm (beach), not just near-water
+//   TRUNK_W      : round-tree trunk width (forest uses a wider, gnarled trunk)
+//
+// The grassland values are the original global palette verbatim (2026-07-05
+// brightened/warmed set) so world 0 looks byte-for-byte identical to before.
+const THEMES = {
+  grassland: {
+    GRASS_BASE:    '#6aaa3c', GRASS_DOT: '#4a7e30', GRASS_HILITE: '#8cc468', GRASS_LINE: '#437a26',
+    PATH_BASE:     '#d4a96a', PATH_LIGHT: '#e6c187', PATH_DOT: '#a8875a', PATH_LINE: '#b08f5c',
+    TALL_A:        '#548a34', TALL_B: '#78c058',
+    WATER_BASE:    '#2b83c4', WATER_SHIMMER: '#5fb2e8', WATER_FOAM: '#eafaff',
+    SHORE_FRINGE:  '#e0d0a0',
+    TREE_CANOPY_COLORS: ['#3a9a22', '#3fa024', '#45a627', '#4aad29', '#4fb32b', '#55b92e', '#5abf30'],
+    GROUND_STYLE: 'grass', DECOR: 'flower', TREE_STYLE: 'round', ALWAYS_PALM: false, TRUNK_W: 8,
+  },
+  // Sunny coastline: sandy tan ground, bright tropical ocean, palms everywhere.
+  beach: {
+    GRASS_BASE:    '#e6cf98', GRASS_DOT: '#d6ba79', GRASS_HILITE: '#f4e4b6', GRASS_LINE: '#c9ab6c',
+    PATH_BASE:     '#c9a15e', PATH_LIGHT: '#e0bd7e', PATH_DOT: '#a07e46', PATH_LINE: '#b0895078',
+    TALL_A:        '#a9b86a', TALL_B: '#c8d88a',
+    WATER_BASE:    '#1fb6d6', WATER_SHIMMER: '#6fe4f4', WATER_FOAM: '#f2ffff',
+    SHORE_FRINGE:  '#f0e0b0',
+    TREE_CANOPY_COLORS: ['#3d8a28', '#43912b', '#4a982e'],
+    GROUND_STYLE: 'sand', DECOR: 'none', TREE_STYLE: 'round', ALWAYS_PALM: true, TRUNK_W: 8,
+  },
+  // Deep magic forest: dark ground/canopy, gnarled wide trunks, mushrooms.
+  forest: {
+    GRASS_BASE:    '#2f5228', GRASS_DOT: '#213c1c', GRASS_HILITE: '#3f6a34', GRASS_LINE: '#1c3418',
+    PATH_BASE:     '#8a6a3e', PATH_LIGHT: '#a3824f', PATH_DOT: '#6a5030', PATH_LINE: '#5c4628',
+    TALL_A:        '#2a4a22', TALL_B: '#3f6a30',
+    WATER_BASE:    '#1f5a6e', WATER_SHIMMER: '#3f8ca0', WATER_FOAM: '#cfeef0',
+    SHORE_FRINGE:  '#5a6a3a',
+    TREE_CANOPY_COLORS: ['#173a10', '#1c4413', '#204a16', '#255419', '#2a5e1c'],
+    GROUND_STYLE: 'grass', DECOR: 'mushroom', TREE_STYLE: 'round', ALWAYS_PALM: false, TRUNK_W: 11,
+  },
+  // Frozen peak: pale snow ground, pine trees, frozen grey-blue lakes.
+  snow: {
+    GRASS_BASE:    '#e6eef6', GRASS_DOT: '#cfdcea', GRASS_HILITE: '#ffffff', GRASS_LINE: '#c4d4e4',
+    PATH_BASE:     '#c2ccd8', PATH_LIGHT: '#dbe4ee', PATH_DOT: '#9fabba', PATH_LINE: '#aab6c4',
+    TALL_A:        '#a8c0d0', TALL_B: '#d0e0ec',
+    WATER_BASE:    '#7fa8c4', WATER_SHIMMER: '#bfe0f0', WATER_FOAM: '#ffffff',
+    SHORE_FRINGE:  '#eaf2fa',
+    TREE_CANOPY_COLORS: ['#2a5a3a', '#316646', '#387050'],
+    GROUND_STYLE: 'snow', DECOR: 'none', TREE_STYLE: 'pine', ALWAYS_PALM: false, TRUNK_W: 8,
+  },
+  // Sky kingdom: cloud-platform ground, bright water, golden beanstalk trees.
+  sky: {
+    GRASS_BASE:    '#dcecff', GRASS_DOT: '#c4dbf6', GRASS_HILITE: '#ffffff', GRASS_LINE: '#bcd4f2',
+    PATH_BASE:     '#f0e0a0', PATH_LIGHT: '#fff0c0', PATH_DOT: '#d8c078', PATH_LINE: '#e0cc88',
+    TALL_A:        '#a8d0f0', TALL_B: '#d8ecff',
+    WATER_BASE:    '#38b0f0', WATER_SHIMMER: '#8fe0ff', WATER_FOAM: '#ffffff',
+    SHORE_FRINGE:  '#eef6ff',
+    TREE_CANOPY_COLORS: ['#5aa832', '#63b238', '#6cbc3e'],
+    GROUND_STYLE: 'cloud', DECOR: 'star', TREE_STYLE: 'beanstalk', ALWAYS_PALM: false, TRUNK_W: 8,
+  },
 }
 
-// Palette of tree-canopy greens (natural forest variation, not clones) —
-// brightened/warmed 2026-07-05 to span #3a9a22 (rich) to #5abf30 (bright),
-// up from the previous #1d5010-#5ab030 range which read muddy/grey on real
-// screens — trees now pop more clearly against the ground.
-const TREE_CANOPY_COLORS = ['#3a9a22', '#3fa024', '#45a627', '#4aad29', '#4fb32b', '#55b92e', '#5abf30']
+// Module-level active theme the draw functions read from; swapped by
+// setWorldTheme() whenever the world level is known/changes (see WorldScreen).
+let currentTheme = THEMES.grassland
+
+export function setWorldTheme(themeName) {
+  currentTheme = THEMES[themeName] ?? THEMES.grassland
+}
 
 // -- Neighbor lookups (Round 2 polish) — used for water-edge foam, shoreline
 // fringes on adjacent land tiles, and palm-vs-round tree selection. `tileMap`
@@ -97,8 +152,34 @@ const NEIGHBOR_DIRS = [[-1, 0, 'top'], [1, 0, 'bottom'], [0, -1, 'left'], [0, 1,
 // objects/entities yet; those land in later stages alongside the Y-sort
 // depth system) --
 
+// Small 4-point sparkle star (sky theme ground twinkle + snow-tree cap accent).
+function drawFourStar(ctx, cx, cy, r, color) {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r * 0.28, cy - r * 0.28)
+  ctx.lineTo(cx + r, cy); ctx.lineTo(cx + r * 0.28, cy + r * 0.28)
+  ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r * 0.28, cy + r * 0.28)
+  ctx.lineTo(cx - r, cy); ctx.lineTo(cx - r * 0.28, cy - r * 0.28)
+  ctx.closePath(); ctx.fill()
+}
+
+// Small toadstool (forest ground decoration) — round red cap, white spots,
+// short pale stem. `roll` seeds a little size/spot variation.
+function drawMushroom(ctx, fx, fy, roll) {
+  ctx.fillStyle = '#e8e0cc'                 // stem
+  ctx.fillRect(fx - 1.2, fy - 1, 2.4, 5)
+  ctx.fillStyle = '#c8302a'                 // cap
+  ctx.beginPath()
+  ctx.ellipse(fx, fy - 1, 4, 3, 0, Math.PI, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'                 // spots
+  for (const [ox, oy] of [[-1.6, -1.8], [1.4, -2.2], [0, -0.6]]) {
+    ctx.beginPath(); ctx.arc(fx + ox, fy + oy, 0.7, 0, Math.PI * 2); ctx.fill()
+  }
+}
+
 function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
-  ctx.fillStyle = P.GRASS_BASE
+  ctx.fillStyle = currentTheme.GRASS_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
   // 3-5 stable irregular light/dark patches (hashed from col/row, not
@@ -111,7 +192,7 @@ function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
     const dx = 4 + (dh % (PANDORA_TILE - 8))
     const dy = 4 + ((dh * 5) % (PANDORA_TILE - 8))
     const r = 3 + (dh % 4) // 3-6px
-    ctx.fillStyle = dh % 2 === 0 ? P.GRASS_DOT : P.GRASS_HILITE
+    ctx.fillStyle = dh % 2 === 0 ? currentTheme.GRASS_DOT : currentTheme.GRASS_HILITE
     ctx.globalAlpha = dh % 2 === 0 ? 0.5 : 0.3
     ctx.beginPath()
     ctx.ellipse(px + dx, py + dy, r, r * 0.7, (dh % 5) * 0.3, 0, Math.PI * 2)
@@ -123,7 +204,7 @@ function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
   // (gated on the same hash) so it reads as broken/organic texture instead
   // of a continuous grid-line running across every row.
   if (h % 9 < 5) {
-    ctx.fillStyle = P.GRASS_HILITE
+    ctx.fillStyle = currentTheme.GRASS_HILITE
     ctx.globalAlpha = 0.22
     ctx.fillRect(px, py, PANDORA_TILE, 2)
     ctx.globalAlpha = 1
@@ -144,7 +225,7 @@ function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
     const lx = 4 + (dh % (PANDORA_TILE - 8))
     const ly = 6 + ((dh * 7) % (PANDORA_TILE - 12))
     const lw = 6 + (dh % 8)
-    ctx.strokeStyle = P.GRASS_LINE
+    ctx.strokeStyle = currentTheme.GRASS_LINE
     ctx.globalAlpha = 0.12
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -158,7 +239,7 @@ function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
   if (tileMap) {
     for (const [dr, dc, side] of NEIGHBOR_DIRS) {
       if (!isWaterAt(tileMap, row + dr, col + dc)) continue
-      ctx.fillStyle = P.SHORE_FRINGE
+      ctx.fillStyle = currentTheme.SHORE_FRINGE
       ctx.globalAlpha = 0.3
       if (side === 'top')    ctx.fillRect(px, py, PANDORA_TILE, 4)
       if (side === 'bottom') ctx.fillRect(px, py + PANDORA_TILE - 4, PANDORA_TILE, 4)
@@ -168,66 +249,130 @@ function drawPandoraGrass(ctx, px, py, col, row, tileMap) {
     }
   }
 
-  // Round 2 Fix 5 — ambient scattered details (tufts/rocks/flowers), each
-  // gated on its own hash so the three don't correlate with each other or
-  // with the texture rolls above. Purely decorative, drawn as part of the
-  // ground layer (before standing objects/entities).
-  const tuftRoll = tileHash(col * 41 + 3, row * 59 + 7) % 100
-  if (tuftRoll < 25) {
-    const tx = px + 6 + (tuftRoll % (PANDORA_TILE - 12))
-    const ty = py + 8 + ((tuftRoll * 3) % (PANDORA_TILE - 14))
-    ctx.strokeStyle = tuftRoll % 2 === 0 ? P.TALL_A : P.TALL_B
-    ctx.lineWidth = 2
-    for (const lean of [-1, 1]) {
-      ctx.beginPath()
-      ctx.moveTo(tx, ty)
-      ctx.lineTo(tx + lean * 3, ty - 7)
-      ctx.stroke()
+  // Round 2 Fix 5 — ambient scattered details, each gated on its own hash so
+  // they don't correlate with each other or the texture rolls above. Purely
+  // decorative, drawn as part of the ground layer (before standing objects).
+  // Per-world theme (currentTheme.GROUND_STYLE / DECOR) re-skins this layer so
+  // each world's ground reads distinctly: grass tufts vs sand ripples vs snow
+  // flakes vs cloud puffs, and flowers vs mushrooms vs stars.
+  const gs = currentTheme.GROUND_STYLE
+
+  if (gs === 'cloud') {
+    // Sky world: fluffy overlapping-ellipse cloud puffs + faint star twinkles
+    // (the base fill is already pale sky-blue) instead of grass tufts.
+    const puffRoll = tileHash(col * 41 + 3, row * 59 + 7) % 100
+    if (puffRoll < 45) {
+      const cxp = px + 8 + (puffRoll % (PANDORA_TILE - 16))
+      const cyp = py + 8 + ((puffRoll * 3) % (PANDORA_TILE - 16))
+      ctx.fillStyle = '#ffffff'
+      ctx.globalAlpha = 0.4
+      for (const [ox, oy, rr] of [[-5, 1, 5], [4, 2, 6], [0, -3, 5], [8, 1, 4]]) {
+        ctx.beginPath(); ctx.ellipse(cxp + ox, cyp + oy, rr, rr * 0.7, 0, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    }
+  } else {
+    // Ground tufts / sand ripples / snow flakes — theme-aware.
+    const tuftRoll = tileHash(col * 41 + 3, row * 59 + 7) % 100
+    if (gs === 'sand') {
+      // Subtle horizontal ripple/sand-texture strokes instead of grass tufts.
+      if (tuftRoll < 40) {
+        const tx = px + 8 + (tuftRoll % (PANDORA_TILE - 16))
+        const ty = py + 8 + ((tuftRoll * 3) % (PANDORA_TILE - 16))
+        ctx.strokeStyle = currentTheme.GRASS_LINE
+        ctx.globalAlpha = 0.45
+        ctx.lineWidth = 1
+        for (const dyr of [0, 4]) {
+          ctx.beginPath()
+          ctx.moveTo(tx - 6, ty + dyr)
+          ctx.quadraticCurveTo(tx, ty + dyr - 2, tx + 6, ty + dyr)
+          ctx.stroke()
+        }
+        ctx.globalAlpha = 1
+      }
+    } else if (gs === 'snow') {
+      // Faint white snowflake dots scattered on the ground.
+      if (tuftRoll < 45) {
+        const flakes = 2 + (tuftRoll % 3)
+        ctx.fillStyle = '#ffffff'
+        for (let i = 0; i < flakes; i++) {
+          const dh = tileHash(col * 29 + i * 13, row * 31 + i * 5)
+          const fx = px + 3 + (dh % (PANDORA_TILE - 6))
+          const fy = py + 3 + ((dh * 3) % (PANDORA_TILE - 6))
+          ctx.globalAlpha = 0.45 + (dh % 3) * 0.15
+          ctx.beginPath(); ctx.arc(fx, fy, 1.3, 0, Math.PI * 2); ctx.fill()
+        }
+        ctx.globalAlpha = 1
+      }
+    } else if (tuftRoll < 25) {
+      // grassland/forest grass-blade tuft
+      const tx = px + 6 + (tuftRoll % (PANDORA_TILE - 12))
+      const ty = py + 8 + ((tuftRoll * 3) % (PANDORA_TILE - 14))
+      ctx.strokeStyle = tuftRoll % 2 === 0 ? currentTheme.TALL_A : currentTheme.TALL_B
+      ctx.lineWidth = 2
+      for (const lean of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + lean * 3, ty - 7); ctx.stroke()
+      }
+    }
+
+    // Small rocks — natural on grass/forest/snow ground, skipped on sand.
+    if (gs !== 'sand') {
+      const rockRoll = tileHash(col * 83 + 11, row * 97 + 5) % 100
+      if (rockRoll < 8) {
+        const rx = px + 8 + (rockRoll % (PANDORA_TILE - 16))
+        const ry = py + 10 + ((rockRoll * 5) % (PANDORA_TILE - 18))
+        ctx.fillStyle = gs === 'snow' ? '#b8c4d0' : '#8a8a8a'
+        ctx.beginPath()
+        ctx.ellipse(rx, ry, 5 + (rockRoll % 3), 3 + (rockRoll % 2), 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'
+        ctx.beginPath()
+        ctx.ellipse(rx - 1.5, ry - 1.5, 2, 1.2, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
   }
 
-  const rockRoll = tileHash(col * 83 + 11, row * 97 + 5) % 100
-  if (rockRoll < 8) {
-    const rx = px + 8 + (rockRoll % (PANDORA_TILE - 16))
-    const ry = py + 10 + ((rockRoll * 5) % (PANDORA_TILE - 18))
-    ctx.fillStyle = '#8a8a8a'
-    ctx.beginPath()
-    ctx.ellipse(rx, ry, 5 + (rockRoll % 3), 3 + (rockRoll % 2), 0, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'
-    ctx.beginPath()
-    ctx.ellipse(rx - 1.5, ry - 1.5, 2, 1.2, 0, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  const flowerRoll = tileHash(col * 13 + 29, row * 29 + 13) % 100
-  if (flowerRoll < 5) {
-    const fx = px + 6 + (flowerRoll % (PANDORA_TILE - 12))
-    const fy = py + 8 + ((flowerRoll * 7) % (PANDORA_TILE - 14))
-    const petalColor = ['#ff88aa', '#ffdd44', '#ffffff'][flowerRoll % 3]
-    ctx.strokeStyle = '#3f6b28'
-    ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(fx, fy + 4); ctx.lineTo(fx, fy); ctx.stroke()
-    ctx.fillStyle = petalColor
-    ctx.beginPath()
-    ctx.arc(fx, fy - 1, 2, 0, Math.PI * 2)
-    ctx.fill()
+  // Scattered accent decoration — per-theme: flowers (grassland), mushrooms
+  // (forest), 4-point stars (sky); beach/snow use 'none'.
+  const decor = currentTheme.DECOR
+  if (decor !== 'none') {
+    const decorRoll = tileHash(col * 13 + 29, row * 29 + 13) % 100
+    const chance = decor === 'star' ? 14 : decor === 'mushroom' ? 8 : 5
+    if (decorRoll < chance) {
+      const fx = px + 6 + (decorRoll % (PANDORA_TILE - 12))
+      const fy = py + 8 + ((decorRoll * 7) % (PANDORA_TILE - 14))
+      if (decor === 'mushroom') {
+        drawMushroom(ctx, fx, fy, decorRoll)
+      } else if (decor === 'star') {
+        ctx.globalAlpha = 0.85
+        drawFourStar(ctx, fx, fy, 3, '#fffbe0')
+        ctx.globalAlpha = 1
+      } else {
+        const petalColor = ['#ff88aa', '#ffdd44', '#ffffff'][decorRoll % 3]
+        ctx.strokeStyle = '#3f6b28'
+        ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(fx, fy + 4); ctx.lineTo(fx, fy); ctx.stroke()
+        ctx.fillStyle = petalColor
+        ctx.beginPath(); ctx.arc(fx, fy - 1, 2, 0, Math.PI * 2); ctx.fill()
+      }
+    }
   }
 }
 
 function drawPandoraPath(ctx, px, py, col, row, tileMap) {
-  ctx.fillStyle = P.PATH_BASE
+  ctx.fillStyle = currentTheme.PATH_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
   // Lighter center, darker toward the tile edges.
-  ctx.fillStyle = P.PATH_LIGHT
+  ctx.fillStyle = currentTheme.PATH_LIGHT
   ctx.globalAlpha = 0.4
   ctx.fillRect(px + 6, py + 6, PANDORA_TILE - 12, PANDORA_TILE - 12)
   ctx.globalAlpha = 1
 
   // 4-6 stable pebble dots.
   const h = tileHash(col, row)
-  ctx.fillStyle = P.PATH_DOT
+  ctx.fillStyle = currentTheme.PATH_DOT
   const pebbleCount = 4 + (h % 3)
   for (let i = 0; i < pebbleCount; i++) {
     const dh = tileHash(col * 11 + i, row * 5 + i * 7)
@@ -246,7 +391,7 @@ function drawPandoraPath(ctx, px, py, col, row, tileMap) {
   for (let i = 0; i < lineCount; i++) {
     const dh = tileHash(col * 19 + i * 5, row * 29 + i * 2)
     const ly = 5 + (i * 9) + (dh % 4)
-    ctx.strokeStyle = P.PATH_LINE
+    ctx.strokeStyle = currentTheme.PATH_LINE
     ctx.globalAlpha = 0.1
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -260,7 +405,7 @@ function drawPandoraPath(ctx, px, py, col, row, tileMap) {
   if (tileMap) {
     for (const [dr, dc, side] of NEIGHBOR_DIRS) {
       if (!isWaterAt(tileMap, row + dr, col + dc)) continue
-      ctx.fillStyle = P.SHORE_FRINGE
+      ctx.fillStyle = currentTheme.SHORE_FRINGE
       ctx.globalAlpha = 0.3
       if (side === 'top')    ctx.fillRect(px, py, PANDORA_TILE, 4)
       if (side === 'bottom') ctx.fillRect(px, py + PANDORA_TILE - 4, PANDORA_TILE, 4)
@@ -282,7 +427,7 @@ function drawPandoraTallGrass(ctx, px, py, col, row, tileMap) {
     const bx = 3 + (dh % (PANDORA_TILE - 6))
     const bh = 8 + (dh % 5)
     const lean = (dh % 2 === 0) ? -1 : 1
-    ctx.strokeStyle = (dh % 3 === 0) ? P.TALL_B : P.TALL_A
+    ctx.strokeStyle = (dh % 3 === 0) ? currentTheme.TALL_B : currentTheme.TALL_A
     ctx.lineWidth = (dh % 4 === 0) ? 2 : 1
     ctx.beginPath()
     ctx.moveTo(px + bx, py + PANDORA_TILE - 2)
@@ -290,10 +435,15 @@ function drawPandoraTallGrass(ctx, px, py, col, row, tileMap) {
     ctx.stroke()
   }
 
-  // Wildflower dots nestled among the blades — ~45% of tall-grass tiles get
-  // 1-2 small colored blooms (pink/yellow/white/violet), seeded so stable.
+  // Accents nestled among the blades — theme-aware: wildflower blooms in
+  // grassland, toadstools in the forest, none on beach/snow/sky (which read as
+  // sea-grass / frosted reeds / cloud-wisps on their own).
+  const decor = currentTheme.DECOR
   const flowerRoll = tileHash(col * 37 + 5, row * 41 + 9) % 100
-  if (flowerRoll < 45) {
+  if (decor === 'mushroom' && flowerRoll < 40) {
+    const mh = tileHash(col * 43 + 9, row * 53 + 3)
+    drawMushroom(ctx, px + 6 + (mh % (PANDORA_TILE - 12)), py + PANDORA_TILE - 6, flowerRoll)
+  } else if (decor === 'flower' && flowerRoll < 45) {
     const blooms = 1 + (flowerRoll % 2)
     for (let i = 0; i < blooms; i++) {
       const dh = tileHash(col * 43 + i * 9, row * 53 + i * 3)
@@ -313,13 +463,13 @@ function drawPandoraTallGrass(ctx, px, py, col, row, tileMap) {
 }
 
 function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
-  ctx.fillStyle = P.WATER_BASE
+  ctx.fillStyle = currentTheme.WATER_BASE
   ctx.fillRect(px, py, PANDORA_TILE, PANDORA_TILE)
 
   // Wave shimmer — lighter streaks that drift vertically over time (Round 2
   // Fix 2 replaces the old 2-frame flicker-swap with continuous motion).
   const t = Date.now() / 1000
-  ctx.strokeStyle = P.WATER_SHIMMER
+  ctx.strokeStyle = currentTheme.WATER_SHIMMER
   ctx.lineWidth = 2
   ctx.globalAlpha = 0.3
   for (let i = 0; i < 3; i++) {
@@ -341,7 +491,7 @@ function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
     const driftY = Math.cos(t * 0.4 + dh) * 2
     const fx = px + 6 + (dh % (PANDORA_TILE - 12)) + driftX
     const fy = py + 6 + ((dh * 3) % (PANDORA_TILE - 12)) + driftY
-    ctx.fillStyle = P.WATER_FOAM
+    ctx.fillStyle = currentTheme.WATER_FOAM
     ctx.globalAlpha = 0.2 + (dh % 3) * 0.06
     ctx.beginPath()
     ctx.ellipse(fx, fy, 3 + (dh % 3), 2, 0, 0, Math.PI * 2)
@@ -367,7 +517,7 @@ function drawPandoraWater(ctx, px, py, frame, col, row, tileMap) {
   // Edge foam — a wavy animated line along any border shared with a
   // non-water tile (beach/shore edge), phase per Round 2's own formula.
   const phase = (Date.now() / 500) % (Math.PI * 2)
-  ctx.strokeStyle = P.WATER_FOAM
+  ctx.strokeStyle = currentTheme.WATER_FOAM
   ctx.lineWidth = 2
   ctx.globalAlpha = 0.7
   for (const [dr, dc, side] of NEIGHBOR_DIRS) {
@@ -407,9 +557,16 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
   const groundY = py + PANDORA_TILE - 4
   const h = tileHash(col, row)
 
-  // Round 2 Fix 4 — coastal tiles get a palm instead of a round tree.
+  // Round 2 Fix 4 — coastal tiles get a palm instead of a round tree. Beach
+  // theme (ALWAYS_PALM) makes EVERY tree a palm, extending that same mechanism.
   const nearWater = tileMap && NEIGHBOR_DIRS.some(([dr, dc]) => isWaterAt(tileMap, row + dr, col + dc))
-  if (nearWater) { drawPandoraPalm(ctx, cx, groundY, h); return }
+  if (currentTheme.ALWAYS_PALM || nearWater) { drawPandoraPalm(ctx, cx, groundY, h); return }
+
+  // Per-theme tree silhouette (structural shape change, not just a recolour):
+  // snow → pine/triangle, sky → golden beanstalk, everything else → the round
+  // lumpy RO canopy below.
+  if (currentTheme.TREE_STYLE === 'pine')      { drawPandoraPine(ctx, cx, groundY, col, row, h, simple); return }
+  if (currentTheme.TREE_STYLE === 'beanstalk') { drawPandoraBeanstalk(ctx, cx, groundY, col, row, h, simple); return }
 
   // Per-tree size/color/height variation — seeded by tile position so it's
   // stable across frames. Round 3: canopy pushed way up (36-52px, was
@@ -419,7 +576,7 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
   const canopyR = 36 + (h % 17)        // 36-52
   const trunkH  = 10 + ((h * 3) % 9)   // 10-18
   const heightOffset = -8 + (tileHash(col * 71 + row, row * 83 + col) % 25) // -8..+16
-  const canopyColor = TREE_CANOPY_COLORS[h % TREE_CANOPY_COLORS.length]
+  const canopyColor = currentTheme.TREE_CANOPY_COLORS[h % currentTheme.TREE_CANOPY_COLORS.length]
 
   // `simple` (Round 3) — used only for the off-map forest-continuation fill
   // (see renderMapPandora): skips the shadow ellipse + undergrowth blobs,
@@ -458,7 +615,7 @@ function drawPandoraTree(ctx, px, py, col, row, tileMap, simple = false) {
   // Trunk, base planted at the ground point — two-tone: a darker right "side"
   // face with a lighter "front" face over most of the width, plus a dark
   // outline, giving the trunk RO-style volume instead of a flat brown bar.
-  const trunkW = 8
+  const trunkW = currentTheme.TRUNK_W ?? 8   // forest uses a wider, gnarled trunk
   const trunkX = cx - trunkW / 2
   const trunkTop = groundY - trunkH
   ctx.fillStyle = '#33200f'                 // darker side (right) face
@@ -611,6 +768,127 @@ function drawPandoraPalm(ctx, cx, groundY, h) {
     ctx.arc(topX + dx, topY + dy, 3, 0, Math.PI * 2)
     ctx.fill()
   }
+}
+
+// Snow theme (TREE_STYLE 'pine') — stacked-triangle conifer silhouette instead
+// of the round lumpy canopy, short brown trunk, snow-cap on top + snow dabs on
+// each tier. Ground-anchored like the other trees. Seeded by tile hash so size
+// is stable across frames. `simple` (off-map filler) skips the shadow.
+function drawPandoraPine(ctx, cx, groundY, col, row, h, simple) {
+  const canopyColors = currentTheme.TREE_CANOPY_COLORS
+  const dark = canopyColors[h % canopyColors.length]
+  const treeH = 42 + (h % 16)                 // 42-57 total canopy height
+  const halfW = 12 + (h % 6)                  // base half-width
+  const tiers = 3
+  const trunkH = 8
+
+  if (!simple) {
+    ctx.save(); ctx.globalAlpha = 0.5
+    drawPandoraShadow(ctx, cx, groundY, 30, 10)
+    ctx.restore()
+  }
+
+  // Trunk
+  ctx.fillStyle = '#4a3018'
+  ctx.fillRect(cx - 3, groundY - trunkH, 6, trunkH)
+
+  const topY = groundY - trunkH - treeH
+  const tierH = treeH / tiers
+  // Dark outline pass first (each triangle a touch larger), then coloured fill —
+  // gives the RO crisp edge without internal seams.
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.fillStyle = pass === 0 ? '#0e2a1c' : dark
+    const grow = pass === 0 ? 2 : 0
+    for (let t = 0; t < tiers; t++) {
+      const tierTopY = topY + t * tierH * 0.82
+      const tierBotY = tierTopY + tierH + 4
+      const w = halfW * (0.55 + t * 0.28) + grow
+      ctx.beginPath()
+      ctx.moveTo(cx, tierTopY - grow)
+      ctx.lineTo(cx - w, tierBotY)
+      ctx.lineTo(cx + w, tierBotY)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+
+  // Lighter left-lit face on each tier (ambient light convention).
+  ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = '#8fd8b0'
+  for (let t = 0; t < tiers; t++) {
+    const tierTopY = topY + t * tierH * 0.82
+    const tierBotY = tierTopY + tierH + 4
+    const w = halfW * (0.55 + t * 0.28)
+    ctx.beginPath()
+    ctx.moveTo(cx, tierTopY)
+    ctx.lineTo(cx - w, tierBotY)
+    ctx.lineTo(cx - w * 0.3, tierBotY)
+    ctx.closePath(); ctx.fill()
+  }
+  ctx.restore()
+
+  // Snow cap on the crown + a snow dab on each tier's shoulders.
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.moveTo(cx, topY - 1); ctx.lineTo(cx - 4, topY + 7); ctx.lineTo(cx + 4, topY + 7); ctx.closePath(); ctx.fill()
+  for (let t = 0; t < tiers; t++) {
+    const tierBotY = topY + t * tierH * 0.82 + tierH + 4
+    const w = halfW * (0.55 + t * 0.28)
+    ctx.globalAlpha = 0.9
+    ctx.beginPath(); ctx.ellipse(cx - w * 0.5, tierBotY - 1, 3, 1.4, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(cx + w * 0.5, tierBotY - 1, 2.5, 1.2, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.globalAlpha = 1
+  }
+}
+
+// Sky theme (TREE_STYLE 'beanstalk') — a tall golden zig-zag stalk with paired
+// leaves and a curled top, replacing the round canopy. Ground-anchored; seeded
+// by tile hash for stable per-tile shape. `simple` skips the shadow.
+function drawPandoraBeanstalk(ctx, cx, groundY, col, row, h, simple) {
+  if (!simple) {
+    ctx.save(); ctx.globalAlpha = 0.45
+    drawPandoraShadow(ctx, cx, groundY, 22, 8)
+    ctx.restore()
+  }
+
+  const stalkH = 46 + (h % 18)               // 46-63
+  const segs = 5
+  const amp = 5 + (h % 3)                     // zig-zag width
+  const pts = []
+  for (let i = 0; i <= segs; i++) {
+    const frac = i / segs
+    const y = groundY - stalkH * frac
+    const x = cx + (i % 2 === 0 ? -amp : amp) * (1 - frac * 0.5)
+    pts.push([x, y])
+  }
+
+  // Golden zig-zag stalk — dark outline then bright gold on top.
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.strokeStyle = pass === 0 ? '#6a4e12' : '#ffcf3a'
+    ctx.lineWidth = pass === 0 ? 6 : 4
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    ctx.beginPath()
+    ctx.moveTo(pts[0][0], pts[0][1])
+    for (const p of pts.slice(1)) ctx.lineTo(p[0], p[1])
+    ctx.stroke()
+  }
+
+  // Paired leaves at each zig-zag joint.
+  ctx.fillStyle = '#5ab038'
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x, y] = pts[i]
+    const side = i % 2 === 0 ? 1 : -1
+    ctx.save(); ctx.translate(x, y)
+    ctx.beginPath(); ctx.ellipse(side * 6, 0, 7, 3.5, side * 0.5, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(-side * 5, 2, 6, 3, -side * 0.5, 0, Math.PI * 2); ctx.fill()
+    ctx.restore()
+  }
+
+  // Curled sprout top + a tiny gold sparkle (magic beanstalk).
+  const [tx, ty] = pts[pts.length - 1]
+  ctx.strokeStyle = '#ffcf3a'; ctx.lineWidth = 3; ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.arc(tx + 4, ty - 2, 4, Math.PI * 0.6, Math.PI * 2.1)
+  ctx.stroke()
+  drawFourStar(ctx, tx - 3, ty - 6, 3, '#fff6c0')
 }
 
 function drawPandoraRock(ctx, px, py) {
@@ -863,7 +1141,7 @@ function drawMazeWall(ctx, px, py, col, row) {
 export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntities = [], isMaze = false) {
   // Dark stone backdrop in the maze (so out-of-frame gaps read as dungeon, not
   // a green flash); sunny grass base everywhere else.
-  ctx.fillStyle = isMaze ? '#1a1d24' : P.GRASS_BASE
+  ctx.fillStyle = isMaze ? '#1a1d24' : currentTheme.GRASS_BASE
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
   const viewW = ctx.canvas.width

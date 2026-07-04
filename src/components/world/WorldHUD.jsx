@@ -1,6 +1,6 @@
 import React from 'react'
 import { MAP_THEMES } from '../../config/gameConfig.js'
-import { WORLD_LEVELS } from '../../config/worldConfig.js'
+import { WORLD_LEVELS, WORLD_THEME_ICON } from '../../config/worldConfig.js'
 import PixelItemIcon from '../PixelItemIcon.jsx'
 
 export const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
@@ -161,11 +161,17 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
               )
             })()}
           </div>
+          {/* World badge — theme emoji (icon-first: a pre-reader IDs the
+              current world by icon) + cleared-map count + short name. */}
           <div style={{
             fontFamily: 'var(--font-pixel)', fontSize: 6,
-            color: 'rgba(130,190,130,0.4)', lineHeight: 1, textAlign: 'center',
+            color: 'rgba(130,190,130,0.55)', lineHeight: 1, textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
           }}>
-            {clearedMaps.length}/4 {WORLD_LEVELS[worldLevel]?.nameTH?.slice(0, 5) ?? ''}
+            <span style={{ fontSize: 11, lineHeight: 1 }}>
+              {WORLD_THEME_ICON[WORLD_LEVELS[worldLevel]?.theme] ?? '🗺️'}
+            </span>
+            <span>{clearedMaps.length}/4</span>
           </div>
         </div>
 

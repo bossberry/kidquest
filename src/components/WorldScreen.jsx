@@ -1,13 +1,14 @@
 // WorldScreen.jsx — world map, node progression, and zone unlock for Green Meadow (and future worlds).
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { WORLD_LEVELS, DYNAMIC_SCREENS } from '../config/worldConfig.js'
+import { WORLD_LEVELS, DYNAMIC_SCREENS, WORLD_THEME_ICON } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import { BOSS_XP_THRESHOLD } from '../config/gameConfig.js'
 import {
   T, canMove, getExitAt,
-  EXIT_DIR_NAME, getEntryPosition,
+  EXIT_DIR_NAME, getEntryPosition, setWorldTheme,
 } from '../lib/tileEngine.js'
+import { mkSparks, tickEffects } from '../lib/particles.js'
 import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies, spawnMazeContents } from '../lib/tileMaps.js'
 import { useWorldGameLoop } from '../hooks/useWorldGameLoop.js'
 import { getBattleSubject } from '../lib/battleSubject.js'
@@ -118,6 +119,17 @@ export default function WorldScreen({ navigate }) {
   }, [])
   const canvasRef = useRef(null)
 
+  // Per-world tile-palette sync (2026-07-04) — the single place the renderer's
+  // theme is set. Runs on mount and every time worldLevel changes (incl. the
+  // runtime boss-defeat tier advance below, which flips state.worldLevel while
+  // this component stays mounted), so every subsequent RAF frame paints the
+  // right world's palette. Set synchronously in render too, so the very first
+  // frame after a same-tick mount already uses the correct theme.
+  setWorldTheme(WORLD_LEVELS[state.worldLevel ?? 0]?.theme ?? 'grassland')
+  useEffect(() => {
+    setWorldTheme(WORLD_LEVELS[state.worldLevel ?? 0]?.theme ?? 'grassland')
+  }, [state.worldLevel])
+
   const [viewSize, setViewSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [pressedDir, setPressedDir] = useState(null) // D-pad tactile press state (Fix 4)
   const [screenId, setScreenId] = useState(VALID_DYNAMIC.has(state.currentScreen) ? state.currentScreen : 'NW')
@@ -149,6 +161,8 @@ export default function WorldScreen({ navigate }) {
   const [bossConfirm, setBossConfirm] = useState(false)
   const [mazeConfirm, setMazeConfirm] = useState(false)
   const [worldUnlockBanner, setWorldUnlockBanner] = useState(null)
+  const confettiCanvasRef = useRef(null)
+  const confettiRafRef     = useRef(null)
   const [itemBagOpen, setItemBagOpen] = useState(false)
   const [bossCutscene, setBossCutscene] = useState(null)
   const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
@@ -593,6 +607,43 @@ export default function WorldScreen({ navigate }) {
     fogOverlayRef, torchRingRef, mazeExitPosRef,
   })
 
+  // ── World-unlock confetti ────────────────────────────────────────────────────
+  // Reuses the EXISTING battle particle system (mkSparks + tickEffects) on a
+  // dedicated full-screen overlay canvas — no new particle code. Fired from the
+  // boss-defeat tier-advance below, cleaned up when the burst empties.
+  const fireUnlockConfetti = useCallback(() => {
+    const cv = confettiCanvasRef.current
+    if (!cv) return
+    cv.width = window.innerWidth
+    cv.height = window.innerHeight
+    const ctx = cv.getContext('2d')
+    // Scatter bursts across the upper third of the screen.
+    let effects = Array.from({ length: 14 }, () =>
+      mkSparks(
+        60 + Math.random() * (window.innerWidth - 120),
+        60 + Math.random() * (window.innerHeight * 0.35),
+        700 + Math.random() * 500,
+      ))
+    let last = performance.now()
+    const step = (now) => {
+      const dt = now - last
+      last = now
+      effects = tickEffects(ctx, effects, dt)
+      if (effects.length) {
+        confettiRafRef.current = requestAnimationFrame(step)
+      } else {
+        ctx.clearRect(0, 0, cv.width, cv.height)
+        confettiRafRef.current = null
+      }
+    }
+    if (confettiRafRef.current) cancelAnimationFrame(confettiRafRef.current)
+    confettiRafRef.current = requestAnimationFrame(step)
+  }, [])
+
+  useEffect(() => () => {
+    if (confettiRafRef.current) cancelAnimationFrame(confettiRafRef.current)
+  }, [])
+
   // ── Boss defeat → tier advance ────────────────────────────────────────────────
 
   useEffect(() => {
@@ -606,7 +657,16 @@ export default function WorldScreen({ navigate }) {
       setBossCutscene(null)
       if (nextDef) {
         dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: nextLevel })
-        setWorldUnlockBanner(nextDef.nameTH)
+        // Re-skin the tile renderer to the new world immediately (this runtime
+        // transition happens while the component stays mounted; the worldLevel
+        // effect above also covers it, this is the belt-and-suspenders sync).
+        setWorldTheme(nextDef.theme ?? 'grassland')
+        setWorldUnlockBanner({
+          name: nextDef.nameTH,
+          accent: nextDef.bgColors?.ground ?? '#e0c030',
+          theme: nextDef.theme,
+        })
+        fireUnlockConfetti()
         setTimeout(() => setWorldUnlockBanner(null), 4000)
       } else {
         dispatch({ type: ACTIONS.SET_WORLD_LEVEL, payload: wl })
@@ -936,21 +996,34 @@ export default function WorldScreen({ navigate }) {
         </div>
       )}
 
-      {/* World unlock banner */}
+      {/* World-unlock confetti overlay — sits just under the banner. */}
+      <canvas
+        ref={confettiCanvasRef}
+        style={{
+          position: 'absolute', inset: 0, zIndex: 34,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* World unlock banner — theme-coloured to the newly unlocked world. */}
       {worldUnlockBanner && (
         <div style={{
           position: 'absolute', top: HUD_CONTENT_H + 12, left: 0, right: 0, zIndex: 35,
           display: 'flex', justifyContent: 'center', pointerEvents: 'none',
         }}>
           <div style={{
-            background: 'rgba(0,0,0,0.88)', border: '2px solid #e0c030',
-            borderRadius: 12, padding: '12px 20px',
+            background: 'rgba(0,0,0,0.88)',
+            border: `2px solid ${worldUnlockBanner.accent}`,
+            borderRadius: 12, padding: '12px 22px',
             fontFamily: 'Mitr,sans-serif', textAlign: 'center',
+            boxShadow: `0 0 22px ${worldUnlockBanner.accent}66`,
           }}>
             <div style={{ color: '#ffe060', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
               ✨ ปลดล็อคโลกใหม่!
             </div>
-            <div style={{ color: '#d0c060', fontSize: 14 }}>{worldUnlockBanner}</div>
+            <div style={{ color: worldUnlockBanner.accent, fontSize: 16, fontWeight: 700 }}>
+              {WORLD_THEME_ICON[worldUnlockBanner.theme] ?? '🗺️'} {worldUnlockBanner.name}
+            </div>
           </div>
         </div>
       )}

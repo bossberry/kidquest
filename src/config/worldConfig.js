@@ -20,6 +20,12 @@ export const SCREENS = {
 
 // ─── Dynamic world level system ───────────────────────────────────────────────
 
+// 5-tier world progression (2026-07-04). Each tier has a genuinely distinct
+// RO-style visual theme, wired into the renderer via the `theme` key (consumed
+// by setWorldTheme() in tileEngine.js). Ordering is an elevation/difficulty
+// climb: meadow → shore → forest → snow peak → sky. See CHANGELOG for the
+// scope note on retiring the old "Crystal Cave / cave" tier in favour of the
+// fully-specified beach/snow/sky themes.
 export const WORLD_LEVELS = [
   {
     level: 0,
@@ -35,29 +41,63 @@ export const WORLD_LEVELS = [
   },
   {
     level: 1,
-    name: 'Dark Forest',
-    nameTH: 'ป่ามืด',
-    theme: 'forest',
-    bgColors: { sky: '#1a2a1a', ground: '#1a3a1a', mountain: '#0a1a0a' },
-    enemies: ['fox_kit', 'baby_zombie', 'grumpy_mole', 'egg_pawn'],
-    bossEnemy: 'snake',
-    bossNameTH: 'งูราชา',
-    bossHP: 160, bossATK: 10, bossDEF: 5,
+    name: 'Coral Coast',
+    nameTH: 'ชายหาดปะการัง',
+    theme: 'beach',
+    bgColors: { sky: '#7fd4f0', ground: '#e6cf98', mountain: '#f0e0b0' },
+    enemies: ['sleepy_bunny', 'bouncy_slime', 'leaf_sprite', 'fox_kit'],
+    bossEnemy: 'bouncy_slime',
+    bossNameTH: 'ราชาวุ้นทะเล',
+    bossHP: 150, bossATK: 9, bossDEF: 5,
     unlockRequirement: { battleWins: 20 },
   },
   {
     level: 2,
-    name: 'Crystal Cave',
-    nameTH: 'ถ้ำคริสตัล',
-    theme: 'cave',
-    bgColors: { sky: '#0a0a2a', ground: '#2a1a3a', mountain: '#1a0a2a' },
-    enemies: ['baby_zombie', 'snake', 'egg_pawn', 'grumpy_mole'],
+    name: 'Dark Forest',
+    nameTH: 'ป่ามืด',
+    theme: 'forest',
+    bgColors: { sky: '#1a2a1a', ground: '#2a4a24', mountain: '#16301a' },
+    enemies: ['fox_kit', 'baby_zombie', 'grumpy_mole', 'egg_pawn'],
+    bossEnemy: 'snake',
+    bossNameTH: 'งูราชา',
+    bossHP: 180, bossATK: 11, bossDEF: 6,
+    unlockRequirement: { battleWins: 40 },
+  },
+  {
+    level: 3,
+    name: 'Frost Peak',
+    nameTH: 'ยอดเขาน้ำแข็ง',
+    theme: 'snow',
+    bgColors: { sky: '#bfe0f0', ground: '#e6eef6', mountain: '#c8d8e8' },
+    enemies: ['baby_zombie', 'snake', 'grumpy_mole', 'mushroom_imp'],
+    bossEnemy: 'fox_kit',
+    bossNameTH: 'ราชาจิ้งจอกหิมะ',
+    bossHP: 220, bossATK: 13, bossDEF: 7,
+    unlockRequirement: { battleWins: 70 },
+  },
+  {
+    level: 4,
+    name: 'Sky Kingdom',
+    nameTH: 'อาณาจักรเมฆา',
+    theme: 'sky',
+    bgColors: { sky: '#9fd0ff', ground: '#dcecff', mountain: '#cfe4ff' },
+    enemies: ['egg_pawn', 'snake', 'baby_zombie', 'grumpy_mole'],
     bossEnemy: 'egg_pawn',
-    bossNameTH: 'หุ่นยนต์ไข่ราชา',
-    bossHP: 200, bossATK: 12, bossDEF: 6,
-    unlockRequirement: { battleWins: 50 },
+    bossNameTH: 'ราชาหุ่นเวหา',
+    bossHP: 260, bossATK: 15, bossDEF: 8,
+    unlockRequirement: { battleWins: 110 },
   },
 ]
+
+// Per-theme identifying emoji — icon-first UI (a pre-reader must recognise the
+// current world by icon alone). Used by the HUD world badge + unlock banner.
+export const WORLD_THEME_ICON = {
+  grassland: '🌿',
+  beach: '🌊',
+  forest: '🌲',
+  snow: '❄️',
+  sky: '☁️',
+}
 
 // Screen slot IDs for dynamic layout
 export const SCREEN_LAYOUT = ['NW', 'NE', 'SW', 'SE']

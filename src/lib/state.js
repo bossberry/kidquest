@@ -127,6 +127,15 @@ export function defaultState() {
     ownedItems: [],
     equipped: { head: null, face: null },
     ownedRoomItems: [],
+    // Multi-room expansion (2026-07-05). `rooms` + `activeRoomId` are the SOURCE OF
+    // TRUTH. `roomLayout` (below) is kept only as a strictly-derived MIRROR of the
+    // active room's layout, so old code / reducers that still read state.roomLayout
+    // keep working. `homeRoomId` is INDEPENDENT of `activeRoomId`: it picks which
+    // room's layout+theme Home's DecoratedRoom background shows, so browsing rooms
+    // in the Room editor never changes the Home backdrop.
+    rooms: [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} }],
+    activeRoomId: 'main',
+    homeRoomId: 'main',
     roomLayout: {},
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
@@ -394,6 +403,24 @@ export function migrateStateShape(saved) {
       // Stamp lastSavedAt so a stale cloud copy can't revert the reset via resolveSync.
       merged.lastSavedAt = Date.now()
     }
+  }
+
+  // Multi-room migration (2026-07-05): if a save predates `rooms`, build the single
+  // starter room from whatever roomLayout resolves to AFTER the reset above (so a
+  // stale pre-iso layout stays {} in rooms[0].layout too, never resurrected). If
+  // `rooms` already exists, leave it and its per-room layouts untouched. Keep the
+  // top-level roomLayout mirror in sync with the active room on the way out.
+  if (!Array.isArray(saved.rooms)) {
+    merged.rooms = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: merged.roomLayout || {} }]
+    merged.activeRoomId = 'main'
+    merged.homeRoomId = 'main'
+    merged.lastSavedAt = merged.lastSavedAt || Date.now()
+  } else {
+    merged.rooms = saved.rooms
+    merged.activeRoomId = saved.activeRoomId || saved.rooms[0]?.id || 'main'
+    merged.homeRoomId = saved.homeRoomId || saved.rooms[0]?.id || 'main'
+    const active = merged.rooms.find(r => r.id === merged.activeRoomId)
+    merged.roomLayout = active?.layout || {}
   }
 
   merged.stateVersion = STATE_VERSION

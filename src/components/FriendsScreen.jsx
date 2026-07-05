@@ -493,6 +493,11 @@ function MysteryTab() {
             const s = RARITY[rarityKey(a.rarity_label)] ?? RARITY.common
             const eggIdentity = { element: a.element ?? 'fire', eye: a.eye ?? 'gba', gender: a.gender ?? 'male' }
             const icons = cosmeticIconsFor(a)
+            // Multi-room aware: preview the friend's first room (falls back to the
+            // flat room_layout when the RPC hasn't been migrated yet).
+            const primaryRoom = (Array.isArray(a.rooms) && a.rooms.length > 0)
+              ? a.rooms[0]
+              : { theme: 'default', layout: a.room_layout ?? {} }
             return (
               <div key={i}
                 onClick={() => setVisiting(a)}
@@ -511,7 +516,8 @@ function MysteryTab() {
                 }}>
                   <RoomScene
                     width={72} height={80} small
-                    roomLayout={a.room_layout ?? {}}
+                    roomLayout={primaryRoom.layout ?? {}}
+                    theme={primaryRoom.theme ?? 'default'}
                     egg={{
                       ...eggIdentity, stage: a.stage ?? 1, aura: 0,
                       equipped: { head: a.equipped_head ?? null, face: a.equipped_face ?? null },

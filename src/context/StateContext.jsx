@@ -170,6 +170,26 @@ export const ACTIONS = {
   BUY_ROOM_ITEM:    'BUY_ROOM_ITEM',
   PLACE_ROOM_ITEM:  'PLACE_ROOM_ITEM',
   REMOVE_ROOM_ITEM: 'REMOVE_ROOM_ITEM',
+  // Multi-room expansion
+  BUY_ROOM_BLOCK:              'BUY_ROOM_BLOCK',
+  SET_ACTIVE_ROOM:             'SET_ACTIVE_ROOM',
+  SET_HOME_ROOM:               'SET_HOME_ROOM',
+  PLACE_ROOM_ITEM_IN_ROOM:     'PLACE_ROOM_ITEM_IN_ROOM',
+  REMOVE_ROOM_ITEM_FROM_ROOM:  'REMOVE_ROOM_ITEM_FROM_ROOM',
+}
+
+// Multi-room helper — write a new layout into one room inside `rooms`, and keep the
+// top-level `roomLayout` mirror in sync ONLY when that room is the active one. Every
+// room-content reducer routes through this so `rooms` and the `roomLayout` mirror can
+// never drift apart. Always stamps lastSavedAt (same convention as every reducer).
+function applyRoomLayoutChange(state, roomId, newLayout) {
+  const rooms = (state.rooms || []).map(r => (r.id === roomId ? { ...r, layout: newLayout } : r))
+  return {
+    ...state,
+    rooms,
+    roomLayout: roomId === state.activeRoomId ? newLayout : state.roomLayout,
+    lastSavedAt: Date.now(),
+  }
 }
 
 function reducer(state, action) {
@@ -991,21 +1011,65 @@ function reducer(state, action) {
       }
     }
 
-    case ACTIONS.PLACE_ROOM_ITEM: {
-      const { slotKey, itemId } = action.payload
+    // PLACE/REMOVE_ROOM_ITEM (no _IN_ROOM suffix) stay for any caller that still
+    // uses them — they now just target whichever room is active by delegating to
+    // the room-aware versions. Item ownership stays a GLOBAL, non-consumable unlock:
+    // an owned item can appear in as many slots (across as many rooms) as desired.
+    case ACTIONS.PLACE_ROOM_ITEM:
+      return reducer(state, { type: ACTIONS.PLACE_ROOM_ITEM_IN_ROOM, payload: { ...action.payload, roomId: state.activeRoomId } })
+
+    case ACTIONS.REMOVE_ROOM_ITEM:
+      return reducer(state, { type: ACTIONS.REMOVE_ROOM_ITEM_FROM_ROOM, payload: { ...action.payload, roomId: state.activeRoomId } })
+
+    case ACTIONS.PLACE_ROOM_ITEM_IN_ROOM: {
+      const { roomId, slotKey, itemId } = action.payload
       if (!(state.ownedRoomItems || []).includes(itemId)) return state
+      const room = (state.rooms || []).find(r => r.id === roomId)
+      if (!room) return state
+      return applyRoomLayoutChange(state, roomId, { ...(room.layout || {}), [slotKey]: itemId })
+    }
+
+    case ACTIONS.REMOVE_ROOM_ITEM_FROM_ROOM: {
+      const { roomId, slotKey } = action.payload
+      const room = (state.rooms || []).find(r => r.id === roomId)
+      if (!room) return state
+      const newLayout = { ...(room.layout || {}) }
+      delete newLayout[slotKey]
+      return applyRoomLayoutChange(state, roomId, newLayout)
+    }
+
+    case ACTIONS.BUY_ROOM_BLOCK: {
+      const { gridX, gridY, theme } = action.payload
+      const price = 1000
+      if ((state.coins || 0) < price) return state
+      const rooms = state.rooms || []
+      // guard: no room already at this cell
+      if (rooms.some(r => r.gridX === gridX && r.gridY === gridY)) return state
+      // guard: must be orthogonally adjacent to an existing room (grid stays connected)
+      const adjacent = rooms.some(r => Math.abs(r.gridX - gridX) + Math.abs(r.gridY - gridY) === 1)
+      if (!adjacent) return state
+      const id = `${theme}_${Date.now()}`
       return {
         ...state,
-        roomLayout: { ...(state.roomLayout || {}), [slotKey]: itemId },
+        coins: (state.coins || 0) - price,
+        rooms: [...rooms, { id, theme, gridX, gridY, layout: {} }],
+        activeRoomId: id,
+        roomLayout: {},   // mirror follows the newly-active (empty) room
         lastSavedAt: Date.now(),
       }
     }
 
-    case ACTIONS.REMOVE_ROOM_ITEM: {
-      const { slotKey } = action.payload
-      const newLayout = { ...(state.roomLayout || {}) }
-      delete newLayout[slotKey]
-      return { ...state, roomLayout: newLayout, lastSavedAt: Date.now() }
+    case ACTIONS.SET_ACTIVE_ROOM: {
+      const { roomId } = action.payload
+      const room = (state.rooms || []).find(r => r.id === roomId)
+      if (!room) return state
+      return { ...state, activeRoomId: roomId, roomLayout: room.layout || {}, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.SET_HOME_ROOM: {
+      const { roomId } = action.payload
+      if (!(state.rooms || []).some(r => r.id === roomId)) return state
+      return { ...state, homeRoomId: roomId, lastSavedAt: Date.now() }
     }
 
     default:
@@ -1016,8 +1080,23 @@ function reducer(state, action) {
 export function StateProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
     try {
-      const raw = { ...defaultState(), ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
+      const saved = JSON.parse(localStorage.getItem(KEY)) || {}
+      const raw = { ...defaultState(), ...saved }
       if (!raw.activeBoosts) raw.activeBoosts = {}
+      // Multi-room: keep `rooms` + the `roomLayout` mirror consistent from frame 1
+      // (the async migrateStateShape() path also does this, but this avoids a flash
+      // of an empty room before INIT lands). Mirror the full migration's intent.
+      if (!Array.isArray(saved.rooms)) {
+        raw.rooms = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: raw.roomLayout || {} }]
+        raw.activeRoomId = 'main'
+        raw.homeRoomId = 'main'
+      } else {
+        raw.rooms = saved.rooms
+        raw.activeRoomId = saved.activeRoomId || saved.rooms[0]?.id || 'main'
+        raw.homeRoomId = saved.homeRoomId || saved.rooms[0]?.id || 'main'
+        const active = raw.rooms.find(r => r.id === raw.activeRoomId)
+        raw.roomLayout = active?.layout || {}
+      }
       const migrated = _migrateBattleStats(raw)
       // Clamp currentHP to stats.HP max (fixes corrupted states where currentHP > stats.HP)
       if (migrated.hatchedEggs?.length) {

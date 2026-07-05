@@ -1,5 +1,34 @@
 # Changelog — KidQuest
 
+## 2026-07-05 — Multi-room Den expansion
+
+Room/Den decoration grows from a single room to a purchasable grid of themed rooms, per a full spec supplied directly by the user (schema, 6 themes, mini-map/swipe/purchase UI, pricing). `CURRENT_STATE.md` had previously flagged this as a deliberate deferred scope call awaiting design review — treated as approved now that the user gave the spec themselves.
+
+### src/lib/state.js
+- `defaultState()`: added `rooms: [{ id:'main', theme:'default', gridX:0, gridY:0, layout:{} }]`, `activeRoomId:'main'`, `homeRoomId:'main'`. The pre-existing `roomLayout` stays for backward compatibility but is now a strictly-derived MIRROR of the active room's layout, never independently mutated.
+- `migrateStateShape()`: builds `rooms` from the post-reset `roomLayout` for any save that predates the field; leaves an existing `rooms` array completely untouched.
+
+### src/context/StateContext.jsx
+- New shared helper `applyRoomLayoutChange(state, roomId, newLayout)` — every room-content reducer routes through this so `rooms` and the `roomLayout` mirror can never drift apart.
+- New reducers: `BUY_ROOM_BLOCK` (1000 coins; guards insufficient funds / occupied cell / not-orthogonally-adjacent), `SET_ACTIVE_ROOM`, `SET_HOME_ROOM` (independent of `activeRoomId`), `PLACE_ROOM_ITEM_IN_ROOM`, `REMOVE_ROOM_ITEM_FROM_ROOM`.
+- `PLACE_ROOM_ITEM`/`REMOVE_ROOM_ITEM` (no `_IN_ROOM` suffix) kept working unchanged — now delegate to the room-aware versions against `state.activeRoomId`. `ownedRoomItems` stays a global, non-consumable unlock (unchanged) — an owned item can be placed across multiple rooms at once.
+
+### src/lib/roomScene.js
+- New `ROOM_THEMES` (icon/nameTh/price metadata) + `THEME_PALETTES` (default/pool/garden/veggie/forest/space) + `ROOM_BLOCK_PRICE`. `drawFloor`/`drawLeftWall`/`drawRightWall` now read the resolved palette; `default`'s values are byte-identical to the prior hardcoded hex codes (existing rooms are pixel-unchanged). Added a cheap seeded ambient decor layer per theme (pool ripples, garden flowers, veggie furrows, forest leaves, space glints + twinkling wall stars) — self-contained, independent of `tileEngine.js`'s theme system. `drawRoomScene()` now takes a `theme` param.
+
+### src/components/Room.jsx
+- New `RoomMiniMap` component (top-right overlay): shows owned rooms as themed icon squares (active = gold border, home = 🏠 badge), dashed "+" only on orthogonally-adjacent empty cells (tap → theme-purchase bottom sheet, reusing the existing sheet convention).
+- Swipe-to-navigate on the room canvas (distance + time + axis-dominance gated so it doesn't fight tap-to-place); a floating room-label pill (theme icon + Thai name); a 🏠 "ตั้งเป็นห้องหลัก" button shown only when the active room isn't already home.
+
+### src/components/DecoratedRoom.jsx
+- Home's background now reads `rooms.find(r => r.id === state.homeRoomId)` directly (bypassing the `roomLayout` mirror) so browsing/editing other rooms in the Room editor never changes what Home shows.
+
+### src/components/RoomVisit.jsx / FriendsScreen.jsx / RoomScene.jsx
+- `RoomScene` takes a `theme` prop. `RoomVisit` gains a read-only room switcher shown when a visited adventurer has multiple rooms (`a.rooms`), falling back to the old flat `a.room_layout` when absent. `FriendsScreen`'s card thumbnail previews the first room in `a.rooms` when present.
+
+### supabase/migrations/20260705_mystery_adventurers_multi_room.sql (pending — not yet applied)
+- Extends `get_mystery_adventurers` to also return `rooms jsonb`. Must be run manually in the Supabase SQL Editor (no CLI/service key in this repo) — until then, `a.rooms` is `undefined` and the client degrades gracefully to the single flat room layout, exactly as it does today.
+
 ## 2026-07-04 — 5-world expansion + per-world tile-palette theme system
 
 Grew the world-level system from 3 to 5 tiers, each with a genuinely distinct RO-style visual theme, and — the core of the task — wired the previously-dead `theme` config key into the renderer so the themes actually show up in the tile map (before this, all worlds rendered with one hardcoded palette).

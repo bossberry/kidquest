@@ -4,7 +4,20 @@ import EggCanvasCore from '../egg/EggCanvas.jsx'
 import RoomScene from './RoomScene.jsx'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
+import { themeMeta } from '../lib/roomScene.js'
 import { playSFX } from '../lib/audio.js'
+
+// Normalize an adventurer into a rooms[] array. Post-migration the RPC returns a
+// `rooms` jsonb array; pre-migration it only has the flat `room_layout` — degrade
+// to a single default-themed room so nothing breaks until the migration is applied.
+function adventurerRooms(a) {
+  if (Array.isArray(a.rooms) && a.rooms.length > 0) {
+    return a.rooms.map((r, i) => ({
+      id: r.id ?? `r${i}`, theme: r.theme ?? 'default', layout: r.layout ?? {},
+    }))
+  }
+  return [{ id: 'main', theme: 'default', layout: a.room_layout ?? {} }]
+}
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -96,7 +109,11 @@ export default function RoomVisit({ adventurer: a, onClose }) {
 
   const name    = a.display_name ?? 'นักผจญภัยลึกลับ'
   const stage   = a.stage ?? 1
-  const layout  = a.room_layout ?? {}   // graceful default (undefined pre-migration)
+  const visitRooms = adventurerRooms(a)
+  const [roomIdx, setRoomIdx] = useState(0)
+  const curRoom = visitRooms[Math.min(roomIdx, visitRooms.length - 1)]
+  const layout  = curRoom.layout ?? {}
+  const roomTheme = curRoom.theme ?? 'default'
   const headId  = a.equipped_head ?? null
   const faceId  = a.equipped_face ?? null
   const equipped = { head: headId, face: faceId }
@@ -140,12 +157,38 @@ export default function RoomVisit({ adventurer: a, onClose }) {
       <div ref={containerRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <RoomScene
           roomLayout={layout}
+          theme={roomTheme}
           width={size.w}
           height={size.h}
           small={false}
           egg={null}
           style={{ position: 'absolute', inset: 0 }}
         />
+
+        {/* Read-only room selector (only when the friend has more than one room) */}
+        {visitRooms.length > 1 && (
+          <div style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 3,
+            display: 'flex', gap: 6, background: 'rgba(10,8,22,0.6)',
+            border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: 6,
+          }}>
+            {visitRooms.map((r, i) => {
+              const meta = themeMeta(r.theme)
+              const isActive = i === roomIdx
+              return (
+                <button key={r.id} onClick={() => setRoomIdx(i)} aria-label={meta.nameTh}
+                  style={{
+                    width: 30, height: 30, padding: 0, cursor: 'pointer', borderRadius: 6, fontSize: 15,
+                    background: isActive ? 'rgba(255,210,63,0.18)' : 'rgba(255,255,255,0.05)',
+                    border: isActive ? '2px solid #FFD23F' : '1px solid rgba(255,255,255,0.2)',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}>
+                  {meta.icon}
+                </button>
+              )
+            })}
+          </div>
+        )}
         {/* Large centered companion egg (their identity + cosmetics) */}
         <div style={{
           position: 'absolute', top: '52%', left: '50%',

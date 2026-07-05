@@ -34,6 +34,88 @@ export const WALL_Z_ROWS = [1, 2]  // the two placeable height rows
 
 export const ZONES = ['floor', 'left_wall', 'right_wall']
 
+// ── Room themes ──────────────────────────────────────────────────────────────
+// Multi-room expansion (2026-07-05): each room carries a `theme`. THEME_PALETTES
+// recolors the base floor/wall surfaces + drives a cheap per-frame ambient decor
+// layer (ripples / flowers / rows / leaves / stars). `default` reproduces the
+// original tan/cream room EXACTLY (byte-for-byte colors), so existing players'
+// `main` room looks unchanged. All wall polish / vignette / ceiling glow stays on
+// top of whatever base colors the theme provides. This is a self-contained system
+// — intentionally NOT imported from tileEngine.js (the world-map theme engine).
+export const ROOM_BLOCK_PRICE = 1000
+
+// UI-facing metadata (icon-first for a pre-reader child). Order = purchase-sheet order.
+export const ROOM_THEMES = [
+  { id: 'default', nameTh: 'ห้องนอน',     icon: '🏠', price: 0 },
+  { id: 'pool',    nameTh: 'สระว่ายน้ำ',  icon: '🏊', price: ROOM_BLOCK_PRICE },
+  { id: 'garden',  nameTh: 'สวนดอกไม้',   icon: '🌸', price: ROOM_BLOCK_PRICE },
+  { id: 'veggie',  nameTh: 'สวนผัก',      icon: '🥦', price: ROOM_BLOCK_PRICE },
+  { id: 'forest',  nameTh: 'ป่า',         icon: '🌲', price: ROOM_BLOCK_PRICE },
+  { id: 'space',   nameTh: 'อวกาศ',       icon: '🚀', price: ROOM_BLOCK_PRICE },
+]
+export function themeMeta(id) {
+  return ROOM_THEMES.find(t => t.id === id) || ROOM_THEMES[0]
+}
+
+export const THEME_PALETTES = {
+  default: {
+    floorLight: '#D9BA8C', floorDark: '#CDA875', floorStroke: 'rgba(120,84,48,0.28)',
+    floorVignette: 'rgba(30,16,6,0.32)',
+    leftWall: '#F3E6D2', leftGrid: 'rgba(150,120,88,0.16)', leftBase: 'rgba(176,140,96,0.55)',
+    rightWall: '#E7D3B4', rightGrid: 'rgba(140,110,78,0.16)', rightBase: 'rgba(160,126,84,0.55)',
+    corner: 'rgba(90,60,32,0.28)', decor: 'none',
+  },
+  pool: {
+    floorLight: '#4ab4ee', floorDark: '#2a8acc', floorStroke: 'rgba(20,80,140,0.30)',
+    floorVignette: 'rgba(6,30,60,0.34)',
+    leftWall: '#cfeefb', leftGrid: 'rgba(90,150,190,0.22)', leftBase: 'rgba(120,180,215,0.55)',
+    rightWall: '#bfe4f5', rightGrid: 'rgba(80,140,180,0.22)', rightBase: 'rgba(110,170,205,0.55)',
+    corner: 'rgba(30,90,130,0.28)', decor: 'pool',
+  },
+  garden: {
+    floorLight: '#4a9a2a', floorDark: '#3a7a1a', floorStroke: 'rgba(30,70,15,0.30)',
+    floorVignette: 'rgba(10,30,6,0.32)',
+    leftWall: '#bfe4f7', leftGrid: 'rgba(120,170,200,0.20)', leftBase: 'rgba(150,120,80,0.55)',
+    rightWall: '#aed8f2', rightGrid: 'rgba(110,160,190,0.20)', rightBase: 'rgba(140,112,74,0.55)',
+    corner: 'rgba(40,80,30,0.28)', decor: 'garden',
+  },
+  veggie: {
+    floorLight: '#5a3a1a', floorDark: '#4a2a0a', floorStroke: 'rgba(30,18,6,0.34)',
+    floorVignette: 'rgba(18,10,2,0.34)',
+    leftWall: '#bfe4f7', leftGrid: 'rgba(120,170,200,0.20)', leftBase: 'rgba(120,90,60,0.55)',
+    rightWall: '#aed8f2', rightGrid: 'rgba(110,160,190,0.20)', rightBase: 'rgba(110,84,56,0.55)',
+    corner: 'rgba(40,26,12,0.30)', decor: 'veggie',
+  },
+  forest: {
+    floorLight: '#2a5a1a', floorDark: '#1a3a0a', floorStroke: 'rgba(12,30,6,0.34)',
+    floorVignette: 'rgba(6,16,4,0.40)',
+    leftWall: '#274d2a', leftGrid: 'rgba(30,60,30,0.30)', leftBase: 'rgba(40,60,30,0.55)',
+    rightWall: '#1f3f22', rightGrid: 'rgba(24,50,24,0.30)', rightBase: 'rgba(32,52,24,0.55)',
+    corner: 'rgba(10,26,8,0.34)', decor: 'forest',
+  },
+  space: {
+    floorLight: '#0a0a2a', floorDark: '#0a0a1a', floorStroke: 'rgba(80,90,160,0.30)',
+    floorVignette: 'rgba(2,2,10,0.45)',
+    leftWall: '#0a0a18', leftGrid: 'rgba(80,90,160,0.22)', leftBase: 'rgba(40,44,80,0.55)',
+    rightWall: '#070712', rightGrid: 'rgba(70,80,150,0.22)', rightBase: 'rgba(34,38,70,0.55)',
+    corner: 'rgba(60,70,140,0.30)', decor: 'space',
+  },
+}
+export function resolveThemePalette(theme) {
+  return THEME_PALETTES[theme] || THEME_PALETTES.default
+}
+
+// Stable per-index pseudo-random in [0,1) — keeps decor placement flicker-free
+// (same idea as tileEngine.js's tileHash, kept local so the two stay independent).
+function sHash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453
+  return x - Math.floor(x)
+}
+function px(ctx, x, y, w, h, col) {
+  ctx.fillStyle = col
+  ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)))
+}
+
 // ── Geometry ─────────────────────────────────────────────────────────────────
 // Standard 2:1 iso projection. Scene bounding box spans 10*TH wide × 8*TH tall
 // (derived from the floor + wall corner extremes), so we size TH to fit W×H.
@@ -153,13 +235,14 @@ function fillQuad(ctx, pts, color, stroke) {
 }
 
 // ── Room surfaces ────────────────────────────────────────────────────────────
-function drawFloor(ctx, g) {
+function drawFloor(ctx, g, P) {
   for (let r = 0; r < FLOOR_ROWS; r++) {
     for (let c = 0; c < FLOOR_COLS; c++) {
       const light = (c + r) % 2 === 0
-      fillQuad(ctx, floorQuad(g, c, r), light ? '#D9BA8C' : '#CDA875', 'rgba(120,84,48,0.28)')
+      fillQuad(ctx, floorQuad(g, c, r), light ? P.floorLight : P.floorDark, P.floorStroke)
     }
   }
+  if (!g.small) drawFloorDecor(ctx, g, P.decor)
   if (g.small) return
   // Subtle warm vignette: darker toward the far corners of the floor diamond.
   const corners = [g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0), g.project(FLOOR_COLS, FLOOR_ROWS, 0), g.project(0, FLOOR_ROWS, 0)]
@@ -172,10 +255,94 @@ function drawFloor(ctx, g) {
   ctx.closePath()
   ctx.clip()
   const vg = ctx.createRadialGradient(cx, cy, radius * 0.15, cx, cy, radius)
-  vg.addColorStop(0, 'rgba(40,20,8,0)')
-  vg.addColorStop(1, 'rgba(30,16,6,0.32)')
+  vg.addColorStop(0, 'rgba(0,0,0,0)')
+  vg.addColorStop(1, P.floorVignette)
   ctx.fillStyle = vg
   ctx.fillRect(0, 0, g.W, g.H)
+  ctx.restore()
+}
+
+// Cheap per-frame ambient floor decoration, keyed on the theme's `decor` tag.
+// Placement is seeded (sHash) so it never flickers; only ripples gently animate.
+function drawFloorDecor(ctx, g, decor) {
+  if (!decor || decor === 'none') return
+  const now = Date.now() / 1000
+  const u = g.TH   // one iso tile-height as a size unit
+  if (decor === 'veggie') {
+    // planting furrows: darker line along each floor row seam
+    ctx.save(); ctx.strokeStyle = 'rgba(20,12,4,0.35)'; ctx.lineWidth = Math.max(1, u * 0.05)
+    for (let r = 0; r <= FLOOR_ROWS; r++) {
+      const a = g.project(0, r, 0), b = g.project(FLOOR_COLS, r, 0)
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke()
+    }
+    ctx.restore()
+    // little green sprouts dotted along the rows
+    for (let r = 0; r < FLOOR_ROWS; r++) for (let c = 0; c < FLOOR_COLS; c++) {
+      if (sHash(c * 13 + r * 29) < 0.55) continue
+      const p = g.project(c + 0.5, r + 0.75, 0)
+      px(ctx, p.sx - u * 0.03, p.sy - u * 0.16, u * 0.06, u * 0.16, '#5fae3a')
+      px(ctx, p.sx - u * 0.11, p.sy - u * 0.12, u * 0.09, u * 0.05, '#6fbe4a')
+    }
+    return
+  }
+  for (let r = 0; r < FLOOR_ROWS; r++) {
+    for (let c = 0; c < FLOOR_COLS; c++) {
+      const h = sHash(c * 31 + r * 7 + 1)
+      const p = g.project(c + 0.5, r + 0.5, 0)
+      if (decor === 'pool') {
+        // gentle ripple squiggle — two short dashes that drift horizontally
+        const ph = Math.sin(now * 1.3 + h * 6.28)
+        const dx = ph * u * 0.10
+        ctx.save(); ctx.globalAlpha = 0.35 + 0.25 * (ph * 0.5 + 0.5)
+        px(ctx, p.sx - u * 0.18 + dx, p.sy - u * 0.02, u * 0.14, Math.max(1, u * 0.04), '#bfeaff')
+        px(ctx, p.sx + u * 0.02 - dx, p.sy + u * 0.06, u * 0.12, Math.max(1, u * 0.04), '#dff4ff')
+        ctx.restore()
+      } else if (decor === 'garden') {
+        if (h < 0.5) continue
+        const petal = ['#ff6fae', '#ffd23f', '#ff8f4a', '#ffffff'][Math.floor(sHash(c * 5 + r * 9) * 4)]
+        const s = u * 0.05
+        px(ctx, p.sx - s * 1.5, p.sy - s * 0.5, s, s, petal)
+        px(ctx, p.sx + s * 0.5, p.sy - s * 0.5, s, s, petal)
+        px(ctx, p.sx - s * 0.5, p.sy - s * 1.5, s, s, petal)
+        px(ctx, p.sx - s * 0.5, p.sy + s * 0.5, s, s, petal)
+        px(ctx, p.sx - s * 0.5, p.sy - s * 0.5, s, s, '#ffe27a')
+      } else if (decor === 'forest') {
+        if (h < 0.45) continue
+        const leaf = h < 0.7 ? '#1f4a12' : '#3a6a1f'
+        const s = u * 0.06
+        px(ctx, p.sx - s, p.sy, s * 2, s, leaf)
+        px(ctx, p.sx - s * 0.5, p.sy - s * 0.6, s, s * 0.6, leaf)
+      } else if (decor === 'space') {
+        // faint floor-grid node glints at some intersections
+        if (h < 0.7) continue
+        const tw = 0.4 + 0.6 * (Math.sin(now * 2 + h * 12) * 0.5 + 0.5)
+        ctx.save(); ctx.globalAlpha = tw * 0.5
+        px(ctx, p.sx - 1, p.sy - 1, 2, 2, '#9fb4ff')
+        ctx.restore()
+      }
+    }
+  }
+}
+
+// Twinkling star dots on a wall face (space theme only)
+function drawWallStars(ctx, g, face) {
+  const minX = Math.min(...face.map(p => p.sx)), maxX = Math.max(...face.map(p => p.sx))
+  const minY = Math.min(...face.map(p => p.sy)), maxY = Math.max(...face.map(p => p.sy))
+  const now = Date.now() / 1000
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(face[0].sx, face[0].sy)
+  for (let i = 1; i < face.length; i++) ctx.lineTo(face[i].sx, face[i].sy)
+  ctx.closePath()
+  ctx.clip()
+  const N = 26
+  for (let i = 0; i < N; i++) {
+    const sx = minX + sHash(i * 3 + 1) * (maxX - minX)
+    const sy = minY + sHash(i * 7 + 2) * (maxY - minY)
+    const tw = Math.sin(now * 2 + i) * 0.5 + 0.5
+    ctx.globalAlpha = 0.25 + 0.6 * tw
+    px(ctx, sx, sy, tw > 0.75 ? 2 : 1, tw > 0.75 ? 2 : 1, '#ffffff')
+  }
   ctx.restore()
 }
 
@@ -210,16 +377,17 @@ function wallPolish(ctx, g, face) {
   ctx.restore()
 }
 
-function drawLeftWall(ctx, g) {
+function drawLeftWall(ctx, g, P) {
   // back-left wall face (x = 0, y 0..FLOOR_ROWS, z 0..WALL_HEIGHT)
   const face = [
     g.project(0, 0, 0), g.project(0, FLOOR_ROWS, 0),
     g.project(0, FLOOR_ROWS, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
-  fillQuad(ctx, face, '#F3E6D2')
+  fillQuad(ctx, face, P.leftWall)
   wallPolish(ctx, g, face)
+  if (!g.small && P.decor === 'space') drawWallStars(ctx, g, face)
   // faint tile grid
-  ctx.strokeStyle = 'rgba(150,120,88,0.16)'; ctx.lineWidth = 1
+  ctx.strokeStyle = P.leftGrid; ctx.lineWidth = 1
   for (let y = 1; y < FLOOR_ROWS; y++) {
     const a = g.project(0, y, 0), b = g.project(0, y, WALL_HEIGHT)
     ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke()
@@ -233,18 +401,19 @@ function drawLeftWall(ctx, g) {
     g.project(0, 0, 0), g.project(0, FLOOR_ROWS, 0),
     g.project(0, FLOOR_ROWS, 0.28), g.project(0, 0, 0.28),
   ]
-  fillQuad(ctx, bb, 'rgba(176,140,96,0.55)')
+  fillQuad(ctx, bb, P.leftBase)
 }
 
-function drawRightWall(ctx, g) {
+function drawRightWall(ctx, g, P) {
   // back-right wall face (y = 0, x 0..FLOOR_COLS, z 0..WALL_HEIGHT) — slightly darker
   const face = [
     g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0),
     g.project(FLOOR_COLS, 0, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
-  fillQuad(ctx, face, '#E7D3B4')
+  fillQuad(ctx, face, P.rightWall)
   wallPolish(ctx, g, face)
-  ctx.strokeStyle = 'rgba(140,110,78,0.16)'; ctx.lineWidth = 1
+  if (!g.small && P.decor === 'space') drawWallStars(ctx, g, face)
+  ctx.strokeStyle = P.rightGrid; ctx.lineWidth = 1
   for (let x = 1; x < FLOOR_COLS; x++) {
     const a = g.project(x, 0, 0), b = g.project(x, 0, WALL_HEIGHT)
     ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke()
@@ -257,10 +426,10 @@ function drawRightWall(ctx, g) {
     g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0),
     g.project(FLOOR_COLS, 0, 0.28), g.project(0, 0, 0.28),
   ]
-  fillQuad(ctx, bb, 'rgba(160,126,84,0.55)')
+  fillQuad(ctx, bb, P.rightBase)
   // back-corner shadow line (vertical edge where the two walls meet)
   const c0 = g.project(0, 0, 0), c1 = g.project(0, 0, WALL_HEIGHT)
-  ctx.strokeStyle = 'rgba(90,60,32,0.28)'; ctx.lineWidth = 1.5
+  ctx.strokeStyle = P.corner; ctx.lineWidth = 1.5
   ctx.beginPath(); ctx.moveTo(c0.sx, c0.sy); ctx.lineTo(c1.sx, c1.sy); ctx.stroke()
 }
 
@@ -386,9 +555,10 @@ function drawWallFurniture(ctx, g, layout, zone, bounceKey, bounceScale) {
  */
 export function drawRoomScene(ctx, {
   W, H, roomLayout, small = false, hint = true, activeZone = null, selectedKey = null,
-  showTapHints = false, hintOpacity = 0, bounceKey = null, bounceScale = 1,
+  showTapHints = false, hintOpacity = 0, bounceKey = null, bounceScale = 1, theme = 'default',
 }) {
   const layout = roomLayout ?? {}
+  const P = resolveThemePalette(theme)
   const g = computeRoomGeometry(W, H, small)
 
   // soft backdrop so margins blend with the app's dark theme
@@ -399,9 +569,9 @@ export function drawRoomScene(ctx, {
   ctx.fillRect(0, 0, W, H)
 
   // surfaces (back → front): right wall, left wall, floor
-  drawRightWall(ctx, g)
-  drawLeftWall(ctx, g)
-  drawFloor(ctx, g)
+  drawRightWall(ctx, g, P)
+  drawLeftWall(ctx, g, P)
+  drawFloor(ctx, g, P)
 
   if (!small) {
     // faint warm "ceiling light" ambient glow near the top-center of the scene

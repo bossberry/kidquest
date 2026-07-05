@@ -59,7 +59,15 @@ export default function DecoratedRoom({
   const { state, eggStatsData } = useAppState()
   const { resolved: companion } = useCompanion()
 
-  const roomLayoutRef = useRef(state.roomLayout ?? {})
+  // Home shows the HOME room (state.homeRoomId), NOT the active editor room — so
+  // browsing rooms in Room.jsx never changes the Home backdrop. Bypass the
+  // roomLayout mirror entirely and read the home room's own layout + theme.
+  const homeRoom = (state.rooms ?? []).find(r => r.id === state.homeRoomId) || (state.rooms ?? [])[0]
+  const homeLayout = homeRoom?.layout ?? (state.roomLayout ?? {})
+  const homeTheme  = homeRoom?.theme ?? 'default'
+
+  const roomLayoutRef = useRef(homeLayout)
+  const roomThemeRef  = useRef(homeTheme)
   const showWalkerRef = useRef(showWalker)
   showWalkerRef.current = showWalker
 
@@ -78,7 +86,7 @@ export default function DecoratedRoom({
   const onSwipeRef  = useRef(onSwipe);  onSwipeRef.current  = onSwipe
 
   // Keep refs current for the rAF loop (which lives outside React's render cycle)
-  useEffect(() => { roomLayoutRef.current = state.roomLayout ?? {} })
+  useEffect(() => { roomLayoutRef.current = homeLayout; roomThemeRef.current = homeTheme })
   useEffect(() => { spriteStateRef.current = { anim, mood } }, [anim, mood])
 
   useEffect(() => {
@@ -290,7 +298,7 @@ export default function DecoratedRoom({
         const { W, H, SIZE } = geom
         ctx.imageSmoothingEnabled = false   // canvas.width changes (resize) reset this
         ctx.clearRect(0, 0, W, H)
-        drawRoomScene(ctx, { W, H, roomLayout: roomLayoutRef.current, small: false, hint: false })
+        drawRoomScene(ctx, { W, H, roomLayout: roomLayoutRef.current, small: false, hint: false, theme: roomThemeRef.current })
 
         if (showWalkerRef.current && entityRef.current && spriteOffRef.current) {
           const now = performance.now()

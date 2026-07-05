@@ -26,15 +26,18 @@ export default function RoomScene({
   small = false,
   egg = null,
   spriteSize,
+  theme = 'default',
   style,
 }) {
   const canvasRef  = useRef(null)
   const layoutRef  = useRef(roomLayout)
   const eggRef     = useRef(egg)
+  const themeRef   = useRef(theme)
   const spriteOff  = useRef(null)
 
   layoutRef.current = roomLayout
   eggRef.current    = egg
+  themeRef.current  = theme
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -60,7 +63,7 @@ export default function RoomScene({
       const t = performance.now() / 1000
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
       ctx.clearRect(0, 0, width, height)
-      drawRoomScene(ctx, { W: width, H: height, roomLayout: layoutRef.current, small, hint: false })
+      drawRoomScene(ctx, { W: width, H: height, roomLayout: layoutRef.current, small, hint: false, theme: themeRef.current })
 
       const e = eggRef.current
       if (e && spriteOff.current) {

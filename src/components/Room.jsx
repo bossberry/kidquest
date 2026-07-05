@@ -1,7 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS } from '../lib/roomItems.js'
-import { drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter } from '../lib/roomScene.js'
+import {
+  drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter,
+  ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
+} from '../lib/roomScene.js'
 import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 
@@ -78,16 +81,108 @@ function ItemCard({ item, cardState, onTap }) {
   )
 }
 
+// ── RoomMiniMap: top-right grid overlay of owned rooms + adjacent buy cells ──
+function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, onBuyCell, onSetHome }) {
+  if (!activeRoom) return null
+  const gxs = rooms.map(r => r.gridX), gys = rooms.map(r => r.gridY)
+  // Pad by 1 around all rooms so every orthogonally-adjacent empty cell (a valid
+  // purchase target) is visible; this also guarantees ≥3×3 when there's one room.
+  const minX = Math.min(...gxs) - 1, maxX = Math.max(...gxs) + 1
+  const minY = Math.min(...gys) - 1, maxY = Math.max(...gys) + 1
+  const cols = maxX - minX + 1, rowsN = maxY - minY + 1
+  const CELL = 24, GAP = 3
+  const roomAt = (x, y) => rooms.find(r => r.gridX === x && r.gridY === y)
+  const isAdjacent = (x, y) => rooms.some(r => Math.abs(r.gridX - x) + Math.abs(r.gridY - y) === 1)
+
+  const cells = []
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const room = roomAt(x, y)
+      if (room) {
+        const meta = themeMeta(room.theme)
+        const bg = (THEME_PALETTES[room.theme] || THEME_PALETTES.default).floorLight
+        const isActive = room.id === activeRoomId
+        cells.push(
+          <button key={`${x}_${y}`} onClick={() => onSelect(room.id)} aria-label={meta.nameTh}
+            style={{
+              width: CELL, height: CELL, padding: 0, cursor: 'pointer', position: 'relative',
+              borderRadius: 5, background: bg, fontSize: 12, lineHeight: `${CELL}px`, textAlign: 'center',
+              border: isActive ? '2px solid #FFD23F' : '1px solid rgba(255,255,255,0.25)',
+              boxShadow: isActive ? '0 0 6px rgba(255,210,63,0.6)' : 'none',
+              WebkitTapHighlightColor: 'transparent',
+            }}>
+            {meta.icon}
+            {room.id === homeRoomId && (
+              <span style={{ position: 'absolute', top: -6, right: -5, fontSize: 9 }}>🏠</span>
+            )}
+          </button>
+        )
+      } else if (isAdjacent(x, y)) {
+        cells.push(
+          <button key={`${x}_${y}`} onClick={() => onBuyCell(x, y)} aria-label="ซื้อห้องใหม่"
+            style={{
+              width: CELL, height: CELL, padding: 0, cursor: 'pointer',
+              borderRadius: 5, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,210,63,0.85)',
+              border: '1.5px dashed rgba(255,210,63,0.55)', fontSize: 14, lineHeight: `${CELL}px`,
+              WebkitTapHighlightColor: 'transparent',
+            }}>
+            +
+          </button>
+        )
+      } else {
+        cells.push(<div key={`${x}_${y}`} style={{ width: CELL, height: CELL }} />)
+      }
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'absolute', top: 10, right: 10, zIndex: 3,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6,
+    }}>
+      <div style={{
+        background: 'rgba(10,8,22,0.6)', backdropFilter: 'blur(6px)',
+        border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: 8,
+        display: 'grid', gap: GAP,
+        gridTemplateColumns: `repeat(${cols}, ${CELL}px)`,
+        gridTemplateRows: `repeat(${rowsN}, ${CELL}px)`,
+      }}>
+        {cells}
+      </div>
+      {onSetHome && (
+        <button onClick={onSetHome} aria-label="ตั้งเป็นห้องหลัก"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+            background: 'rgba(10,8,22,0.6)', backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: '5px 10px',
+            fontFamily: 'var(--font-thai)', fontSize: 11, color: '#FFD23F',
+            WebkitTapHighlightColor: 'transparent',
+          }}>
+          🏠 ตั้งเป็นห้องหลัก
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Main Room screen ─────────────────────────────────────────────────────────
 export default function Room() {
   const { state, dispatch } = useAppState()
   const [selectedSlot, setSelectedSlot] = useState(null)   // { key, zone } | null — drives the unified sheet
   const [toast, setToast] = useState(null)
   const [buyTarget, setBuyTarget] = useState(null)   // ROOM_ITEMS entry currently up for purchase-confirm, or null
+  const [buyRoomAt, setBuyRoomAt] = useState(null)   // { gridX, gridY } — empty mini-map cell tapped, opens room-block purchase sheet
+  const [buyRoomTheme, setBuyRoomTheme] = useState(null)  // theme id selected inside that sheet, awaiting confirm
 
-  const coins      = state.coins ?? 0
-  const ownedRoom  = state.ownedRoomItems ?? []
-  const roomLayout = state.roomLayout ?? {}
+  const coins       = state.coins ?? 0
+  const ownedRoom   = state.ownedRoomItems ?? []
+  const rooms       = state.rooms ?? [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} }]
+  const activeRoomId = state.activeRoomId ?? 'main'
+  const homeRoomId  = state.homeRoomId ?? 'main'
+  const activeRoom  = rooms.find(r => r.id === activeRoomId) || rooms[0]
+  const activeTheme = activeRoom?.theme ?? 'default'
+  const roomLayout  = activeRoom?.layout ?? (state.roomLayout ?? {})
+  const activeMeta  = themeMeta(activeTheme)
 
   const wrapRef    = useRef(null)
   const canvasRef  = useRef(null)
@@ -98,8 +193,10 @@ export default function Room() {
   // outside React's render cycle) never reads a stale closure.
   const layoutRef      = useRef(roomLayout)
   const selectedKeyRef = useRef(null)
+  const themeRef       = useRef(activeTheme)
   layoutRef.current      = roomLayout
   selectedKeyRef.current = selectedSlot?.key ?? null
+  themeRef.current       = activeTheme
 
   // Tap-hint fade + placement-bounce + sparkle animation state (rAF-driven, Room-editor-only).
   const hintOpacityRef   = useRef(0)
@@ -109,6 +206,8 @@ export default function Room() {
   const effectsRef       = useRef([])
   const rafRef           = useRef(null)
   const lastFrameRef     = useRef(0)
+  const swipeStartRef    = useRef(null)   // { x, y, t } touchstart, for swipe-to-navigate
+  const swipedRef        = useRef(false)  // set when a touchend resolved as a nav swipe → suppress the click
 
   useEffect(() => {
     playBGM('room')
@@ -126,7 +225,7 @@ export default function Room() {
       W, H, roomLayout: layoutRef.current, small: false, hint: false,
       selectedKey: selectedKeyRef.current,
       showTapHints: true, hintOpacity,
-      bounceKey, bounceScale,
+      bounceKey, bounceScale, theme: themeRef.current,
     })
     geomRef.current = { g: computeRoomGeometry(W, H, false), W, H }
   }, [])
@@ -218,7 +317,7 @@ export default function Room() {
   // has settled and stopped (e.g. placing/removing an item while hints are faded).
   useEffect(() => {
     if (!rafRef.current) drawFrame(hintOpacityRef.current, null, 1)
-  }, [roomLayout, selectedSlot, drawFrame])
+  }, [roomLayout, selectedSlot, activeTheme, activeRoomId, drawFrame])
 
   function flash(msg) {
     setToast(msg)
@@ -226,6 +325,9 @@ export default function Room() {
   }
 
   function handleCanvasClick(e) {
+    // A nav swipe (touchend) fires a synthetic click right after — swallow it once
+    // so a deliberate left/right swipe never also drops furniture on a slot.
+    if (swipedRef.current) { swipedRef.current = false; return }
     wake()
     const canvas = canvasRef.current
     const g = geomRef.current?.g
@@ -237,6 +339,42 @@ export default function Room() {
     if (!hit) return
     setBuyTarget(null)
     setSelectedSlot({ key: hit.key, zone: hit.zone })
+  }
+
+  // Switch to the room orthogonally adjacent to the active one in a grid direction.
+  // Convention: dx/dy are grid deltas (dx +1 = room to the right, dy +1 = room "below").
+  function navigateGrid(dx, dy) {
+    if (!activeRoom) return
+    const target = rooms.find(r => r.gridX === activeRoom.gridX + dx && r.gridY === activeRoom.gridY + dy)
+    if (!target || target.id === activeRoomId) return false
+    dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: target.id } })
+    setSelectedSlot(null); setBuyTarget(null)
+    playSFX('room_visit_enter')
+    return true
+  }
+
+  function handleTouchStart(e) {
+    const t = e.touches?.[0]
+    if (!t) return
+    swipeStartRef.current = { x: t.clientX, y: t.clientY, t: performance.now() }
+  }
+
+  function handleTouchEnd(e) {
+    const s = swipeStartRef.current
+    swipeStartRef.current = null
+    const t = e.changedTouches?.[0]
+    if (!s || !t) return
+    const dx = t.clientX - s.x, dy = t.clientY - s.y
+    const adx = Math.abs(dx), ady = Math.abs(dy)
+    const dist = Math.max(adx, ady)
+    const dt = performance.now() - s.t
+    // Require a decisive, fast-ish drag so a slow placement-tap-with-jitter never
+    // reads as navigation (tap-to-place lands via the click handler instead).
+    if (dist < 50 || dt > 700) return
+    let moved = false
+    if (adx > ady * 1.3)      moved = navigateGrid(dx < 0 ? 1 : -1, 0)  // swipe left → next room right
+    else if (ady > adx * 1.3) moved = navigateGrid(0, dy < 0 ? 1 : -1)  // swipe up → next room "below"
+    if (moved) swipedRef.current = true
   }
 
   // owned+unplaced (or placed in THIS slot) → 'owned' (tappable, gold)
@@ -288,6 +426,17 @@ export default function Room() {
                          // already includes `item.id` by the time this runs.
   }
 
+  function handleBuyRoomBlock() {
+    if (!buyRoomAt || !buyRoomTheme) return
+    if (coins < ROOM_BLOCK_PRICE) { flash('เหรียญไม่พอ!'); return }
+    dispatch({ type: ACTIONS.BUY_ROOM_BLOCK, payload: { gridX: buyRoomAt.gridX, gridY: buyRoomAt.gridY, theme: buyRoomTheme } })
+    playSFX('coin_purchase')
+    const meta = themeMeta(buyRoomTheme)
+    setBuyRoomAt(null); setBuyRoomTheme(null)
+    setSelectedSlot(null)
+    flash(`สร้าง${meta.nameTh}แล้ว! ${meta.icon}`)
+  }
+
   function handleRemove() {
     const key = selectedSlot?.key
     if (!key) return
@@ -318,6 +467,8 @@ export default function Room() {
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
             imageRendering: 'pixelated', cursor: 'pointer',
@@ -348,6 +499,39 @@ export default function Room() {
             🪙 {coins}
           </span>
         </div>
+
+        {/* Room label — floating pill, top-center: theme icon + Thai name */}
+        <div style={{
+          position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
+          pointerEvents: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: 'rgba(10,8,22,0.55)', backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '5px 14px',
+        }}>
+          <span style={{ fontSize: 15 }}>{activeMeta.icon}</span>
+          <span style={{ fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+            {activeMeta.nameTh}
+          </span>
+        </div>
+
+        {/* Mini-map — top-right grid of rooms + adjacent "+" purchase cells */}
+        <RoomMiniMap
+          rooms={rooms}
+          activeRoom={activeRoom}
+          activeRoomId={activeRoomId}
+          homeRoomId={homeRoomId}
+          onSelect={(id) => {
+            if (id === activeRoomId) return
+            dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: id } })
+            setSelectedSlot(null); setBuyTarget(null)
+            playSFX('room_visit_enter')
+          }}
+          onBuyCell={(gridX, gridY) => { setBuyRoomTheme(null); setBuyRoomAt({ gridX, gridY }) }}
+          onSetHome={activeRoomId !== homeRoomId ? () => {
+            dispatch({ type: ACTIONS.SET_HOME_ROOM, payload: { roomId: activeRoomId } })
+            playSFX('coin_purchase')
+            flash('ตั้งเป็นห้องหลักแล้ว 🏠')
+          } : null}
+        />
 
         {/* Hint text — pinned bottom overlay, taps pass through to the canvas */}
         <div style={{
@@ -482,6 +666,94 @@ export default function Room() {
                   })}
                 </div>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Room-block purchase sheet (tapping an empty "+" mini-map cell) ──── */}
+      {buyRoomAt && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9100,
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }}>
+          <div
+            onClick={() => { setBuyRoomAt(null); setBuyRoomTheme(null) }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
+          />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            maxHeight: '52vh', display: 'flex', flexDirection: 'column',
+            background: 'rgba(26,16,64,0.92)', backdropFilter: 'blur(14px)',
+            borderRadius: '24px 24px 0 0', padding: '16px 16px 0',
+            paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+            animation: 'fadeInUp 0.22s ease both', boxSizing: 'border-box',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0,
+            }}>
+              <span style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
+                🏗️ สร้างห้องใหม่
+              </span>
+              <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#FFD23F' }}>🪙 {coins}</span>
+            </div>
+
+            {buyRoomTheme ? (
+              // Confirm view
+              (() => {
+                const meta = themeMeta(buyRoomTheme)
+                const afford = coins >= ROOM_BLOCK_PRICE
+                return (
+                  <div style={{
+                    flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 12,
+                  }}>
+                    <div style={{ fontSize: 52 }}>{meta.icon}</div>
+                    <div style={{ fontFamily: 'var(--font-thai)', fontSize: 17, fontWeight: 700, color: '#fff' }}>
+                      ซื้อ{meta.nameTh} 🪙{ROOM_BLOCK_PRICE}?
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 320 }}>
+                      <button onClick={() => setBuyRoomTheme(null)} aria-label="ย้อนกลับ"
+                        style={{
+                          flex: 1, border: '1.5px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+                          background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 0',
+                          fontFamily: 'var(--font-thai)', fontSize: 14, color: 'rgba(255,255,255,0.7)',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}>← ย้อนกลับ</button>
+                      <button onClick={handleBuyRoomBlock} disabled={!afford} aria-label={`ซื้อ ${ROOM_BLOCK_PRICE}`}
+                        style={{
+                          flex: 2, border: 'none', cursor: afford ? 'pointer' : 'default',
+                          background: afford ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.08)',
+                          borderRadius: 10, padding: '12px 0', fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
+                          color: afford ? '#FFD23F' : 'rgba(255,255,255,0.3)', WebkitTapHighlightColor: 'transparent',
+                        }}>🛒 ซื้อ 🪙{ROOM_BLOCK_PRICE}</button>
+                    </div>
+                  </div>
+                )
+              })()
+            ) : (
+              <div style={{
+                flex: 1, minHeight: 0, overflowY: 'auto',
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+                justifyItems: 'center', paddingBottom: 12,
+              }}>
+                {ROOM_THEMES.filter(t => t.price > 0).map(t => (
+                  <div key={t.id} onClick={() => setBuyRoomTheme(t.id)}
+                    style={{
+                      width: 90, height: 104, borderRadius: 12, padding: '10px 6px 8px', boxSizing: 'border-box',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: (THEME_PALETTES[t.id] || THEME_PALETTES.default).floorLight + '22',
+                      border: '1.5px solid rgba(255,255,255,0.14)', cursor: 'pointer',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}>
+                    <span style={{ fontSize: 30 }}>{t.icon}</span>
+                    <span style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: '#fff', textAlign: 'center', lineHeight: 1.15 }}>
+                      {t.nameTh}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#FFD23F' }}>🪙{t.price}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

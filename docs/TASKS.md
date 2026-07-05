@@ -1,5 +1,5 @@
 # Tasks — KidQuest
-_Last updated: 2026-07-04_
+_Last updated: 2026-07-05_
 
 ---
 
@@ -33,6 +33,8 @@ _Last updated: 2026-07-04_
 
 ## Next (no Chatbot decision needed)
 
+- [x] **Multi-room Den expansion** — user supplied a full spec directly (schema/6 themes/mini-map+swipe/purchase UI). `state.rooms[]`/`activeRoomId`/`homeRoomId` (roomLayout kept as a derived mirror only), `BUY_ROOM_BLOCK`/`SET_ACTIVE_ROOM`/`SET_HOME_ROOM`/`PLACE_ROOM_ITEM_IN_ROOM`/`REMOVE_ROOM_ITEM_FROM_ROOM` reducers, 6 room themes (default/pool/garden/veggie/forest/space) recoloring `roomScene.js`'s surfaces + seeded ambient decor, mini-map/swipe-nav/purchase-sheet/home-button UI in `Room.jsx`, Home background reads the home room independent of the editor's active room, Friends room-visit reads a friend's `rooms[]` with graceful fallback. Build clean; harness-verified (theme rendering + full reducer logic), login-gate blocked true in-browser click-through this session — flagged as a follow-up. Needs a pending Supabase migration run manually (`20260705_mystery_adventurers_multi_room.sql`) for multi-room Friends visits — see `CURRENT_STATE.md`. (2026-07-05)
+- [ ] **Follow-up**: apply the `20260705_mystery_adventurers_multi_room.sql` migration manually, then do a live click-through of Room.jsx's mini-map/swipe/purchase flow in a real logged-in session.
 - [x] **5-world expansion + per-world tile-palette theme system** — `WORLD_LEVELS` grown 3→5 (Green Meadow/Coral Coast/Dark Forest/Frost Peak/Sky Kingdom = grassland/beach/forest/snow/sky), boss stats scaled 120/8/4→260/15/8. Wired the previously-dead `theme` config key into `tileEngine.js`: new `THEMES` object + `currentTheme` + exported `setWorldTheme()`, all draw fns read `currentTheme.*` (grassland unchanged). Real per-theme tile variants gated by structural flags: beach all-palms + sand ripples, forest darker + wider trunks + toadstools, snow pine trees + snowcaps + snowflakes + frozen lakes, sky beanstalks + cloud puffs + stars + gold path — all seeded off `tileHash` (frame-stable). Maze painters untouched (theme-agnostic, confirmed pixel-identical). `WorldScreen.jsx` syncs theme via `useEffect([state.worldLevel])`; world-unlock banner now theme-coloured + confetti (reuses `mkSparks`/`tickEffects`); HUD shows theme-emoji badge (`WORLD_THEME_ICON` 🌿🌊🌲❄️☁️). Retired Crystal Cave in favour of the fully-specified sky theme (flagged for Chatbot). Build clean; all 5 themes harness-verified live in Chrome (screenshots); in-app world walkthrough deferred (login gate + classifier blocked credential entry this session) ✅ (2026-07-04)
 - [x] **Sequencing input mode** — 3–4 consecutive alphabet letters to reorder; Thai L1–4 (15%) + English phonics/cvc (15%); Zone 2 shows 🔤; SequenceInput.jsx ✅
 - [x] **Word-building (tap-to-spell) input mode for Thai battles** — 50/50 random alternation for levels 2–4; WordBuildInput.jsx in battle/; levels 1 and 5 unchanged ✅

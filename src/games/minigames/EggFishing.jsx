@@ -4,13 +4,14 @@ import { FISH_TYPES, ITEMS } from '../../config/gameConfig.js'
 import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+import { MinigameBg, InGameHUD, MinigameResult } from './minigameUI.jsx'
 
 const G = MINIGAMES.fishing
 // Rarer fish (lower spawn-weight `rarity`) award more coins.
 // 🐟.5→3  🐠.25→5  🐡.15→7  🦑.08→10  🐙.02→15
-const fishCoins = (r) => r <= .03 ? 15 : r <= .1 ? 10 : r <= .2 ? 7 : r <= .35 ? 5 : 3
+const fishCoins = (r) => r <= .03 ? 8 : r <= .1 ? 5 : r <= .2 ? 4 : r <= .35 ? 3 : 2
 
-export default function EggFishing() {
+export default function EggFishing({ navigate }) {
   const { state, dispatch } = useAppState()
   const canvasRef = useRef(null)
   const gsRef = useRef(null)
@@ -23,6 +24,7 @@ export default function EggFishing() {
   const [timeLeft, setTimeLeft] = useState(60)
   const [caught, setCaught] = useState(0)
   const [coinsEarned, setCoinsEarned] = useState(0)
+  const [runCoins, setRunCoins] = useState(0)
   const [caughtItems, setCaughtItems] = useState([])
 
   const lives = livesRemaining(state, 'fishing')
@@ -35,7 +37,7 @@ export default function EggFishing() {
     if (lives <= 0) return
     dispatch({ type: ACTIONS.FISHING_DEDUCT_LIFE })
     coinsRef.current = 0
-    setCaught(0); setCaughtItems([]); setCoinsEarned(0); setTimeLeft(60)
+    setCaught(0); setCaughtItems([]); setCoinsEarned(0); setRunCoins(0); setTimeLeft(60)
     setPhase('playing')
   }
 
@@ -78,6 +80,7 @@ export default function EggFishing() {
         gs.fishes.splice(i, 1); spawnFish(gs, canvas)
         setCaught(c => c + 1)
         coinsRef.current += fishCoins(f.rarity)
+        setRunCoins(coinsRef.current)
         playTone('streak')
         if (!state.items) return
         if (f.item === 'all') {
@@ -111,26 +114,22 @@ export default function EggFishing() {
   )
 
   if (phase === 'done') return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
-      <div style={{ fontSize:64, marginBottom:10 }}>🎣</div>
-      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:4 }}>หมดเวลา!</div>
-      <div style={{ fontSize:16, marginBottom:8 }}>ตกปลาได้ {caught} ตัว</div>
-      {caughtItems.length > 0 && <div style={{ fontSize:20, marginBottom:8 }}>{caughtItems.join(' ')}</div>}
-      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{coinsEarned}</div>
-      <button onClick={() => setPhase('ready')} style={{ width:'100%', background:'var(--blue)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
-    </div>
+    <MinigameResult
+      gameKey="fishing" emoji="🎣" title="หมดเวลา!"
+      stats={[`ตกปลาได้ ${caught} ตัว`, ...(caughtItems.length > 0 ? [caughtItems.join(' ')] : [])]}
+      coins={coinsEarned} livesRemaining={lives} maxLives={G.max}
+      onRetry={() => setPhase('ready')} onHome={() => navigate?.('home')}
+    />
   )
 
   return (
-    <div style={{ width:'100%', maxWidth:480 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif', fontSize:13 }}>
-        <span>🐟 {caught} ตัว</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18, color:'var(--blue-d)' }}>{timeLeft}s</span>
-        <span>กดค้างเพื่อหย่อนเบ็ด</span>
-      </div>
+    <div style={{ position:'relative', width:'100%', maxWidth:480, borderRadius:12, overflow:'hidden' }}>
+      <MinigameBg gameKey="fishing" radius={12} />
+      <InGameHUD gameKey="fishing" hearts={lives} maxHearts={G.max}
+        coins={runCoins} center={`⏱ ${timeLeft}s · 🐟 ${caught}`} />
       <canvas
         ref={canvasRef} width={cW} height={cH}
-        style={{ display:'block', borderRadius:12, cursor:'pointer' }}
+        style={{ position:'relative', zIndex:2, display:'block', borderRadius:12, cursor:'pointer' }}
         onMouseDown={() => { holdRef.current = true }}
         onMouseUp={() => { holdRef.current = false; checkCatch() }}
         onTouchStart={() => { holdRef.current = true }}

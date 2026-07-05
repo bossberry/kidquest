@@ -1,5 +1,37 @@
 # Changelog — KidQuest
 
+## 2026-07-05 — Minigame lives/coin rebalance + visual/UX redesign
+
+Part 1 (mechanical): reduced daily lives per game and lowered coin-reward tiers across all 5 minigames. Part 2 (visual): themed backgrounds, animated hearts/coin-preview HUD, redesigned result screens, Home shortcut polish, and a launch splash.
+
+### src/lib/minigameLives.js
+- `MINIGAMES[...].max`: memory/catch/tower 5→3, eggrun/fishing 3→2.
+
+### src/context/StateContext.jsx / src/lib/state.js
+- Found a real bug while doing the Part 1 edit: each `*_DEDUCT_LIFE` reducer case hardcoded its own daily-reset value (5/5/5/3/3), and `defaultState()` also hardcoded its own copy — both independent of `minigameLives.js`'s `MINIGAMES[...].max`. All three now read 3/3/3/2/2 consistently; otherwise the ready-screen hearts display would show the new lower cap while the reducer silently kept resetting to the old higher one.
+
+### src/games/minigames/EggMemory.jsx, EggCatch.jsx, EggTower.jsx, EggRun.jsx, EggFishing.jsx
+- Coin-formula constants lowered (exact new tiers in `CURRENT_STATE.md`) — the underlying score inputs (moves/rings/dist/rarity/etc.) are unchanged.
+- All 5 now render `MinigameBg` (themed backdrop) + `InGameHUD` (live hearts + coin-tier preview) during play, and `MinigameResult` on game-over, replacing each game's previous plain inline result markup.
+- Extracted each game's coin formula into a small named function (`memoryCoins`, `catchCoinsFor`, `towerCoinsFor`, `runCoinsFor`, `fishCoins`) so the in-play HUD preview and the result screen share one source of truth instead of duplicating the ternary.
+- Fixed a genuine pre-existing gap surfaced while redesigning the result screen: all 5 games always showed an active "เล่นอีกครั้ง" retry button regardless of remaining daily lives — now disabled (swapped for "😴 พรุ่งนี้นะ!") once lives hit 0.
+
+### src/games/minigames/minigameUI.jsx (new)
+- `THEMES` — per-game palette + ambient-shape kind (memory deep-blue/stars, catch sky-blue/clouds, tower dark-purple/stone, eggrun forest-green/speed-lines, fishing ocean-teal/bubbles).
+- `MinigameBg` — paints the themed gradient + ambient shapes once to an offscreen-sized canvas (same static-paint technique as `BattleBackground.jsx`/`Collection.jsx`'s `DressingRoomBackground`), not redrawn per frame.
+- `InGameHUD` — themed top strip: live `🪙+N` coin-tier preview, center score/label, hearts row that pulses (`mg-heart-loss`) on loss.
+- `MinigameResult` — shared game-over screen: bounce-in emoji, Press-Start-2P gold title/stats, a coin chip that spins in (`mg-coin-spin`) and counts up as 3–5 flying `🪙` sprites land (`mg-coin-fly`, pure CSS, no extra SFX — reuses the single `coin_earn` play `dispatchAddCoins` already fires), hearts-remaining row, and 🔄/🏠 buttons.
+
+### src/components/Home.jsx
+- Minigame shortcut kept its existing 54px floating circular form factor (a 2026-07-03 redesign deliberately replaced a card/row layout with this shape — not reverting that) — added a rotating conic-gradient glow ring + pulsing outline + 3 orbiting sparkle dots, a lives-badge that recolors orange and pulses at ≤2 lives, and a dimmed 😴-emoji swap (+ updated `aria-label`) when all daily plays are used up.
+- New `miniSplash` state + `MINI_SPLASH` map: tapping the shortcut now shows an ~850ms full-screen splash (picked game's emoji bounces in, Thai name, "GO!" flash) before `SET_CURRENT_WORLD` + `navigate('game')` fire, via a hard-capped `setTimeout`.
+
+### src/styles.css
+- New keyframes: `mg-ring-spin`/`mg-ring-pulse`/`mg-spark-blink`/`mg-badge-lowpulse` (Home shortcut), `mg-splash-fade`/`mg-splash-emoji`/`mg-splash-go` (launch splash), `mg-pop`/`mg-coin-spin`/`mg-coin-fly` (result screen), `mg-heart-loss`/`mg-redflash`/`mg-shake` (in-play hearts/damage feedback) + `.mg-redflash` helper class.
+
+### Verification
+`npm run build` clean throughout. Live-verified in Chrome (test account): Home shortcut visual + splash for all 5 games; Egg Memory full round-trip (ready → play → result, confirmed coin-fly/spin landing on the correct new tier, hearts depleting, retry button); Egg Catch and Egg Run ready screens + in-play themed background/HUD; Egg Tower ready + in-play + 14 real block placements (confirmed the live `🪙+N` preview updates through score tier boundaries); Egg Fishing's full round-trip via its real 60-second timer (result screen, 0-coin/0-catch state, hearts row). Two environment issues were hit and worked around rather than silently skipped: a concurrent agent's own live-testing session shared the same browser tab group and dev server this session, requiring a fresh tab plus a surgical patch-based `git apply --cached` to stage only this task's hunks out of `StateContext.jsx`/`state.js` (both files also had unrelated in-flight multi-room-expansion edits); and Chrome's background-tab `requestAnimationFrame` suspension froze the physics-based minigames mid-test (worked around with a `setTimeout`-based rAF polyfill, and by preferring click-/timer-driven end-conditions for verification where rAF couldn't be forced to run).
+
 ## 2026-07-05 — Multi-room Den expansion
 
 Room/Den decoration grows from a single room to a purchasable grid of themed rooms, per a full spec supplied directly by the user (schema, 6 themes, mini-map/swipe/purchase UI, pricing). `CURRENT_STATE.md` had previously flagged this as a deliberate deferred scope call awaiting design review — treated as approved now that the user gave the spec themselves.

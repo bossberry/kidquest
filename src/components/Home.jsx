@@ -54,6 +54,15 @@ const ITEM_DEFS = [
   { key:'rainbow_star', label:'ดาวสีรุ้ง', effect:'ล่องหนจากมอนสเตอร์ตาม' },
 ]
 
+// Minigame splash: kid-facing emoji + short Thai name per game key
+const MINI_SPLASH = {
+  memory:  { emoji:'🃏', name:'จับคู่ไข่' },
+  catch:   { emoji:'🧺', name:'รับไข่' },
+  eggrun:  { emoji:'🏃', name:'ไข่วิ่ง' },
+  tower:   { emoji:'🏗️', name:'ต่อบล็อก' },
+  fishing: { emoji:'🎣', name:'ตกปลา' },
+}
+
 // Accent colors
 const C_COIN   = '#FFD23F'
 const C_STREAK = '#FF6B35'
@@ -150,7 +159,9 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
   // ── Minigame shortcut: random selection among unlocked games with lives left ──
   const miniUnlocked  = unlockedGames(eggLevel)
   const miniTotalLives = miniUnlocked.reduce((sum, k) => sum + livesRemaining(state, k), 0)
+  const [miniSplash, setMiniSplash] = useState(null)  // {emoji,name} shown ~800ms before launch
   const launchRandomMinigame = () => {
+    if (miniSplash) return
     playTone('tap')
     const pool = miniUnlocked.filter(k => livesRemaining(state, k) > 0)
     if (pool.length === 0) {
@@ -159,9 +170,12 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     }
     const pick = pool[Math.floor(Math.random() * pool.length)]
     playSFX('minigame_start')
-    playBGM('minigame')
-    dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: pick })
-    navigate('game')
+    setMiniSplash(MINI_SPLASH[pick] || { emoji:'🎮', name:'มินิเกม' })
+    setTimeout(() => {
+      playBGM('minigame')
+      dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: pick })
+      navigate('game')
+    }, 850)
   }
 
   // ── unlock_new: detect a minigame crossing its unlock-level threshold ──────
@@ -206,6 +220,20 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
       width:'100%', height:'100dvh', position:'relative',
       overflowX:'hidden', overflowY:'hidden',
     }}>
+
+      {/* Minigame launch splash — ~800ms bounce-in before navigating to the game */}
+      {miniSplash && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:2000, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center', gap:14,
+          background:'rgba(8,6,20,0.86)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
+          animation:'mg-splash-fade .18s ease-out both',
+        }}>
+          <div style={{ fontSize:96, animation:'mg-splash-emoji .5s cubic-bezier(.2,.8,.3,1.4) both' }}>{miniSplash.emoji}</div>
+          <div style={{ fontFamily:'var(--font-thai)', fontSize:22, fontWeight:800, color:'#fff', animation:'mg-splash-fade .3s ease-out .25s both' }}>{miniSplash.name}</div>
+          <div style={{ fontFamily:'var(--font-pixel)', fontSize:24, color:'#FFD23F', animation:'mg-splash-go .4s ease-out .45s both' }}>GO!</div>
+        </div>
+      )}
 
       {/* Flying food overlay */}
       {flyingItem && (
@@ -432,23 +460,58 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
           </span>
         </div>
 
-        {/* 🎮 Minigame — floating, upper-left */}
+        {/* 🎮 Minigame — floating, upper-left. Enhanced circular button (2026-07-05):
+            rotating/pulsing glow ring + orbiting sparkles; badge pulses+recolors when
+            lives run low; dimmed 😴 swap when all daily plays are used up. */}
+        {(() => {
+          const out = miniTotalLives === 0            // all plays used today
+          const low = miniTotalLives > 0 && miniTotalLives <= 2
+          const badgeColor = low ? '#FF6B35' : '#2ec16b'
+          return (
         <button
           onClick={launchRandomMinigame}
-          aria-label={`มินิเกม (มีหัวใจ ${miniTotalLives} ดวง)`}
+          aria-label={out ? 'เกมทั้งหมดเล่นครบแล้ววันนี้' : `มินิเกม (มีหัวใจ ${miniTotalLives} ดวง)`}
           style={{
             position:'absolute', top:96, left:14, zIndex:10,
             width:54, height:54, borderRadius:'50%', padding:0,
             background:'rgba(10,8,22,0.60)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
             border:'2px solid rgba(155,93,229,0.85)', boxShadow:'0 3px 10px rgba(0,0,0,0.5)',
             display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+            opacity: out ? 0.5 : 1,
           }}
         >
-          <span style={{ fontSize:28, lineHeight:1 }}>🎮</span>
+          {/* rotating glow ring (hidden when out of plays) */}
+          {!out && (
+            <span style={{
+              position:'absolute', inset:-5, borderRadius:'50%', pointerEvents:'none',
+              background:'conic-gradient(from 0deg, rgba(155,93,229,0), rgba(255,210,63,.9), rgba(155,93,229,0))',
+              filter:'blur(2px)', animation:'mg-ring-spin 3.5s linear infinite',
+            }} />
+          )}
+          {!out && (
+            <span style={{
+              position:'absolute', inset:-3, borderRadius:'50%', pointerEvents:'none',
+              border:'2px solid rgba(255,210,63,.55)', animation:'mg-ring-pulse 2s ease-in-out infinite',
+            }} />
+          )}
+          {/* orbiting sparkle dots */}
+          {!out && [
+            { top:-6, left:'50%', d:'0s' },
+            { top:'50%', right:-6, d:'.7s' },
+            { bottom:-5, left:'30%', d:'1.3s' },
+          ].map((p, i) => (
+            <span key={i} style={{ position:'absolute', ...p, fontSize:9, pointerEvents:'none', animation:`mg-spark-blink 1.6s ease-in-out ${p.d} infinite` }}>✨</span>
+          ))}
+          <span style={{ fontSize:28, lineHeight:1, position:'relative', zIndex:1 }}>{out ? '😴' : '🎮'}</span>
           {miniTotalLives > 0 && (
-            <span className="px-badge" style={{ position:'absolute', top:-4, right:-4 }}>{miniTotalLives}</span>
+            <span className="px-badge" style={{
+              position:'absolute', top:-4, right:-4, background:badgeColor,
+              animation: low ? 'mg-badge-lowpulse 0.9s ease-in-out infinite' : 'none',
+            }}>{miniTotalLives}</span>
           )}
         </button>
+          )
+        })()}
 
         {/* 🗺️ Explore — floating, lower-right */}
         <button

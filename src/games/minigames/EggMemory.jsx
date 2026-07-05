@@ -4,11 +4,13 @@ import { shuffle } from '../../config/gameConfig.js'
 import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+import { MinigameBg, InGameHUD, MinigameResult } from './minigameUI.jsx'
 
 const ELEMENT_EMOJIS = ['🔥', '💧', '⚡', '🌿', '🌑', '✨']
 const G = MINIGAMES.memory
+const memoryCoins = (moves) => moves <= 12 ? 6 : moves <= 16 ? 4 : moves <= 22 ? 3 : 2
 
-export default function EggMemory() {
+export default function EggMemory({ navigate }) {
   const { state, dispatch } = useAppState()
   const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'done'
   const [cards, setCards] = useState(null)
@@ -50,7 +52,7 @@ export default function EggMemory() {
           setMatched(newMatched); playTone('correct'); spawnConfetti(4)
           if (newMatched.size === cards.length) {
             const finalMoves = moves + 1
-            const coins = finalMoves <= 12 ? 12 : finalMoves <= 16 ? 8 : finalMoves <= 22 ? 5 : 3
+            const coins = memoryCoins(finalMoves)
             const xp = Math.max(5, Math.round(30 - moves))
             setCoinsEarned(coins)
             setPhase('done')
@@ -80,28 +82,23 @@ export default function EggMemory() {
   )
 
   if (phase === 'done') return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 24, textAlign: 'center' }}>
-      <div style={{ fontSize: 64, marginBottom: 10 }}>🎉</div>
-      <div style={{ fontFamily: "'Fredoka One',cursive", fontSize: 24, marginBottom: 8 }}>จับคู่ครบแล้ว!</div>
-      <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 8 }}>{moves} ครั้ง</div>
-      <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{coinsEarned}</div>
-      <button
-        onClick={() => setPhase('ready')}
-        style={{ width: '100%', background: 'var(--purple)', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontFamily: 'Mitr,sans-serif', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
-      >🔄 เล่นอีกครั้ง</button>
-    </div>
+    <MinigameResult
+      gameKey="memory" emoji="🎉" title="จับคู่ครบแล้ว!"
+      stats={[`${moves} ครั้ง`]}
+      coins={coinsEarned} livesRemaining={lives} maxLives={G.max}
+      onRetry={() => setPhase('ready')} onHome={() => navigate?.('home')}
+    />
   )
 
   if (!cards) return <div style={{ padding: 40, color: 'var(--muted)', textAlign: 'center' }}>กำลังโหลด...</div>
 
   return (
-    <div style={{ width: '100%', maxWidth: 480, padding: 16, fontFamily: 'Mitr,sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 14 }}>💡 {moves} ครั้ง</span>
-        <span style={{ fontFamily: "'Fredoka One',cursive", fontSize: 16 }}>Egg Memory</span>
-        <span style={{ fontSize: 14 }}>✅ {matched.size / 2}/{cards.length / 2}</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+    <div style={{ position:'relative', width: '100%', maxWidth: 480, padding: 16, fontFamily: 'Mitr,sans-serif', borderRadius:16, overflow:'hidden' }}>
+      <MinigameBg gameKey="memory" radius={16} />
+      <InGameHUD gameKey="memory" hearts={lives} maxHearts={G.max}
+        coins={memoryCoins(moves)}
+        center={`✅ ${matched.size / 2}/${cards.length / 2}`} />
+      <div style={{ position:'relative', zIndex:2, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
         {cards.map((card, idx) => {
           const isFlipped = flipped.includes(idx)
           const isMatched = matched.has(idx)

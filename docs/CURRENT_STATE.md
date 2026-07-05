@@ -244,21 +244,24 @@ _(This section described a pre-companion-migration version of the screen — par
 - Static `.m4a` phonics files in `public/sounds/phonics/`
 
 ### Minigames (5, lazy-loaded)
-`src/lib/minigameLives.js` (2026-07-02) is the single source of truth for per-game daily lives
-and unlock gating — `MINIGAMES` config (world key, `livesKey`/`dateKey` state fields, `max`
-lives/day, `unlockLevel` vs. companion `battleLevel`, deduct-life reducer action, title),
-`livesRemaining(state, key)`, `unlockedGames(level)`, `heartsStr(remaining, max)`. Each game
-has its own `ready` phase (title + hearts row + start/locked-out button) before play starts;
-starting deducts one life via its `*_DEDUCT_LIFE` reducer case. Lives reset to `max` when the
-stored date (via shared `todayStr()`) no longer matches today.
+`src/lib/minigameLives.js` (2026-07-02, lives rebalanced 2026-07-05) is the single source of
+truth for per-game daily lives and unlock gating — `MINIGAMES` config (world key,
+`livesKey`/`dateKey` state fields, `max` lives/day, `unlockLevel` vs. companion `battleLevel`,
+deduct-life reducer action, title), `livesRemaining(state, key)`, `unlockedGames(level)`,
+`heartsStr(remaining, max)`. Each game has its own `ready` phase (title + hearts row +
+start/locked-out button) before play starts; starting deducts one life via its
+`*_DEDUCT_LIFE` reducer case (reset values in `StateContext.jsx` + `defaultState()` in
+`state.js` MUST match `MINIGAMES[...].max` — all three were previously out of sync, now
+aligned). Lives reset to `max` when the stored date (via shared `todayStr()`) no longer
+matches today.
 
-| Game | Unlock (companion battle level) | Lives/day | Description |
+| Game | Unlock (companion battle level) | Lives/day | Coin tiers (2026-07-05) |
 |------|-----|-----------|-------------|
-| EggMemory | 0 (always) | 5 | Match pairs of element cards |
-| EggCatch | 2 | 5 | Catch items, dodge rocks |
-| EggRun | 6 | 3 | Endless runner |
-| EggTower | 6 | 5 | Stack blocks |
-| EggFishing | 10 | 3 | Timing-based fish for items, rarer fish = more coins |
+| EggMemory | 0 (always) | 3 (was 5) | ≤12 moves 6 · ≤16 4 · ≤22 3 · else 2 (was 12/8/5/3) |
+| EggCatch | 2 | 3 (was 5) | ≥40 rings 6 · ≥25 4 · ≥10 3 · else 2 (was 12/8/5/3) |
+| EggTower | 6 | 3 (was 5) | ≥15 5 · ≥10 4 · ≥5 3 · else 1 (was 10/7/4/2) |
+| EggRun | 6 | 2 (was 3) | base 5/3/2 by dist + bonus 3/2/1 by rings, capped at 8 (was capped 15) |
+| EggFishing | 10 | 2 (was 3) | ≤.03 rarity 8 · ≤.1 5 · ≤.2 4 · ≤.35 3 · else 2 (was 15/10/7/5/3) |
 
 **No dedicated picker screen** — Home's "มินิเกม" shortcut card (`launchRandomMinigame` in
 `Home.jsx`) picks uniformly at random among unlocked games that still have lives today, shows
@@ -266,6 +269,35 @@ the pooled total as "มีหัวใจ N ดวง", and toasts "เล่�
 `GameScreen.jsx` itself still has no unlock gating (renders whatever `currentWorld` is set to)
 — this remains the only gate. Resolves the "Minigame picker screen" decision that was pending
 Chatbot input (2026-07-01 Home redesign) with a lightweight MVP instead of a dedicated screen.
+
+**Visual/UX redesign (2026-07-05)** — new shared module `src/games/minigames/minigameUI.jsx`:
+- `THEMES` — per-game palette + ambient-shape kind (memory: deep-blue/stars, catch:
+  sky-blue/clouds, tower: dark-purple/stone, eggrun: forest-green/speed-lines, fishing:
+  ocean-teal/bubbles).
+- `MinigameBg` — paint-once themed backdrop canvas behind each game's content (same
+  "paint once, animate only moving bits" technique as `BattleBackground.jsx` /
+  `Collection.jsx`'s `DressingRoomBackground`).
+- `InGameHUD` — themed top strip during play: live `🪙+N` coin-tier preview (computed from
+  the SAME formula constants as the result screen, no duplicated tier logic), center
+  score/label, and a hearts row that pulses on loss (`mg-heart-loss` keyframe).
+- `MinigameResult` — shared game-over screen: bounce-in emoji (`mg-pop`), Press-Start-2P
+  gold score/title, a coin chip that spins in and fills via 3–5 flying `🪙` sprites
+  (`mg-coin-fly`, CSS-only, no extra SFX — reuses `dispatchAddCoins`'s existing single
+  `coin_earn` play), a hearts-remaining row, and 🔄 เล่นอีก / 🏠 กลับ buttons — retry is
+  swapped for a disabled "😴 พรุ่งนี้นะ!" once daily lives hit 0 (previously all 5 games
+  always showed an active retry button regardless of remaining lives — a real gap, not
+  just a re-style).
+- All 5 `Egg*.jsx` files now import and use these three; each still owns its own
+  physics/scoring logic untouched (only the coin-formula constants changed, per Part 1).
+- **Home shortcut (`Home.jsx`)**: kept the existing 54px floating circular button (NOT
+  reverted to the earlier card/row form factor a 2026-07-03 redesign deliberately removed)
+  — added a rotating gold glow ring + pulsing outline + 3 orbiting sparkle dots, a
+  lives-badge that recolors/pulses when ≤2 lives remain, and a dimmed 😴-emoji swap (with
+  updated `aria-label`) when all daily plays are used up.
+- **Launch splash** (`Home.jsx`): ~850ms full-screen overlay between tapping the shortcut
+  and the actual `navigate('game')` — picked game's emoji bounces in, Thai name fades in,
+  "GO!" flashes, then navigates. Implemented as a `miniSplash` state + `setTimeout` in
+  `launchRandomMinigame`, hard-capped so it can never block navigation indefinitely.
 
 ### Persistence & Auth
 - localStorage key `kq_state` — always-on, written every state change

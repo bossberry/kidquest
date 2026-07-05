@@ -4,10 +4,13 @@ import { ITEMS, CATCH_ITEMS, shuffle } from '../../config/gameConfig.js'
 import { playTone, playSFX } from '../../lib/audio.js'
 import { showItemToast, spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+import { MinigameBg, InGameHUD, MinigameResult } from './minigameUI.jsx'
 
 const G = MINIGAMES.catch
+const CATCH_RUN_LIVES = 3
+const catchCoinsFor = (rings) => rings>=40?6:rings>=25?4:rings>=10?3:2
 
-export default function EggCatch() {
+export default function EggCatch({ navigate }) {
   const { state, dispatch, eggStatsData } = useAppState()
   const canvasRef = useRef(null)
   const gsRef = useRef(null)
@@ -15,6 +18,10 @@ export default function EggCatch() {
   const runRef = useRef(false)
   const [phase, setPhase] = useState('ready') // 'ready'|'playing'|'dead'
   const [score, setScore] = useState(0)
+  const [runScore, setRunScore] = useState(0)
+  const [runLives, setRunLives] = useState(CATCH_RUN_LIVES)
+  const [lostKey, setLostKey] = useState(0)
+  const [flashKey, setFlashKey] = useState(0)
 
   const lives = livesRemaining(state, 'catch')
 
@@ -25,7 +32,7 @@ export default function EggCatch() {
   const startGame = () => {
     if (lives <= 0) return
     dispatch({ type: ACTIONS.CATCH_DEDUCT_LIFE })
-    setScore(0)
+    setScore(0); setRunScore(0); setRunLives(CATCH_RUN_LIVES)
     setPhase('playing')
   }
 
@@ -33,7 +40,9 @@ export default function EggCatch() {
     if (phase !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const eggSpd = 5 + Math.min(3, (state.xpThai||0)+(state.xpEng||0)+(state.xpMath||0))/200
-    const gs = { egg:{x:canvas.width/2,y:canvas.height-40,w:36,h:36,dir:0,speed:eggSpd}, items:[], lives:3, score:0, frame:0, eggOff:null }
+    const gs = { egg:{x:canvas.width/2,y:canvas.height-40,w:36,h:36,dir:0,speed:eggSpd}, items:[], lives:CATCH_RUN_LIVES, score:0, frame:0, eggOff:null,
+      onLifeLost:(lv)=>{setRunLives(lv);setLostKey(k=>k+1);if(lv<=0)setFlashKey(k=>k+1)},
+      onScore:(sc)=>setRunScore(sc) }
     import('../../lib/eggAlgorithm.js').then(m=>{gs.eggOff=document.createElement('canvas');gs.eggOff.width=36;gs.eggOff.height=44;m.drawEgg(gs.eggOff,eggStatsData)})
     gsRef.current=gs; runRef.current=true
     const loop=()=>{
@@ -70,33 +79,32 @@ export default function EggCatch() {
 
   if(phase==='dead'){
     const rings = Math.floor(score/3)
-    const catchCoinsDisplay = rings>=40?12:rings>=25?8:rings>=10?5:3
     return(
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:24,textAlign:'center',width:'100%',maxWidth:480}}>
-        <div style={{fontSize:64,marginBottom:10}}>🧺</div>
-        <div style={{fontFamily:"'Fredoka One',cursive",fontSize:28,marginBottom:8}}>Game Over!</div>
-        <div style={{fontSize:16,marginBottom:8}}>คะแนน: {score}</div>
-        <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(255,210,63,0.12)',border:'1px solid rgba(255,210,63,0.35)',borderRadius:20,padding:'4px 14px',marginBottom:16,fontFamily:'var(--font-pixel)',fontSize:11,color:'#FFD23F'}}>🪙 +{catchCoinsDisplay}</div>
-        <button onClick={()=>{setPhase('ready');setScore(0)}} style={{width:'100%',background:'var(--green)',color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:'Mitr,sans-serif',fontSize:16,fontWeight:600,cursor:'pointer'}}>🔄 เล่นอีกครั้ง</button>
-      </div>
+      <MinigameResult
+        gameKey="catch" emoji="🧺" title="Game Over!"
+        stats={[`คะแนน ${score}`]}
+        coins={catchCoinsFor(rings)} livesRemaining={lives} maxLives={G.max}
+        onRetry={()=>{setPhase('ready');setScore(0)}} onHome={()=>navigate?.('home')}
+      />
     )
   }
 
   return(
-    <div style={{width:'100%',maxWidth:480}}>
-      <div style={{display:'flex',justifyContent:'space-between',padding:'6px 16px 4px',fontFamily:'Mitr,sans-serif',fontSize:13}}>
-        <span>❤️ <span id="ct-lives-r">3</span></span>
-        <span style={{fontFamily:"'Fredoka One',cursive",fontSize:16,color:'var(--text)'}} id="ct-score-r">0</span>
-        <span>⬅ กด ➡</span>
-      </div>
-      <canvas ref={canvasRef} width={cW} height={cH} style={{display:'block',borderRadius:12,touchAction:'none',cursor:'pointer'}}
-        onTouchStart={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=-1}}
-        onTouchEnd={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}}
-      />
+    <div style={{position:'relative',width:'100%',maxWidth:480,borderRadius:12,overflow:'hidden'}}>
+      <MinigameBg gameKey="catch" radius={12} />
+      <InGameHUD gameKey="catch" hearts={runLives} maxHearts={CATCH_RUN_LIVES}
+        coins={catchCoinsFor(Math.floor(runScore/3))} center={`${runScore}`} lostKey={lostKey} />
+      <div style={{position:'relative',zIndex:2}}>
+        {flashKey>0 && <div key={flashKey} className="mg-redflash" />}
+        <canvas ref={canvasRef} width={cW} height={cH} style={{display:'block',borderRadius:12,touchAction:'none',cursor:'pointer'}}
+          onTouchStart={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=-1}}
+          onTouchEnd={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}}
+        />
       <div style={{display:'flex',gap:8,padding:'8px 16px 0'}}>
         <button onTouchStart={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=-1}} onTouchEnd={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}} onMouseDown={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=-1}} onMouseUp={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}} style={{flex:1,background:'rgba(127,119,221,.8)',border:'none',borderRadius:'50%',width:64,height:64,fontSize:24,cursor:'pointer',touchAction:'none'}}>⬅</button>
         <div style={{flex:1}}/>
         <button onTouchStart={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=1}} onTouchEnd={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}} onMouseDown={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=1}} onMouseUp={()=>{if(gsRef.current?.egg)gsRef.current.egg.dir=0}} style={{flex:1,background:'rgba(127,119,221,.8)',border:'none',borderRadius:'50%',width:64,height:64,fontSize:24,cursor:'pointer',touchAction:'none'}}>➡</button>
+      </div>
       </div>
     </div>
   )
@@ -117,8 +125,8 @@ function update(gs,canvas){
     if(it.y>canvas.height+30)return false
     const dx=eCx-it.x,dy=eCy-it.y
     if(Math.sqrt(dx*dx+dy*dy)<eR+16){
-      if(it.danger){gs.lives=Math.max(0,gs.lives-it.dmg);const el=document.getElementById('ct-lives-r');if(el)el.textContent=gs.lives;playTone('wrong')}
-      else{gs.score+=it.pts;const el=document.getElementById('ct-score-r');if(el)el.textContent=gs.score;if(it.pts>=10)spawnConfetti(5);playTone(it.pts>=10?'fanfare':'click')}
+      if(it.danger){gs.lives=Math.max(0,gs.lives-it.dmg);if(gs.onLifeLost)gs.onLifeLost(gs.lives);playTone('wrong')}
+      else{gs.score+=it.pts;if(gs.onScore)gs.onScore(gs.score);if(it.pts>=10)spawnConfetti(5);playTone(it.pts>=10?'fanfare':'click')}
       return false
     }
     return true
@@ -145,7 +153,7 @@ function handleReward(score,dispatch){
     dispatch({type:ACTIONS.DROP_ITEM,payload:{key:k}})
     showItemToast(ITEMS[k].emoji+' ได้รับ '+ITEMS[k].name+'!')
   }
-  const catchCoins = rings>=40?12:rings>=25?8:rings>=10?5:3
+  const catchCoins = rings>=40?6:rings>=25?4:rings>=10?3:2
   dispatchAddCoins(dispatch, catchCoins)
   dispatch({type:ACTIONS.ROUND_COMPLETE,payload:{streak:0,score:0}})
 }

@@ -14,11 +14,11 @@
 import { todayStr } from '../config/gameConfig.js'
 
 export const MINIGAMES = {
-  memory:  { world: 'memory',  livesKey: 'memoryLives',  dateKey: 'lastMemoryDate',  max: 5, unlockLevel: 0,  deductAction: 'MEMORY_DEDUCT_LIFE',  title: '🃏 Egg Memory' },
-  catch:   { world: 'catch',   livesKey: 'catchLives',   dateKey: 'lastCatchDate',   max: 5, unlockLevel: 2,  deductAction: 'CATCH_DEDUCT_LIFE',   title: '🧺 Egg Catch' },
-  eggrun:  { world: 'eggrun',  livesKey: 'eggRunLives',  dateKey: 'lastRunDate',     max: 3, unlockLevel: 6,  deductAction: 'ER_DEDUCT_LIFE',      title: '🏃 Egg Run' },
-  tower:   { world: 'tower',   livesKey: 'towerLives',   dateKey: 'lastTowerDate',   max: 5, unlockLevel: 6,  deductAction: 'TOWER_DEDUCT_LIFE',   title: '🏗️ Egg Tower' },
-  fishing: { world: 'fishing', livesKey: 'fishingLives', dateKey: 'lastFishingDate', max: 3, unlockLevel: 10, deductAction: 'FISHING_DEDUCT_LIFE', title: '🎣 Egg Fishing' },
+  memory:  { world: 'memory',  livesKey: 'memoryLives',  dateKey: 'lastMemoryDate',  max: 3, unlockLevel: 0,  deductAction: 'MEMORY_DEDUCT_LIFE',  title: '🃏 Egg Memory' },
+  catch:   { world: 'catch',   livesKey: 'catchLives',   dateKey: 'lastCatchDate',   max: 3, unlockLevel: 2,  deductAction: 'CATCH_DEDUCT_LIFE',   title: '🧺 Egg Catch' },
+  eggrun:  { world: 'eggrun',  livesKey: 'eggRunLives',  dateKey: 'lastRunDate',     max: 2, unlockLevel: 6,  deductAction: 'ER_DEDUCT_LIFE',      title: '🏃 Egg Run' },
+  tower:   { world: 'tower',   livesKey: 'towerLives',   dateKey: 'lastTowerDate',   max: 3, unlockLevel: 6,  deductAction: 'TOWER_DEDUCT_LIFE',   title: '🏗️ Egg Tower' },
+  fishing: { world: 'fishing', livesKey: 'fishingLives', dateKey: 'lastFishingDate', max: 2, unlockLevel: 10, deductAction: 'FISHING_DEDUCT_LIFE', title: '🎣 Egg Fishing' },
 }
 
 // Remaining lives for a game today. If the stored date isn't today, lives have

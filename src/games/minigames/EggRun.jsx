@@ -5,9 +5,11 @@ import { ITEMS, shuffle } from '../../config/gameConfig.js'
 import { erSfxJump, erSfxRing, erSfxHit, erSfxSpeedUp, erSfxMilestone, erSfxGameOver, erSfxRecord, erSfxCountdown, playSFX } from '../../lib/audio.js'
 import { showToast, spawnConfetti, showItemToast } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+import { MinigameBg, InGameHUD, MinigameResult } from './minigameUI.jsx'
 
 const ER_GRAV = 0.55, ER_GY = 0.74
 const G = MINIGAMES.eggrun
+const runCoinsFor = (dist, rings) => Math.min(8, (dist >= 200 ? 5 : dist >= 100 ? 3 : 2) + (rings >= 20 ? 3 : rings >= 10 ? 2 : 1))
 
 export default function EggRun({ navigate }) {
   const { state, dispatch, eggStatsData, eggProgressData, totalXP } = useAppState()
@@ -17,6 +19,7 @@ export default function EggRun({ navigate }) {
   const animRef = useRef(null)
   const runRef = useRef(false)
   const [countdownN, setCountdownN] = useState(3)
+  const [runRings, setRunRings] = useState(0)
 
   const livesAvail = livesRemaining(state, 'eggrun')
 
@@ -43,7 +46,9 @@ export default function EggRun({ navigate }) {
     const canvas = canvasRef.current
     if (!canvas) return
     dispatch({ type: ACTIONS.ER_DEDUCT_LIFE })
+    setRunRings(0)
     const gs = initEggRun(canvas, state, totalXP, eggProgressData.stage, eggStatsData)
+    gs.onRing = (n) => setRunRings(n)
     gsRef.current = gs
     runRef.current = true
 
@@ -87,7 +92,7 @@ export default function EggRun({ navigate }) {
       if (rings >= 16) dispatch({ type: ACTIONS.DROP_ITEM, payload: { key: 'food' } })
       showItemToast(ITEMS[k].emoji + ' ได้รับ ' + ITEMS[k].name + '!')
     }
-    const runCoins = Math.min(15, (dist >= 200 ? 8 : dist >= 100 ? 5 : 3) + (rings >= 20 ? 5 : rings >= 10 ? 3 : 1))
+    const runCoins = runCoinsFor(dist, rings)
     dispatchAddCoins(dispatch, runCoins)
     dispatch({ type: ACTIONS.ROUND_COMPLETE, payload: { streak: 0, score: 0 } })
   }, [phase]) // eslint-disable-line
@@ -121,11 +126,27 @@ export default function EggRun({ navigate }) {
     )
   }
 
+  if (phase === 'dead') {
+    const dist = Math.floor(gsRef.current?.dist || 0)
+    const rings = gsRef.current?.ringCount || 0
+    return (
+      <MinigameResult
+        gameKey="eggrun" emoji="🏃" title="Game Over!"
+        stats={[`📏 ${dist}m · 💛 ${rings}`]}
+        coins={runCoinsFor(dist, rings)} livesRemaining={livesAvail} maxLives={G.max}
+        onRetry={() => setPhase('stats')} onHome={() => navigate?.('home')}
+      />
+    )
+  }
+
   return (
     <div style={{ width:'100%', maxWidth:480 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif', fontSize:13 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif', fontSize:13 }}>
         <span>📏 <span id="er-dist-r">0</span>m</span>
-        <span>{heartsStr(livesAvail - 1, G.max)}</span>
+        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+          <span>{heartsStr(livesAvail - 1, G.max)}</span>
+          <span style={{ fontFamily:'var(--font-pixel)', fontSize:9, color:'#FFD23F' }}>🪙+{runCoinsFor(Math.floor(gsRef.current?.dist||0), runRings)}</span>
+        </span>
         <span style={{ color:'#B8860B' }}>💛 <span id="er-rings-r">0</span></span>
       </div>
       <div style={{ position:'relative' }}>
@@ -133,14 +154,6 @@ export default function EggRun({ navigate }) {
         {phase === 'countdown' && (
           <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.45)', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:12 }}>
             <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:Math.round(cW*.22), color:'#fff' }}>{countdownN > 0 ? countdownN : 'GO! 🏃'}</div>
-          </div>
-        )}
-        {phase === 'dead' && (
-          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.55)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:12, gap:8 }}>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color:'#fff' }}>Game Over!</div>
-            <div style={{ fontSize:16, color:'#fff', fontFamily:'Mitr,sans-serif' }}>📏 {Math.floor(gsRef.current?.dist||0)}m · 💛 {gsRef.current?.ringCount||0}</div>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.18)', border:'1px solid rgba(255,210,63,0.45)', borderRadius:20, padding:'3px 12px', fontFamily:'var(--font-pixel)', fontSize:10, color:'#FFD23F' }}>🪙 +{Math.min(15, ((Math.floor(gsRef.current?.dist||0))>=200?8:(Math.floor(gsRef.current?.dist||0))>=100?5:3) + ((gsRef.current?.ringCount||0)>=20?5:(gsRef.current?.ringCount||0)>=10?3:1))}</div>
-            <button onClick={() => setPhase('stats')} style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:10, padding:'10px 24px', color:'#fff', fontFamily:'Mitr,sans-serif', fontSize:14, cursor:'pointer', marginTop:4 }}>← Back</button>
           </div>
         )}
       </div>
@@ -188,7 +201,7 @@ function updateEggRun(gs, canvas) {
   if(gs.ringTimer>32){gs.ringTimer=0;if(Math.random()<.75){const ry=gY-20-Math.random()*60;for(let i=0;i<3;i++)gs.rings.push({x:W+18+i*26,y:ry+(i===1?-14:0),col:false,angle:Math.random()*Math.PI*2})}}
   for(const o of gs.obstacles)o.x-=spd
   gs.obstacles=gs.obstacles.filter(o=>o.x>-80)
-  for(const r of gs.rings){r.x-=spd;r.angle+=.08;if(!r.col){const dx=(gs.egg.x+16)-r.x,dy=(gs.egg.y+20)-r.y,d=Math.sqrt(dx*dx+dy*dy);if(d<gs.egg.mag){r.x+=dx*.18;r.y+=dy*.18}if(d<16){r.col=true;gs.ringCount++;gs.combo++;gs.comboTimer=80;const re=document.getElementById('er-rings-r');if(re)re.textContent=gs.ringCount;erSfxRing();gs.floats.push({x:r.x,y:r.y,text:'+1',life:40,vy:-1,scale:.9});if(gs.combo>=5&&gs.combo%5===0){gs.floats.push({x:W/2,y:H*.5,text:'COMBO! x'+Math.floor(gs.combo/5+1)+'🔥',life:60,vy:-1,scale:1.3});spawnConfetti(4)}}}}
+  for(const r of gs.rings){r.x-=spd;r.angle+=.08;if(!r.col){const dx=(gs.egg.x+16)-r.x,dy=(gs.egg.y+20)-r.y,d=Math.sqrt(dx*dx+dy*dy);if(d<gs.egg.mag){r.x+=dx*.18;r.y+=dy*.18}if(d<16){r.col=true;gs.ringCount++;gs.combo++;gs.comboTimer=80;const re=document.getElementById('er-rings-r');if(re)re.textContent=gs.ringCount;if(gs.onRing)gs.onRing(gs.ringCount);erSfxRing();gs.floats.push({x:r.x,y:r.y,text:'+1',life:40,vy:-1,scale:.9});if(gs.combo>=5&&gs.combo%5===0){gs.floats.push({x:W/2,y:H*.5,text:'COMBO! x'+Math.floor(gs.combo/5+1)+'🔥',life:60,vy:-1,scale:1.3});spawnConfetti(4)}}}}
   gs.rings=gs.rings.filter(r=>r.x>-20)
   for(const f of gs.floats){f.y+=f.vy;f.life--};gs.floats=gs.floats.filter(f=>f.life>0)
   for(const cl of gs.clouds){cl.x-=cl.s;if(cl.x<-100)cl.x=W+80}

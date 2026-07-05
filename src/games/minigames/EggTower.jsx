@@ -4,11 +4,12 @@ import { TOWER_COLORS } from '../../config/gameConfig.js'
 import { playTone, playSFX } from '../../lib/audio.js'
 import { spawnConfetti } from '../../components/Toasts.jsx'
 import { livesRemaining, heartsStr, MINIGAMES } from '../../lib/minigameLives.js'
+import { MinigameBg, InGameHUD, MinigameResult } from './minigameUI.jsx'
 
 const G = MINIGAMES.tower
-const towerCoinsFor = (score) => score >= 15 ? 10 : score >= 10 ? 7 : score >= 5 ? 4 : 2
+const towerCoinsFor = (score) => score >= 15 ? 5 : score >= 10 ? 4 : score >= 5 ? 3 : 1
 
-export default function EggTower() {
+export default function EggTower({ navigate }) {
   const { state, dispatch, eggProgressData } = useAppState()
   const canvasRef = useRef(null)
   const gsRef = useRef(null)
@@ -80,25 +81,22 @@ export default function EggTower() {
   }
 
   if (phase === 'dead') {
-    const towerCoinsDisplay = towerCoinsFor(score)
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:24, textAlign:'center' }}>
-        <div style={{ fontSize:64, marginBottom:10 }}>🏗️</div>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, marginBottom:8 }}>Tower: {score} ชั้น!</div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,210,63,0.12)', border:'1px solid rgba(255,210,63,0.35)', borderRadius:20, padding:'4px 14px', marginBottom:16, fontFamily:'var(--font-pixel)', fontSize:11, color:'#FFD23F' }}>🪙 +{towerCoinsDisplay}</div>
-        <button onClick={() => { setPhase('ready'); setScore(0) }} style={{ width:'100%', background:'var(--purple)', color:'#fff', border:'none', borderRadius:10, padding:14, fontFamily:'Mitr,sans-serif', fontSize:16, fontWeight:600, cursor:'pointer' }}>🔄 เล่นอีกครั้ง</button>
-      </div>
+      <MinigameResult
+        gameKey="tower" emoji="🏗️" title={`Tower: ${score} ชั้น!`}
+        stats={[]}
+        coins={towerCoinsFor(score)} livesRemaining={lives} maxLives={G.max}
+        onRetry={() => { setPhase('ready'); setScore(0) }} onHome={() => navigate?.('home')}
+      />
     )
   }
 
   return (
-    <div style={{ width:'100%', maxWidth:480 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 16px 4px', fontFamily:'Mitr,sans-serif' }}>
-        <span style={{ fontSize:13 }}>🏗️ วางบล็อก!</span>
-        <span style={{ fontFamily:"'Fredoka One',cursive", fontSize:18 }}>{score}</span>
-        <span style={{ fontSize:13 }}>แตะเพื่อวาง</span>
-      </div>
-      <canvas ref={canvasRef} width={cW} height={cH} style={{ display:'block', borderRadius:12, cursor:'pointer' }} />
+    <div style={{ position:'relative', width:'100%', maxWidth:480, borderRadius:12, overflow:'hidden' }}>
+      <MinigameBg gameKey="tower" radius={12} />
+      <InGameHUD gameKey="tower" hearts={lives} maxHearts={G.max}
+        coins={towerCoinsFor(score)} center={`${score} ชั้น`} />
+      <canvas ref={canvasRef} width={cW} height={cH} style={{ position:'relative', zIndex:2, display:'block', borderRadius:12, cursor:'pointer' }} />
     </div>
   )
 }

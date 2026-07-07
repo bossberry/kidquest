@@ -422,6 +422,45 @@ export function migrateStateShape(saved) {
     }
   }
 
+  // ── ROOM DATA RECOVERY SAFETY NET — must run FIRST, before any other room
+  // migration below resets or moves roomLayout. Guards against a saved state
+  // whose `rooms` array already exists but is desynced from its own layout
+  // (e.g. a stale/raw row from before the room-content reducers consistently
+  // kept `rooms`/`roomLayout` in sync) — if the top-level roomLayout mirror
+  // carries real NEW-format data (not the old incompatible flat-numeric-key
+  // format, which is genuinely un-migratable and handled separately below)
+  // while the corresponding room's own layout is empty, restore it there
+  // before anything else runs. Idempotent / no-op when everything is already
+  // in sync, which is the normal case.
+  {
+    const savedRL = saved.roomLayout
+    const savedRLKeys = (savedRL && typeof savedRL === 'object' && !Array.isArray(savedRL))
+      ? Object.keys(savedRL) : []
+    const isOldFlatFormat = savedRLKeys.length > 0 && savedRLKeys.every(k => /^\d+$/.test(k))
+    const hasNewFormatData = savedRLKeys.length > 0 && !isOldFlatFormat
+
+    if (hasNewFormatData) {
+      if (Array.isArray(saved.rooms) && saved.rooms.length > 0) {
+        const targetId = saved.activeRoomId || saved.rooms[0].id
+        const targetIdx = saved.rooms.findIndex(r => r.id === targetId)
+        const idx = targetIdx >= 0 ? targetIdx : 0
+        const targetLayout = saved.rooms[idx]?.layout
+        const targetLayoutEmpty = !targetLayout || Object.keys(targetLayout).length === 0
+        if (targetLayoutEmpty) {
+          merged.rooms = saved.rooms.map((r, i) => i === idx ? { ...r, layout: savedRL } : r)
+          merged.lastSavedAt = Date.now()
+        }
+      } else {
+        // rooms doesn't exist yet — pre-seed it here too, so the recovered data
+        // is guaranteed present regardless of what the multi-room block below does.
+        merged.rooms = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: savedRL }]
+        merged.activeRoomId = 'main'
+        merged.homeRoomId = 'main'
+        merged.lastSavedAt = Date.now()
+      }
+    }
+  }
+
   // roomLayout schema migration (2026-07-02, iso room):
   // The OLD flat-grid room stored numeric-string slot keys ("0".."11"). The NEW
   // iso room uses "{zone}_{a}_{b}" keys and cannot be mapped 1:1, so a stale flat
@@ -439,16 +478,18 @@ export function migrateStateShape(saved) {
 
   // Multi-room migration (2026-07-05): if a save predates `rooms`, build the single
   // starter room from whatever roomLayout resolves to AFTER the reset above (so a
-  // stale pre-iso layout stays {} in rooms[0].layout too, never resurrected). If
-  // `rooms` already exists, leave it and its per-room layouts untouched. Keep the
-  // top-level roomLayout mirror in sync with the active room on the way out.
+  // stale pre-iso layout stays {} in rooms[0].layout too, never resurrected) — unless
+  // the safety net above already recovered/seeded `merged.rooms`, in which case that
+  // takes priority. If `rooms` already exists, leave it and its per-room layouts
+  // untouched (the safety net above already restored any empty target layout). Keep
+  // the top-level roomLayout mirror in sync with the active room on the way out.
   if (!Array.isArray(saved.rooms)) {
-    merged.rooms = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: merged.roomLayout || {} }]
+    merged.rooms = merged.rooms ?? [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: merged.roomLayout || {} }]
     merged.activeRoomId = 'main'
     merged.homeRoomId = 'main'
     merged.lastSavedAt = merged.lastSavedAt || Date.now()
   } else {
-    merged.rooms = saved.rooms
+    merged.rooms = merged.rooms ?? saved.rooms
     merged.activeRoomId = saved.activeRoomId || saved.rooms[0]?.id || 'main'
     merged.homeRoomId = saved.homeRoomId || saved.rooms[0]?.id || 'main'
     const active = merged.rooms.find(r => r.id === merged.activeRoomId)

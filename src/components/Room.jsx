@@ -4,7 +4,8 @@ import { ROOM_ITEMS, CRAFT_RECIPES, CRAFT_RECIPE_LIST, MATERIAL_ICON } from '../
 import {
   drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter,
   ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
-  computeMultiRoomGeometry, shiftGeometry, drawGhostRoom, drawMiniRoomBox, pointInQuad,
+  shiftGeometry, drawGhostRoom, drawMiniRoomBox, pointInQuad,
+  FLOOR_COLS, FLOOR_ROWS,
 } from '../lib/roomScene.js'
 import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
@@ -175,7 +176,7 @@ function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, on
 const ITEM_BY_ID = ROOM_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
 
 // ── Ghost-room-preview directions (2026-07-07) ──────────────────────────────
-// dx/dy are GRID deltas (same convention as navigateGrid/BUY_ROOM_BLOCK).
+// dx/dy are GRID deltas (same convention as BUY_ROOM_BLOCK).
 // shiftX/shiftY are screen-space multipliers for isoRoomWidth/isoRoomHeight —
 // "right"/"left" only move the ghost horizontally, "up"/"down" only vertically,
 // per the spec (a deliberate simplification vs. true diagonal iso-grid tiling,
@@ -233,9 +234,6 @@ export default function Room({ navigate }) {
   // Neighbor ghost/real-room screen zones, recomputed every drawFrame() —
   // { type: 'room'|'ghost', poly: [pts], roomId? | gridX,gridY,dir? }
   const neighborZonesRef = useRef([])
-  // Set on a swipe that failed to find a real room in that direction — makes
-  // the matching ghost pulse brighter for ~500ms so the child sees where to tap.
-  const ghostBoostRef    = useRef(null)   // { dir, at } | null
 
   // Tap-hint fade + placement-bounce + sparkle animation state (rAF-driven, Room-editor-only).
   const hintOpacityRef   = useRef(0)
@@ -245,8 +243,14 @@ export default function Room({ navigate }) {
   const effectsRef       = useRef([])
   const rafRef           = useRef(null)
   const lastFrameRef     = useRef(0)
-  const swipeStartRef    = useRef(null)   // { x, y, t } touchstart, for swipe-to-navigate
-  const swipedRef        = useRef(false)  // set when a touchend resolved as a nav swipe → suppress the click
+
+  // ── Scrollable viewport (2026-07-07) — the main room renders at full size;
+  // the player pans (drag/touch) to reveal neighboring ghost/purchased rooms
+  // instead of the whole scene zooming out. A ref (not state) since panning
+  // must not trigger React re-renders — drawFrame reads it every rAF tick.
+  const viewOffsetRef = useRef({ x: 0, y: 0 })
+  const dragRef       = useRef(null)   // { startX, startY, startOffsetX, startOffsetY, moved } | null
+  const draggedRef    = useRef(false)  // set once a drag exceeds the tap threshold → suppresses the next click
 
   useEffect(() => {
     playBGM('room')
@@ -256,11 +260,13 @@ export default function Room({ navigate }) {
   // Clears the "✨ ของใหม่!" BottomNav bubble now that the child has opened Room.
   useEffect(() => { dispatch({ type: ACTIONS.CLEAR_NEW_ROOM_ITEM }) }, [dispatch])
 
-  // Draws the full multi-room composite: a shared backdrop, ghost/solid
-  // previews for whichever of the 4 cardinal neighbors exist (or don't), then
-  // the fully-editable current room on top, all sharing one TH/TW scale so
-  // rooms tile edge-to-edge. neighborZonesRef is rebuilt every call so
-  // handleCanvasClick always hit-tests against the latest screen positions.
+  // Draws a scrollable multi-room view: the active room renders at FULL SIZE
+  // (same scale as before multi-room existed — computeRoomGeometry, not a
+  // zoomed-out composite), and viewOffsetRef pans the whole scene so ghost/
+  // purchased neighbors scroll into view at the edges instead of the screen
+  // shrinking everything to fit them all at once. neighborZonesRef is rebuilt
+  // every call so handleCanvasClick always hit-tests against the latest
+  // screen positions (which shift as the player pans).
   const drawFrame = useCallback((hintOpacity, bounceKey, bounceScale) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -275,25 +281,35 @@ export default function Room({ navigate }) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    const g = computeMultiRoomGeometry(W, H)
+    const baseG = computeRoomGeometry(W, H, false)   // full-size, unchanged scale
+    const span = FLOOR_COLS + FLOOR_ROWS
+    const isoRoomWidth  = span * baseG.TW / 2
+    const isoRoomHeight = span * baseG.TH / 2
+    const { x: vx, y: vy } = viewOffsetRef.current
+    const g = shiftGeometry(baseG, -vx, -vy)   // pan shifts the WHOLE view, main room included
+
     const room = activeRoomRef.current
     const allRooms = roomsRef.current
-    const boostState = ghostBoostRef.current
     const zones = []
 
     if (room) {
       for (const d of DIRS) {
         const gx = room.gridX + d.dx, gy = room.gridY + d.dy
-        const shifted = shiftGeometry(g, d.shiftX * g.isoRoomWidth, d.shiftY * g.isoRoomHeight)
+        const shifted = shiftGeometry(g, d.shiftX * isoRoomWidth, d.shiftY * isoRoomHeight)
+        // Only draw/hit-test a ghost or adjacent room once scrolling has
+        // brought it within ~1 room-width/height of actually being visible —
+        // it "appears" as the player discovers that edge, per spec, rather
+        // than always being computed even while far off-screen.
+        const center = shifted.project(FLOOR_COLS / 2, FLOOR_ROWS / 2, 0)
+        const nearViewport = center.sx > -isoRoomWidth && center.sx < W + isoRoomWidth &&
+                              center.sy > -isoRoomHeight && center.sy < H + isoRoomHeight
+        if (!nearViewport) continue
         const neighbor = allRooms.find(r => r.gridX === gx && r.gridY === gy)
         if (neighbor) {
           const poly = drawMiniRoomBox(ctx, shifted, neighbor.theme, 0.7)
           zones.push({ type: 'room', roomId: neighbor.id, poly })
         } else {
-          const boost = boostState?.dir === d.key
-            ? Math.max(0, 1 - (performance.now() - boostState.at) / 500) * 0.5
-            : 0
-          const poly = drawGhostRoom(ctx, shifted, ROOM_BLOCK_PRICE, boost)
+          const poly = drawGhostRoom(ctx, shifted, ROOM_BLOCK_PRICE)
           zones.push({ type: 'ghost', gridX: gx, gridY: gy, dir: d.key, poly })
         }
       }
@@ -307,7 +323,7 @@ export default function Room({ navigate }) {
       bounceKey, bounceScale, theme: themeRef.current,
       geometry: g, paintBg: false,
     })
-    geomRef.current = { g, W, H }
+    geomRef.current = { g, W, H, isoRoomWidth, isoRoomHeight }
   }, [])
 
   // Single rAF loop drives three things at once: the "+" hint fade in/out, the
@@ -372,6 +388,14 @@ export default function Room({ navigate }) {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [wake])
 
+  // The newly-active room always starts centered — reset the pan viewport
+  // whenever activeRoomId changes (buying a room, or tapping a revealed
+  // neighbor both dispatch SET_ACTIVE_ROOM/BUY_ROOM_BLOCK).
+  useEffect(() => {
+    viewOffsetRef.current = { x: 0, y: 0 }
+    wake()
+  }, [activeRoomId, wake])
+
   // Keep the canvas backing store matched to the wrapper's real size. Flex sizing
   // doesn't reliably fire a window 'resize' event, so use ResizeObserver instead.
   useEffect(() => {
@@ -409,9 +433,9 @@ export default function Room({ navigate }) {
   }
 
   function handleCanvasClick(e) {
-    // A nav swipe (touchend) fires a synthetic click right after — swallow it once
-    // so a deliberate left/right swipe never also drops furniture on a slot.
-    if (swipedRef.current) { swipedRef.current = false; return }
+    // A completed pan drag fires a synthetic click right after pointerup —
+    // swallow it once so scrolling the viewport never also drops furniture.
+    if (draggedRef.current) { draggedRef.current = false; return }
     wake()
     const canvas = canvasRef.current
     const g = geomRef.current?.g
@@ -444,53 +468,45 @@ export default function Room({ navigate }) {
     setSelectedSlot({ key: hit.key, zone: hit.zone })
   }
 
-  // Switch to the room orthogonally adjacent to the active one in a grid direction.
-  // Convention: dx/dy are grid deltas (dx +1 = room to the right, dy +1 = room "below")
-  // — same convention as the DIRS table above, so the ghost-boost dir lookup matches.
-  function navigateGrid(dx, dy) {
-    if (!activeRoom) return false
-    const target = rooms.find(r => r.gridX === activeRoom.gridX + dx && r.gridY === activeRoom.gridY + dy)
-    if (!target || target.id === activeRoomId) {
-      // No real room that way — pulse the matching ghost so the child sees
-      // where a swipe "would have" taken them, and that tapping it buys one.
-      if (!target) {
-        const dir = dx === 1 ? 'right' : dx === -1 ? 'left' : dy === 1 ? 'down' : dy === -1 ? 'up' : null
-        if (dir) {
-          ghostBoostRef.current = { dir, at: performance.now() }
-          flash('กดเพื่อซื้อ!')
-          wake()
-        }
-      }
-      return false
+  // ── Pan-to-scroll the viewport (2026-07-07) — unifies touch drag and mouse
+  // drag via the Pointer Events API. A small movement threshold (6px) keeps a
+  // deliberate tap-to-place from being misread as a drag; once that threshold
+  // is crossed the gesture is committed to panning for the rest of the pointer
+  // sequence and the trailing click is suppressed (see handleCanvasClick).
+  function handlePointerDown(e) {
+    dragRef.current = {
+      startX: e.clientX, startY: e.clientY,
+      startOffsetX: viewOffsetRef.current.x, startOffsetY: viewOffsetRef.current.y,
+      moved: false,
     }
-    dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: target.id } })
-    setSelectedSlot(null); setBuyTarget(null)
-    playSFX('room_visit_enter')
-    return true
+    wake()
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
   }
 
-  function handleTouchStart(e) {
-    const t = e.touches?.[0]
-    if (!t) return
-    swipeStartRef.current = { x: t.clientX, y: t.clientY, t: performance.now() }
+  function handlePointerMove(e) {
+    const d = dragRef.current
+    if (!d) return
+    const dx = e.clientX - d.startX, dy = e.clientY - d.startY
+    if (!d.moved && Math.hypot(dx, dy) > 6) d.moved = true
+    if (!d.moved) return
+    // Clamp so the player can't scroll endlessly past the ring of neighbor
+    // rooms — a little over one room-width/height keeps a neighbor fully
+    // reachable without exposing empty space beyond it.
+    const bounds = geomRef.current
+    const maxX = (bounds?.isoRoomWidth ?? 200) * 1.15
+    const maxY = (bounds?.isoRoomHeight ?? 150) * 1.15
+    viewOffsetRef.current = {
+      x: Math.max(-maxX, Math.min(maxX, d.startOffsetX - dx)),
+      y: Math.max(-maxY, Math.min(maxY, d.startOffsetY - dy)),
+    }
+    wake()
   }
 
-  function handleTouchEnd(e) {
-    const s = swipeStartRef.current
-    swipeStartRef.current = null
-    const t = e.changedTouches?.[0]
-    if (!s || !t) return
-    const dx = t.clientX - s.x, dy = t.clientY - s.y
-    const adx = Math.abs(dx), ady = Math.abs(dy)
-    const dist = Math.max(adx, ady)
-    const dt = performance.now() - s.t
-    // Require a decisive, fast-ish drag so a slow placement-tap-with-jitter never
-    // reads as navigation (tap-to-place lands via the click handler instead).
-    if (dist < 50 || dt > 700) return
-    let moved = false
-    if (adx > ady * 1.3)      moved = navigateGrid(dx < 0 ? 1 : -1, 0)  // swipe left → next room right
-    else if (ady > adx * 1.3) moved = navigateGrid(0, dy < 0 ? 1 : -1)  // swipe up → next room "below"
-    if (moved) swipedRef.current = true
+  function handlePointerUp(e) {
+    const d = dragRef.current
+    dragRef.current = null
+    if (d?.moved) draggedRef.current = true
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
   }
 
   // owned+unplaced (or placed in THIS slot) → 'owned' (tappable, gold)
@@ -642,11 +658,13 @@ export default function Room({ navigate }) {
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
-            imageRendering: 'pixelated', cursor: 'pointer',
+            imageRendering: 'pixelated', cursor: 'pointer', touchAction: 'none',
             WebkitTapHighlightColor: 'transparent',
           }}
         />

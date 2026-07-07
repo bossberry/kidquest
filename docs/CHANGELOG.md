@@ -1,5 +1,18 @@
 # Changelog — KidQuest
 
+## 2026-07-07 — Room screen now scrollable: main room full size, pan to reveal ghost/adjacent rooms, buy button removed
+
+Two feedback-driven fixes for the multi-room system: the composite-zoomed-out view shrank the main room too much, and the (already-removed-earlier) buy button needed a final confirm.
+
+### src/components/Room.jsx
+- `drawFrame` rewritten: the active room now renders at **full size** via `computeRoomGeometry(W, H, false)` — the exact pre-multi-room scale — instead of the zoomed-out `computeMultiRoomGeometry` composite. A new `viewOffsetRef` (a ref, not state, so panning never triggers a React re-render) shifts the *entire* scene (main room included) so the player scrolls the viewport to reveal neighbors rather than the whole scene shrinking to fit them all at once.
+- Ghost/purchased-neighbor rooms are only computed and drawn once panning has brought them within ~1 room-width/height of the visible canvas (`nearViewport` check against each shifted room's center point) — they "appear" as the player scrolls near an edge, per spec, instead of always being drawn (mostly off-screen).
+- New Pointer Events-based pan handlers (`handlePointerDown`/`Move`/`Up`) replace the old touch-only swipe-to-navigate gesture — unifies mouse-drag and touch-pan in one implementation. A 6px movement threshold distinguishes a drag from a tap; view offset is clamped to ~1.15× a room's width/height so the player can't scroll into empty space beyond the ring of neighbors. Canvas gained `touchAction: 'none'` so native browser scroll doesn't fight the drag.
+- The active room's pan viewport resets to centered (`{x:0, y:0}`) whenever `activeRoomId` changes (buying a room or tapping a revealed neighbor both do), matching "starts centered."
+- Removed the now-superseded swipe-to-navigate code (`navigateGrid`, `swipeStartRef`/`swipedRef`, `handleTouchStart`/`handleTouchEnd`, the swipe-triggered ghost pulse-boost) — tapping a revealed room/ghost is now the only navigation trigger, panning is purely for looking around.
+- **Fix 2 finding**: the spec described "a button in the top-right corner... for purchasing new rooms" to remove. Checked the current code first — the mini-map's adjacent-empty cells were already converted to non-interactive `<div>`s (no `onClick`) in an earlier session once the in-scene ghost-room-tap purchase flow shipped; there is no longer a literal buy button anywhere in the mini-map. No code changes made there — removing the mini-map's room-selection grid or its "ตั้งเป็นห้องหลัก" (set home room) button would have deleted unrelated, working, unremoved functionality.
+- Verified live: main room fills the screen at the original scale; dragging pans the whole view and reveals a ghost/real neighbor peeking in at the edge, growing to full visibility as the drag continues; tapping a revealed real room navigates and re-centers; tapping a floor slot after panning still hit-tests correctly against the shifted geometry (item picker opened at the right slot); zero console errors.
+
 ## 2026-07-07 — Room items simplified: monster drops + auto-collect + instant craft
 
 Replaces the workbench-based crafting system from earlier the same day (manual collect button, coin-buyable crafting table, 15-recipe confirm-step sheet) with something simpler and more child-friendly: monsters drop furniture directly, materials auto-collect while walking, and crafting is a single tap.

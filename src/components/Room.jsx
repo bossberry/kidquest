@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { ROOM_ITEMS, RECIPES, RECIPE_LIST, MATERIALS, MATERIAL_ICON } from '../lib/roomItems.js'
+import { ROOM_ITEMS, CRAFT_RECIPES, CRAFT_RECIPE_LIST, MATERIAL_ICON } from '../lib/roomItems.js'
 import {
   drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter,
   ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
@@ -196,12 +196,10 @@ export default function Room({ navigate }) {
   const [buyTarget, setBuyTarget] = useState(null)   // ROOM_ITEMS entry currently up for purchase-confirm, or null
   const [buyRoomAt, setBuyRoomAt] = useState(null)   // { gridX, gridY } — empty mini-map cell tapped, opens room-block purchase sheet
   const [buyRoomTheme, setBuyRoomTheme] = useState(null)  // theme id selected inside that sheet, awaiting confirm
-  const [craftingTable, setCraftingTable] = useState(null) // { key, zone } — a placed crafting_table was tapped → recipe sheet
-  const [craftConfirm, setCraftConfirm] = useState(null)   // recipe itemId awaiting confirm inside the crafting sheet
-  const [matPanelOpen, setMatPanelOpen] = useState(false)  // 🎒 material inventory panel expanded?
+  const [craftSheetOpen, setCraftSheetOpen] = useState(false)  // ⚒️ craft button tapped → affordable-recipes sheet
 
   const materials = state.materials ?? {}
-  const craftFxRef = useRef(null)   // dedicated sparkle canvas layered over the crafting sheet
+  const craftFxRef = useRef(null)   // dedicated sparkle canvas layered over the craft sheet
   const craftFxRafRef = useRef(null)
 
   const coins       = state.coins ?? 0
@@ -254,6 +252,9 @@ export default function Room({ navigate }) {
     playBGM('room')
     return () => stopBGM()
   }, [])
+
+  // Clears the "✨ ของใหม่!" BottomNav bubble now that the child has opened Room.
+  useEffect(() => { dispatch({ type: ACTIONS.CLEAR_NEW_ROOM_ITEM }) }, [dispatch])
 
   // Draws the full multi-room composite: a shared backdrop, ghost/solid
   // previews for whichever of the 4 cardinal neighbors exist (or don't), then
@@ -440,16 +441,6 @@ export default function Room({ navigate }) {
     const hit = hitTestZone(g, px, py)   // zone-agnostic — figures out which zone was tapped
     if (!hit) return
     setBuyTarget(null)
-    // Special-case: tapping a placed crafting table opens the recipe sheet
-    // instead of the generic occupied-item sheet. Every OTHER item still opens
-    // the normal picker/action sheet exactly as before.
-    if (roomLayout[hit.key] === 'crafting_table') {
-      setSelectedSlot(null)
-      setCraftConfirm(null)
-      setCraftingTable({ key: hit.key, zone: hit.zone })
-      playSFX('furniture_place')
-      return
-    }
     setSelectedSlot({ key: hit.key, zone: hit.zone })
   }
 
@@ -584,15 +575,15 @@ export default function Room({ navigate }) {
     flash(item ? `เก็บ${item.nameTh}แล้ว` : 'เก็บของแล้ว')
   }
 
-  // ── Crafting ──────────────────────────────────────────────────────────────
+  // ── Instant crafting (2026-07-07 — replaces the workbench+confirm-step flow) ─
   function canAfford(itemId) {
-    const recipe = RECIPES[itemId]
+    const recipe = CRAFT_RECIPES[itemId]
     if (!recipe) return false
     return Object.keys(recipe).every(k => (materials[k] || 0) >= recipe[k])
   }
 
   // Sparkle burst on craft success — reuses mkSparks/tickEffects on a dedicated
-  // canvas layered ON TOP of the crafting sheet (the room's own overlay canvas
+  // canvas layered ON TOP of the craft sheet (the room's own overlay canvas
   // sits behind the sheet, so it wouldn't be visible from here).
   function fireCraftSparkle() {
     const cv = craftFxRef.current
@@ -613,34 +604,26 @@ export default function Room({ navigate }) {
     craftFxRafRef.current = requestAnimationFrame(step)
   }
 
+  // Instant — no confirm dialog. Tapping an affordable recipe card crafts it
+  // immediately (per spec, simplicity over ceremony for a 6-recipe list).
   function handleCraft(itemId) {
-    if (!canAfford(itemId)) { flash('วัตถุดิบไม่พอ!'); return }
-    if (ownedRoom.includes(itemId)) { flash('มีแล้ว!'); return }
+    if (!canAfford(itemId)) return
+    if (ownedRoom.includes(itemId)) return
     dispatch({ type: ACTIONS.CRAFT_ITEM, payload: { itemId } })
     playSFX('coin_purchase')
-    setCraftConfirm(null)
     fireCraftSparkle()
     const item = ITEM_BY_ID[itemId]
     flash(item ? `ประดิษฐ์${item.nameTh}แล้ว! ✨` : 'ประดิษฐ์สำเร็จ! ✨')
   }
 
-  function handleRemoveCraftingTable() {
-    const key = craftingTable?.key
-    if (!key) return
-    dispatch({ type: ACTIONS.REMOVE_ROOM_ITEM, payload: { slotKey: key } })
-    playSFX('furniture_remove')
-    setCraftingTable(null)
-    setCraftConfirm(null)
-    flash('เก็บโต๊ะประดิษฐ์แล้ว')
-  }
-
   useEffect(() => () => { if (craftFxRafRef.current) cancelAnimationFrame(craftFxRafRef.current) }, [])
 
   const zone       = selectedSlot?.zone ?? null
-  // Craft-only items are hidden from the coin buy-picker until they're actually
-  // crafted (owned); once owned they behave exactly like any bought item here.
+  // Craft-only and monster-drop-only items are hidden from the coin buy-picker
+  // until actually unlocked (crafted / dropped); once owned they behave
+  // exactly like any bought item here.
   const zoneItems  = zone ? ROOM_ITEMS.filter(i =>
-    (i.allowedZones || []).includes(zone) && (!i.craftedOnly || ownedRoom.includes(i.id))
+    (i.allowedZones || []).includes(zone) && ((!i.craftedOnly && !i.dropOnly) || ownedRoom.includes(i.id))
   ) : []
   const occupiedId = selectedSlot ? roomLayout[selectedSlot.key] : null
   const occupiedItem = occupiedId ? ROOM_ITEMS.find(i => i.id === occupiedId) : null
@@ -724,63 +707,27 @@ export default function Room({ navigate }) {
           } : null}
         />
 
-        {/* Material inventory panel (🎒 วัตถุดิบ) — collapsible, top-left below
-            the ROOM header pill. Shows collected materials + a shortcut to go
-            collect more in the world. */}
-        <div style={{
-          position: 'absolute', top: 48, left: 10, zIndex: 4,
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
-        }}>
+        {/* Craft button (⚒️) — floating bottom-right, only shown once the child
+            owns any material (per spec: materials themselves are shown in
+            WorldHUD now, not here — Room only needs the entry point). */}
+        {Object.values(materials).some(v => v > 0) && (
           <button
-            onClick={() => setMatPanelOpen(o => !o)}
-            aria-label="วัตถุดิบ"
+            onClick={() => setCraftSheetOpen(true)}
+            aria-label="ประดิษฐ์ของ"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-              background: 'rgba(10,8,20,0.55)', backdropFilter: 'blur(6px)',
-              border: '1px solid rgba(255,255,255,0.14)', borderRadius: 16,
-              padding: '5px 12px', WebkitTapHighlightColor: 'transparent',
+              position: 'absolute', right: 14,
+              bottom: 'calc(24px + env(safe-area-inset-bottom))', zIndex: 5,
+              width: 52, height: 52, borderRadius: 30, border: 'none',
+              background: 'linear-gradient(180deg, #FFD23F, #EF9F27)',
+              color: '#3a2a00', fontSize: 24, lineHeight: 1, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <span style={{ fontSize: 15 }}>🎒</span>
-            <span style={{ fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 700, color: '#fff' }}>
-              วัตถุดิบ
-            </span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{matPanelOpen ? '▲' : '▼'}</span>
+            ⚒️
           </button>
-          {matPanelOpen && (
-            <div style={{
-              background: 'rgba(10,8,22,0.72)', backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.14)', borderRadius: 14,
-              padding: 10, minWidth: 150,
-              display: 'flex', flexDirection: 'column', gap: 8,
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {MATERIALS.map(m => (
-                  <div key={m.id} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-                    opacity: (materials[m.id] ?? 0) > 0 ? 1 : 0.4,
-                  }}>
-                    <span style={{ fontSize: 18 }}>{m.icon}</span>
-                    <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#FFD23F' }}>
-                      {materials[m.id] ?? 0}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => navigate && navigate('world')}
-                style={{
-                  border: 'none', cursor: 'pointer', borderRadius: 10, padding: '9px 0',
-                  background: 'rgba(52,199,89,0.22)', color: '#7dffa0',
-                  fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                🧺 ไปเก็บ →
-              </button>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Hint text — pinned bottom overlay, taps pass through to the canvas */}
         <div style={{
@@ -1013,170 +960,99 @@ export default function Room({ navigate }) {
         </div>
       )}
 
-      {/* ── Crafting sheet (tapping a placed crafting_table) ─────────────────── */}
-      {craftingTable && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9100,
-          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-        }}>
-          <div
-            onClick={() => { setCraftingTable(null); setCraftConfirm(null) }}
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
-          />
+      {/* ── Craft sheet (⚒️ button) — instant craft, affordable recipes only ─── */}
+      {craftSheetOpen && (() => {
+        const affordable = CRAFT_RECIPE_LIST.filter(id => canAfford(id) && !ownedRoom.includes(id))
+        return (
           <div style={{
-            position: 'relative', zIndex: 1,
-            maxHeight: '66vh', display: 'flex', flexDirection: 'column',
-            background: 'rgba(26,16,64,0.92)', backdropFilter: 'blur(14px)',
-            borderRadius: '24px 24px 0 0', padding: '16px 16px 0',
-            paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
-            animation: 'fadeInUp 0.22s ease both', boxSizing: 'border-box',
+            position: 'fixed', inset: 0, zIndex: 9100,
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
           }}>
-            {/* Header — title + material summary + remove-table + close */}
+            <div
+              onClick={() => setCraftSheetOpen(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
+            />
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexShrink: 0,
+              position: 'relative', zIndex: 1,
+              maxHeight: '60vh', display: 'flex', flexDirection: 'column',
+              background: 'rgba(26,16,64,0.92)', backdropFilter: 'blur(14px)',
+              borderRadius: '24px 24px 0 0', padding: '16px 16px 0',
+              paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+              animation: 'fadeInUp 0.22s ease both', boxSizing: 'border-box',
             }}>
-              <span style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
-                🔨 โต๊ะประดิษฐ์
-              </span>
               <div style={{
-                flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8,
-                overflowX: 'auto', justifyContent: 'flex-end',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0,
               }}>
-                {MATERIALS.filter(m => (materials[m.id] ?? 0) > 0).map(m => (
-                  <span key={m.id} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 1,
-                    fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#fff', whiteSpace: 'nowrap',
-                  }}>
-                    <span style={{ fontSize: 13 }}>{m.icon}</span>{materials[m.id]}
-                  </span>
-                ))}
+                <span style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
+                  ⚒️ ประดิษฐ์ของ
+                </span>
+                <button onClick={() => setCraftSheetOpen(false)} aria-label="ปิด"
+                  style={{
+                    border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.06)', borderRadius: 9, padding: '5px 9px',
+                    fontSize: 14, color: '#fff', WebkitTapHighlightColor: 'transparent',
+                  }}>✕</button>
               </div>
-              <button onClick={handleRemoveCraftingTable} aria-label="เก็บโต๊ะ"
-                style={{
-                  flexShrink: 0, border: '1px solid rgba(255,80,80,0.4)', cursor: 'pointer',
-                  background: 'rgba(255,80,80,0.16)', borderRadius: 9, padding: '5px 9px',
-                  fontSize: 14, WebkitTapHighlightColor: 'transparent',
-                }}>🗑️</button>
-              <button onClick={() => { setCraftingTable(null); setCraftConfirm(null) }} aria-label="ปิด"
-                style={{
-                  flexShrink: 0, border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.06)', borderRadius: 9, padding: '5px 9px',
-                  fontSize: 14, color: '#fff', WebkitTapHighlightColor: 'transparent',
-                }}>✕</button>
+
+              {affordable.length === 0 ? (
+                <div style={{
+                  flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 20,
+                }}>
+                  <div style={{ fontSize: 44 }}>🗺️</div>
+                  <div style={{ fontFamily: 'var(--font-thai)', fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+                    เก็บวัตถุดิบเพิ่มในแผนที่ก่อนนะ 🗺️
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  flex: 1, minHeight: 0, overflowY: 'auto',
+                  display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+                  paddingBottom: 12,
+                }}>
+                  {affordable.map(itemId => {
+                    const item = ITEM_BY_ID[itemId]
+                    const recipe = CRAFT_RECIPES[itemId] || {}
+                    return (
+                      <button
+                        key={itemId}
+                        onClick={() => handleCraft(itemId)}
+                        aria-label={`ประดิษฐ์${item?.nameTh}`}
+                        style={{
+                          borderRadius: 12, padding: '10px 8px', boxSizing: 'border-box',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                          background: 'rgba(52,199,89,0.14)', border: '1.5px solid rgba(52,199,89,0.4)',
+                          cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                        }}
+                      >
+                        <SlotCanvas item={item} size={60} />
+                        <span style={{
+                          fontFamily: 'var(--font-thai)', fontSize: 12, color: '#fff',
+                          textAlign: 'center', lineHeight: 1.15,
+                        }}>{item?.nameTh}</span>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 1,
+                          fontFamily: 'var(--font-pixel)', fontSize: 11, color: '#7dffa0',
+                        }}>
+                          {Object.keys(recipe).map(k => (
+                            <span key={k}>{MATERIAL_ICON[k]}×{recipe[k]}</span>
+                          ))}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {craftConfirm ? (
-              // Confirm sub-view
-              (() => {
-                const item = ITEM_BY_ID[craftConfirm]
-                const recipe = RECIPES[craftConfirm] || {}
-                const afford = canAfford(craftConfirm)
-                return (
-                  <div style={{
-                    flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 12,
-                  }}>
-                    <SlotCanvas item={item} size={80} />
-                    <div style={{ fontFamily: 'var(--font-thai)', fontSize: 16, fontWeight: 700, color: '#fff' }}>
-                      ประดิษฐ์{item?.nameTh}?
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      {Object.keys(recipe).map(k => (
-                        <span key={k} style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 2,
-                          fontFamily: 'var(--font-pixel)', fontSize: 12,
-                          color: (materials[k] || 0) >= recipe[k] ? '#7dffa0' : '#ff8a8a',
-                        }}>
-                          <span style={{ fontSize: 16 }}>{MATERIAL_ICON[k]}</span>×{recipe[k]}
-                        </span>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 320 }}>
-                      <button onClick={() => setCraftConfirm(null)} aria-label="ย้อนกลับ"
-                        style={{
-                          flex: 1, border: '1.5px solid rgba(255,255,255,0.2)', cursor: 'pointer',
-                          background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 0',
-                          fontFamily: 'var(--font-thai)', fontSize: 14, color: 'rgba(255,255,255,0.7)',
-                          WebkitTapHighlightColor: 'transparent',
-                        }}>← ย้อนกลับ</button>
-                      <button onClick={() => handleCraft(craftConfirm)} disabled={!afford} aria-label="ประดิษฐ์"
-                        style={{
-                          flex: 2, border: 'none', cursor: afford ? 'pointer' : 'default',
-                          background: afford ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.08)',
-                          borderRadius: 10, padding: '12px 0', fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
-                          color: afford ? '#FFD23F' : 'rgba(255,255,255,0.3)', WebkitTapHighlightColor: 'transparent',
-                        }}>🔨 ประดิษฐ์!</button>
-                    </div>
-                  </div>
-                )
-              })()
-            ) : (
-              // Recipe grid — 2 columns
-              <div style={{
-                flex: 1, minHeight: 0, overflowY: 'auto',
-                display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
-                paddingBottom: 12,
-              }}>
-                {RECIPE_LIST.map(itemId => {
-                  const item = ITEM_BY_ID[itemId]
-                  const recipe = RECIPES[itemId] || {}
-                  const owned = ownedRoom.includes(itemId)
-                  const afford = canAfford(itemId)
-                  return (
-                    <div key={itemId} style={{
-                      borderRadius: 12, padding: '10px 8px', boxSizing: 'border-box', position: 'relative',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      background: owned ? 'rgba(255,210,63,0.10)' : 'rgba(255,255,255,0.04)',
-                      border: `1.5px solid ${owned ? 'rgba(255,210,63,0.55)' : 'rgba(255,255,255,0.10)'}`,
-                    }}>
-                      <SlotCanvas item={item} size={54} />
-                      <span style={{
-                        fontFamily: 'var(--font-thai)', fontSize: 12, color: '#fff',
-                        textAlign: 'center', lineHeight: 1.15,
-                      }}>{item?.nameTh}</span>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {Object.keys(recipe).map(k => (
-                          <span key={k} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 1,
-                            fontFamily: 'var(--font-pixel)', fontSize: 10,
-                            color: (materials[k] || 0) >= recipe[k] ? '#cfe8d0' : '#ff9a9a',
-                          }}>
-                            <span style={{ fontSize: 13 }}>{MATERIAL_ICON[k]}</span>×{recipe[k]}
-                          </span>
-                        ))}
-                      </div>
-                      {owned ? (
-                        <div style={{
-                          width: '100%', textAlign: 'center', borderRadius: 8, padding: '7px 0',
-                          background: 'rgba(255,210,63,0.14)', color: '#FFD23F',
-                          fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 700,
-                        }}>✓ มีแล้ว</div>
-                      ) : (
-                        <button
-                          onClick={() => { if (afford) setCraftConfirm(itemId); else flash('วัตถุดิบไม่พอ!') }}
-                          aria-label="ประดิษฐ์"
-                          style={{
-                            width: '100%', border: 'none', cursor: 'pointer', borderRadius: 8, padding: '7px 0',
-                            background: afford ? 'rgba(52,199,89,0.24)' : 'rgba(255,255,255,0.06)',
-                            color: afford ? '#7dffa0' : 'rgba(255,255,255,0.35)',
-                            fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
-                            WebkitTapHighlightColor: 'transparent',
-                          }}>ประดิษฐ์!</button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            {/* Craft-success sparkle — layered above the sheet (pointer-through). */}
+            <canvas ref={craftFxRef} style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              pointerEvents: 'none', zIndex: 2,
+            }} />
           </div>
-
-          {/* Craft-success sparkle — layered above the sheet (pointer-through). */}
-          <canvas ref={craftFxRef} style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            pointerEvents: 'none', zIndex: 2,
-          }} />
-        </div>
-      )}
+        )
+      })()}
 
       {/* Toast */}
       {toast && (

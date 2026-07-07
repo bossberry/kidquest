@@ -127,15 +127,22 @@ export function defaultState() {
     ownedItems: [],
     equipped: { head: null, face: null },
     ownedRoomItems: [],
-    // Crafting system (2026-07-05): materials collected on the world map are spent
-    // at the crafting table to unlock craftedOnly furniture. `craftedItems` is a
-    // provenance list (distinct from bought furniture) for the "มีแล้ว" badge.
-    // dailyCollectCount/lastCollectDate cap collecting at 20/day (todayStr() reset,
-    // same convention as minigame lives).
-    materials: { wood: 0, stone: 0, flower: 0, mushroom: 0, crystal: 0, stardust: 0 },
+    // Room items — two acquisition paths (2026-07-07 simplified replacement of
+    // the earlier workbench+20/day-collect-button system): monster drops
+    // (30% chance on a real battle win, ADD_OWNED_ROOM_ITEM) and instant
+    // crafting from materials auto-collected while walking the world map
+    // (15% chance per tile, CRAFT_ITEM). `craftedItems` is a provenance list
+    // (distinct from bought/dropped furniture) for the "มีแล้ว" badge.
+    // dailyMaterialsCollected/lastMaterialDate cap auto-collection at 15/day
+    // (todayStr() reset, same convention as minigame lives).
+    materials: { flower: 0, wood: 0, stone: 0, water: 0, stardust: 0, mushroom: 0 },
     craftedItems: [],
-    dailyCollectCount: 0,
-    lastCollectDate: '',
+    dailyMaterialsCollected: 0,
+    lastMaterialDate: '',
+    // Set true whenever ADD_OWNED_ROOM_ITEM/CRAFT_ITEM adds something new;
+    // drives the "✨ ของใหม่!" bubble on BottomNav's ห้อง tab, cleared when
+    // Room.jsx mounts.
+    hasNewRoomItem: false,
     // Multi-room expansion (2026-07-05). `rooms` + `activeRoomId` are the SOURCE OF
     // TRUTH. `roomLayout` (below) is kept only as a strictly-derived MIRROR of the
     // active room's layout, so old code / reducers that still read state.roomLayout

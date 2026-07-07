@@ -151,7 +151,7 @@ export default function App() {
       )}
 
       {/* Bottom nav (hidden during game, world, and world battle) */}
-      {screen !== 'game' && screen !== 'world' && screen !== 'world-battle' && <BottomNav current={screen} navigate={navigate} />}
+      {screen !== 'game' && screen !== 'world' && screen !== 'world-battle' && <BottomNav current={screen} navigate={navigate} hasNewRoomItem={state.hasNewRoomItem} />}
     </>
   )
 }

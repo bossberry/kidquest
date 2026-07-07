@@ -8,7 +8,7 @@ import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
-import { RECIPES } from '../lib/roomItems.js'
+import { CRAFT_RECIPES } from '../lib/roomItems.js'
 
 export const StateContext = createContext(null)
 
@@ -177,9 +177,11 @@ export const ACTIONS = {
   SET_HOME_ROOM:               'SET_HOME_ROOM',
   PLACE_ROOM_ITEM_IN_ROOM:     'PLACE_ROOM_ITEM_IN_ROOM',
   REMOVE_ROOM_ITEM_FROM_ROOM:  'REMOVE_ROOM_ITEM_FROM_ROOM',
-  // Crafting system (materials collected in world → craft furniture)
+  // Room items (2026-07-07): monster drops + auto-collected materials → instant craft
   COLLECT_MATERIAL:            'COLLECT_MATERIAL',
   CRAFT_ITEM:                  'CRAFT_ITEM',
+  ADD_OWNED_ROOM_ITEM:         'ADD_OWNED_ROOM_ITEM',
+  CLEAR_NEW_ROOM_ITEM:         'CLEAR_NEW_ROOM_ITEM',
 }
 
 // Multi-room helper — write a new layout into one room inside `rooms`, and keep the
@@ -1076,38 +1078,39 @@ function reducer(state, action) {
       return { ...state, homeRoomId: roomId, lastSavedAt: Date.now() }
     }
 
-    // ── Crafting ──────────────────────────────────────────────────────────────
-    // COLLECT_MATERIAL — award `amount` of one material (cap 99 each). Also
-    // advances the 20/day collect counter, resetting it when the stored date
-    // isn't today (same todayStr() convention as minigame lives). The caller
-    // (WorldScreen) checks the remaining budget before dispatching, but the cap
-    // is enforced here too so it can never be exceeded.
+    // ── Room items (2026-07-07) ─────────────────────────────────────────────────
+    // COLLECT_MATERIAL — award `amount` of one material (cap 30 each, per the
+    // simplified auto-collect-while-walking spec — was 99/20-per-day under the
+    // earlier manual-button system). Advances the 15/day auto-collect counter,
+    // resetting it when the stored date isn't today (todayStr() convention,
+    // same as minigame lives). The caller (WorldScreen's tryMove) checks the
+    // remaining budget before dispatching, but the cap is enforced here too.
     case ACTIONS.COLLECT_MATERIAL: {
       const { material, amount = 1 } = action.payload
       if (!material) return state
       const today = todayStr()
-      const reset = (state.lastCollectDate || '') !== today
-      const usedToday = reset ? 0 : (state.dailyCollectCount || 0)
-      if (usedToday >= 20) return state
+      const reset = (state.lastMaterialDate || '') !== today
+      const usedToday = reset ? 0 : (state.dailyMaterialsCollected || 0)
+      if (usedToday >= 15) return state
       const mats = { ...(state.materials || {}) }
-      mats[material] = Math.min(99, (mats[material] || 0) + amount)
+      mats[material] = Math.min(30, (mats[material] || 0) + amount)
       return {
         ...state,
         materials: mats,
-        dailyCollectCount: Math.min(20, usedToday + amount),
-        lastCollectDate: today,
+        dailyMaterialsCollected: Math.min(15, usedToday + amount),
+        lastMaterialDate: today,
         lastSavedAt: Date.now(),
       }
     }
 
-    // CRAFT_ITEM — look up the recipe, verify every material requirement is met,
-    // deduct them all, and add the item to BOTH ownedRoomItems (so it's placeable
-    // through the existing Room flow, exactly like a bought item) and craftedItems
-    // (provenance). No-op if the recipe is unknown, requirements aren't met, or
-    // the item is already owned.
+    // CRAFT_ITEM — instant craft (no confirm step in the UI): look up the
+    // recipe, verify every material requirement is met, deduct them all, and
+    // add the item to ownedRoomItems (placeable through the normal Room flow)
+    // + craftedItems (provenance) + flag hasNewRoomItem for the nav badge.
+    // No-op if the recipe is unknown, requirements aren't met, or already owned.
     case ACTIONS.CRAFT_ITEM: {
       const { itemId } = action.payload
-      const recipe = RECIPES[itemId]
+      const recipe = CRAFT_RECIPES[itemId]
       if (!recipe) return state
       if ((state.ownedRoomItems || []).includes(itemId)) return state
       const mats = state.materials || {}
@@ -1119,9 +1122,30 @@ function reducer(state, action) {
         materials: newMats,
         ownedRoomItems: [...(state.ownedRoomItems || []), itemId],
         craftedItems: [...(state.craftedItems || []), itemId],
+        hasNewRoomItem: true,
         lastSavedAt: Date.now(),
       }
     }
+
+    // ADD_OWNED_ROOM_ITEM — monster-drop furniture, dispatched from
+    // useBattleCombat.js's showVictory() on a 30% post-win roll. No-op if
+    // already owned (the caller checks this first to decide between a real
+    // item drop and a 15-coin consolation prize, but the reducer guards too).
+    case ACTIONS.ADD_OWNED_ROOM_ITEM: {
+      const { itemId } = action.payload
+      if (!itemId || (state.ownedRoomItems || []).includes(itemId)) return state
+      return {
+        ...state,
+        ownedRoomItems: [...(state.ownedRoomItems || []), itemId],
+        hasNewRoomItem: true,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // CLEAR_NEW_ROOM_ITEM — dispatched when Room.jsx mounts, clearing the
+    // BottomNav "✨ ของใหม่!" bubble now that the child has seen the new item.
+    case ACTIONS.CLEAR_NEW_ROOM_ITEM:
+      return state.hasNewRoomItem ? { ...state, hasNewRoomItem: false } : state
 
     default:
       return state

@@ -4,7 +4,7 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { WORLD_LEVELS, DYNAMIC_SCREENS, WORLD_THEME_ICON } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import { BOSS_XP_THRESHOLD, todayStr } from '../config/gameConfig.js'
-import { MATERIALS, MATERIAL_ICON } from '../lib/roomItems.js'
+import { MATERIAL_ICON } from '../lib/roomItems.js'
 import {
   T, canMove, getExitAt,
   EXIT_DIR_NAME, getEntryPosition, setWorldTheme,
@@ -103,29 +103,41 @@ function ExitArrow({ dir, visible, onClick }) {
 const VALID_DYNAMIC = new Set(['NW', 'NE', 'SW', 'SE', 'BOSS', 'MAZE'])
 const BOSS_TILE = { col: 7, row: 3 }
 
-// ── Crafting-material collection (2026-07-05) ────────────────────────────────
-// IMPORTANT theme-based mapping (not the spec's literal tile table): the map
-// generators (tileMaps.js) never place T.WALL or T.WATER, so "stone from WALL /
-// crystal from WATER" would be dead in every world. Instead we key off tile
-// types that ARE generated everywhere — TREE/TALL → wood, PATH (the "stone
-// path") → stone — plus FLOWER (placed in every world regardless of theme),
-// whose material varies by the CURRENT world's theme so all 6 materials are
-// obtainable across the 5 worlds.
-const COLLECT_DAILY_CAP = 20
-const THEME_FLOWER_MATERIAL = {
-  grassland: 'flower',
-  beach:     'flower',
-  forest:    'mushroom',
-  snow:      'crystal',
-  sky:       'stardust',
-}
-// Which material a single tile yields (null = not collectible). themeMat is the
-// current world's FLOWER-tile payoff.
-function materialForTile(rawTile, themeMat) {
-  const t = typeof rawTile === 'object' ? rawTile?.type : rawTile
-  if (t === T.TREE || t === T.TALL) return 'wood'
+// ── Auto-collect materials while walking (2026-07-07) ───────────────────────
+// Replaces the earlier manual 🧺 collect-button system. Every committed move
+// has a 15% chance to award 1 material, picked from the tile just stepped on
+// (or its 4 orthogonal neighbors for wood). Daily cap 15 (COLLECT_CHANCE /
+// DAILY_CAP below), enforced client-side here AND in the COLLECT_MATERIAL
+// reducer.
+//
+// DEVIATION FROM THE LITERAL SPEC TABLE (flagged, same kind of correction the
+// original crafting session made): the spec's table has "T.WATER adjacent →
+// water" and "T.GRASS (sky world) → stardust", but tileMaps.js's generators
+// never place T.WATER in ANY world (grepped: `W = T.WATER` is defined and
+// never used as a map cell value) — a literal water-adjacency check would be
+// permanently dead code, same problem the original session found with
+// WALL/WATER. Instead, water is folded into the existing theme-dependent
+// T.GRASS slot (sky→stardust, snow→water) rather than a tile type that never
+// spawns — every material stays reachable in some world.
+const COLLECT_CHANCE = 0.15
+const DAILY_MATERIAL_CAP = 15
+
+function pickAutoMaterial(tileMap, col, row, theme) {
+  const raw = tileMap[row]?.[col]
+  const t = typeof raw === 'object' ? raw?.type : raw
+  if (t === T.TALL) return theme === 'forest' ? 'mushroom' : 'flower'
+  if (t === T.GRASS) {
+    if (theme === 'sky') return 'stardust'
+    if (theme === 'snow') return 'water'
+    return null
+  }
   if (t === T.PATH) return 'stone'
-  if (t === T.FLOWER) return themeMat
+  // Wood: only when standing next to a tree (trees themselves aren't walkable).
+  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    const nRaw = tileMap[row + dr]?.[col + dc]
+    const nt = typeof nRaw === 'object' ? nRaw?.type : nRaw
+    if (nt === T.TREE) return 'wood'
+  }
   return null
 }
 
@@ -192,9 +204,8 @@ export default function WorldScreen({ navigate }) {
   const confettiRafRef     = useRef(null)
   const [itemBagOpen, setItemBagOpen] = useState(false)
   const [bossCutscene, setBossCutscene] = useState(null)
-  const [collectToast, setCollectToast] = useState(null)   // { icon, text } | null
-  const [collectShake, setCollectShake] = useState(false)  // brief button wobble on "nothing here"
-  const collectToastTimer = useRef(null)
+  const [materialToast, setMaterialToast] = useState(null)   // { icon } | null — floats up + fades, 300ms
+  const materialToastTimer = useRef(null)
   const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
     useBattleTrigger({ stateRef, screenIdRef, gameRef, setEncounterFlash, setBossConfirm, BOSS_TILE })
 
@@ -503,6 +514,38 @@ export default function WorldScreen({ navigate }) {
     }, 300)
   }, [dispatch, initScreen])
 
+  // ── Auto-collect materials while walking ────────────────────────────────────
+  // Defined ABOVE tryMove deliberately: tryMove's useCallback dependency array
+  // references tryAutoCollectMaterial, and dependency arrays are evaluated
+  // eagerly at render time (not lazily at call time) — declaring it below
+  // tryMove throws "Cannot access before initialization" on every render.
+  //
+  // Remaining collects today (resets when the stored date isn't today — same
+  // todayStr() reset convention as minigame lives).
+  const materialsUsedToday = (state.lastMaterialDate === todayStr()) ? (state.dailyMaterialsCollected || 0) : 0
+  const materialsLeftToday = Math.max(0, DAILY_MATERIAL_CAP - materialsUsedToday)
+
+  const showMaterialToast = useCallback((icon) => {
+    setMaterialToast({ icon, id: Date.now() })
+    if (materialToastTimer.current) clearTimeout(materialToastTimer.current)
+    materialToastTimer.current = setTimeout(() => setMaterialToast(null), 300)
+  }, [])
+  useEffect(() => () => { if (materialToastTimer.current) clearTimeout(materialToastTimer.current) }, [])
+
+  // Called from tryMove right after a move commits (new tile confirmed under
+  // the player). 15% chance per step, silently stops once the daily cap is
+  // hit (no notification — per spec, this is meant to be unobtrusive).
+  const tryAutoCollectMaterial = useCallback((tileMap, col, row) => {
+    if (materialsLeftToday <= 0) return
+    if (Math.random() >= COLLECT_CHANCE) return
+    const theme = WORLD_LEVELS[stateRef.current.worldLevel ?? 0]?.theme ?? 'grassland'
+    const material = pickAutoMaterial(tileMap, col, row, theme)
+    if (!material) return
+    dispatch({ type: ACTIONS.COLLECT_MATERIAL, payload: { material, amount: 1 } })
+    playSFX('collect_tick')
+    showMaterialToast(MATERIAL_ICON[material] || '✨')
+  }, [materialsLeftToday, dispatch, showMaterialToast])
+
   // ── Player movement ──────────────────────────────────────────────────────────
   const tryMove = useCallback((dCol, dRow, dir) => {
     const g = gameRef.current
@@ -576,6 +619,7 @@ export default function WorldScreen({ navigate }) {
     g.walkFrame = (g.walkFrame + 1) % 2
 
     playSFX('footstep')
+    tryAutoCollectMaterial(tileMap, newCol, newRow)
 
     const exitType = getExitAt(tileMap, newCol, newRow)
     if (exitType !== null) {
@@ -594,7 +638,7 @@ export default function WorldScreen({ navigate }) {
     }
 
     checkProximity(newCol, newRow)
-  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle])
+  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle, tryAutoCollectMaterial])
 
   const confirmEnterMaze = () => {
     setMazeConfirm(false)
@@ -708,52 +752,6 @@ export default function WorldScreen({ navigate }) {
   // ── Go home ──────────────────────────────────────────────────────────────────
 
   const goHome = () => { dispatch({ type: ACTIONS.EXIT_WORLD }); navigate('home') }
-
-  // ── Material collection ────────────────────────────────────────────────────
-  // Remaining collects today (resets when the stored date isn't today — same
-  // todayStr() reset convention as minigame lives).
-  const collectsUsed = (state.lastCollectDate === todayStr()) ? (state.dailyCollectCount || 0) : 0
-  const collectsLeft = Math.max(0, COLLECT_DAILY_CAP - collectsUsed)
-
-  const showCollectToast = useCallback((icon, text) => {
-    setCollectToast({ icon, text })
-    if (collectToastTimer.current) clearTimeout(collectToastTimer.current)
-    collectToastTimer.current = setTimeout(() => setCollectToast(null), 1300)
-  }, [])
-  useEffect(() => () => { if (collectToastTimer.current) clearTimeout(collectToastTimer.current) }, [])
-
-  // Pure side-effect on tap: only READS gameRef/tileMapRef (never mutates tile
-  // data, never triggers movement/battle). Checks the player's tile + 4
-  // orthogonal neighbors for a collectible; awards the best material found.
-  const handleCollect = useCallback(() => {
-    if (collectsLeft <= 0) {
-      setCollectShake(true); setTimeout(() => setCollectShake(false), 380)
-      showCollectToast('😴', 'พรุ่งนี้ค่อยมาเก็บนะ')
-      return
-    }
-    const g = gameRef.current
-    const tileMap = tileMapRef.current
-    if (!g || !tileMap) return
-    const theme = WORLD_LEVELS[stateRef.current.worldLevel ?? 0]?.theme ?? 'grassland'
-    const themeMat = THEME_FLOWER_MATERIAL[theme] ?? 'flower'
-    const found = new Set()
-    for (const [dc, dr] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0]]) {
-      const m = materialForTile(tileMap[g.row + dr]?.[g.col + dc], themeMat)
-      if (m) found.add(m)
-    }
-    // Prefer the rarer theme/flower material, then wood, then stone.
-    const material = found.has(themeMat) ? themeMat
-      : found.has('wood') ? 'wood'
-      : found.has('stone') ? 'stone' : null
-    if (!material) {
-      setCollectShake(true); setTimeout(() => setCollectShake(false), 380)
-      showCollectToast('🔍', 'ไม่มีอะไรให้เก็บ')
-      return
-    }
-    dispatch({ type: ACTIONS.COLLECT_MATERIAL, payload: { material, amount: 1 } })
-    playSFX('coin_earn')
-    showCollectToast(MATERIAL_ICON[material] || '✨', '+1')
-  }, [collectsLeft, dispatch, showCollectToast])
 
   // ── Treasure reward ──────────────────────────────────────────────────────────
 
@@ -943,84 +941,20 @@ export default function WorldScreen({ navigate }) {
         ))}
       </div>
 
-      {/* Material HUD strip — non-zero materials as compact icon+count pairs.
-          Bottom-left, stacked above the collect button so it never collides with
-          the top HUD/MissionPanel or the centered D-pad. */}
-      {(() => {
-        const owned = MATERIALS.filter(m => (state.materials?.[m.id] ?? 0) > 0)
-        if (owned.length === 0) return null
-        return (
-          <div style={{
-            position: 'absolute', left: 12, bottom: 84, zIndex: 24,
-            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-            maxWidth: 190, pointerEvents: 'none',
-            background: 'rgba(10,8,20,0.55)', backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            border: '1px solid rgba(255,255,255,0.14)', borderRadius: 16,
-            padding: '6px 10px',
-          }}>
-            {owned.map(m => (
-              <span key={m.id} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 2,
-                fontFamily: 'Mitr,sans-serif', fontSize: 12, color: '#fff',
-              }}>
-                <span style={{ fontSize: 14 }}>{m.icon}</span>
-                {state.materials[m.id]}
-              </span>
-            ))}
-          </div>
-        )
-      })()}
-
-      {/* Collect button — bottom-left, clear of the centered D-pad (which spans
-          the bottom center) and the NPC/sign buttons (bottom-right). Tiny badge
-          shows collects left today; dims + 😴 when exhausted. */}
-      <button
-        onClick={handleCollect}
-        aria-label="เก็บวัตถุดิบ"
-        className="px-world-pill"
-        style={{
-          position: 'absolute', left: 14,
-          bottom: 'calc(24px + env(safe-area-inset-bottom))', zIndex: 25,
-          width: 52, height: 52, borderRadius: 30, border: 'none',
-          background: collectsLeft > 0
-            ? 'linear-gradient(180deg, #34C759, #1E8E3E)'
-            : 'linear-gradient(180deg, #6b6b76, #4a4a54)',
-          color: '#fff', fontSize: 26, lineHeight: 1, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
-          opacity: collectsLeft > 0 ? 1 : 0.65,
-          WebkitTapHighlightColor: 'transparent',
-          animation: collectShake ? 'shake .35s ease' : 'none',
-        }}
-      >
-        {collectsLeft > 0 ? '🧺' : '😴'}
-        {collectsLeft > 0 && (
-          <span style={{
-            position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18,
-            padding: '0 4px', borderRadius: 9, background: '#FFD23F', color: '#3a2a00',
-            fontFamily: 'var(--font-pixel)', fontSize: 9, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-          }}>
-            {collectsLeft}
-          </span>
-        )}
-      </button>
-
-      {/* Collect toast — floating "+1 🪵" style feedback above the button. */}
-      {collectToast && (
-        <div style={{
-          position: 'absolute', left: 14, bottom: 132, zIndex: 26,
-          pointerEvents: 'none',
-          background: 'rgba(20,14,40,0.92)', border: '1px solid rgba(255,210,63,0.4)',
-          borderRadius: 16, padding: '7px 14px',
-          fontFamily: 'Mitr,sans-serif', fontSize: 14, color: '#FFD23F',
-          whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4,
-          animation: 'fadeInUp 0.25s ease both',
+      {/* Auto-collect material toast — "+1 🪵" floating up + fading over the
+          D-pad area (a stand-in for "above the player": the RAF game loop's
+          per-frame player screen coordinates aren't exposed to React state,
+          so exact sprite-anchored tracking isn't wired up — this reads as
+          "near where you're standing" without that plumbing). Reuses the
+          existing dmg-float keyframe (translateY(-48px)+fade) at 300ms. */}
+      {materialToast && (
+        <div key={materialToast.id} style={{
+          position: 'absolute', left: '50%', bottom: 210, zIndex: 26,
+          transform: 'translateX(-50%)', pointerEvents: 'none',
+          fontSize: 22, textShadow: '0 2px 6px rgba(0,0,0,0.6)',
+          animation: 'dmg-float 0.3s ease-out both',
         }}>
-          <span style={{ fontSize: 16 }}>{collectToast.icon}</span>
-          {collectToast.text}
+          {materialToast.icon}
         </div>
       )}
 

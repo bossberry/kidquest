@@ -1,5 +1,53 @@
 # Changelog — KidQuest
 
+## 2026-07-07 — Room items simplified: monster drops + auto-collect + instant craft
+
+Replaces the workbench-based crafting system from earlier the same day (manual collect button, coin-buyable crafting table, 15-recipe confirm-step sheet) with something simpler and more child-friendly: monsters drop furniture directly, materials auto-collect while walking, and crafting is a single tap.
+
+### src/lib/roomItems.js
+- Removed: `crafting_table`, the 15 old `craftedOnly` items + draw functions, `RECIPES`/`RECIPE_LIST`.
+- Added: 18 `dropOnly: true` monster-drop items (2 per enemy type × 9 types, each with an `icon` emoji for compact display + a pixel-art `draw` function), 6 new `craftedOnly: true` instant-craft items, `MONSTER_DROPS` (enemy type → 2 item ids), `CRAFT_RECIPES`/`CRAFT_RECIPE_LIST` (replaces `RECIPES`/`RECIPE_LIST`). `MATERIALS` swapped `crystal` for `water` (6: flower/wood/stone/water/stardust/mushroom).
+
+### src/lib/state.js
+- `materials` default set updated to the new 6 keys. `dailyCollectCount`/`lastCollectDate` (20/day) → `dailyMaterialsCollected`/`lastMaterialDate` (15/day). New `hasNewRoomItem: false` flag.
+
+### src/context/StateContext.jsx
+- `COLLECT_MATERIAL`: cap changed 20/day→15/day, per-material cap 99→30, uses the renamed date/counter fields.
+- `CRAFT_ITEM`: now reads `CRAFT_RECIPES` (was `RECIPES`); also sets `hasNewRoomItem: true` on success.
+- New `ADD_OWNED_ROOM_ITEM { itemId }` — monster-drop reducer, idempotent.
+- New `CLEAR_NEW_ROOM_ITEM` — clears the nav badge flag.
+
+### src/hooks/useBattleCombat.js
+- `showVictory()`: after the existing 10% battle-item-drop roll, a new 30% roll (real monster wins only, `isWorldBattle && enemy.type && !isBossBattle`) picks from `MONSTER_DROPS[enemy.type]` — dispatches `ADD_OWNED_ROOM_ITEM`, or a 15-coin consolation (`dispatchAddCoins`) if already owned. Surfaces the drop to the UI via a new `setVictoryDrop` param.
+
+### src/games/MoveSelectBattleMode.jsx
+- New `victoryDrop` state + a "✨ ได้ {icon} {name}!" badge on the victory screen, same visual pattern as the existing `victoryBonus` badge.
+
+### src/components/WorldScreen.jsx
+- Removed the manual 🧺 collect button, its toast, and `materialForTile`/`THEME_FLOWER_MATERIAL`/`COLLECT_DAILY_CAP`.
+- New `pickAutoMaterial(tileMap, col, row, theme)` + `tryAutoCollectMaterial`, called from `tryMove` right after every committed move (15% chance, `COLLECT_MATERIAL` dispatch, quiet `collect_tick` SFX, a brief floating icon reusing the `dmg-float` keyframe). **Deviation from the literal spec table**, flagged clearly in-code: `tileMaps.js` never places `T.WATER` in any generated map, so a literal water-tile-adjacency rule would be dead code — water is folded into the existing theme-dependent `T.GRASS` slot (paired with the sky world's stardust) instead.
+- The owned-materials HUD strip moved out of `WorldScreen.jsx` into `WorldHUD.jsx` (a small collapsible row below the main bar).
+- Real bug found and fixed during implementation: `tryAutoCollectMaterial` was originally declared *after* `tryMove` in the component body; since `tryMove`'s `useCallback` dependency array references it, and dependency arrays are evaluated eagerly at render time (not lazily at call time), this threw "Cannot access 'tryAutoCollectMaterial' before initialization" on every render. Fixed by moving the whole auto-collect block above `tryMove`.
+
+### src/components/world/WorldHUD.jsx
+- New collapsible material strip (🎒, tap to expand/collapse), only rendered once the child owns any material.
+
+### src/lib/audio.js
+- New `collect_tick` SFX — a deliberately very quiet, short, high-pitched ping (distinct from the louder `item_collect` two-note arp).
+
+### src/components/Room.jsx
+- Removed the entire workbench sheet (crafting-table tap special-case, material-inventory panel, confirm-step recipe grid) and its state (`craftingTable`/`craftConfirm`/`matPanelOpen`).
+- New floating ⚒️ button (bottom-right, 52px, shown only when any material is owned) opens a sheet listing **only currently-affordable** `CRAFT_RECIPE_LIST` entries (or a "เก็บวัตถุดิบเพิ่มในแผนที่ก่อนนะ 🗺️" placeholder if none). Tapping a card crafts instantly — no confirm dialog.
+- New mount effect dispatching `CLEAR_NEW_ROOM_ITEM`.
+
+### src/components/BottomNav.jsx / src/App.jsx
+- `BottomNav` gained a `hasNewRoomItem` prop → a "✨ ของใหม่!" pulsing bubble on the ห้อง tab. `App.jsx` threads `state.hasNewRoomItem` through.
+
+### Verification
+- `npm run build` clean throughout.
+- **Auto-collect**: confirmed working end-to-end on one real move right after page load (15%-roll success, `dailyMaterialsCollected` 0→1, `state.materials.stone` 0→1, correct WorldHUD display, SFX). Further live-loop testing was blocked by this project's known Chrome-background-tab `requestAnimationFrame`-suspension issue (documented in earlier session handoffs) — the automated test tab isn't reliably kept foregrounded between tool calls, so `useWorldGameLoop`'s move-animation-complete flag (`g.moving`) never resets between clicks, making `tryMove`'s top guard block every subsequent move. Diagnosed precisely via a `Math.random`-forced-success test (still no further collects → ruled out bad luck) and instrumented debug logging (pinned the exact stuck point to the `g.moving` guard, then removed the logging) — confirms this is an environment limitation, not a logic bug.
+- **Craft sheet + badge**: fully live-verified via direct interaction — materials injected through `localStorage` for repeatable testing (a legitimate technique given the RAF issue above), confirmed the affordable-only filter (2 shown out of 6 with wood/stone present), the empty-state message (0 materials), instant craft (exact material deduction, sparkle, `ownedRoomItems` updated), and the BottomNav badge (appears after a craft, clears on opening Room). Zero console errors throughout.
+
 ## 2026-07-07 — Room expansion UX: ghost iso room previews
 
 Replaced the mini-map's small "+" buy-cell as the primary room-purchase entry point with full-size ghost room previews rendered directly in the iso scene.

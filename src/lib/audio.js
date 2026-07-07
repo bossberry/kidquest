@@ -624,6 +624,10 @@ const SFX = {
   battle_start:  ctx => _arp(ctx, [196, 261, 392], 58, 'square'),
   level_up:      ctx => _arp(ctx, [523, 659, 784, 1047], 50, 'sine'),
   // World
+  // Very quiet, short high-pitched ping — auto-collecting a material while
+  // walking (2026-07-07). Deliberately unobtrusive since it can fire on any
+  // step; much quieter/shorter than item_collect's celebratory two-note arp.
+  collect_tick: ctx => _t(ctx, 1800, 0.045, 45, 'sine'),
   footstep:     ctx => _noise(ctx, 0.016, 16),
   tall_grass:   ctx => _noise(ctx, 0.026, 60),
   npc_talk:     ctx => _t(ctx, 600, 0.045, 65, 'sine'),

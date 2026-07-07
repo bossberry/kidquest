@@ -170,6 +170,7 @@ export default function MoveSelectBattleMode({
   const [shieldActive, setShieldActive]     = useState(false)
   const [xpBoostActive, setXpBoost]         = useState(false)
   const [victoryBonus, setVictoryBonus]     = useState(null)
+  const [victoryDrop, setVictoryDrop]       = useState(null)   // ROOM_ITEMS entry | null — monster furniture drop
   const [pendingItem, setPendingItem]       = useState(null)
   const [enemyHurt, setEnemyHurt]           = useState(false)
   const shieldActiveRef  = useRef(false)
@@ -249,7 +250,7 @@ export default function MoveSelectBattleMode({
     spawnEffect, overlayCanvasRef,
     setEnemyHP, setLocalCreatureHP, setXpBoost, setSelectedCard, setHitFlash,
     setEnemyHurt, setDmgFloat, setBattleLog, setComboDisplay, setUltimateReady,
-    setCritFlash, setEnemyDefeating, setVictoryMode, setVictoryBonus,
+    setCritFlash, setEnemyDefeating, setVictoryMode, setVictoryBonus, setVictoryDrop,
     setAttackLabel, setMissCard, setEggHitFlash, setEggAnimClass,
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
@@ -895,6 +896,16 @@ export default function MoveSelectBattleMode({
             <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,0.1)', border:`1px solid ${BATTLE_ITEMS[victoryBonus].color}`, borderRadius:8, padding:'6px 12px' }}>
               <PixelItemIcon type={victoryBonus} size={20} />
               <span style={{ fontSize:12, color:'#FFD700', fontFamily:'var(--font-thai)' }}>ได้รับ: {BATTLE_ITEMS[victoryBonus].name_th}</span>
+            </div>
+          )}
+          {victoryDrop && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,0.1)',
+              border:'1px solid #FFD23F', borderRadius:8, padding:'6px 12px',
+              animation:'victory-bounce .5s ease',
+            }}>
+              <span style={{ fontSize:20 }}>{victoryDrop.icon}</span>
+              <span style={{ fontSize:12, color:'#FFD700', fontFamily:'var(--font-thai)' }}>✨ ได้ {victoryDrop.nameTh}!</span>
             </div>
           )}
           {showReturnButton && (

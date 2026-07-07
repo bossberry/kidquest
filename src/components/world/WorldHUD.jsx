@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { MAP_THEMES } from '../../config/gameConfig.js'
 import { WORLD_LEVELS, WORLD_THEME_ICON } from '../../config/worldConfig.js'
+import { MATERIALS } from '../../lib/roomItems.js'
 import PixelItemIcon from '../PixelItemIcon.jsx'
 
 export const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
@@ -27,6 +28,8 @@ const HOME_ITEM_LABELS = { food: 'อาหาร', ribbon: 'ริบบิ้�
 const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: 'วิ่ง×4', rainbow_star: 'หลบศัตรูตาม!' }
 
 export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
+  const [matOpen, setMatOpen] = useState(true)
+  const ownedMats = MATERIALS.filter(m => (state.materials?.[m.id] ?? 0) > 0)
   const discovered = new Set(discoveredScreens ?? [])
   const MINI_TILE = 11
   const MINI_GAP  = 1
@@ -297,6 +300,31 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
         </button>
 
       </div>
+
+      {/* Auto-collected materials — tiny, only shown once the child owns any,
+          tap to collapse/expand so it never crowds the main bar above. */}
+      {ownedMats.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px',
+          background: 'rgba(5,10,5,0.4)', backdropFilter: 'blur(6px)',
+          borderBottom: matOpen ? '1px solid rgba(50,110,50,0.2)' : 'none',
+        }}>
+          <button onClick={() => setMatOpen(o => !o)} aria-label="วัตถุดิบ" style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            fontSize: 9, color: 'rgba(150,200,150,0.6)', WebkitTapHighlightColor: 'transparent',
+          }}>
+            🎒{matOpen ? '▾' : '▸'}
+          </button>
+          {matOpen && ownedMats.map(m => (
+            <span key={m.id} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 1,
+              fontFamily: 'var(--font-pixel)', fontSize: 8, color: '#c0c8c0',
+            }}>
+              <span style={{ fontSize: 11 }}>{m.icon}</span>{state.materials[m.id]}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

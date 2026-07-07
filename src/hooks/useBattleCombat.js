@@ -1,9 +1,10 @@
-import { useAppState, ACTIONS } from '../context/StateContext.jsx'
+import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.jsx'
 import { playTone, playSFX, playElementSFX, playBGM } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import { getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
 import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
+import { MONSTER_DROPS, ROOM_ITEMS } from '../lib/roomItems.js'
 
 /**
  * useBattleCombat — owns the core combat resolution logic: fireHit, fireMiss,
@@ -29,7 +30,7 @@ export function useBattleCombat(params) {
     // state setters
     setEnemyHP, setLocalCreatureHP, setXpBoost, setSelectedCard, setHitFlash,
     setEnemyHurt, setDmgFloat, setBattleLog, setComboDisplay, setUltimateReady,
-    setCritFlash, setEnemyDefeating, setVictoryMode, setVictoryBonus,
+    setCritFlash, setEnemyDefeating, setVictoryMode, setVictoryBonus, setVictoryDrop,
     setAttackLabel, setMissCard, setEggHitFlash, setEggAnimClass,
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
@@ -269,6 +270,23 @@ export function useBattleCombat(params) {
       if (bonus) {
         dispatch({ type: ACTIONS.DROP_BATTLE_ITEM, payload: { key: bonus } })
         if (mountedRef.current) setVictoryBonus(bonus)
+      }
+    }
+    // 30% chance a real monster (not a boss) drops a room-furniture item
+    // (2026-07-07 — replaces the earlier manual crafting-table system's sole
+    // acquisition path with a second, direct one). Already-owned items pay a
+    // 15-coin consolation instead of being re-dropped.
+    if (isWorldBattle && enemy?.type && !enemy?.isBossBattle) {
+      const dropPool = MONSTER_DROPS[enemy.type]
+      if (dropPool && Math.random() < 0.30) {
+        const itemId = dropPool[Math.floor(Math.random() * dropPool.length)]
+        if ((state.ownedRoomItems || []).includes(itemId)) {
+          dispatchAddCoins(dispatch, 15)
+        } else {
+          dispatch({ type: ACTIONS.ADD_OWNED_ROOM_ITEM, payload: { itemId } })
+          const item = ROOM_ITEMS.find(i => i.id === itemId)
+          if (mountedRef.current && item) setVictoryDrop?.(item)
+        }
       }
     }
     // XP orbs fly from enemy to egg

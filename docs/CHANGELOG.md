@@ -1,5 +1,30 @@
 # Changelog — KidQuest
 
+## 2026-07-07 — Room expansion UX: ghost iso room previews
+
+Replaced the mini-map's small "+" buy-cell as the primary room-purchase entry point with full-size ghost room previews rendered directly in the iso scene.
+
+### src/lib/roomScene.js
+- `computeMultiRoomGeometry(W, H)` — sizes TH so a 3×3 room grid (current room center, 4 cardinal neighbors, diagonals blank) fits the canvas; exposes `isoRoomWidth`/`isoRoomHeight` (the floor diamond's own screen-space bounding box).
+- `shiftGeometry(g, offsetX, offsetY)` — returns a geometry whose `project()` is `g`'s translated by a fixed screen offset, so neighbor previews reuse the same TH/TW without recomputing it.
+- `drawGhostRoom(ctx, g, price, boost)` — dashed gold floor+wall outlines, faint fill, continuous pulsing glow (`Date.now()`-seeded sine, ~2s period), "＋ price🪙" label; `boost` (0-1) briefly brightens it for the swipe-toward-empty-direction feedback. Returns the floor-quad polygon for hit-testing.
+- `drawMiniRoomBox(ctx, g, theme, opacity)` — solid floor+walls in the room's own theme colors at 0.7 opacity + theme icon + name label, for already-purchased adjacent rooms. Also returns its floor-quad polygon.
+- `drawRoomScene()` gained optional `geometry`/`paintBg` params so Room.jsx's multi-room composite can draw the center room at the SAME TH/TW scale as its neighbor previews, and skip repainting the full-canvas backdrop per room.
+- `floorQuad`/`leftWallQuad`/`rightWallQuad`/`pointInQuad` are now exported (previously module-private) for reuse by the new geometry helpers and Room.jsx's neighbor hit-testing.
+
+### src/components/Room.jsx
+- `drawFrame` rewritten: paints the shared backdrop once, then for each of the 4 cardinal directions draws either a real neighbor room (`drawMiniRoomBox`) or a ghost (`drawGhostRoom`), then the fully-editable center room on top (via `drawRoomScene({ geometry, paintBg:false })`) — all sharing one scale. Neighbor screen positions are recomputed every frame into `neighborZonesRef` for hit-testing.
+- `handleCanvasClick` checks `neighborZonesRef` before the existing `hitTestZone` — tapping a real neighbor's floor navigates there (`SET_ACTIVE_ROOM`); tapping a ghost opens the existing purchase bottom sheet (theme picker → confirm), now with a direction-aware title ("เพิ่มห้อง{ด้านขวา/ซ้าย/บน/ล่าง} 🪙1000") and an explicit "เหรียญไม่พอ 😢 ต้องการอีก N🪙" message when short.
+- `navigateGrid` (swipe navigation) now pulses the matching ghost for 500ms + shows a "กดเพื่อซื้อ!" toast when a swipe finds no real room in that direction, instead of silently doing nothing.
+- The rAF loop keeps running continuously whenever any ghost is on screen (needed for the perpetual pulse), not just during the hint-fade/bounce/sparkle window it previously settled to.
+- `RoomMiniMap`'s dashed adjacent-empty cells are now purely decorative (no `onClick`) — purchasing is driven entirely by the in-scene ghost rooms now, so the old separate "+" buy button is gone.
+- Confetti (`mkSparks`/`tickEffects`, same system as furniture-placement sparkle) fires on a successful room purchase.
+- `BUY_ROOM_BLOCK`'s reducer already made the new room active on purchase (pre-existing behavior) — satisfies "auto-navigate to new room" with no new code.
+
+### Verification
+- `npm run build` clean.
+- Live end-to-end with the test account: all 4 ghost rooms render with dashed outlines + pulsing "+1000🪙" labels; tapped the right ghost → direction-aware sheet → picked a theme → confirmed (coins 9675→8675, exact) → confetti fired → auto-navigated into the new pool room, with the old default room now shown as a solid, tappable preview to its left; tapped that preview → navigated back correctly. Zero console errors. (Purchased room could not be reverted afterward — the app has no room-deletion mechanic yet, same as any other real purchase verified live on this account in past sessions.)
+
 ## 2026-07-07 — Crafting system (materials + workbench) + enemy art polish pass
 
 Built 2026-07-05, left uncommitted; this session verified (build + live end-to-end test), documented, and committed. Two independent pieces in the same diff: a new furniture-crafting loop, and a detail pass on 9 of 10 world-map enemy sprites.

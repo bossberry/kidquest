@@ -4,6 +4,7 @@ import { ROOM_ITEMS, RECIPES, RECIPE_LIST, MATERIALS, MATERIAL_ICON } from '../l
 import {
   drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter,
   ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
+  computeMultiRoomGeometry, shiftGeometry, drawGhostRoom, drawMiniRoomBox, pointInQuad,
 } from '../lib/roomScene.js'
 import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
@@ -81,8 +82,13 @@ function ItemCard({ item, cardState, onTap }) {
   )
 }
 
-// ── RoomMiniMap: top-right grid overlay of owned rooms + adjacent buy cells ──
-function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, onBuyCell, onSetHome }) {
+// ── RoomMiniMap: top-right grid overlay of owned rooms ──────────────────────
+// Adjacent-empty cells render as plain dashed squares (visual only, not
+// tappable) — buying a new room is now driven entirely by tapping its full
+// ghost-room preview in the main iso scene (see drawGhostRoom / the neighbor
+// hit-zones in handleCanvasClick), so this mini-map no longer needs its own
+// separate "+" buy button.
+function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, onSetHome }) {
   if (!activeRoom) return null
   const gxs = rooms.map(r => r.gridX), gys = rooms.map(r => r.gridY)
   // Pad by 1 around all rooms so every orthogonally-adjacent empty cell (a valid
@@ -119,15 +125,15 @@ function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, on
         )
       } else if (isAdjacent(x, y)) {
         cells.push(
-          <button key={`${x}_${y}`} onClick={() => onBuyCell(x, y)} aria-label="ซื้อห้องใหม่"
+          <div key={`${x}_${y}`} aria-hidden="true"
             style={{
-              width: CELL, height: CELL, padding: 0, cursor: 'pointer',
-              borderRadius: 5, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,210,63,0.85)',
-              border: '1.5px dashed rgba(255,210,63,0.55)', fontSize: 14, lineHeight: `${CELL}px`,
-              WebkitTapHighlightColor: 'transparent',
+              width: CELL, height: CELL,
+              borderRadius: 5, background: 'rgba(255,255,255,0.03)', color: 'rgba(255,210,63,0.6)',
+              border: '1.5px dashed rgba(255,210,63,0.4)', fontSize: 12, lineHeight: `${CELL}px`,
+              textAlign: 'center',
             }}>
             +
-          </button>
+          </div>
         )
       } else {
         cells.push(<div key={`${x}_${y}`} style={{ width: CELL, height: CELL }} />)
@@ -168,6 +174,20 @@ function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, on
 // ── ROOM_ITEMS lookup by id (crafting UI + tap detection) ───────────────────
 const ITEM_BY_ID = ROOM_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
 
+// ── Ghost-room-preview directions (2026-07-07) ──────────────────────────────
+// dx/dy are GRID deltas (same convention as navigateGrid/BUY_ROOM_BLOCK).
+// shiftX/shiftY are screen-space multipliers for isoRoomWidth/isoRoomHeight —
+// "right"/"left" only move the ghost horizontally, "up"/"down" only vertically,
+// per the spec (a deliberate simplification vs. true diagonal iso-grid tiling,
+// chosen for readability: every neighbor stays screen-aligned with the center).
+const DIRS = [
+  { key: 'up',    dx: 0,  dy: -1, shiftX: 0,  shiftY: -1 },
+  { key: 'down',  dx: 0,  dy: 1,  shiftX: 0,  shiftY: 1 },
+  { key: 'left',  dx: -1, dy: 0,  shiftX: -1, shiftY: 0 },
+  { key: 'right', dx: 1,  dy: 0,  shiftX: 1,  shiftY: 0 },
+]
+const DIR_LABEL = { up: 'ด้านบน', down: 'ด้านล่าง', left: 'ด้านซ้าย', right: 'ด้านขวา' }
+
 // ── Main Room screen ─────────────────────────────────────────────────────────
 export default function Room({ navigate }) {
   const { state, dispatch } = useAppState()
@@ -204,9 +224,20 @@ export default function Room({ navigate }) {
   const layoutRef      = useRef(roomLayout)
   const selectedKeyRef = useRef(null)
   const themeRef       = useRef(activeTheme)
+  const activeRoomRef  = useRef(activeRoom)
+  const roomsRef       = useRef(rooms)
   layoutRef.current      = roomLayout
   selectedKeyRef.current = selectedSlot?.key ?? null
   themeRef.current       = activeTheme
+  activeRoomRef.current   = activeRoom
+  roomsRef.current        = rooms
+
+  // Neighbor ghost/real-room screen zones, recomputed every drawFrame() —
+  // { type: 'room'|'ghost', poly: [pts], roomId? | gridX,gridY,dir? }
+  const neighborZonesRef = useRef([])
+  // Set on a swipe that failed to find a real room in that direction — makes
+  // the matching ghost pulse brighter for ~500ms so the child sees where to tap.
+  const ghostBoostRef    = useRef(null)   // { dir, at } | null
 
   // Tap-hint fade + placement-bounce + sparkle animation state (rAF-driven, Room-editor-only).
   const hintOpacityRef   = useRef(0)
@@ -224,6 +255,11 @@ export default function Room({ navigate }) {
     return () => stopBGM()
   }, [])
 
+  // Draws the full multi-room composite: a shared backdrop, ghost/solid
+  // previews for whichever of the 4 cardinal neighbors exist (or don't), then
+  // the fully-editable current room on top, all sharing one TH/TW scale so
+  // rooms tile edge-to-edge. neighborZonesRef is rebuilt every call so
+  // handleCanvasClick always hit-tests against the latest screen positions.
   const drawFrame = useCallback((hintOpacity, bounceKey, bounceScale) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -231,13 +267,46 @@ export default function Room({ navigate }) {
     if (!W || !H) return
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
+
+    const bg = ctx.createLinearGradient(0, 0, 0, H)
+    bg.addColorStop(0, '#171232')
+    bg.addColorStop(1, '#0e0b22')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, W, H)
+
+    const g = computeMultiRoomGeometry(W, H)
+    const room = activeRoomRef.current
+    const allRooms = roomsRef.current
+    const boostState = ghostBoostRef.current
+    const zones = []
+
+    if (room) {
+      for (const d of DIRS) {
+        const gx = room.gridX + d.dx, gy = room.gridY + d.dy
+        const shifted = shiftGeometry(g, d.shiftX * g.isoRoomWidth, d.shiftY * g.isoRoomHeight)
+        const neighbor = allRooms.find(r => r.gridX === gx && r.gridY === gy)
+        if (neighbor) {
+          const poly = drawMiniRoomBox(ctx, shifted, neighbor.theme, 0.7)
+          zones.push({ type: 'room', roomId: neighbor.id, poly })
+        } else {
+          const boost = boostState?.dir === d.key
+            ? Math.max(0, 1 - (performance.now() - boostState.at) / 500) * 0.5
+            : 0
+          const poly = drawGhostRoom(ctx, shifted, ROOM_BLOCK_PRICE, boost)
+          zones.push({ type: 'ghost', gridX: gx, gridY: gy, dir: d.key, poly })
+        }
+      }
+    }
+    neighborZonesRef.current = zones
+
     drawRoomScene(ctx, {
       W, H, roomLayout: layoutRef.current, small: false, hint: false,
       selectedKey: selectedKeyRef.current,
       showTapHints: true, hintOpacity,
       bounceKey, bounceScale, theme: themeRef.current,
+      geometry: g, paintBg: false,
     })
-    geomRef.current = { g: computeRoomGeometry(W, H, false), W, H }
+    geomRef.current = { g, W, H }
   }, [])
 
   // Single rAF loop drives three things at once: the "+" hint fade in/out, the
@@ -279,7 +348,11 @@ export default function Room({ navigate }) {
     drawFrame(hintOpacityRef.current, bounceKey, bounceScale)
 
     const hintsSettled = hintOpacityRef.current <= 0.001 && target === 0
-    const stillActive = !hintsSettled || !!bounceKey || effectsRef.current.length > 0
+    // Ghost rooms pulse continuously (Date.now()-seeded sine in drawGhostRoom),
+    // so the loop must keep running whenever any ghost is on screen — which is
+    // almost always true unless the active room has real rooms in all 4 dirs.
+    const hasGhost = neighborZonesRef.current.some(z => z.type === 'ghost')
+    const stillActive = !hintsSettled || !!bounceKey || effectsRef.current.length > 0 || hasGhost
     if (stillActive) rafRef.current = requestAnimationFrame(loop)
     else rafRef.current = null
   }, [drawFrame])
@@ -345,6 +418,25 @@ export default function Room({ navigate }) {
     const rect = canvas.getBoundingClientRect()
     const px = (e.clientX - rect.left) * (canvas.width / rect.width)
     const py = (e.clientY - rect.top)  * (canvas.height / rect.height)
+
+    // Neighbor ghost/real-room previews take priority over the center room's
+    // own slots (they're drawn as full rooms, but the CENTER room is drawn on
+    // top of any overlap, so this order only matters where the two don't overlap).
+    for (const z of neighborZonesRef.current) {
+      if (!pointInQuad(px, py, z.poly)) continue
+      if (z.type === 'room') {
+        if (z.roomId !== activeRoomId) {
+          dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: z.roomId } })
+          setSelectedSlot(null); setBuyTarget(null)
+          playSFX('room_visit_enter')
+        }
+      } else {
+        setBuyRoomTheme(null)
+        setBuyRoomAt({ gridX: z.gridX, gridY: z.gridY, dir: z.dir })
+      }
+      return
+    }
+
     const hit = hitTestZone(g, px, py)   // zone-agnostic — figures out which zone was tapped
     if (!hit) return
     setBuyTarget(null)
@@ -362,11 +454,24 @@ export default function Room({ navigate }) {
   }
 
   // Switch to the room orthogonally adjacent to the active one in a grid direction.
-  // Convention: dx/dy are grid deltas (dx +1 = room to the right, dy +1 = room "below").
+  // Convention: dx/dy are grid deltas (dx +1 = room to the right, dy +1 = room "below")
+  // — same convention as the DIRS table above, so the ghost-boost dir lookup matches.
   function navigateGrid(dx, dy) {
-    if (!activeRoom) return
+    if (!activeRoom) return false
     const target = rooms.find(r => r.gridX === activeRoom.gridX + dx && r.gridY === activeRoom.gridY + dy)
-    if (!target || target.id === activeRoomId) return false
+    if (!target || target.id === activeRoomId) {
+      // No real room that way — pulse the matching ghost so the child sees
+      // where a swipe "would have" taken them, and that tapping it buys one.
+      if (!target) {
+        const dir = dx === 1 ? 'right' : dx === -1 ? 'left' : dy === 1 ? 'down' : dy === -1 ? 'up' : null
+        if (dir) {
+          ghostBoostRef.current = { dir, at: performance.now() }
+          flash('กดเพื่อซื้อ!')
+          wake()
+        }
+      }
+      return false
+    }
     dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: target.id } })
     setSelectedSlot(null); setBuyTarget(null)
     playSFX('room_visit_enter')
@@ -448,12 +553,23 @@ export default function Room({ navigate }) {
 
   function handleBuyRoomBlock() {
     if (!buyRoomAt || !buyRoomTheme) return
-    if (coins < ROOM_BLOCK_PRICE) { flash('เหรียญไม่พอ!'); return }
+    if (coins < ROOM_BLOCK_PRICE) { flash(`เหรียญไม่พอ 😢 ต้องการอีก ${ROOM_BLOCK_PRICE - coins}🪙`); return }
     dispatch({ type: ACTIONS.BUY_ROOM_BLOCK, payload: { gridX: buyRoomAt.gridX, gridY: buyRoomAt.gridY, theme: buyRoomTheme } })
     playSFX('coin_purchase')
     const meta = themeMeta(buyRoomTheme)
     setBuyRoomAt(null); setBuyRoomTheme(null)
     setSelectedSlot(null)
+    // Confetti — the ghost room becomes solid and BUY_ROOM_BLOCK's reducer
+    // already makes it active, so the burst lands where the new room will
+    // appear (canvas center) once the next frame redraws.
+    const canvas = canvasRef.current
+    if (canvas) {
+      effectsRef.current.push(
+        ...Array.from({ length: 10 }, () =>
+          mkSparks(canvas.width * (0.35 + Math.random() * 0.3), canvas.height * (0.35 + Math.random() * 0.25), 700 + Math.random() * 500))
+      )
+      wake()
+    }
     flash(`สร้าง${meta.nameTh}แล้ว! ${meta.icon}`)
   }
 
@@ -601,7 +717,6 @@ export default function Room({ navigate }) {
             setSelectedSlot(null); setBuyTarget(null)
             playSFX('room_visit_enter')
           }}
-          onBuyCell={(gridX, gridY) => { setBuyRoomTheme(null); setBuyRoomAt({ gridX, gridY }) }}
           onSetHome={activeRoomId !== homeRoomId ? () => {
             dispatch({ type: ACTIONS.SET_HOME_ROOM, payload: { roomId: activeRoomId } })
             playSFX('coin_purchase')
@@ -827,7 +942,7 @@ export default function Room({ navigate }) {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0,
             }}>
               <span style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#FFD23F' }}>
-                🏗️ สร้างห้องใหม่
+                🏗️ เพิ่มห้อง{DIR_LABEL[buyRoomAt?.dir] ?? ''} 🪙{ROOM_BLOCK_PRICE}
               </span>
               <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#FFD23F' }}>🪙 {coins}</span>
             </div>
@@ -846,6 +961,11 @@ export default function Room({ navigate }) {
                     <div style={{ fontFamily: 'var(--font-thai)', fontSize: 17, fontWeight: 700, color: '#fff' }}>
                       ซื้อ{meta.nameTh} 🪙{ROOM_BLOCK_PRICE}?
                     </div>
+                    {!afford && (
+                      <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: '#ff8a8a' }}>
+                        เหรียญไม่พอ 😢 ต้องการอีก {ROOM_BLOCK_PRICE - coins}🪙
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 320 }}>
                       <button onClick={() => setBuyRoomTheme(null)} aria-label="ย้อนกลับ"
                         style={{
@@ -860,7 +980,7 @@ export default function Room({ navigate }) {
                           background: afford ? 'rgba(255,210,63,0.22)' : 'rgba(255,255,255,0.08)',
                           borderRadius: 10, padding: '12px 0', fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
                           color: afford ? '#FFD23F' : 'rgba(255,255,255,0.3)', WebkitTapHighlightColor: 'transparent',
-                        }}>🛒 ซื้อ 🪙{ROOM_BLOCK_PRICE}</button>
+                        }}>🛒 ซื้อ + เพิ่มห้อง! 🪙{ROOM_BLOCK_PRICE}</button>
                     </div>
                   </div>
                 )

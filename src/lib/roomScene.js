@@ -132,6 +132,136 @@ export function computeRoomGeometry(W, H, small = false) {
   return { TW, TH, originX, originY, project, W, H, small }
 }
 
+// ── Multi-room composite geometry (ghost-room previews, 2026-07-07) ────────
+// Sizes TH so a 3×3 grid (current room center, 4 cardinal neighbors, corners
+// blank) fits inside W×H. isoRoomWidth/isoRoomHeight are the floor diamond's
+// own screen-space bounding box (derived the same way as computeRoomGeometry's
+// "10*TH wide" comment above) — shifting a room's origin by exactly one of
+// these tiles it edge-to-edge against its neighbor in that screen direction.
+export function computeMultiRoomGeometry(W, H) {
+  const pad = 0.92
+  const span = FLOOR_COLS + FLOOR_ROWS   // = 10
+  // width budget: 3 room-widths side by side = 3*span*TH (TW=2TH → span*TW=2*span*TH)
+  // height budget: 3 room-heights + wall headroom above/below the outer rooms
+  const TH = Math.max(3, Math.min(
+    (W * pad) / (3 * span),
+    (H * pad) / (1.5 * span + WALL_HEIGHT * 2),
+  ))
+  const TW = TH * 2
+  const originX = W / 2 - TH
+  const originY = H / 2 - TH
+  const project = (x, y, z) => ({
+    sx: originX + (x - y) * TW / 2,
+    sy: originY + (x + y) * TH / 2 - z * TH,
+  })
+  return {
+    TW, TH, originX, originY, project, W, H, small: false,
+    isoRoomWidth: span * TW / 2,
+    isoRoomHeight: span * TH / 2,
+  }
+}
+
+// Returns a geometry whose project() is the same as `g`'s but translated by
+// (offsetX, offsetY) in screen space — used to draw a neighboring room's
+// ghost/solid preview without recomputing TH/TW.
+export function shiftGeometry(g, offsetX, offsetY) {
+  return {
+    ...g,
+    project: (x, y, z) => {
+      const p = g.project(x, y, z)
+      return { sx: p.sx + offsetX, sy: p.sy + offsetY }
+    },
+  }
+}
+
+// Big floor-diamond / wall-face corners for a WHOLE room (not one tile) — used
+// by the ghost/mini-room previews below.
+function bigFloorCorners(g) {
+  return [g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0), g.project(FLOOR_COLS, FLOOR_ROWS, 0), g.project(0, FLOOR_ROWS, 0)]
+}
+function bigLeftWallCorners(g) {
+  return [g.project(0, 0, 0), g.project(0, FLOOR_ROWS, 0), g.project(0, FLOOR_ROWS, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT)]
+}
+function bigRightWallCorners(g) {
+  return [g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0), g.project(FLOOR_COLS, 0, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT)]
+}
+
+// A not-yet-purchased adjacent room: dashed gold outline, faint fill, a
+// pulsing glow (continuous — this is why Room.jsx keeps its rAF loop alive
+// whenever any ghost is on screen), and a "＋ price🪙" label. `boost` (0..1,
+// driven by Room.jsx on a failed swipe toward this direction) briefly makes
+// it brighter so the child notices which way to tap. Returns the floor-quad
+// polygon so the caller can use it as a hit-test zone.
+export function drawGhostRoom(ctx, g, price = ROOM_BLOCK_PRICE, boost = 0) {
+  const floorC = bigFloorCorners(g), leftC = bigLeftWallCorners(g), rightC = bigRightWallCorners(g)
+  const pulse = 0.25 + Math.sin(Date.now() / 800) * 0.08
+
+  ctx.save()
+  ctx.strokeStyle = '#FFD23F'
+  ctx.lineWidth = 2
+  ctx.setLineDash([8, 6])
+  ctx.globalAlpha = Math.min(0.95, pulse + boost)
+  for (const q of [floorC, leftC, rightC]) {
+    ctx.beginPath()
+    ctx.moveTo(q[0].sx, q[0].sy)
+    for (let i = 1; i < q.length; i++) ctx.lineTo(q[i].sx, q[i].sy)
+    ctx.closePath()
+    ctx.stroke()
+  }
+  ctx.setLineDash([])
+
+  ctx.globalAlpha = 0.08 + boost * 0.12
+  ctx.fillStyle = '#FFD23F'
+  ctx.beginPath()
+  ctx.moveTo(floorC[0].sx, floorC[0].sy)
+  for (let i = 1; i < floorC.length; i++) ctx.lineTo(floorC[i].sx, floorC[i].sy)
+  ctx.closePath()
+  ctx.fill()
+
+  const c = g.project(FLOOR_COLS / 2, FLOOR_ROWS / 2, 0)
+  ctx.globalAlpha = Math.min(1, 0.55 + boost * 0.45)
+  ctx.textAlign = 'center'
+  ctx.font = `bold ${Math.max(13, g.TH * 0.34)}px Sarabun, sans-serif`
+  ctx.fillText('＋', c.sx, c.sy - g.TH * 0.22)
+  ctx.font = `${Math.max(11, g.TH * 0.24)}px Sarabun, sans-serif`
+  ctx.fillText(`${price}🪙`, c.sx, c.sy + g.TH * 0.26)
+  ctx.textAlign = 'left'
+  ctx.restore()
+
+  return floorC
+}
+
+// An already-purchased adjacent room: solid floor+walls in its own theme
+// colors at reduced opacity, plus a theme icon + name label. No furniture
+// (kept cheap — this is a secondary/ambient preview, not the editable room).
+// Returns the floor-quad polygon for hit-testing (tap → navigate there).
+export function drawMiniRoomBox(ctx, g, theme, opacity = 0.7) {
+  const P = resolveThemePalette(theme)
+  const floorC = bigFloorCorners(g), leftC = bigLeftWallCorners(g), rightC = bigRightWallCorners(g)
+
+  ctx.save()
+  ctx.globalAlpha = opacity
+  fillQuad(ctx, rightC, P.rightWall)
+  fillQuad(ctx, leftC, P.leftWall)
+  fillQuad(ctx, floorC, P.floorLight)
+  ctx.restore()
+
+  const meta = themeMeta(theme)
+  const c = g.project(FLOOR_COLS / 2, FLOOR_ROWS / 2, 0)
+  ctx.save()
+  ctx.globalAlpha = Math.min(1, opacity + 0.25)
+  ctx.textAlign = 'center'
+  ctx.font = `${Math.max(18, g.TH * 0.5)}px sans-serif`
+  ctx.fillText(meta.icon, c.sx, c.sy + g.TH * 0.16)
+  ctx.font = `bold ${Math.max(10, g.TH * 0.22)}px Sarabun, sans-serif`
+  ctx.fillStyle = '#fff'
+  ctx.fillText(meta.nameTh, c.sx, c.sy + g.TH * 0.64)
+  ctx.textAlign = 'left'
+  ctx.restore()
+
+  return floorC
+}
+
 // Center of a slot (used for highlight + hit reference)
 export function slotCenter(g, zone, a, b) {
   if (zone === 'floor')      return g.project(a + 0.5, b + 0.5, 0)
@@ -148,13 +278,13 @@ function slotAnchor(g, zone, a, b) {
   return g.project(0, 0, 0)
 }
 
-function floorQuad(g, c, r) {
+export function floorQuad(g, c, r) {
   return [g.project(c, r, 0), g.project(c + 1, r, 0), g.project(c + 1, r + 1, 0), g.project(c, r + 1, 0)]
 }
-function leftWallQuad(g, a, z) {
+export function leftWallQuad(g, a, z) {
   return [g.project(0, a, z), g.project(0, a + 1, z), g.project(0, a + 1, z + 1), g.project(0, a, z + 1)]
 }
-function rightWallQuad(g, a, z) {
+export function rightWallQuad(g, a, z) {
   return [g.project(a, 0, z), g.project(a + 1, 0, z), g.project(a + 1, 0, z + 1), g.project(a, 0, z + 1)]
 }
 function zoneQuad(g, zone, a, b) {
@@ -164,7 +294,7 @@ function zoneQuad(g, zone, a, b) {
   return null
 }
 
-function pointInQuad(px, py, q) {
+export function pointInQuad(px, py, q) {
   let sign = 0
   for (let i = 0; i < 4; i++) {
     const a = q[i], b = q[(i + 1) % 4]
@@ -552,21 +682,33 @@ function drawWallFurniture(ctx, g, layout, zone, bounceKey, bounceScale) {
  *                  the FriendsScreen thumbnail via RoomScene.jsx) leave this false.
  *   hintOpacity  — 0..1 opacity for the tap hints, driven by Room.jsx's own rAF fade loop
  *   bounceKey/bounceScale — Room.jsx-only "just placed" pop animation on one slot
+ *   geometry     — Room.jsx multi-room composite only: a pre-computed geometry
+ *                  (from computeMultiRoomGeometry) to draw the CENTER room with,
+ *                  instead of this function computing its own via
+ *                  computeRoomGeometry. Lets the center room share the same
+ *                  TH/TW scale as its ghost/neighbor previews. Defaults to null
+ *                  (every other caller computes its own geometry as before).
+ *   paintBg      — set false when the caller already painted the full-canvas
+ *                  backdrop itself (Room.jsx's multi-room composite paints it
+ *                  once, before drawing neighbors, rather than per-room).
  */
 export function drawRoomScene(ctx, {
   W, H, roomLayout, small = false, hint = true, activeZone = null, selectedKey = null,
   showTapHints = false, hintOpacity = 0, bounceKey = null, bounceScale = 1, theme = 'default',
+  geometry = null, paintBg = true,
 }) {
   const layout = roomLayout ?? {}
   const P = resolveThemePalette(theme)
-  const g = computeRoomGeometry(W, H, small)
+  const g = geometry || computeRoomGeometry(W, H, small)
 
-  // soft backdrop so margins blend with the app's dark theme
-  const bg = ctx.createLinearGradient(0, 0, 0, H)
-  bg.addColorStop(0, '#171232')
-  bg.addColorStop(1, '#0e0b22')
-  ctx.fillStyle = bg
-  ctx.fillRect(0, 0, W, H)
+  if (paintBg) {
+    // soft backdrop so margins blend with the app's dark theme
+    const bg = ctx.createLinearGradient(0, 0, 0, H)
+    bg.addColorStop(0, '#171232')
+    bg.addColorStop(1, '#0e0b22')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, W, H)
+  }
 
   // surfaces (back → front): right wall, left wall, floor
   drawRightWall(ctx, g, P)

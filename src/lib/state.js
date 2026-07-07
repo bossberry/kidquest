@@ -342,6 +342,22 @@ export function resolveSync(local, remote) {
     return { winner: remote, remoteWon: true, reason: 'remote has creatures, local is empty' }
   }
 
+  // Rooms — same idea as the creatures check above. `rooms` always carries at
+  // least the default 'main' entry (see defaultState()), and each additional
+  // room cost real coins (1000 each) to buy, so a higher count is real,
+  // losable progress. Whichever side has strictly more rooms wins outright,
+  // so a stale sync can never silently erase purchased-room progress via the
+  // timestamp fallback below. Missing/unmigrated `rooms` counts as 0, which
+  // also covers "local is empty → fall back to remote" for free.
+  const localRoomCount = local?.rooms?.length ?? 0
+  const remoteRoomCount = remote?.rooms?.length ?? 0
+  if (remoteRoomCount > localRoomCount) {
+    return { winner: remote, remoteWon: true, reason: `remote has more rooms (${remoteRoomCount} vs ${localRoomCount})` }
+  }
+  if (localRoomCount > remoteRoomCount) {
+    return { winner: local, remoteWon: false, reason: `local has more rooms (${localRoomCount} vs ${remoteRoomCount})` }
+  }
+
   const remoteTime = remote?.lastSavedAt ?? 0
   const localTime = local?.lastSavedAt ?? 0
 

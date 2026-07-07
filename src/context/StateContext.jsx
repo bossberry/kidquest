@@ -8,6 +8,7 @@ import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
+import { RECIPES } from '../lib/roomItems.js'
 
 export const StateContext = createContext(null)
 
@@ -176,6 +177,9 @@ export const ACTIONS = {
   SET_HOME_ROOM:               'SET_HOME_ROOM',
   PLACE_ROOM_ITEM_IN_ROOM:     'PLACE_ROOM_ITEM_IN_ROOM',
   REMOVE_ROOM_ITEM_FROM_ROOM:  'REMOVE_ROOM_ITEM_FROM_ROOM',
+  // Crafting system (materials collected in world → craft furniture)
+  COLLECT_MATERIAL:            'COLLECT_MATERIAL',
+  CRAFT_ITEM:                  'CRAFT_ITEM',
 }
 
 // Multi-room helper — write a new layout into one room inside `rooms`, and keep the
@@ -1070,6 +1074,53 @@ function reducer(state, action) {
       const { roomId } = action.payload
       if (!(state.rooms || []).some(r => r.id === roomId)) return state
       return { ...state, homeRoomId: roomId, lastSavedAt: Date.now() }
+    }
+
+    // ── Crafting ──────────────────────────────────────────────────────────────
+    // COLLECT_MATERIAL — award `amount` of one material (cap 99 each). Also
+    // advances the 20/day collect counter, resetting it when the stored date
+    // isn't today (same todayStr() convention as minigame lives). The caller
+    // (WorldScreen) checks the remaining budget before dispatching, but the cap
+    // is enforced here too so it can never be exceeded.
+    case ACTIONS.COLLECT_MATERIAL: {
+      const { material, amount = 1 } = action.payload
+      if (!material) return state
+      const today = todayStr()
+      const reset = (state.lastCollectDate || '') !== today
+      const usedToday = reset ? 0 : (state.dailyCollectCount || 0)
+      if (usedToday >= 20) return state
+      const mats = { ...(state.materials || {}) }
+      mats[material] = Math.min(99, (mats[material] || 0) + amount)
+      return {
+        ...state,
+        materials: mats,
+        dailyCollectCount: Math.min(20, usedToday + amount),
+        lastCollectDate: today,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // CRAFT_ITEM — look up the recipe, verify every material requirement is met,
+    // deduct them all, and add the item to BOTH ownedRoomItems (so it's placeable
+    // through the existing Room flow, exactly like a bought item) and craftedItems
+    // (provenance). No-op if the recipe is unknown, requirements aren't met, or
+    // the item is already owned.
+    case ACTIONS.CRAFT_ITEM: {
+      const { itemId } = action.payload
+      const recipe = RECIPES[itemId]
+      if (!recipe) return state
+      if ((state.ownedRoomItems || []).includes(itemId)) return state
+      const mats = state.materials || {}
+      for (const k in recipe) if ((mats[k] || 0) < recipe[k]) return state
+      const newMats = { ...mats }
+      for (const k in recipe) newMats[k] = (newMats[k] || 0) - recipe[k]
+      return {
+        ...state,
+        materials: newMats,
+        ownedRoomItems: [...(state.ownedRoomItems || []), itemId],
+        craftedItems: [...(state.craftedItems || []), itemId],
+        lastSavedAt: Date.now(),
+      }
     }
 
     default:

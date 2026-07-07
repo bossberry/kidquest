@@ -1,5 +1,37 @@
 # Changelog — KidQuest
 
+## 2026-07-07 — Crafting system (materials + workbench) + enemy art polish pass
+
+Built 2026-07-05, left uncommitted; this session verified (build + live end-to-end test), documented, and committed. Two independent pieces in the same diff: a new furniture-crafting loop, and a detail pass on 9 of 10 world-map enemy sprites.
+
+### src/lib/roomItems.js
+- New `MATERIALS`/`MATERIAL_ICON`/`RECIPES`/`RECIPE_LIST` exports and a `craftGlint()` helper (small pulsing sparkle drawn on every crafted item so it reads as handmade).
+- `crafting_table` (🪙200, normal coin-buyable floor item) + 15 new `craftedOnly: true` furniture draw functions (9 floor, 6 wall) — hidden from the coin buy-picker until unlocked via crafting.
+
+### src/lib/state.js
+- `defaultState()`: `materials` (6 keys, default 0), `craftedItems: []`, `dailyCollectCount: 0`, `lastCollectDate: ''`.
+- `migrateStateShape()`: `materials` added to the nested-object backfill list.
+
+### src/context/StateContext.jsx
+- `COLLECT_MATERIAL { material, amount }` — awards a material (cap 99), advances/resets the 20/day collect counter (`todayStr()` convention, same as minigame lives), enforced server-side (reducer) even though the caller already checks the remaining budget.
+- `CRAFT_ITEM { itemId }` — validates the recipe, deducts materials, adds to `ownedRoomItems` + `craftedItems`. No-op on unknown/unaffordable/already-owned.
+
+### src/components/WorldScreen.jsx
+- New 🧺 collect button (bottom-left) + material HUD strip + toast feedback. Checks the player's tile + 4 orthogonal neighbors for a collectible: `T.TREE`/`T.TALL`→wood, `T.PATH`→stone, `T.FLOWER`→a theme-dependent material — chosen over the original spec's WALL/WATER-keyed table because `tileMaps.js` never generates those tile types in any world, which would have made those materials permanently uncollectible.
+
+### src/components/Room.jsx
+- Tapping a placed `crafting_table` opens a dedicated recipe sheet (2-column grid, live afford/unafford coloring, confirm sub-view, craft-success sparkle burst on a dedicated overlay canvas) instead of the generic occupied-item sheet.
+- New collapsible 🎒 material-inventory panel with a shortcut into the world map.
+- `Room` now accepts a `navigate` prop (threaded from `App.jsx`) for that shortcut.
+
+### src/lib/drawEnemy.js
+- Detail pass on 9/10 Pandora world-map enemy sprites (sleepy_bunny, bouncy_slime, fox_kit, egg_pawn, leaf_sprite, mushroom_imp, baby_zombie, snake, ghost_wisp) — see `CURRENT_STATE.md` for the full per-type list. Pure art detail, zero behavior/gameplay change; the separate flat sprite set used by the battle screen is untouched.
+
+### Verification
+- `npm run build` clean.
+- Live end-to-end with the test account: bought crafting table (exact coin deduction), collected materials on the world map (daily counter decremented correctly, correct tile→material mapping), crafted `stone_table` (unaffordable→affordable color transition confirmed at the exact threshold, materials deducted, "✓ มีแล้ว" badge, placeable via the normal picker) — then removed both test items to leave the account as found.
+- Enemy art verified via `public/enemy_harness.html` (all 10 types, zero console errors).
+
 ## 2026-07-05 — Minigame lives/coin rebalance + visual/UX redesign
 
 Part 1 (mechanical): reduced daily lives per game and lowered coin-reward tiers across all 5 minigames. Part 2 (visual): themed backgrounds, animated hearts/coin-preview HUD, redesigned result screens, Home shortcut polish, and a launch splash.

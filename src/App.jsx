@@ -129,7 +129,7 @@ export default function App() {
         />
       )}
       {screen === 'collection' && <Collection navigate={navigate} />}
-      {screen === 'room' && <Room />}
+      {screen === 'room' && <Room navigate={navigate} />}
       {screen === 'report' && <Report />}
       {screen === 'game' && <GameScreen navigate={navigate} />}
       {screen === 'world' && <WorldScreen navigate={navigate} />}

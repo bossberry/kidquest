@@ -480,7 +480,7 @@ function pBody(ctx, cx, cy, rx, ry, base, light, dark) {
   ctx.stroke()
 }
 
-function pSleepyBunny(ctx, cx, groundY) {
+function pSleepyBunny(ctx, cx, groundY, frame) {
   pShadow(ctx, cx, groundY, 22, 6)
   const bodyCy = groundY - 9
   pBody(ctx, cx, bodyCy, 11, 8, '#f5eee8', '#ffffff', '#d8c0c0')
@@ -492,9 +492,24 @@ function pSleepyBunny(ctx, cx, groundY) {
   ctx.fillStyle = '#ffb0b8'
   ctx.beginPath(); ctx.ellipse(cx - 4, headCy - 8, 1.2, 4.4, -0.15, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(cx + 4, headCy - 8, 1.2, 4.4, 0.15, 0, Math.PI * 2); ctx.fill()
+  // Sleeping crescent eyes — curved downward (was flat straight lines), so
+  // they read as genuinely closed/content rather than a plain dash.
   ctx.strokeStyle = '#886666'; ctx.lineWidth = 1.3
-  ctx.beginPath(); ctx.moveTo(cx - 4, headCy); ctx.lineTo(cx - 1.5, headCy); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(cx + 1.5, headCy); ctx.lineTo(cx + 4, headCy); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx - 4.5, headCy); ctx.quadraticCurveTo(cx - 2.5, headCy + 1.6, cx - 0.8, headCy); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 0.8, headCy); ctx.quadraticCurveTo(cx + 2.5, headCy + 1.6, cx + 4.5, headCy); ctx.stroke()
+  // Nose
+  ctx.fillStyle = '#e0a0a8'
+  ctx.beginPath(); ctx.ellipse(cx, headCy + 3, 1.3, 1, 0, 0, Math.PI * 2); ctx.fill()
+  // Floating "Zzz" — gentle bob (seeded off frame) so it reads as drifting
+  // off to sleep rather than a static label.
+  const bob = Math.sin((frame || 0) * 0.06) * 2
+  ctx.save()
+  ctx.globalAlpha = 0.7
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 8px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('Zzz', cx + 9, headCy - 14 + bob)
+  ctx.restore()
 }
 
 function pBouncySlime(ctx, cx, groundY, frame) {
@@ -511,6 +526,10 @@ function pBouncySlime(ctx, cx, groundY, frame) {
   ctx.fillStyle = '#1a1a2a'
   ctx.beginPath(); ctx.ellipse(cx - 4, cy, 1.8, 2.2, 0, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(cx + 4, cy, 1.8, 2.2, 0, 0, Math.PI * 2); ctx.fill()
+  // Big happy grin — was missing entirely; gives the slime its "bouncy/
+  // friendly" personality at a glance instead of just a blank blob face.
+  ctx.strokeStyle = '#1a6a3a'; ctx.lineWidth = 1.4; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.arc(cx, cy + ry * 0.15, ry * 0.45, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke()
 }
 
 function pFoxKit(ctx, cx, groundY) {
@@ -528,9 +547,23 @@ function pFoxKit(ctx, cx, groundY) {
   ctx.fillStyle = '#e8863a'
   ctx.beginPath(); ctx.moveTo(cx - 6, headCy - 3); ctx.lineTo(cx - 8, headCy - 11); ctx.lineTo(cx - 2, headCy - 5); ctx.closePath(); ctx.fill()
   ctx.beginPath(); ctx.moveTo(cx + 6, headCy - 3); ctx.lineTo(cx + 8, headCy - 11); ctx.lineTo(cx + 2, headCy - 5); ctx.closePath(); ctx.fill()
+  // White muzzle patch — a distinct pale snout on the face (was only the
+  // body's belly patch, no separate muzzle), plus a tiny nose dot.
+  ctx.fillStyle = '#fff8ee'
+  ctx.beginPath(); ctx.ellipse(cx, headCy + 3, 4.5, 3, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#553030'
+  ctx.beginPath(); ctx.ellipse(cx, headCy + 2.5, 1, 0.8, 0, 0, Math.PI * 2); ctx.fill()
+  // Wide alert eyes — white sclera behind the pupil (was pupil-only), reads
+  // as more curious/round rather than a small dark dot.
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(cx - 3, headCy - 1, 2.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 3, headCy - 1, 2.2, 0, Math.PI * 2); ctx.fill()
   ctx.fillStyle = '#1a1a1a'
   ctx.beginPath(); ctx.arc(cx - 3, headCy - 1, 1.4, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(cx + 3, headCy - 1, 1.4, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(cx - 3.6, headCy - 1.6, 0.5, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 2.4, headCy - 1.6, 0.5, 0, Math.PI * 2); ctx.fill()
 }
 
 function pGhostWisp(ctx, cx, groundY, frame) {
@@ -555,9 +588,15 @@ function pGhostWisp(ctx, cx, groundY, frame) {
   ctx.quadraticCurveTo(cx, cy + 4, cx - 9, cy + 6)
   ctx.fill()
   ctx.restore()
-  ctx.fillStyle = '#6a3acc'
-  ctx.beginPath(); ctx.arc(cx - 4, cy - 1, 1.6, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 4, cy - 1, 1.6, 0, Math.PI * 2); ctx.fill()
+  // Hollow eye sockets — a ring stroke with only a faint dark fill (was a
+  // solid filled dot), reads as genuinely empty/ethereal rather than a
+  // plain cartoon pupil.
+  ctx.strokeStyle = '#6a3acc'; ctx.lineWidth = 1.2
+  ctx.beginPath(); ctx.arc(cx - 4, cy - 1, 1.8, 0, Math.PI * 2); ctx.stroke()
+  ctx.beginPath(); ctx.arc(cx + 4, cy - 1, 1.8, 0, Math.PI * 2); ctx.stroke()
+  ctx.fillStyle = 'rgba(40,20,70,0.5)'
+  ctx.beginPath(); ctx.arc(cx - 4, cy - 1, 1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 4, cy - 1, 1, 0, Math.PI * 2); ctx.fill()
 }
 
 function pSnake(ctx, cx, groundY) {
@@ -566,27 +605,62 @@ function pSnake(ctx, cx, groundY) {
   for (const [dx, dy, r] of segs) {
     pBody(ctx, cx + dx, groundY + dy, r, r * 0.75, '#3a9a3a', '#7ad07a', '#1a6a1a')
   }
+  // Scale pattern — small darker diamonds on the 3 lower segments (was
+  // missing; the coloured shading already implies volume but not scales).
+  ctx.fillStyle = 'rgba(20,60,20,0.55)'
+  for (const [dx, dy] of [segs[0], segs[1], segs[2]]) {
+    const sx = cx + dx, sy = groundY + dy
+    ctx.beginPath()
+    ctx.moveTo(sx, sy - 2); ctx.lineTo(sx + 2, sy); ctx.lineTo(sx, sy + 2); ctx.lineTo(sx - 2, sy)
+    ctx.closePath(); ctx.fill()
+  }
   const [hx, hy] = [cx + segs[3][0], groundY + segs[3][1] - 4]
   pBody(ctx, hx, hy, 5, 4, '#3a9a3a', '#7ad07a', '#1a6a1a')
   ctx.fillStyle = '#ffcc00'
   ctx.beginPath(); ctx.arc(hx - 2, hy - 1, 1.3, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(hx + 2, hy - 1, 1.3, 0, Math.PI * 2); ctx.fill()
+  // Vertical slit pupils (was plain yellow arcs, no pupil at all).
+  ctx.fillStyle = '#1a1a1a'
+  ctx.beginPath(); ctx.ellipse(hx - 2, hy - 1, 0.5, 1.3, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(hx + 2, hy - 1, 0.5, 1.3, 0, 0, Math.PI * 2); ctx.fill()
+  // Forked tongue flicking out beyond the head.
+  ctx.strokeStyle = '#ee2222'; ctx.lineWidth = 0.8
+  ctx.beginPath(); ctx.moveTo(hx, hy - 3); ctx.lineTo(hx, hy - 6); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(hx, hy - 6); ctx.lineTo(hx - 1.4, hy - 8); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(hx, hy - 6); ctx.lineTo(hx + 1.4, hy - 8); ctx.stroke()
 }
 
+// Rebuilt (2026-07-04, RO enemy pass) — the previous version was a red/
+// yellow blob with buttons that didn't read as "mechanical" at all. Now a
+// grey/purple pawn-bot: separate body + head (matches the two-part
+// convention every other biped here uses), a dark visor slit with a glowing
+// red eye-dot, an antenna, and small rivets instead of buttons.
 function pEggPawn(ctx, cx, groundY) {
   pShadow(ctx, cx, groundY, 22, 6)
-  const bodyCy = groundY - 12
-  pBody(ctx, cx, bodyCy, 11, 13, '#d83030', '#ff7060', '#902020')
-  ctx.fillStyle = 'rgba(240,240,240,0.9)'
-  ctx.beginPath(); ctx.ellipse(cx, bodyCy + 2, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
-  ctx.fillStyle = '#ffcc00'
-  ctx.beginPath(); ctx.arc(cx - 3, bodyCy, 1.6, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 3, bodyCy, 1.6, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx - 3, bodyCy + 5, 1.6, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 3, bodyCy + 5, 1.6, 0, Math.PI * 2); ctx.fill()
-  ctx.fillStyle = '#ffcc00'
-  ctx.beginPath(); ctx.arc(cx - 5, bodyCy - 16, 2.2, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 5, bodyCy - 16, 2.2, 0, Math.PI * 2); ctx.fill()
+  const bodyCy = groundY - 11
+  pBody(ctx, cx, bodyCy, 11, 12, '#7a7a9a', '#a8a8c8', '#4a4a68')
+  const headCy = bodyCy - 15
+  pBody(ctx, cx, headCy, 8, 8, '#8a8ab0', '#b8b8d8', '#54547a')
+  // Antenna
+  ctx.strokeStyle = '#5a5a7a'; ctx.lineWidth = 1.4
+  ctx.beginPath(); ctx.moveTo(cx, headCy - 8); ctx.lineTo(cx, headCy - 13); ctx.stroke()
+  ctx.fillStyle = '#ff4444'
+  ctx.beginPath(); ctx.arc(cx, headCy - 14, 1.6, 0, Math.PI * 2); ctx.fill()
+  // Visor slit with a glowing red eye-dot centered inside.
+  ctx.fillStyle = '#200a24'
+  ctx.fillRect(cx - 6, headCy - 1.5, 12, 4)
+  ctx.save()
+  ctx.shadowBlur = 4; ctx.shadowColor = '#ff2222'
+  ctx.fillStyle = '#ff2222'
+  ctx.beginPath(); ctx.arc(cx, headCy + 0.5, 1.6, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+  // Chest rivets (was 4 yellow buttons — smaller/darker reads as mechanical
+  // panel fasteners rather than a cute jacket).
+  ctx.fillStyle = '#3a3a58'
+  ctx.beginPath(); ctx.arc(cx - 4, bodyCy + 3, 1.1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 4, bodyCy + 3, 1.1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx - 4, bodyCy + 8, 1.1, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(cx + 4, bodyCy + 8, 1.1, 0, Math.PI * 2); ctx.fill()
 }
 
 function pLeafSprite(ctx, cx, groundY) {
@@ -598,6 +672,18 @@ function pLeafSprite(ctx, cx, groundY) {
   pBody(ctx, cx - 11, bodyCy + 2, 6, 4, '#3a9a3a', '#8ad08a', '#2a7a2a')
   pBody(ctx, cx + 11, bodyCy, 6, 4, '#5aaa3a', '#8ad08a', '#2a7a2a')
   ctx.restore()
+  // Leaf crown — 3 small pointed leaves fanned above the head, the
+  // "nature sprite" identifier at a glance (was missing).
+  ctx.fillStyle = '#1a6a08'
+  for (const ang of [-0.55, 0, 0.55]) {
+    const lx = cx + Math.sin(ang) * 6
+    const ly = bodyCy - 13 - Math.cos(ang) * 2
+    ctx.save()
+    ctx.translate(lx, ly)
+    ctx.rotate(ang)
+    ctx.beginPath(); ctx.ellipse(0, -2, 1.8, 4, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.restore()
+  }
   ctx.fillStyle = '#ffffff'
   ctx.beginPath(); ctx.arc(cx - 3, bodyCy - 4, 2.2, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(cx + 3, bodyCy - 4, 2.2, 0, Math.PI * 2); ctx.fill()
@@ -638,24 +724,50 @@ function pMushroomImp(ctx, cx, groundY) {
   ctx.fillStyle = '#ffffff'
   ctx.beginPath(); ctx.ellipse(cx - 3, stemCy, 2.4, 2.4, 0, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(cx + 3, stemCy, 2.4, 2.4, 0, 0, Math.PI * 2); ctx.fill()
+  // Mischievous narrow eyes — angled inward (was round pupils), reads as a
+  // sly/scheming look rather than plain surprise.
   ctx.fillStyle = '#1a1a2a'
-  ctx.beginPath(); ctx.arc(cx - 3, stemCy, 1.3, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 3, stemCy, 1.3, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx - 3, stemCy, 1.5, 0.9, -0.35, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 3, stemCy, 1.5, 0.9, 0.35, 0, Math.PI * 2); ctx.fill()
+  // Stubby legs peeking out from under the stem.
+  ctx.fillStyle = '#d8b878'
+  ctx.beginPath(); ctx.ellipse(cx - 4, stemCy + 7, 2.2, 1.6, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(cx + 4, stemCy + 7, 2.2, 1.6, 0, 0, Math.PI * 2); ctx.fill()
 }
 
 function pBabyZombie(ctx, cx, groundY) {
+  // Shadow drawn before the tilt so it stays flat/grounded regardless of the
+  // shambling body lean above it.
   pShadow(ctx, cx, groundY, 18, 5)
+  ctx.save()
+  ctx.translate(cx, groundY)
+  ctx.rotate(0.09)
+  ctx.translate(-cx, -groundY)
   const bodyCy = groundY - 8
   pBody(ctx, cx, bodyCy, 8, 7, '#7a9a6a', '#a8c898', '#4a6a3a')
+  // Outstretched arms — thin rounded strokes reaching forward, the
+  // classic "shambling" silhouette (was missing entirely).
+  ctx.strokeStyle = '#6a9a5a'; ctx.lineWidth = 3; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(cx - 7, bodyCy - 2); ctx.lineTo(cx - 14, bodyCy + 4); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 7, bodyCy - 2); ctx.lineTo(cx + 14, bodyCy + 4); ctx.stroke()
   const headCy = bodyCy - 9
   pBody(ctx, cx, headCy, 6, 6, '#9ab88a', '#c8e0b8', '#5a7a4a')
-  ctx.strokeStyle = '#cc2020'; ctx.lineWidth = 1.2
-  ctx.beginPath(); ctx.moveTo(cx - 4, headCy - 1); ctx.lineTo(cx - 2, headCy + 1); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(cx - 2, headCy - 1); ctx.lineTo(cx - 4, headCy + 1); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(cx + 2, headCy - 1); ctx.lineTo(cx + 4, headCy + 1); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(cx + 4, headCy - 1); ctx.lineTo(cx + 2, headCy + 1); ctx.stroke()
+  // Half-closed droopy eyelids (was an X-mark "dead eyes" doodle) + a thin
+  // bloodshot streak in each — reads as genuinely half-asleep/shambling.
+  ctx.strokeStyle = '#2a3a20'; ctx.lineWidth = 1.3
+  ctx.beginPath(); ctx.moveTo(cx - 4.5, headCy - 0.5); ctx.quadraticCurveTo(cx - 2.5, headCy + 1.2, cx - 0.8, headCy - 0.3); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 0.8, headCy - 0.3); ctx.quadraticCurveTo(cx + 2.5, headCy + 1.2, cx + 4.5, headCy - 0.5); ctx.stroke()
+  ctx.strokeStyle = '#cc2020'; ctx.lineWidth = 0.7
+  ctx.beginPath(); ctx.moveTo(cx - 4, headCy - 0.6); ctx.lineTo(cx - 1.5, headCy + 0.2); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx + 1.5, headCy + 0.2); ctx.lineTo(cx + 4, headCy - 0.6); ctx.stroke()
+  // Uneven teeth along the open mouth.
   ctx.fillStyle = '#1a0a0a'
-  ctx.fillRect(cx - 2, headCy + 3, 4, 1.5)
+  ctx.fillRect(cx - 2.5, headCy + 3, 5, 1.6)
+  ctx.fillStyle = '#f0f0e0'
+  ctx.fillRect(cx - 2.1, headCy + 3, 1, 1.6)
+  ctx.fillRect(cx - 0.3, headCy + 3.3, 0.9, 1.3)
+  ctx.fillRect(cx + 1.3, headCy + 3, 1, 1.6)
+  ctx.restore()
 }
 
 const PANDORA_DRAW_FNS = {

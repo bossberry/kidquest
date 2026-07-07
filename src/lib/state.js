@@ -127,6 +127,15 @@ export function defaultState() {
     ownedItems: [],
     equipped: { head: null, face: null },
     ownedRoomItems: [],
+    // Crafting system (2026-07-05): materials collected on the world map are spent
+    // at the crafting table to unlock craftedOnly furniture. `craftedItems` is a
+    // provenance list (distinct from bought furniture) for the "มีแล้ว" badge.
+    // dailyCollectCount/lastCollectDate cap collecting at 20/day (todayStr() reset,
+    // same convention as minigame lives).
+    materials: { wood: 0, stone: 0, flower: 0, mushroom: 0, crystal: 0, stardust: 0 },
+    craftedItems: [],
+    dailyCollectCount: 0,
+    lastCollectDate: '',
     // Multi-room expansion (2026-07-05). `rooms` + `activeRoomId` are the SOURCE OF
     // TRUTH. `roomLayout` (below) is kept only as a strictly-derived MIRROR of the
     // active room's layout, so old code / reducers that still read state.roomLayout
@@ -382,7 +391,7 @@ export function migrateStateShape(saved) {
     'homeItems', 'battleItems', 'activeBoosts', 'thaiMastery',
     'subjectLevels', 'levelMastery', 'shopV1', 'responseTimeLogs',
     'subjectSessionStreak', 'subjectLevelFloor', 'inputModeMastery',
-    'mazePortal',
+    'mazePortal', 'materials',
   ]
   for (const field of nestedObjectFields) {
     if (base[field] && typeof base[field] === 'object' && !Array.isArray(base[field])) {

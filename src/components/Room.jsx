@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { ROOM_ITEMS, CRAFT_RECIPES, CRAFT_RECIPE_LIST, MATERIAL_ICON } from '../lib/roomItems.js'
 import {
-  drawRoomScene, computeRoomGeometry, hitTestZone, parseSlotKey, slotCenter,
+  drawRoomScene, hitTestZone, parseSlotKey, slotCenter,
   ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
   shiftGeometry, drawGhostRoom, drawMiniRoomBox, pointInQuad,
   FLOOR_COLS, FLOOR_ROWS,
@@ -16,6 +16,36 @@ const ZONE_LABELS = {
   floor:      { icon: '🟫', text: 'วางของบนพื้น' },
   left_wall:  { icon: '⬅️', text: 'แขวนที่ผนังซ้าย' },
   right_wall: { icon: '➡️', text: 'แขวนที่ผนังขวา' },
+}
+
+// Fills the canvas edge-to-edge — Room.jsx-only, deliberately NOT the shared
+// computeRoomGeometry() (that stays untouched for DecoratedRoom.jsx/RoomVisit.jsx/
+// the FriendsScreen thumbnail, which must keep their existing fit-within-bounds
+// behavior). computeRoomGeometry takes the MIN of the width/height budgets so
+// the whole iso shape always fits inside the canvas — on a canvas much wider
+// than the iso room's natural ~10:8 aspect ratio, that leaves big empty
+// margins left/right (the reported "dark border" bug); taking the MAX instead
+// overcorrects the other way (verified live at a wide desktop viewport: it
+// blew the room up so much the walls scrolled entirely off-screen, leaving
+// just a floor). This averages the two axis-fits instead — splits the
+// difference, trimming the margin substantially on the generous axis while
+// only moderately cropping the tight one, rather than fully eliminating one
+// side of the mismatch. Anchored so the FLOOR's bottom edge sits flush with
+// the canvas bottom, since the floor (not the wall/ceiling) is what the child
+// actually taps to place furniture.
+function computeFullBleedGeometry(W, H) {
+  const span = FLOOR_COLS + FLOOR_ROWS   // 10
+  const THw = W / span
+  const THh = H / (span * 0.8)
+  const TH = Math.max(3, (THw + THh) / 2)
+  const TW = TH * 2
+  const originX = W / 2 - TH
+  const originY = H - (span / 2) * TH
+  const project = (x, y, z) => ({
+    sx: originX + (x - y) * TW / 2,
+    sy: originY + (x + y) * TH / 2 - z * TH,
+  })
+  return { TW, TH, originX, originY, project, W, H, small: false }
 }
 
 // ── SlotCanvas: renders one furniture item onto a small canvas ──────────────
@@ -83,94 +113,13 @@ function ItemCard({ item, cardState, onTap }) {
   )
 }
 
-// ── RoomMiniMap: top-right grid overlay of owned rooms ──────────────────────
-// Adjacent-empty cells render as plain dashed squares (visual only, not
-// tappable) — buying a new room is now driven entirely by tapping its full
-// ghost-room preview in the main iso scene (see drawGhostRoom / the neighbor
-// hit-zones in handleCanvasClick), so this mini-map no longer needs its own
-// separate "+" buy button.
-function RoomMiniMap({ rooms, activeRoom, activeRoomId, homeRoomId, onSelect, onSetHome }) {
-  if (!activeRoom) return null
-  const gxs = rooms.map(r => r.gridX), gys = rooms.map(r => r.gridY)
-  // Pad by 1 around all rooms so every orthogonally-adjacent empty cell (a valid
-  // purchase target) is visible; this also guarantees ≥3×3 when there's one room.
-  const minX = Math.min(...gxs) - 1, maxX = Math.max(...gxs) + 1
-  const minY = Math.min(...gys) - 1, maxY = Math.max(...gys) + 1
-  const cols = maxX - minX + 1, rowsN = maxY - minY + 1
-  const CELL = 24, GAP = 3
-  const roomAt = (x, y) => rooms.find(r => r.gridX === x && r.gridY === y)
-  const isAdjacent = (x, y) => rooms.some(r => Math.abs(r.gridX - x) + Math.abs(r.gridY - y) === 1)
-
-  const cells = []
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
-      const room = roomAt(x, y)
-      if (room) {
-        const meta = themeMeta(room.theme)
-        const bg = (THEME_PALETTES[room.theme] || THEME_PALETTES.default).floorLight
-        const isActive = room.id === activeRoomId
-        cells.push(
-          <button key={`${x}_${y}`} onClick={() => onSelect(room.id)} aria-label={meta.nameTh}
-            style={{
-              width: CELL, height: CELL, padding: 0, cursor: 'pointer', position: 'relative',
-              borderRadius: 5, background: bg, fontSize: 12, lineHeight: `${CELL}px`, textAlign: 'center',
-              border: isActive ? '2px solid #FFD23F' : '1px solid rgba(255,255,255,0.25)',
-              boxShadow: isActive ? '0 0 6px rgba(255,210,63,0.6)' : 'none',
-              WebkitTapHighlightColor: 'transparent',
-            }}>
-            {meta.icon}
-            {room.id === homeRoomId && (
-              <span style={{ position: 'absolute', top: -6, right: -5, fontSize: 9 }}>🏠</span>
-            )}
-          </button>
-        )
-      } else if (isAdjacent(x, y)) {
-        cells.push(
-          <div key={`${x}_${y}`} aria-hidden="true"
-            style={{
-              width: CELL, height: CELL,
-              borderRadius: 5, background: 'rgba(255,255,255,0.03)', color: 'rgba(255,210,63,0.6)',
-              border: '1.5px dashed rgba(255,210,63,0.4)', fontSize: 12, lineHeight: `${CELL}px`,
-              textAlign: 'center',
-            }}>
-            +
-          </div>
-        )
-      } else {
-        cells.push(<div key={`${x}_${y}`} style={{ width: CELL, height: CELL }} />)
-      }
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'absolute', top: 10, right: 10, zIndex: 3,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6,
-    }}>
-      <div style={{
-        background: 'rgba(10,8,22,0.6)', backdropFilter: 'blur(6px)',
-        border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: 8,
-        display: 'grid', gap: GAP,
-        gridTemplateColumns: `repeat(${cols}, ${CELL}px)`,
-        gridTemplateRows: `repeat(${rowsN}, ${CELL}px)`,
-      }}>
-        {cells}
-      </div>
-      {onSetHome && (
-        <button onClick={onSetHome} aria-label="ตั้งเป็นห้องหลัก"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-            background: 'rgba(10,8,22,0.6)', backdropFilter: 'blur(6px)',
-            border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: '5px 10px',
-            fontFamily: 'var(--font-thai)', fontSize: 11, color: '#FFD23F',
-            WebkitTapHighlightColor: 'transparent',
-          }}>
-          🏠 ตั้งเป็นห้องหลัก
-        </button>
-      )}
-    </div>
-  )
-}
+// RoomMiniMap was removed (2026-07-08) — the top-right room-grid overlay is
+// gone entirely; panning the canvas is now the only way to reach a ghost or
+// adjacent room. Note: this also removed the only UI entry point for
+// SET_HOME_ROOM ("ตั้งเป็นห้องหลัก" — choosing which room shows on Home's
+// background) — flagged in the session handoff since that's a real, working,
+// unrelated feature that's now unreachable, not something this task asked to
+// remove specifically.
 
 // ── ROOM_ITEMS lookup by id (crafting UI + tap detection) ───────────────────
 const ITEM_BY_ID = ROOM_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
@@ -281,7 +230,7 @@ export default function Room({ navigate }) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    const baseG = computeRoomGeometry(W, H, false)   // full-size, unchanged scale
+    const baseG = computeFullBleedGeometry(W, H)   // fills the canvas edge-to-edge
     const span = FLOOR_COLS + FLOOR_ROWS
     const isoRoomWidth  = span * baseG.TW / 2
     const isoRoomHeight = span * baseG.TH / 2
@@ -705,25 +654,6 @@ export default function Room({ navigate }) {
             {activeMeta.nameTh}
           </span>
         </div>
-
-        {/* Mini-map — top-right grid of rooms + adjacent "+" purchase cells */}
-        <RoomMiniMap
-          rooms={rooms}
-          activeRoom={activeRoom}
-          activeRoomId={activeRoomId}
-          homeRoomId={homeRoomId}
-          onSelect={(id) => {
-            if (id === activeRoomId) return
-            dispatch({ type: ACTIONS.SET_ACTIVE_ROOM, payload: { roomId: id } })
-            setSelectedSlot(null); setBuyTarget(null)
-            playSFX('room_visit_enter')
-          }}
-          onSetHome={activeRoomId !== homeRoomId ? () => {
-            dispatch({ type: ACTIONS.SET_HOME_ROOM, payload: { roomId: activeRoomId } })
-            playSFX('coin_purchase')
-            flash('ตั้งเป็นห้องหลักแล้ว 🏠')
-          } : null}
-        />
 
         {/* Craft button (⚒️) — floating bottom-right, only shown once the child
             owns any material (per spec: materials themselves are shown in

@@ -454,10 +454,6 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
           <span style={{ fontFamily:'var(--font-pixel)', fontSize:8, color:C_COIN, letterSpacing:0.5 }}>
             Lv.{eggLevel}
           </span>
-          <span style={{ color:'rgba(255,255,255,0.3)', fontSize:9 }}>·</span>
-          <span style={{ fontFamily:'var(--font-thai)', fontSize:11, fontWeight:700, color:'#fff' }}>
-            {stageName}
-          </span>
         </div>
 
         {/* 🎮 Minigame — floating, upper-left. Enhanced circular button (2026-07-05):

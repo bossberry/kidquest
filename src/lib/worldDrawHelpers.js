@@ -58,6 +58,105 @@ export function spawnChests(tileMap, enemyDefs) {
   }))
 }
 
+// ── Collectible resource nodes (2026-07-08) ──────────────────────────────────
+// Visible, walk-onto-to-gather nodes scattered on the world map — replaces
+// the earlier invisible "15% chance per step" auto-collect (WorldScreen.jsx's
+// old pickAutoMaterial/tryAutoCollectMaterial), which the child could never
+// actually see or aim for. Same daily cap (15/day) and reducer
+// (COLLECT_MATERIAL / state.materials) as before — just a visible target to
+// walk onto instead of an invisible dice roll on every step.
+export const COLLECTIBLE_NODES = {
+  flower:     { icon: '🌸', material: 'flower',   glow: '255,140,190' },
+  wood_log:   { icon: '🪵', material: 'wood',     glow: '160,110,60'  },
+  stone:      { icon: '🪨', material: 'stone',    glow: '150,150,160' },
+  mushroom:   { icon: '🍄', material: 'mushroom', glow: '220,70,70'   },
+  crystal:    { icon: '❄️', material: 'crystal',  glow: '140,210,255' },
+  stardust:   { icon: '⭐', material: 'stardust', glow: '255,220,100' },
+  water_drop: { icon: '💧', material: 'water',    glow: '80,170,230'  },
+}
+
+// Per-world-theme weighted spawn pools, verbatim frequencies from the design
+// spec. Dropped 'garden' from the spec's flower entry — this game only has 5
+// real world themes (grassland/beach/forest/snow/sky, see tileEngine.js
+// THEMES), so 'garden' would be permanently dead code, the same kind of
+// stale-table mismatch flagged in the 2026-07-07 auto-collect session.
+const THEME_NODE_POOL = {
+  grassland: ['flower', 'flower', 'wood_log', 'stone', 'flower', 'wood_log'],
+  beach:     ['flower', 'water_drop', 'water_drop', 'stone', 'flower', 'water_drop'],
+  forest:    ['mushroom', 'mushroom', 'wood_log', 'wood_log', 'mushroom', 'stone'],
+  snow:      ['crystal', 'crystal', 'stone', 'flower', 'crystal', 'wood_log'],
+  sky:       ['stardust', 'stardust', 'stardust', 'flower', 'stardust', 'water_drop'],
+}
+
+// Scatters 4-8 nodes on walkable GRASS/PATH tiles only (never TREE/WALL/WATER
+// — this game's generators never place WATER tiles, see the auto-collect
+// session's note; nodes are visible OBJECTS placed independently of tile
+// type, not tied to a "water tile" that doesn't exist). Collectibles live in
+// a ref, not state — ephemeral, re-rolled every time the screen is entered,
+// same convention as spawnChests/getScreenEnemies above.
+export function spawnCollectibles(tileMap, worldTheme) {
+  if (!tileMap) return []
+  const pool = THEME_NODE_POOL[worldTheme] ?? THEME_NODE_POOL.grassland
+  const candidates = []
+  for (let r = 1; r < tileMap.length - 1; r++) {
+    for (let c = 1; c < (tileMap[r]?.length ?? 0) - 1; c++) {
+      const raw = tileMap[r][c]
+      const t = typeof raw === 'object' ? raw.type : raw
+      if (t === T.GRASS || t === T.PATH) candidates.push({ col: c, row: r })
+    }
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+  }
+  const count = 4 + Math.floor(Math.random() * 5) // 4-8
+  return candidates.slice(0, count).map((pos, i) => ({
+    col: pos.col, row: pos.row,
+    type: pool[Math.floor(Math.random() * pool.length)],
+    id: `node_${Date.now()}_${i}`,
+    collected: false,
+  }))
+}
+
+// Ground-anchored like every other Pandora standing object (chest/tree/rock).
+// Gentle sine bob (±2px, phased per-tile so nodes don't bob in lockstep) +
+// a soft colored glow underneath. `locked` (daily cap reached) dims the node
+// and adds a small 🔒 badge instead of hiding it — it stays visible, it just
+// won't yield anything until the cap resets tomorrow.
+export function drawPandoraCollectible(ctx, cx, groundY, node, frame, locked) {
+  const def = COLLECTIBLE_NODES[node.type]
+  if (!def) return
+  const bob = Math.sin(frame * 0.05 + node.col * 3 + node.row * 7) * 2
+  const cy = groundY - 10 + bob
+
+  ctx.save()
+  if (locked) ctx.globalAlpha = 0.55
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, 8, 3, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.fillStyle = `rgba(${def.glow},0.35)`
+  ctx.beginPath()
+  ctx.arc(cx, cy, 13, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.font = '20px serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(def.icon, cx, cy)
+
+  ctx.restore()
+
+  if (locked) {
+    ctx.font = '11px serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('🔒', cx + 10, cy - 10)
+  }
+}
+
 export const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
 // ── Player glow rendering ────────────────────────────────────────────────────

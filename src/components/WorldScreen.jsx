@@ -4,7 +4,6 @@ import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { WORLD_LEVELS, DYNAMIC_SCREENS, WORLD_THEME_ICON } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import { BOSS_XP_THRESHOLD, todayStr } from '../config/gameConfig.js'
-import { MATERIAL_ICON } from '../lib/roomItems.js'
 import {
   T, canMove, getExitAt,
   EXIT_DIR_NAME, getEntryPosition, setWorldTheme,
@@ -20,7 +19,7 @@ import { drawItem } from '../lib/itemArt.js'
 import WorldHUD, { HUD_CONTENT_H, HOME_ITEM_KEYS, BATTLE_ITEM_KEYS } from './world/WorldHUD.jsx'
 import MissionPanel from './world/MissionPanel.jsx'
 import {
-  spawnChests, findSpecials,
+  spawnChests, findSpecials, spawnCollectibles, COLLECTIBLE_NODES,
   getOwlLines, SIGN_LINES, STAGE_COLORS,
 } from '../lib/worldDrawHelpers.js'
 import { useCompanion } from '../context/CompanionContext.jsx'
@@ -103,43 +102,12 @@ function ExitArrow({ dir, visible, onClick }) {
 const VALID_DYNAMIC = new Set(['NW', 'NE', 'SW', 'SE', 'BOSS', 'MAZE'])
 const BOSS_TILE = { col: 7, row: 3 }
 
-// ── Auto-collect materials while walking (2026-07-07) ───────────────────────
-// Replaces the earlier manual 🧺 collect-button system. Every committed move
-// has a 15% chance to award 1 material, picked from the tile just stepped on
-// (or its 4 orthogonal neighbors for wood). Daily cap 15 (COLLECT_CHANCE /
-// DAILY_CAP below), enforced client-side here AND in the COLLECT_MATERIAL
-// reducer.
-//
-// DEVIATION FROM THE LITERAL SPEC TABLE (flagged, same kind of correction the
-// original crafting session made): the spec's table has "T.WATER adjacent →
-// water" and "T.GRASS (sky world) → stardust", but tileMaps.js's generators
-// never place T.WATER in ANY world (grepped: `W = T.WATER` is defined and
-// never used as a map cell value) — a literal water-adjacency check would be
-// permanently dead code, same problem the original session found with
-// WALL/WATER. Instead, water is folded into the existing theme-dependent
-// T.GRASS slot (sky→stardust, snow→water) rather than a tile type that never
-// spawns — every material stays reachable in some world.
-const COLLECT_CHANCE = 0.15
+// ── Materials daily cap (2026-07-08) ─────────────────────────────────────────
+// Shared by the visible map-collectible nodes below (spawnCollectibles/
+// COLLECTIBLE_NODES, worldDrawHelpers.js) — same 15/day cap the earlier
+// invisible per-step auto-collect used, enforced client-side here AND in the
+// COLLECT_MATERIAL reducer.
 const DAILY_MATERIAL_CAP = 15
-
-function pickAutoMaterial(tileMap, col, row, theme) {
-  const raw = tileMap[row]?.[col]
-  const t = typeof raw === 'object' ? raw?.type : raw
-  if (t === T.TALL) return theme === 'forest' ? 'mushroom' : 'flower'
-  if (t === T.GRASS) {
-    if (theme === 'sky') return 'stardust'
-    if (theme === 'snow') return 'water'
-    return null
-  }
-  if (t === T.PATH) return 'stone'
-  // Wood: only when standing next to a tree (trees themselves aren't walkable).
-  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
-    const nRaw = tileMap[row + dr]?.[col + dc]
-    const nt = typeof nRaw === 'object' ? nRaw?.type : nRaw
-    if (nt === T.TREE) return 'wood'
-  }
-  return null
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -191,6 +159,8 @@ export default function WorldScreen({ navigate }) {
   const transTimer   = useRef(null)
   const enemiesRef        = useRef([]) // dynamic enemy runtime state
   const chestsRef         = useRef([]) // treasure chest runtime state
+  const collectiblesRef   = useRef([]) // visible material-node runtime state (2026-07-08)
+  const materialsLeftRef  = useRef(DAILY_MATERIAL_CAP) // synced from materialsLeftToday below, read by the RAF loop
   const mazePortalPosRef = useRef(null)
   const mazeOpenCellsRef = useRef([])
   const mazeExitPosRef   = useRef(null)
@@ -204,7 +174,7 @@ export default function WorldScreen({ navigate }) {
   const confettiRafRef     = useRef(null)
   const [itemBagOpen, setItemBagOpen] = useState(false)
   const [bossCutscene, setBossCutscene] = useState(null)
-  const [materialToast, setMaterialToast] = useState(null)   // { icon } | null — floats up + fades, 300ms
+  const [materialToast, setMaterialToast] = useState(null)   // { text } | null — floats up + fades, 900ms
   const materialToastTimer = useRef(null)
   const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
     useBattleTrigger({ stateRef, screenIdRef, gameRef, setEncounterFlash, setBossConfirm, BOSS_TILE })
@@ -316,6 +286,7 @@ export default function WorldScreen({ navigate }) {
 
     if (screenId === 'BOSS') {
       mazePortalPosRef.current = null
+      collectiblesRef.current = [] // no gathering on the boss confrontation screen
       // Don't spawn boss if already defeated this tier
       if (stateRef.current.bossEnemyDefeated) {
         enemiesRef.current = []
@@ -343,6 +314,7 @@ export default function WorldScreen({ navigate }) {
       )
       chestsRef.current  = chests
       enemiesRef.current = enemies
+      collectiblesRef.current = [] // maze already has its own chest-based reward system
     } else {
       const defs = getScreenEnemies(screenId, wLevel)
       enemiesRef.current = defs.map((def, i) => ({
@@ -366,6 +338,7 @@ export default function WorldScreen({ navigate }) {
         opacity:      1,
       }))
       chestsRef.current = spawnChests(tileMapRef.current, defs)
+      collectiblesRef.current = spawnCollectibles(tileMapRef.current, worldDef.theme ?? 'grassland')
     }
     // Apply death animation for the enemy that was just defeated in battle
     try {
@@ -514,36 +487,40 @@ export default function WorldScreen({ navigate }) {
     }, 300)
   }, [dispatch, initScreen])
 
-  // ── Auto-collect materials while walking ────────────────────────────────────
-  // Defined ABOVE tryMove deliberately: tryMove's useCallback dependency array
-  // references tryAutoCollectMaterial, and dependency arrays are evaluated
-  // eagerly at render time (not lazily at call time) — declaring it below
-  // tryMove throws "Cannot access before initialization" on every render.
-  //
+  // ── Map-collectible materials (2026-07-08) ──────────────────────────────────
   // Remaining collects today (resets when the stored date isn't today — same
   // todayStr() reset convention as minigame lives).
   const materialsUsedToday = (state.lastMaterialDate === todayStr()) ? (state.dailyMaterialsCollected || 0) : 0
   const materialsLeftToday = Math.max(0, DAILY_MATERIAL_CAP - materialsUsedToday)
+  materialsLeftRef.current = materialsLeftToday // read by the RAF loop (dims/locks nodes once capped)
 
-  const showMaterialToast = useCallback((icon) => {
-    setMaterialToast({ icon, id: Date.now() })
+  const showMaterialToast = useCallback((text) => {
+    setMaterialToast({ text, id: Date.now() })
     if (materialToastTimer.current) clearTimeout(materialToastTimer.current)
-    materialToastTimer.current = setTimeout(() => setMaterialToast(null), 300)
+    materialToastTimer.current = setTimeout(() => setMaterialToast(null), 900)
   }, [])
   useEffect(() => () => { if (materialToastTimer.current) clearTimeout(materialToastTimer.current) }, [])
 
-  // Called from tryMove right after a move commits (new tile confirmed under
-  // the player). 15% chance per step, silently stops once the daily cap is
-  // hit (no notification — per spec, this is meant to be unobtrusive).
-  const tryAutoCollectMaterial = useCallback((tileMap, col, row) => {
-    if (materialsLeftToday <= 0) return
-    if (Math.random() >= COLLECT_CHANCE) return
-    const theme = WORLD_LEVELS[stateRef.current.worldLevel ?? 0]?.theme ?? 'grassland'
-    const material = pickAutoMaterial(tileMap, col, row, theme)
-    if (!material) return
-    dispatch({ type: ACTIONS.COLLECT_MATERIAL, payload: { material, amount: 1 } })
+  // Called from tryMove right after a move commits onto a tile carrying an
+  // uncollected node (Manhattan distance 0 — same tile only, not adjacent).
+  // Replaces the earlier invisible "15% chance per step" auto-collect: the
+  // child now sees the node, walks onto it, and it's gone — same daily cap
+  // and COLLECT_MATERIAL reducer as before, just a visible target instead of
+  // a silent dice roll.
+  const tryCollectNode = useCallback((col, row) => {
+    const node = collectiblesRef.current.find(n => !n.collected && n.col === col && n.row === row)
+    if (!node) return
+    const def = COLLECTIBLE_NODES[node.type]
+    if (!def) return
+    if (materialsLeftToday <= 0) {
+      playSFX('collect_tick')
+      showMaterialToast('🔒 มาเก็บใหม่พรุ่งนี้นะ!')
+      return
+    }
+    node.collected = true
+    dispatch({ type: ACTIONS.COLLECT_MATERIAL, payload: { material: def.material, amount: 1 } })
     playSFX('collect_tick')
-    showMaterialToast(MATERIAL_ICON[material] || '✨')
+    showMaterialToast(`+1 ${def.icon}`)
   }, [materialsLeftToday, dispatch, showMaterialToast])
 
   // ── Player movement ──────────────────────────────────────────────────────────
@@ -619,7 +596,7 @@ export default function WorldScreen({ navigate }) {
     g.walkFrame = (g.walkFrame + 1) % 2
 
     playSFX('footstep')
-    tryAutoCollectMaterial(tileMap, newCol, newRow)
+    tryCollectNode(newCol, newRow)
 
     const exitType = getExitAt(tileMap, newCol, newRow)
     if (exitType !== null) {
@@ -638,7 +615,7 @@ export default function WorldScreen({ navigate }) {
     }
 
     checkProximity(newCol, newRow)
-  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle, tryAutoCollectMaterial])
+  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle, tryCollectNode])
 
   const confirmEnterMaze = () => {
     setMazeConfirm(false)
@@ -679,6 +656,7 @@ export default function WorldScreen({ navigate }) {
     battlePendingRef, battleDispatchedRef, triggerBattleRef,
     eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
     fogOverlayRef, torchRingRef, mazeExitPosRef,
+    collectiblesRef, materialsLeftRef,
   })
 
   // ── World-unlock confetti ────────────────────────────────────────────────────
@@ -941,20 +919,25 @@ export default function WorldScreen({ navigate }) {
         ))}
       </div>
 
-      {/* Auto-collect material toast — "+1 🪵" floating up + fading over the
-          D-pad area (a stand-in for "above the player": the RAF game loop's
-          per-frame player screen coordinates aren't exposed to React state,
-          so exact sprite-anchored tracking isn't wired up — this reads as
-          "near where you're standing" without that plumbing). Reuses the
-          existing dmg-float keyframe (translateY(-48px)+fade) at 300ms. */}
+      {/* Map-collectible toast — "+1 🌸" (or the daily-cap lock message)
+          floating up + fading over the D-pad area (a stand-in for "above the
+          player": the RAF game loop's per-frame player screen coordinates
+          aren't exposed to React state, so exact sprite-anchored tracking
+          isn't wired up — this reads as "near where you're standing" without
+          that plumbing). Reuses the existing dmg-float keyframe
+          (translateY(-48px)+fade), stretched to 0.9s so the longer lock
+          message is actually readable (was 0.3s for the old single-emoji-only
+          toast). */}
       {materialToast && (
         <div key={materialToast.id} style={{
           position: 'absolute', left: '50%', bottom: 210, zIndex: 26,
           transform: 'translateX(-50%)', pointerEvents: 'none',
-          fontSize: 22, textShadow: '0 2px 6px rgba(0,0,0,0.6)',
-          animation: 'dmg-float 0.3s ease-out both',
+          fontSize: 18, fontFamily: 'var(--font-thai)', fontWeight: 700,
+          color: '#fff', whiteSpace: 'nowrap',
+          textShadow: '0 2px 6px rgba(0,0,0,0.6)',
+          animation: 'dmg-float 0.9s ease-out both',
         }}>
-          {materialToast.icon}
+          {materialToast.text}
         </div>
       )}
 

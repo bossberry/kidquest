@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { MAP_THEMES } from '../../config/gameConfig.js'
+import { MAP_THEMES, todayStr } from '../../config/gameConfig.js'
 import { WORLD_LEVELS, WORLD_THEME_ICON } from '../../config/worldConfig.js'
 import { MATERIALS } from '../../lib/roomItems.js'
 import PixelItemIcon from '../PixelItemIcon.jsx'
+
+const DAILY_MATERIAL_CAP = 15 // mirrors WorldScreen.jsx's DAILY_MATERIAL_CAP
 
 export const BATTLE_ITEM_KEYS = ['scroll', 'thunder', 'gem', 'mirror', 'clover']
 export const HOME_ITEM_KEYS = ['food', 'ribbon', 'shoes', 'rainbow_star']
@@ -30,6 +32,7 @@ const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: '�
 export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
   const [matOpen, setMatOpen] = useState(true)
   const ownedMats = MATERIALS.filter(m => (state.materials?.[m.id] ?? 0) > 0)
+  const materialsUsedToday = (state.lastMaterialDate === todayStr()) ? (state.dailyMaterialsCollected || 0) : 0
   const discovered = new Set(discoveredScreens ?? [])
   const MINI_TILE = 11
   const MINI_GAP  = 1
@@ -301,8 +304,10 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
 
       </div>
 
-      {/* Auto-collected materials — tiny, only shown once the child owns any,
-          tap to collapse/expand so it never crowds the main bar above. */}
+      {/* Collected materials — tiny, only shown once the child owns any, tap
+          to collapse/expand so it never crowds the main bar above. Includes a
+          small daily-gather-progress line (2026-07-08) once any materials
+          have been collected today, alongside the map-collectible nodes. */}
       {ownedMats.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px',
@@ -323,6 +328,14 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
               <span style={{ fontSize: 11 }}>{m.icon}</span>{state.materials[m.id]}
             </span>
           ))}
+          {matOpen && materialsUsedToday > 0 && (
+            <span style={{
+              fontFamily: 'var(--font-thai)', fontSize: 9, color: 'rgba(150,200,150,0.55)',
+              marginLeft: 2,
+            }}>
+              เก็บแล้ว {materialsUsedToday}/{DAILY_MATERIAL_CAP} วันนี้
+            </span>
+          )}
         </div>
       )}
     </div>

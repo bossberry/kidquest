@@ -4,7 +4,7 @@ import {
   PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
 import { drawEnemyPandora } from '../lib/drawEnemy.js'
-import { drawPandoraChest, drawPandoraPlayerGlow, drawMazePortal } from '../lib/worldDrawHelpers.js'
+import { drawPandoraChest, drawPandoraPlayerGlow, drawMazePortal, drawPandoraCollectible } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
@@ -22,6 +22,7 @@ export function useWorldGameLoop({
   battlePendingRef, battleDispatchedRef, triggerBattleRef,
   HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
   fogOverlayRef, torchRingRef, mazeExitPosRef,
+  collectiblesRef, materialsLeftRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -359,6 +360,21 @@ export function useWorldGameLoop({
         const cx = chest.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
         const cy = chest.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
         entities.push({ y: cy, draw: () => drawPandoraChest(ctx, cx, cy, g.frame) })
+      }
+
+      // Collectible resource nodes (2026-07-08) — same Y-sort/ground-anchor
+      // pattern as chests above, so they occlude correctly against trees/
+      // player/enemies. `locked` (daily cap reached) dims every remaining
+      // node and adds a 🔒 badge rather than removing them — they're still
+      // visible, just not yielding anything until the cap resets.
+      if (collectiblesRef?.current) {
+        const capped = (materialsLeftRef?.current ?? 1) <= 0
+        for (const node of collectiblesRef.current) {
+          if (node.collected) continue
+          const nx = node.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+          const ny = node.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+          entities.push({ y: ny, draw: () => drawPandoraCollectible(ctx, nx, ny, node, g.frame, capped) })
+        }
       }
 
       // World-map entry portal (shown on NW/NE/SW/SE screens) + maze exit

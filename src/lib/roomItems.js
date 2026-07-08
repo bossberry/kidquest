@@ -911,6 +911,11 @@ export const MATERIALS = [
   { id: 'water',    icon: '💧', nameTh: 'น้ำ' },
   { id: 'stardust', icon: '⭐', nameTh: 'ผงดาว' },
   { id: 'mushroom', icon: '🍄', nameTh: 'เห็ด' },
+  // Added 2026-07-08 for the visible map-collectible snow node. No craft
+  // recipe yet (CRAFT_RECIPES below is unrelated to this task's scope) —
+  // it accumulates in state.materials like the others, just nothing spends
+  // it yet.
+  { id: 'crystal',  icon: '❄️', nameTh: 'คริสตัล' },
 ]
 export const MATERIAL_ICON = MATERIALS.reduce((m, x) => (m[x.id] = x.icon, m), {})
 

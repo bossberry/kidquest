@@ -135,7 +135,7 @@ export function defaultState() {
     // (distinct from bought/dropped furniture) for the "มีแล้ว" badge.
     // dailyMaterialsCollected/lastMaterialDate cap auto-collection at 15/day
     // (todayStr() reset, same convention as minigame lives).
-    materials: { flower: 0, wood: 0, stone: 0, water: 0, stardust: 0, mushroom: 0 },
+    materials: { flower: 0, wood: 0, stone: 0, water: 0, stardust: 0, mushroom: 0, crystal: 0 },
     craftedItems: [],
     dailyMaterialsCollected: 0,
     lastMaterialDate: '',

@@ -1,5 +1,35 @@
 # Changelog — KidQuest
 
+## 2026-07-08 — Map collectibles: visible resource nodes on the world map
+
+Replaces the invisible "15% chance per step" auto-collect (built 2026-07-07) with visible, walk-onto-to-gather nodes — the child can now actually see and aim for materials instead of them silently rolling in the background. Same daily cap (15/day) and `COLLECT_MATERIAL` reducer as before.
+
+### src/lib/roomItems.js
+- Added a 7th material, `crystal` (❄️), to `MATERIALS` — the snow-world collectible node. No craft recipe yet (out of scope for this task); it just accumulates like the others.
+
+### src/lib/state.js
+- `defaultState()`'s `materials` now includes `crystal: 0`. `migrateStateShape()` needed no separate change — `materials` was already in its generic `nestedObjectFields` merge list, so old saves pick up the new key automatically.
+
+### src/lib/worldDrawHelpers.js
+- New `COLLECTIBLE_NODES` (icon/material/glow-color per node type: flower🌸, wood_log🪵, stone🪨, mushroom🍄, crystal❄️, stardust⭐, water_drop💧) and per-world-theme weighted spawn pools (`THEME_NODE_POOL`, verbatim frequencies from spec). Dropped 'garden' from the spec's flower entry — this game only has 5 real world themes (grassland/beach/forest/snow/sky), so it would've been permanently dead code, the same kind of stale-table mismatch flagged in the 2026-07-07 auto-collect session.
+- `spawnCollectibles(tileMap, worldTheme)` — scatters 4-8 nodes on walkable GRASS/PATH tiles only, same shuffle-and-slice pattern as the existing `spawnChests`. Nodes live in a ref (`collectiblesRef` in WorldScreen.jsx), not state — ephemeral, re-rolled every screen visit, same convention as chests/enemies.
+- `drawPandoraCollectible(ctx, cx, groundY, node, frame, locked)` — ground-anchored like every other Pandora standing object, gentle ±2px sine bob, soft colored glow. `locked` (daily cap reached) dims the node and adds a 🔒 badge rather than hiding it, so it stays visible but visibly won't yield anything until tomorrow.
+
+### src/hooks/useWorldGameLoop.js
+- Draws uncollected nodes as Y-sorted entities in the same loop pass as chests/enemies/player, so they occlude correctly against trees and other standing objects. Takes two new params: `collectiblesRef` and `materialsLeftRef` (a ref mirror of WorldScreen's `materialsLeftToday`, since the RAF loop only reads refs, never state, to stay stable with an empty dependency array).
+
+### src/components/WorldScreen.jsx
+- Removed the old `pickAutoMaterial`/`tryAutoCollectMaterial`/`COLLECT_CHANCE` invisible auto-collect entirely.
+- Nodes spawn per-screen in the existing "enemy initialization on screen change" effect (`spawnCollectibles(tileMapRef.current, theme)`), alongside `spawnChests`. Skipped on BOSS (confrontation screen, no gathering) and MAZE (already has its own chest-based reward system).
+- New `tryCollectNode(col, row)`, called from `tryMove` right after a move commits onto a tile carrying an uncollected node (same tile only, not adjacent). Success: marks the node collected, dispatches `COLLECT_MATERIAL`, plays `collect_tick`, shows a "+1 🌸"-style floating toast. Capped: node is left uncollected (stays lockable/visible), shows "🔒 มาเก็บใหม่พรุ่งนี้นะ!" instead.
+- The existing material floating-toast (`materialToast`) was upgraded from a bare icon to a short text string (`+1 🌸` / the lock message) and its fade stretched from 0.3s→0.9s so the longer lock message is actually readable — reuses the existing `dmg-float` CSS keyframe, just a longer duration.
+- Simplification vs. the original spec: skipped the "4-6 particle sparkle burst" on collect. The confetti/particle system in this file draws on a separate full-viewport overlay canvas in *screen* space, while collectible nodes live in *world* space behind a moving camera (math computed inside `useWorldGameLoop.js`'s closure) — wiring a properly camera-aware per-node burst for a very frequent, lightweight pickup interaction wasn't worth the complexity. The node disappearing + the floating text + `collect_tick` is consistent with how this codebase already signals collection elsewhere (chests, the prior auto-collect toast).
+
+### src/components/world/WorldHUD.jsx
+- Added a small "เก็บแล้ว {n}/15 วันนี้" daily-progress line next to the existing (already-built, 2026-07-07) collapsible materials strip — the strip itself needed no changes, since it iterates the shared `MATERIALS` list and picks up `crystal` automatically.
+
+Verified live: nodes spawn and render (confirmed via a temporary debug hook, removed before commit) with the correct glow/icon per type; walking onto one collects it, updates the HUD (`🌸1`, `เก็บแล้ว 1/15 วันนี้`), and persists through a reload; forcing the daily cap via localStorage correctly showed `15/15` in the HUD (didn't get a clean screenshot of the locked-node 🔒 touch feedback itself — the code path is a straightforward, symmetric branch of the already-verified success path, reviewed but not screenshot-confirmed). Zero console errors throughout.
+
 ## 2026-07-08 — Home: removed stale hatch-progress subtitle next to Lv. pill
 
 `src/components/Home.jsx`'s "Floating Lv · stage-name pill" rendered `Lv.{eggLevel} · {stageName}`, where `stageName` comes from `EGG_STAGE_NAMES` (`src/lib/eggAlgorithm.js`) — whose final entry is `"ใกล้ฟักแล้ว!!!"` ("almost hatched"). Removed the `·` separator and the stage-name span from that one pill, since the companion system no longer has a hatching mechanic. Left the file itself untouched (`EGG_STAGE_NAMES`/`eggAlgorithm.js` is locked) and left the *other*, unrelated `stageName` usage in Home.jsx's header (the small subtitle under the player's name, e.g. "ไข่น้อย") as-is — that one wasn't reported and isn't "next to the level display."

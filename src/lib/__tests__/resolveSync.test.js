@@ -157,7 +157,7 @@ test('regression: local skillMastery/activeNodes progress is never wiped by a st
   const localWithProgress = {
     ...defaultState(),
     lastSavedAt: 1000, // older timestamp than remote below
-    activeNodes: { thai: 'th_vowels_short', math: 'math_add_under_10', english: 'eng_phonics_cvc' },
+    activeNodes: { thai: 'th_vowels_short', math: 'math_add_under_10', eng: 'eng_phonics_cvc' },
     skillMastery: {
       th_consonants_1: { attempts: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], ema: 0.95, mastered: true, masteredAt: 5000 },
       th_consonants_2: { attempts: [1, 0, 1, 1], ema: 0.6, mastered: false, masteredAt: null },

@@ -89,7 +89,15 @@ export const CURRICULUM = {
         prerequisites: ['math_fractions_ops'], questionTypes: ['choice'], difficulty: 8 },
     ]),
   },
-  english: {
+  // Keyed 'eng', NOT 'english' — matches this codebase's existing 3-letter
+  // subject-key convention used everywhere else (xpEng, subjectLevels.eng,
+  // responseTimeLogs.eng, battle enemy.subject:'eng' in enemyConfig.js, etc).
+  // An earlier version of this file used 'english' (copied literally from the
+  // spec's example without cross-checking) — that would have made every
+  // English world battle crash, since WorldBattle.jsx passes the real 'eng'
+  // key and CURRICULUM.english/activeNodes.english would never match it.
+  // Caught and fixed before it shipped to a live battle.
+  eng: {
     nodes: nodes('eng', [
       { id: 'eng_alphabet_recognition', nameTh: 'รู้จักตัวอักษร A-Z', grade: 'K2', standard: 'ต 1.1',
         prerequisites: [], questionTypes: ['choice', 'visual_discrimination'], difficulty: 1 },

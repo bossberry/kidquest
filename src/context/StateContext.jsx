@@ -1,6 +1,6 @@
 // StateContext.jsx — global state store (useReducer + Context). Single source of truth for all game state; persists to localStorage and Supabase.
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback, useRef } from 'react'
-import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, markInitialSyncComplete, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
+import { KEY, defaultState, loadState, saveState, syncToSupabase, resolveSync, markInitialSyncComplete, validateState, _migrateBattleStats, _mergeAllCreaturesIntoOne } from '../lib/state.js'
 import { supabase } from '../lib/supabase.js'
 import { eggProgress, buildEggStats, totalXP, EGG_STAGES, STAGE_XP_NEEDED } from '../lib/eggAlgorithm.js'
 import { ITEMS, GRADE_LABELS, todayStr, shuffle, calcCreatureStats, AI_OPPONENTS, PROGRESSION_MAP } from '../config/gameConfig.js'
@@ -1181,7 +1181,12 @@ export function StateProvider({ children }) {
         }))
       }
       const needsMerge = (migrated.hatchedEggs?.length ?? 0) > 1
-      const merged = needsMerge ? _mergeAllCreaturesIntoOne(migrated) : migrated
+      let merged = needsMerge ? _mergeAllCreaturesIntoOne(migrated) : migrated
+      // C.1 integrity guard — repair obvious corruption (bad coins/arrays/rooms)
+      // before first render. The proper profile-keyed backup RESTORE happens later
+      // in the async loadState() path (which knows the logged-in user id); here we
+      // only have the 'guest' ring, so this is mostly the minor-repair safety net.
+      merged = validateState(merged).state
       // Always clear transient battle state — these can be stale if app was closed mid-battle.
       // A stuck battleCreatureId makes !state.battleCreatureId falsy → PartySelect never renders.
       return { ...merged, battleCreatureId: null, pendingBattle: null, worldBattleEnemy: null }

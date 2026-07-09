@@ -43,7 +43,142 @@ export function hasRealProgress(s) {
   if ((s.ownedRoomItems?.length ?? 0) > 0) return true
   if ((s.grade || 0) > 0) return true
   if ((s.badges || 0) > 0) return true
+  // Extra losable-progress signals (C.1, 2026-07-09). All of these are only ever
+  // written by real gameplay — NEVER by the first-mount maintenance dispatches
+  // (DECAY_HAPPINESS / CHECK_DAILY_RESET / DAILY_LOGIN / ER_SAVE_SCORE) — so they
+  // stay safe to use as the maintenance-immune "is this a real save?" signal.
+  if ((s.rooms?.length ?? 0) > 1) return true                 // bought a room block (1000 coins each)
+  if ((s.craftedItems?.length ?? 0) > 0) return true          // crafted furniture
+  if (s.equipped && (s.equipped.head || s.equipped.face)) return true
+  if (s.materials && Object.values(s.materials).some(v => (v || 0) > 0)) return true
   return false
+}
+
+// ── Local rolling backup ring (C.1, 2026-07-09) ──────────────────────────────
+// Every successful save also writes a per-profile ring of the last 3 real states
+// (+timestamps) to localStorage under `kq_backup_{profileId}`. validateState()
+// restores from this ring when it detects CRITICAL loss (e.g. rooms wiped) on a
+// state that has no real progress. This is a purely local safety net — server-side
+// backups are Phase 5.3 and explicitly out of scope here.
+export const BACKUP_PREFIX = 'kq_backup_'
+const MAX_BACKUPS = 3
+
+// Cached current profile id, so the synchronous saveState() can key backups per
+// account without an async auth lookup on every save. Updated whenever we resolve
+// a Supabase user (loadState / syncToSupabase). Falls back to 'guest' for the
+// logged-out / localStorage-only path.
+let _currentProfileId = 'guest'
+export function setCurrentProfileId(id) { if (id) _currentProfileId = id }
+export function getCurrentProfileId() { return _currentProfileId }
+
+export function readBackups(profileId = _currentProfileId) {
+  try {
+    const raw = localStorage.getItem(BACKUP_PREFIX + (profileId || 'guest'))
+    const ring = raw ? JSON.parse(raw) : []
+    return Array.isArray(ring) ? ring : []
+  } catch { return [] }
+}
+
+export function writeBackup(state, profileId = _currentProfileId) {
+  // Only ring real saves — a blank/default state is worthless as a restore point
+  // and would only dilute the ring (or worse, become a "restore" target itself).
+  if (!hasRealProgress(state)) return
+  try {
+    const key = BACKUP_PREFIX + (profileId || 'guest')
+    const ring = readBackups(profileId)
+    ring.push({ ts: Date.now(), state })
+    while (ring.length > MAX_BACKUPS) ring.shift()
+    localStorage.setItem(key, JSON.stringify(ring))
+  } catch { /* localStorage full / unavailable — non-fatal */ }
+}
+
+// Most-recent backup that actually carries real progress (the only useful kind).
+export function latestGoodBackup(profileId = _currentProfileId) {
+  return readBackups(profileId)
+    .filter(b => b && b.state && hasRealProgress(b.state))
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))[0] || null
+}
+
+/**
+ * validateState — schema-check + repair a state object before it becomes the live
+ * app state. Two tiers:
+ *   1. MINOR repair (always): coerce clearly-broken critical fields back to sane
+ *      defaults (coins → finite number ≥0, ownedRoomItems/ownedItems/party → arrays,
+ *      rooms → non-empty array containing a 'main', equipped/materials/homeItems/
+ *      battleItems → objects, etc). Never throws; a totally garbage input yields a
+ *      clean defaultState().
+ *   2. CRITICAL restore: if after repair the state still carries NO real progress
+ *      but a local backup for this profile DOES, restore from that backup (covers
+ *      "rooms/items wiped but backup has data"). Also fires when rooms is missing/
+ *      empty even if some other progress survived.
+ * Returns { state, repaired, restored } so callers can log/telemetry the outcome.
+ */
+export function validateState(state, profileId = _currentProfileId) {
+  const base = defaultState()
+  let repaired = false
+  let restored = false
+
+  let s = (state && typeof state === 'object' && !Array.isArray(state)) ? { ...state } : null
+  if (!s) {
+    // Whole object is missing/garbage — try a backup before falling back to blank.
+    const good = latestGoodBackup(profileId)
+    if (good) return { state: migrateStateShape(good.state), repaired: true, restored: true }
+    return { state: base, repaired: true, restored: false }
+  }
+
+  // ── Minor field repairs ────────────────────────────────────────────────────
+  if (typeof s.coins !== 'number' || !isFinite(s.coins) || s.coins < 0) {
+    s.coins = (typeof s.coins === 'number' && isFinite(s.coins)) ? Math.max(0, s.coins) : 0
+    repaired = true
+  }
+  const arrayFields = ['ownedItems', 'ownedRoomItems', 'craftedItems', 'party', 'hatchedEggs',
+                       'seenTeach', 'discoveredScreens', 'clearedMaps', 'battleHistory', 'sessionLog']
+  for (const f of arrayFields) {
+    if (!Array.isArray(s[f])) { s[f] = Array.isArray(base[f]) ? [...base[f]] : []; repaired = true }
+  }
+  const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
+                        'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs']
+  for (const f of objectFields) {
+    if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
+      s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
+      repaired = true
+    }
+  }
+  if (!s.equipped || typeof s.equipped !== 'object') { s.equipped = { head: null, face: null }; repaired = true }
+  else {
+    if (!('head' in s.equipped)) { s.equipped.head = null; repaired = true }
+    if (!('face' in s.equipped)) { s.equipped.face = null; repaired = true }
+  }
+
+  // ── rooms integrity — the highest-value critical field ─────────────────────
+  const roomsBad = !Array.isArray(s.rooms) || s.rooms.length === 0 ||
+                   !s.rooms.some(r => r && typeof r === 'object' && r.id)
+  if (roomsBad) {
+    const good = latestGoodBackup(profileId)
+    if (good && Array.isArray(good.state.rooms) && good.state.rooms.length > 0) {
+      return { state: migrateStateShape(good.state), repaired: true, restored: true }
+    }
+    // No backup — rebuild a valid single room from whatever layout survived.
+    s.rooms = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0,
+                 layout: (s.roomLayout && typeof s.roomLayout === 'object' && !Array.isArray(s.roomLayout)) ? s.roomLayout : {} }]
+    s.activeRoomId = 'main'
+    s.homeRoomId = 'main'
+    repaired = true
+  }
+  // Ensure activeRoomId/homeRoomId point at a real room.
+  if (Array.isArray(s.rooms) && s.rooms.length > 0) {
+    if (!s.rooms.some(r => r.id === s.activeRoomId)) { s.activeRoomId = s.rooms[0].id; repaired = true }
+    if (!s.rooms.some(r => r.id === s.homeRoomId)) { s.homeRoomId = s.rooms[0].id; repaired = true }
+  }
+
+  // ── Critical restore: repaired state is indistinguishable from a fresh wipe,
+  // but a backup for this profile still holds real progress. Prefer the backup.
+  if (!hasRealProgress(s)) {
+    const good = latestGoodBackup(profileId)
+    if (good) return { state: migrateStateShape(good.state), repaired: true, restored: true }
+  }
+
+  return { state: s, repaired, restored }
 }
 
 export function defaultState() {
@@ -531,6 +666,7 @@ export async function loadState() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         console.log('[KQ:load] user =', user.email)
+        setCurrentProfileId(user.id)
         const { data, error } = await supabase
           .from('eggs')
           .select('state_json')
@@ -541,6 +677,13 @@ export async function loadState() {
           let migrated = migrateStateShape(data.state_json)
           migrated = _migrateEggs(migrated)
           migrated = _migrateBattleStats(migrated)
+          // C.1 integrity guard — repair minor corruption / restore from local
+          // backup if the cloud row is critically wiped (rooms empty, etc).
+          const v = validateState(migrated, user.id)
+          if (v.repaired || v.restored) {
+            console.log('[KQ:load] validateState —', v.restored ? 'RESTORED from local backup' : 'repaired minor issues')
+            migrated = v.state
+          }
           if (migrated !== data.state_json) {
             console.log('[KQ:load] migrating cloud state shape/eggs')
             syncToSupabase(migrated)
@@ -566,6 +709,12 @@ export async function loadState() {
   let migrated = migrateStateShape(s)
   migrated = _migrateEggs(migrated)
   migrated = _migrateBattleStats(migrated)
+  // C.1 integrity guard on the localStorage path too (guest mode / offline).
+  const v = validateState(migrated)
+  if (v.repaired || v.restored) {
+    console.log('[KQ:load] validateState (local) —', v.restored ? 'RESTORED from local backup' : 'repaired minor issues')
+    migrated = v.state
+  }
   if (migrated !== s) {
     console.log('[KQ:load] migrated', s.hatchedEggs?.length, 'eggs → saving')
     localStorage.setItem(KEY, JSON.stringify(migrated))
@@ -593,6 +742,7 @@ export async function syncToSupabase(s, { notify = false } = {}) {
     if (!supabase) { console.log('[KQ:sync] no client'); if (notify) emitSaveStatus('offline'); return }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { console.log('[KQ:sync] no user'); if (notify) emitSaveStatus('offline'); return }
+    setCurrentProfileId(user.id)
     console.log('[KQ:sync] pushing state for', user.email, '— xpThai:', s.xpThai, 'rounds:', s.rounds)
     const { error } = await supabase.from('eggs').upsert({
       user_id: user.id,
@@ -621,6 +771,8 @@ export function saveState(s, { notify = false } = {}) {
   if (!(s?.lastSavedAt > 0) && !hasRealProgress(s)) return
   const withTimestamp = { ...s, lastSavedAt: Date.now() }
   localStorage.setItem(KEY, JSON.stringify(withTimestamp))
+  // C.1 — ring the local rolling backup on every successful, real save.
+  writeBackup(withTimestamp)
   if (notify) emitSaveStatus('saving')
   syncToSupabase(withTimestamp, { notify })
 }

@@ -11,6 +11,7 @@ import { playSFX } from '../lib/audio.js'
 import { CRAFT_RECIPES } from '../lib/roomItems.js'
 import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
+import { computeCareTick, applyFeed, applyPetEgg, applyPlayTouch, FOOD_CATALOG } from '../lib/eggCare.js'
 
 export const StateContext = createContext(null)
 
@@ -157,6 +158,14 @@ export const ACTIONS = {
   COMPLETE_PLACEMENT:        'COMPLETE_PLACEMENT',
   // Phase 1.3 teaching moments
   CLEAR_PENDING_TEACHING:    'CLEAR_PENDING_TEACHING',
+  // SPEC GAME-A §A.1 Care Loop
+  TICK_CARE:                 'TICK_CARE',
+  FEED_EGG:                  'FEED_EGG',
+  PET_EGG:                   'PET_EGG',
+  PLAY_TOUCH_GAME:           'PLAY_TOUCH_GAME',
+  CLEAR_PENDING_WAKE_UP:      'CLEAR_PENDING_WAKE_UP',
+  CLEAR_PENDING_COMEBACK_JOY: 'CLEAR_PENDING_COMEBACK_JOY',
+  BUY_FOOD_ITEM:              'BUY_FOOD_ITEM',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
@@ -672,6 +681,77 @@ function reducer(state, action) {
     case ACTIONS.CLEAR_PENDING_TEACHING: {
       const { missStreaks } = clearTeaching(state.missStreaks, state.pendingTeaching)
       return { ...state, pendingTeaching: null, missStreaks, lastSavedAt: Date.now() }
+    }
+
+    // SPEC GAME-A §A.1 — dispatched on mount + every 5 minutes (Home.jsx).
+    // computeCareTick is the single source of truth for hunger/happiness
+    // decay (real elapsed wall-clock hours since eggCare.lastCareTick),
+    // the daily wake-up reset, and comeback-joy detection — see eggCare.js
+    // for the full reasoning behind each.
+    case ACTIONS.TICK_CARE:
+      return { ...state, eggCare: computeCareTick(state.eggCare, Date.now()), lastSavedAt: Date.now() }
+
+    // payload: { food: foodKey, element: the companion's real element (fire/
+    // water/thunder/nature/shadow/light) read from useCompanion() in Home.jsx,
+    // since reducers can't call hooks }. No-op (state unchanged) if the food
+    // guard blocks it (out of stock / overfeed) — applyFeed's `fed` flag is
+    // returned via a transient, NON-PERSISTED `_feedResult` field so the UI
+    // can show the right chomp/favorite/overfed reaction without needing a
+    // second read-only selector; cleared by the next unrelated dispatch same
+    // as this project's other transient one-shot UI signals.
+    case ACTIONS.FEED_EGG: {
+      const { food, element } = action.payload
+      const result = applyFeed(state.eggCare, food, element)
+      if (!result.fed && !result.overfed) return state // out of stock — truly nothing happened
+      return {
+        ...state, eggCare: result.care,
+        _feedResult: { food, fed: result.fed, isFavorite: result.isFavorite, overfed: result.overfed, id: Date.now() },
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // Touch play (poke/stroke/tickle/hold/shake — Home.jsx dispatches this
+    // for every gesture). Bundles the happiness grant (capped/day) AND the
+    // small energy cost into one dispatch since every real touch-play
+    // interaction always does both together (see eggCare.js's applyPetEgg/
+    // applyPlayTouch — kept as two separate pure functions since PLAY_TOUCH_GAME
+    // below can also fire on its own from a minigame launch, which spends
+    // energy without being a direct pet gesture).
+    case ACTIONS.PET_EGG: {
+      const { care: afterHappiness } = applyPetEgg(state.eggCare)
+      const { care: afterEnergy } = applyPlayTouch(afterHappiness)
+      return { ...state, eggCare: afterEnergy, lastSavedAt: Date.now() }
+    }
+
+    // Fired when the child launches an actual play activity (minigame/
+    // battle) rather than a direct touch gesture — energy cost only, no
+    // happiness grant (that's PET_EGG's job for direct interaction).
+    case ACTIONS.PLAY_TOUCH_GAME: {
+      const { care } = applyPlayTouch(state.eggCare)
+      return { ...state, eggCare: care, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.CLEAR_PENDING_WAKE_UP:
+      return { ...state, eggCare: { ...state.eggCare, pendingWakeUp: null }, lastSavedAt: Date.now() }
+
+    case ACTIONS.CLEAR_PENDING_COMEBACK_JOY:
+      return { ...state, eggCare: { ...state.eggCare, pendingComebackJoy: null }, lastSavedAt: Date.now() }
+
+    // payload: { food: foodKey }. Coins-for-food purchase — mirrors BUY_ITEM's
+    // shape (guard insufficient funds, deduct coins, grant the thing).
+    case ACTIONS.BUY_FOOD_ITEM: {
+      const { food } = action.payload
+      const catalogEntry = FOOD_CATALOG[food]
+      if (!catalogEntry || (state.coins || 0) < catalogEntry.price) return state
+      return {
+        ...state,
+        coins: state.coins - catalogEntry.price,
+        eggCare: {
+          ...state.eggCare,
+          foodInventory: { ...state.eggCare.foodInventory, [food]: (state.eggCare.foodInventory[food] || 0) + 1 },
+        },
+        lastSavedAt: Date.now(),
+      }
     }
 
     // Phase 1.2 — payload.results: { thai: nodeId, math: nodeId, eng: nodeId },

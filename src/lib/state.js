@@ -3,6 +3,7 @@ import { calcCreatureStats, GRADE_LABELS } from '../config/gameConfig.js'
 import { determineElement, calcEvoStage } from './creatureSystem.js'
 import { generateCreatureName } from './creatureGenerator.js'
 import { SUBJECTS, getFirstNodeId } from './curriculum.js'
+import { defaultEggCare } from './eggCare.js'
 
 export const KEY = 'kq_state'
 export const STATE_VERSION = 1
@@ -75,6 +76,21 @@ export function hasRealProgress(s) {
   // child just needs a few fresh misses to re-trigger), unlike the fields
   // above which represent real, hard-won progress.
   if (s.pendingTeaching) return true
+  // SPEC GAME-A §A.1 Care Loop (2026-07-09). Only the one-shot UI events are
+  // protected here — same reasoning as pendingTeaching just above: a queued
+  // wake-up gift or comeback-joy scene that gets silently wiped by a stale
+  // sync mid-flight would just never be shown to the child, exactly like a
+  // lost teaching moment. hunger/energy/happiness are deliberately NOT
+  // included — they're fluctuating gauges recomputed from lastCareTick on
+  // every load, not earned/losable progress (same category as happiness/acc/
+  // speed at the top level, which aren't protected either). foodInventory is
+  // similarly left unprotected: it's a small-stakes consumable count that
+  // already ships with a non-empty starting kit in defaultEggCare(), so
+  // there's no clean "is this real progress" line to draw the way there is
+  // for e.g. ownedRoomItems — a stale-sync food-count revert is a minor,
+  // low-stakes inconvenience, not a meaningful loss on the scale of the
+  // fields already protected above.
+  if (s.eggCare?.pendingWakeUp || s.eggCare?.pendingComebackJoy) return true
   return false
 }
 
@@ -191,6 +207,47 @@ export function validateState(state, profileId = _currentProfileId) {
   if (s.pendingTeaching !== null && (typeof s.pendingTeaching !== 'object' || Array.isArray(s.pendingTeaching))) {
     s.pendingTeaching = null
     repaired = true
+  }
+
+  // eggCare — nested structure with its own null-legitimate one-shot fields
+  // (pendingWakeUp/pendingComebackJoy), so handled with dedicated repair
+  // logic rather than the generic objectFields loop above (same reasoning as
+  // placementResults/pendingTeaching: a generic loop would wrongly coerce a
+  // legitimate null into {}).
+  if (!s.eggCare || typeof s.eggCare !== 'object' || Array.isArray(s.eggCare)) {
+    s.eggCare = defaultEggCare()
+    repaired = true
+  } else {
+    const base = defaultEggCare()
+    const ec = s.eggCare
+    for (const f of ['hunger', 'energy', 'happiness', 'touchHappinessToday']) {
+      if (typeof ec[f] !== 'number' || !isFinite(ec[f]) || ec[f] < 0) { ec[f] = base[f]; repaired = true }
+    }
+    ec.hunger = Math.min(100, ec.hunger)
+    ec.energy = Math.min(100, ec.energy)
+    ec.happiness = Math.min(100, ec.happiness)
+    if (typeof ec.lastCareTick !== 'number' || !isFinite(ec.lastCareTick) || ec.lastCareTick < 0) { ec.lastCareTick = 0; repaired = true }
+    if (typeof ec.lastSleptDate !== 'string') { ec.lastSleptDate = ''; repaired = true }
+    if (typeof ec.lastTouchDate !== 'string') { ec.lastTouchDate = ''; repaired = true }
+    if (!ec.foodInventory || typeof ec.foodInventory !== 'object' || Array.isArray(ec.foodInventory)) {
+      ec.foodInventory = { ...base.foodInventory }
+      repaired = true
+    } else {
+      for (const key of Object.keys(base.foodInventory)) {
+        if (typeof ec.foodInventory[key] !== 'number' || !isFinite(ec.foodInventory[key]) || ec.foodInventory[key] < 0) {
+          ec.foodInventory[key] = base.foodInventory[key]
+          repaired = true
+        }
+      }
+    }
+    if (ec.pendingWakeUp !== null && (typeof ec.pendingWakeUp !== 'object' || Array.isArray(ec.pendingWakeUp))) {
+      ec.pendingWakeUp = null
+      repaired = true
+    }
+    if (ec.pendingComebackJoy !== null && ec.pendingComebackJoy !== true) {
+      ec.pendingComebackJoy = null
+      repaired = true
+    }
   }
 
   // ── rooms integrity — the highest-value critical field ─────────────────────
@@ -359,6 +416,13 @@ export function defaultState() {
     // same convention as pendingNodeMastery/pendingEvoNotice).
     missStreaks: {},
     pendingTeaching: null,
+    // SPEC GAME-A §A.1 Care Loop (2026-07-09, "อ่านให้ไข่ฟัง"'s sibling system —
+    // hunger/energy/happiness, feeding, touch play, sleep). See src/lib/eggCare.js
+    // for the full field-by-field documentation; lastCareTick:0 (like
+    // lastSavedAt below) marks "never actually ticked" so the first real
+    // TICK_CARE dispatch computes elapsed time from account creation rather
+    // than a huge bogus gap from epoch.
+    eggCare: defaultEggCare(),
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud
@@ -635,7 +699,7 @@ export function migrateStateShape(saved) {
     'homeItems', 'battleItems', 'activeBoosts', 'thaiMastery',
     'subjectLevels', 'levelMastery', 'shopV1', 'responseTimeLogs',
     'subjectSessionStreak', 'subjectLevelFloor', 'inputModeMastery',
-    'mazePortal', 'materials',
+    'mazePortal', 'materials', 'eggCare',
   ]
   for (const field of nestedObjectFields) {
     if (base[field] && typeof base[field] === 'object' && !Array.isArray(base[field])) {

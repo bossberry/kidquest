@@ -261,6 +261,67 @@ test('C.1/1.2: validateState leaves a legitimate null placementResults untouched
   assert.equal(s.placementDone, false)
 })
 
+// ── SPEC GAME-A §A.1 Care Loop — pendingWakeUp/pendingComebackJoy protection ─
+// Same Fix 3c symmetric guard as the curriculum/placement/teaching fields
+// above: a queued wake-up gift or comeback-joy scene is a real one-shot event
+// that would just silently never be shown to the child if wiped by a stale
+// sync with a merely-newer timestamp.
+test('regression: a pending eggCare wake-up/comeback-joy event is never wiped by a stale blank remote', () => {
+  const localWithPendingCare = {
+    ...defaultState(),
+    lastSavedAt: 1000, // older timestamp than remote below
+    eggCare: { ...defaultState().eggCare, pendingWakeUp: { grantedFood: 'apple' } },
+  }
+  const remoteBlank = {
+    ...defaultState(),
+    lastSavedAt: 9000, // newer timestamp, but genuinely untouched defaults
+  }
+  assert.equal(hasRealProgress(localWithPendingCare), true, 'a pending wake-up event counts as real progress')
+  assert.equal(hasRealProgress(remoteBlank), false)
+
+  const { winner, remoteWon } = resolveSync(localWithPendingCare, remoteBlank)
+  assert.equal(remoteWon, false, 'a pending wake-up event must beat a newer-but-blank remote')
+  assert.deepEqual(winner.eggCare.pendingWakeUp, { grantedFood: 'apple' })
+
+  // Mirror: remote genuinely has the pending event, local is blank.
+  const r2 = resolveSync(remoteBlank, localWithPendingCare)
+  assert.equal(r2.remoteWon, true, 'remote pending wake-up event must beat a blank local')
+
+  // Same check for pendingComebackJoy specifically.
+  const localComebackJoy = { ...defaultState(), lastSavedAt: 1000, eggCare: { ...defaultState().eggCare, pendingComebackJoy: true } }
+  assert.equal(hasRealProgress(localComebackJoy), true)
+  const r3 = resolveSync(localComebackJoy, remoteBlank)
+  assert.equal(r3.remoteWon, false, 'a pending comeback-joy event must beat a newer-but-blank remote')
+})
+
+// validateState: eggCare repairs corrupted numeric/nested fields while
+// leaving legitimate null pendingWakeUp/pendingComebackJoy untouched, and
+// fills in any missing foodInventory keys without touching existing counts.
+test('C.1/A.1: validateState repairs corrupted eggCare fields without disturbing legitimate values', () => {
+  const dirty = {
+    ...defaultState(),
+    xpThai: 50,
+    eggCare: {
+      hunger: -5, energy: 250, happiness: 'oops',
+      lastCareTick: -1, foodInventory: { apple: 3, milk: -2 }, // milk corrupted, other keys missing entirely
+      lastSleptDate: 123, lastTouchDate: null, touchHappinessToday: -1,
+      pendingWakeUp: null, pendingComebackJoy: 'yes',
+    },
+  }
+  const { state: s } = validateState(dirty)
+  assert.equal(s.eggCare.hunger, 100, 'corrupted (negative) hunger resets to the base default, same convention as every other repaired field in this codebase — never left as a bogus negative')
+  assert.equal(s.eggCare.energy, 100, 'energy over 100 clamped down')
+  assert.equal(typeof s.eggCare.happiness, 'number', 'wrong-typed happiness reset to a real number')
+  assert.equal(s.eggCare.lastCareTick, 0, 'negative lastCareTick reset to 0')
+  assert.equal(s.eggCare.foodInventory.apple, 3, 'a valid existing food count must be preserved, not reset')
+  assert.ok(s.eggCare.foodInventory.milk >= 0, 'corrupted negative food count repaired')
+  assert.ok('rice' in s.eggCare.foodInventory, 'a missing food key must be backfilled')
+  assert.equal(typeof s.eggCare.lastSleptDate, 'string')
+  assert.equal(typeof s.eggCare.lastTouchDate, 'string')
+  assert.equal(s.eggCare.pendingWakeUp, null, 'legitimate null pendingWakeUp must NOT be coerced to {}')
+  assert.equal(s.eggCare.pendingComebackJoy, null, 'a bogus non-boolean-true value must reset to null, never left as garbage')
+})
+
 // The backup ring never grows past 3 and keeps the newest.
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()

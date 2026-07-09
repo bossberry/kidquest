@@ -1,5 +1,98 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Learning Core Overhaul §1.1: curriculum tree + node-driven question bank
+
+Direct session (no subagent — the classifier that approves subagent launches was
+temporarily unavailable, so this was executed directly instead of delegating to
+Opus as the spec originally requested). Executed section 1.1 only of a larger
+4-section spec; sections 1.2 (Placement Test)/1.3 (Teaching Moments)/1.4
+(Speaking & Reading-Aloud) are separate future sessions.
+
+### New: `src/lib/curriculum.js`
+- `CURRICULUM` — 43 skill nodes (14 thai + 15 math + 14 english) in prerequisite
+  order, each `{ id, nameTh, grade, standard, prerequisites, masteryThreshold,
+  questionTypes, difficulty }`. Graph helpers: `getNode`, `getFirstNodeId`,
+  `isNodeMastered`, `getNextEligibleNode`, `getMasteredNodeIds`, `getNodeAfter`,
+  `getSkillReport(skillMastery)` (read-only parent-report helper for Phase 2).
+- **Spec correction**: the draft said "7 input modes" — grepping the real battle
+  code found only 5 distinct `inputMode` strings (`choice`/`numpad`/`wordbuild`/
+  `sequence`/`memory`). The other 2 of the "7" are question-category framings
+  (`fillgap`/`visual_discrimination`) that render through plain `choice` — this
+  matches the pre-existing `genFillGapQ`/`genVisualDiscriminationQ` pattern this
+  session's questionBank.js replaces. `questionTypes` uses all 7 conceptual
+  categories; `inputMode` mapping happens in questionBank.js.
+
+### New: `src/lib/wordPools.js`
+- Thai/English content pools supplied verbatim by Claude Chatbot.
+
+### New: `src/lib/questionBank.js`
+- `generateQuestion(node, difficulty)` — per-node dispatch onto wordPools content
+  (thai/english) or fully procedural math.
+- `selectBattleQuestion(subject, state)` — 70% active-node / 20% review
+  (already-mastered node, easier) / 10% preview (next node, prerequisites
+  ignored, does NOT count toward mastery) mix for battle question selection.
+- Verified directly: all 43 nodes produce ≥20 distinct questions (150-sample
+  check); 70/20/10 mix holds statistically (69.4/20.9/9.7 over 3000 trials).
+- **Bug found+fixed**: `opChoices()` (math distractor generation) could hang
+  forever when the answer was 0/small with a narrow spread — not enough
+  distinct non-negative distractors reachable. Now bounded with a deterministic
+  fallback.
+
+### `src/lib/state.js`
+- `defaultState()` gains `skillMastery: {}`, `activeNodes: {}`,
+  `pendingNodeMastery: null`. `migrateStateShape()` defaults `activeNodes` to
+  each subject's first curriculum node for old saves. `hasRealProgress()`
+  extended to count non-trivial mastery progress as losable, hardening the
+  existing C.1 backup/resolveSync guard.
+- **Bug found+fixed**: `resolveSync()`'s `hasRealProgress`-based guard only
+  protected "remote has progress, local blank" (Fix 3b) — the mirror direction
+  had no guard, so local curriculum progress could lose to a genuinely blank
+  remote with a merely-newer timestamp. Added the symmetric Fix 3c.
+
+### `src/context/StateContext.jsx`
+- `LOG_BATTLE_ANSWER` (existing reducer case, extended not duplicated) now does
+  mastery bookkeeping when a question carries `nodeId`/`countsForMastery`:
+  last-10 attempts, EMA (alpha=0.3), mastery on `attempts≥10&&sum≥8` OR
+  `ema>threshold`; advances `activeNodes[subject]` on newly-mastered, sets
+  `pendingNodeMastery`. New `CLEAR_NODE_MASTERY` action mirrors
+  `CLEAR_EVO_NOTICE`.
+- **Bug found+fixed via manual trace**: the EMA cold-start special-cased a
+  node's first attempt as "ema = this attempt's raw result", instantly
+  mastering a node off one lucky correct answer. Fixed to always blend from
+  the prior ema (0 for a new node) — mastery via EMA now needs ~5 consecutive
+  correct answers.
+
+### `src/hooks/useBattleCombat.js`
+- Both `LOG_BATTLE_ANSWER` dispatches (hit + miss) now thread
+  `q.nodeId`/`q.countsForMastery`.
+
+### `src/components/WorldBattle.jsx`
+- Replaced the old per-subject `genMoveQuestion` system (and its
+  `genSequenceQ`/`genFillGapQ`/`genVisualDiscriminationQ`/`genMemoryCardQ`
+  helpers, `getLevelConfig`, `LEVELS` config) with
+  `selectBattleQuestion(subject, state)` — the real battle question loop this
+  spec's "battle integration" section targets (`useBattleCombat.js` itself
+  never generated questions, only resolves hit/miss/victory).
+
+### `src/App.jsx`
+- `pendingNodeMastery` celebration wired as a `useEffect` mirroring the
+  existing `pendingEvoNotice` one — `spawnConfetti(30)` + `playTone('fanfare')`
+  + `playSFX('level_up')` + a toast, then `CLEAR_NODE_MASTERY`.
+
+### Scope decision (not a bug)
+`GameThai.jsx`/`GameMath.jsx`/`GamePhonics.jsx`/`GameMathBattle.jsx` (separate
+level-select "practice mode" screens) keep their own older
+`levelMastery`/`subjectLevels`-driven generators — deliberately untouched this
+session. See `CURRENT_STATE.md`'s "Curriculum & Question Bank" entry for the
+full reasoning.
+
+### Verified
+`npm run build` clean; `npm test` 7/7 pass (includes a new regression case for
+the local-progress-vs-blank-remote scenario above). No live browser session
+this run (see TASKS.md follow-up) — the mastery-advance reducer path was
+verified via manual trace + throwaway numeric checks, not an automated test
+(it lives in a JSX file, which Node's `--test` runner can't import).
+
 ## 2026-07-09 — SPEC GAME-C: Stability & Bug Audit (C.1 + C.2 + C.3)
 
 One Opus session hardening the whole app against data loss and crashes.

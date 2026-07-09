@@ -15,7 +15,7 @@ import LevelUpCutscene from './components/LevelUpCutscene.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import ResetPasswordModal from './components/ResetPasswordModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
-import { XPToast, ItemToast, ConfettiLayer, showToast } from './components/Toasts.jsx'
+import { XPToast, ItemToast, ConfettiLayer, showToast, spawnConfetti } from './components/Toasts.jsx'
 import { EVO_STAGE_LABELS_TH } from './lib/creatureSystem.js'
 import { supabase } from './lib/supabase.js'
 import SaveStatusIndicator from './components/SaveStatusIndicator.jsx'
@@ -46,6 +46,22 @@ export default function App() {
     showToast(`★ ${creatureName || 'สัตว์'} วิวัฒนาการแล้ว! → ${stageTH}`)
     dispatch({ type: ACTIONS.CLEAR_EVO_NOTICE })
   }, [state.pendingEvoNotice]) // eslint-disable-line
+
+  // Phase 1.1 curriculum system: node-mastery celebration. Mirrors the
+  // pendingEvoNotice pattern above exactly (same one-shot-event convention) —
+  // a full-screen-covering confetti burst + fanfare + toast text, same
+  // celebration primitives already used elsewhere in this codebase (e.g.
+  // showVictory's spawnConfetti(35) in useBattleCombat.js) rather than a new
+  // bespoke cutscene component.
+  useEffect(() => {
+    if (!state.pendingNodeMastery) return
+    const { nextNodeNameTh } = state.pendingNodeMastery
+    playSFX('level_up')
+    playTone('fanfare')
+    spawnConfetti(30)
+    showToast(nextNodeNameTh ? `เก่งมาก! ปลดล็อก ${nextNodeNameTh}` : 'เก่งมาก! เรียนจบทุกบทแล้ว! 🏆')
+    dispatch({ type: ACTIONS.CLEAR_NODE_MASTERY })
+  }, [state.pendingNodeMastery]) // eslint-disable-line
 
   useEffect(() => {
     if (!supabase) { setAuthChecked(true); return }

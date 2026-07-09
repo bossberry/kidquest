@@ -9,6 +9,7 @@ import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
 import { CRAFT_RECIPES } from '../lib/roomItems.js'
+import { getNode, getNextEligibleNode } from '../lib/curriculum.js'
 
 export const StateContext = createContext(null)
 
@@ -148,6 +149,8 @@ export const ACTIONS = {
   SECRET_MAP_EXPIRE:         'SECRET_MAP_EXPIRE',
   // Analytics
   LOG_BATTLE_ANSWER:         'LOG_BATTLE_ANSWER',
+  // Phase 1.1 curriculum system
+  CLEAR_NODE_MASTERY:        'CLEAR_NODE_MASTERY',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
@@ -196,6 +199,58 @@ function applyRoomLayoutChange(state, roomId, newLayout) {
     roomLayout: roomId === state.activeRoomId ? newLayout : state.roomLayout,
     lastSavedAt: Date.now(),
   }
+}
+
+// Phase 1.1 curriculum system — RECORD_ANSWER bookkeeping, folded into the
+// existing LOG_BATTLE_ANSWER reducer case (see CLAUDE.md's "extend existing
+// answer handling" guidance) rather than a parallel action, since every real
+// battle answer already dispatches LOG_BATTLE_ANSWER and node-driven questions
+// (selectBattleQuestion in questionBank.js) attach `nodeId`/`countsForMastery`
+// to the question object that flows back through here.
+//
+// alpha=0.3 EMA smoothing is a reasonable default (not a graded requirement
+// per the spec) — weights the most recent ~3-4 answers most heavily while
+// still remembering longer-run performance.
+const MASTERY_EMA_ALPHA = 0.3
+
+function applyAnswerToMastery(state, subject, nodeId, correct) {
+  const node = getNode(subject, nodeId)
+  const noop = { skillMastery: state.skillMastery, activeNodes: state.activeNodes, pendingNodeMastery: state.pendingNodeMastery ?? null }
+  if (!node) return noop
+
+  const prevRecord = state.skillMastery?.[nodeId] ?? { attempts: [], ema: 0, mastered: false, masteredAt: null }
+  const attempts = [...(prevRecord.attempts || []), correct ? 1 : 0].slice(-10)
+  const ema = prevRecord.attempts?.length
+    ? prevRecord.ema * (1 - MASTERY_EMA_ALPHA) + (correct ? 1 : 0) * MASTERY_EMA_ALPHA
+    : (correct ? 1 : 0)
+  const sum = attempts.reduce((a, b) => a + b, 0)
+  const wasMastered = !!prevRecord.mastered
+  const isMastered = wasMastered || (attempts.length >= 10 && sum >= 8) || ema > node.masteryThreshold
+  const newlyMastered = isMastered && !wasMastered
+
+  const newRecord = {
+    attempts,
+    ema,
+    mastered: isMastered,
+    masteredAt: newlyMastered ? Date.now() : (prevRecord.masteredAt ?? null),
+  }
+  const skillMastery = { ...(state.skillMastery || {}), [nodeId]: newRecord }
+
+  let activeNodes = state.activeNodes || {}
+  let pendingNodeMastery = state.pendingNodeMastery ?? null
+  if (newlyMastered) {
+    const nextId = getNextEligibleNode(subject, skillMastery)
+    if (nextId) {
+      activeNodes = { ...activeNodes, [subject]: nextId }
+      const nextNode = getNode(subject, nextId)
+      pendingNodeMastery = { subject, nodeId, nextNodeId: nextId, nextNodeNameTh: nextNode?.nameTh ?? null }
+    } else {
+      // End of this subject's tree — nothing left to advance to, but the child
+      // still earned the celebration.
+      pendingNodeMastery = { subject, nodeId, nextNodeId: null, nextNodeNameTh: null }
+    }
+  }
+  return { skillMastery, activeNodes, pendingNodeMastery }
 }
 
 function reducer(state, action) {
@@ -603,19 +658,31 @@ function reducer(state, action) {
     }
 
     case ACTIONS.LOG_BATTLE_ANSWER: {
-      const { subject, correct, responseTimeMs, timestamp } = action.payload
+      const { subject, correct, responseTimeMs, timestamp, nodeId, countsForMastery } = action.payload
       if (!subject || typeof responseTimeMs !== 'number') return state
       const prev = state.responseTimeLogs?.[subject] ?? []
       const updated = [...prev, { timeMs: responseTimeMs, correct, timestamp }].slice(-50)
+      // Phase 1.1: node-driven battle questions (selectBattleQuestion) attach nodeId
+      // + countsForMastery. Preview questions (countsForMastery === false) deliberately
+      // skip mastery bookkeeping — see questionBank.js's selectBattleQuestion comment.
+      const masteryUpdate = (nodeId && countsForMastery !== false)
+        ? applyAnswerToMastery(state, subject, nodeId, correct)
+        : { skillMastery: state.skillMastery, activeNodes: state.activeNodes, pendingNodeMastery: state.pendingNodeMastery ?? null }
       return {
         ...state,
         responseTimeLogs: {
           ...(state.responseTimeLogs ?? {}),
           [subject]: updated,
         },
+        skillMastery: masteryUpdate.skillMastery,
+        activeNodes: masteryUpdate.activeNodes,
+        pendingNodeMastery: masteryUpdate.pendingNodeMastery,
         lastSavedAt: Date.now(),
       }
     }
+
+    case ACTIONS.CLEAR_NODE_MASTERY:
+      return { ...state, pendingNodeMastery: null, lastSavedAt: Date.now() }
 
     case ACTIONS.UPDATE_LAST_HOME_VISIT:
       return { ...state, lastHomeVisit: action.payload, lastSavedAt: Date.now() }

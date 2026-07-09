@@ -51,6 +51,8 @@ export function useBattleCombat(params) {
         responseTimeMs: responseTimeRef.current,
         battleLevel: state.battleLevel,
         timestamp: Date.now(),
+        nodeId: q?.nodeId,
+        countsForMastery: q?.countsForMastery,
       },
     })
     const { earned, isCrit } = onCorrect()
@@ -164,6 +166,8 @@ export function useBattleCombat(params) {
         responseTimeMs: responseTimeRef.current,
         battleLevel: state.battleLevel,
         timestamp: Date.now(),
+        nodeId: q?.nodeId,
+        countsForMastery: q?.countsForMastery,
       },
     })
     onWrong()

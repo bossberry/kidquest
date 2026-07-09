@@ -2,6 +2,7 @@ import { supabase } from './supabase.js'
 import { calcCreatureStats, GRADE_LABELS } from '../config/gameConfig.js'
 import { determineElement, calcEvoStage } from './creatureSystem.js'
 import { generateCreatureName } from './creatureGenerator.js'
+import { SUBJECTS, getFirstNodeId } from './curriculum.js'
 
 export const KEY = 'kq_state'
 export const STATE_VERSION = 1
@@ -51,6 +52,13 @@ export function hasRealProgress(s) {
   if ((s.craftedItems?.length ?? 0) > 0) return true          // crafted furniture
   if (s.equipped && (s.equipped.head || s.equipped.face)) return true
   if (s.materials && Object.values(s.materials).some(v => (v || 0) > 0)) return true
+  // Phase 1.1 curriculum system (2026-07-09). Same maintenance-immunity rule as
+  // everything else here: skillMastery is ONLY ever written by RECORD_ANSWER (a
+  // real battle answer), and activeNodes only ever advances off a real mastery
+  // event — neither is touched by the first-mount maintenance dispatches, so both
+  // are safe, losable-progress signals for this check.
+  if (s.skillMastery && Object.values(s.skillMastery).some(m => (m?.attempts?.length ?? 0) > 0 || m?.mastered)) return true
+  if (s.activeNodes && SUBJECTS.some(subj => s.activeNodes[subj] && s.activeNodes[subj] !== getFirstNodeId(subj))) return true
   return false
 }
 
@@ -137,7 +145,8 @@ export function validateState(state, profileId = _currentProfileId) {
     if (!Array.isArray(s[f])) { s[f] = Array.isArray(base[f]) ? [...base[f]] : []; repaired = true }
   }
   const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
-                        'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs']
+                        'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs',
+                        'skillMastery', 'activeNodes']
   for (const f of objectFields) {
     if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
       s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
@@ -288,6 +297,16 @@ export function defaultState() {
     activeRoomId: 'main',
     homeRoomId: 'main',
     roomLayout: {},
+    // Phase 1.1 curriculum system (2026-07-09). skillMastery: { [nodeId]: { attempts,
+    // ema, mastered, masteredAt } }, keyed dynamically by node id — NOT a fixed-subkey
+    // object, so it does NOT go in migrateStateShape()'s nestedObjectFields merge list
+    // (that pattern is for objects like homeItems with known, stable sub-keys). Old
+    // saves get activeNodes defaulted to each subject's first curriculum node in
+    // migrateStateShape() below. pendingNodeMastery mirrors the existing
+    // pendingEvoNotice/pendingLevelUp one-shot-UI-event convention.
+    skillMastery: {},
+    activeNodes: {},
+    pendingNodeMastery: null,
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud
@@ -629,6 +648,22 @@ export function migrateStateShape(saved) {
     merged.homeRoomId = saved.homeRoomId || saved.rooms[0]?.id || 'main'
     const active = merged.rooms.find(r => r.id === merged.activeRoomId)
     merged.roomLayout = active?.layout || {}
+  }
+
+  // Phase 1.1 curriculum migration: skillMastery defaults to {} (per-node records
+  // are only ever added by RECORD_ANSWER, safe to start empty for old saves).
+  // activeNodes defaults each subject to its curriculum's first node, preserving
+  // any subject that's already present (e.g. a save that already has progress).
+  if (!merged.skillMastery || typeof merged.skillMastery !== 'object' || Array.isArray(merged.skillMastery)) {
+    merged.skillMastery = {}
+  }
+  {
+    const savedActiveNodes = (saved.activeNodes && typeof saved.activeNodes === 'object' && !Array.isArray(saved.activeNodes))
+      ? saved.activeNodes : {}
+    merged.activeNodes = {}
+    for (const subject of SUBJECTS) {
+      merged.activeNodes[subject] = savedActiveNodes[subject] || getFirstNodeId(subject)
+    }
   }
 
   merged.stateVersion = STATE_VERSION

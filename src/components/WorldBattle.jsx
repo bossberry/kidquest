@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS, scaleMonsterStats, dispatchAddCoins } from '../context/StateContext.jsx'
-import { TH_ALPHA, EN_ALPHA, LEVELS, MATH_WORDS, PATTERN_SETS, COUNTABLES, shuffle,
-         SPELL_L1, TH_L2, TH_L3, TH_L5, CVC_WORDS, SIGHT_DATA, ENG_SENTS } from '../config/gameConfig.js'
 import { speakTh, speakEn, playBGM, stopBGM, playSFX, playTone } from '../lib/audio.js'
 import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 import RewardChest from '../components/RewardChest.jsx'
 import { rollBattleItem } from '../config/itemConfig.js'
+import { selectBattleQuestion } from '../lib/questionBank.js'
 
 const HOME_DROP_TABLE = [
   { key: 'food',         weight: 50 },
@@ -38,275 +37,23 @@ const WORLD_ENEMY_NAMES = {
   snake:        'งูยักษ์',
 }
 
-// ── Question generators ────────────────────────────────────────────────────────
-
-function genSequenceQ(alphaList, isThai) {
-  const runLen = Math.random() < 0.5 ? 3 : 4
-  const maxStart = alphaList.length - runLen
-  const start = Math.floor(Math.random() * (maxStart + 1))
-  const run = alphaList.slice(start, start + runLen)
-  const correctOrder = run.map(item => item.char ?? item.letter)
-  const spokenOrder = correctOrder.join(', ')
-  return {
-    isSequence: true,
-    inputMode: 'sequence',
-    sequenceChars: correctOrder,
-    ttsWord: null,
-    instructionTh: isThai
-      ? `เรียงตามลำดับนี้ ${spokenOrder}`
-      : 'แตะตัวอักษรให้เรียงตามลำดับ',
-    instructionEn: !isThai
-      ? `Tap them in this order: ${spokenOrder}`
-      : 'Tap the letters in the correct order',
-  }
-}
-
-function genFillGapQ(alphaList) {
-  const runLen = 3
-  const maxStart = alphaList.length - runLen
-  const start = Math.floor(Math.random() * (maxStart + 1))
-  const run = alphaList.slice(start, start + runLen)
-  const chars = run.map(item => item.char ?? item.letter)
-  const answer = chars[1]
-  const before = chars[0]
-  const after  = chars[2]
-  const allChars = alphaList.map(item => item.char ?? item.letter)
-  const excludeIdx = new Set([start, start + 1, start + 2])
-  const farChars = allChars.filter((_, i) => !excludeIdx.has(i))
-  const wrongs = []
-  while (wrongs.length < 3 && farChars.length) {
-    const idx = Math.floor(Math.random() * farChars.length)
-    wrongs.push(farChars.splice(idx, 1)[0])
-  }
-  return {
-    isFillGap: true,
-    inputMode: 'choice',
-    gapBefore: before,
-    gapAfter: after,
-    answer,
-    choices: shuffle([answer, ...wrongs]),
-    instructionTh: 'แตะตัวอักษรที่หายไป',
-    instructionEn: 'Tap the missing letter',
-  }
-}
-
-const TH_CONFUSABLE_GROUPS = [
-  ['ก','ถ','ภ'], ['บ','ป'], ['ผ','ฝ'], ['ค','ด'], ['ฎ','ฏ'], ['ษ','ศ','ส'],
-]
-const EN_CONFUSABLE_GROUPS = [
-  ['b','d'], ['p','q'], ['m','w'], ['n','u'], ['f','t'], ['i','j','l'],
-]
-
-function genVisualDiscriminationQ(alphaList, isThai) {
-  const groups = isThai ? TH_CONFUSABLE_GROUPS : EN_CONFUSABLE_GROUPS
-  const group = groups[Math.floor(Math.random() * groups.length)]
-  const target = group[Math.floor(Math.random() * group.length)]
-  const otherInGroup = group.filter(c => c !== target)
-  const allChars = alphaList.map(item => item.char ?? item.letter).filter(c => !group.includes(c))
-  const wrongs = [...otherInGroup]
-  while (wrongs.length < 3 && allChars.length) {
-    const idx = Math.floor(Math.random() * allChars.length)
-    wrongs.push(allChars.splice(idx, 1)[0])
-  }
-  return {
-    isVisualDiscrim: true,
-    inputMode: 'choice',
-    targetChar: target,
-    answer: target,
-    choices: shuffle([target, ...wrongs.slice(0, 3)]),
-    instructionTh: 'แตะตัวที่เหมือนกัน',
-    instructionEn: 'Tap the matching letter',
-  }
-}
-
-function genMemoryCardQ(alphaList) {
-  const items = shuffle([...alphaList]).slice(0, 3)
-  const cards = []
-  items.forEach((item, i) => {
-    const ch = item.char ?? item.letter
-    cards.push({ id: `card_${i}_emoji`, pairId: i, display: item.emoji, type: 'emoji' })
-    cards.push({ id: `card_${i}_char`,  pairId: i, display: ch,         type: 'char'  })
-  })
-  return {
-    isMemoryCard: true,
-    inputMode: 'memory',
-    memoryCards: shuffle(cards),
-    memoryPairCount: items.length,
-    instructionTh: 'แตะเปิดไพ่ให้เจอคู่ที่เหมือนกัน',
-    instructionEn: 'Flip cards to find matching pairs',
-  }
-}
-
-function genMathQ(lv) {
-  if (lv?.op === 'count') {
-    const emoji = COUNTABLES[Math.floor(Math.random() * COUNTABLES.length)]
-    const n = Math.floor(Math.random() * 5) + 1
-    const w = new Set()
-    while (w.size < 3) { const v = Math.floor(Math.random()*5)+1; if(v!==n) w.add(v) }
-    const inputMode = Math.random() < 0.4 ? 'numpad' : 'choice'
-    return { isCount:true, objects:Array(n).fill(emoji), answer:n, choices:shuffle([n,...w]), inputMode }
-  }
-  if (lv?.op === 'pattern') {
-    const set = PATTERN_SETS.AB[Math.floor(Math.random() * PATTERN_SETS.AB.length)]
-    const si = Math.random() < 0.5 ? 0 : 1
-    const seq = Array.from({ length:5 }, (_,i) => set[(si+i)%2])
-    const answer = set[(si+5)%2]
-    const others = PATTERN_SETS.AB.filter(s => s[0] !== set[0])
-    const distractors = shuffle([set[(si+1)%2], ...others.flatMap(s=>s)].filter(e=>e!==answer)).slice(0,3)
-    return { isPattern:true, seq, answer, choices:shuffle([answer,...distractors]) }
-  }
-  if (lv?.op === 'word') {
-    const pool = shuffle([...MATH_WORDS.filter(q => lv?.subtype==='comparison' ? q.comparison : !q.comparison)])
-    const q = pool[0]
-    const w = new Set(); while(w.size<3){const v=q.ans+(Math.floor(Math.random()*5)-2);if(v!==q.ans&&v>=0)w.add(v)}
-    return { isWord:true, story:q.story, answer:q.ans, choices:shuffle([q.ans,...w]), a:q.a, b:q.b, op:q.op }
-  }
-  const mx = lv?.range?.[1] || 10
-  let a, b, ans, op='+'
-  if (lv?.op === 'sub' || (lv?.op === 'mixed' && Math.random() > 0.5)) {
-    op='-'; a=Math.floor(Math.random()*mx)+2; b=Math.floor(Math.random()*a)+1; ans=a-b
-  } else {
-    a=Math.floor(Math.random()*mx)+1; b=Math.floor(Math.random()*(mx-a+1))+1; ans=a+b
-  }
-  const w=new Set(); while(w.size<3){const v=ans+(Math.floor(Math.random()*5)-2);if(v!==ans&&v>=0)w.add(v)}
-  const inputMode = Math.random() < 0.5 ? 'numpad' : 'choice'
-  return { a, b, op, answer:ans, choices:shuffle([ans,...w]), inputMode }
-}
-
-function genThaiMoveQ(lv) {
-  const id = lv?.id ?? 1
-
-  // 15% chance for levels 1-4 to be a letter-sequencing question instead
-  if (id <= 4 && Math.random() < 0.15) {
-    return genSequenceQ(TH_ALPHA, true)
-  }
-  // 10% chance for levels 1-2 to be a fill-the-gap question
-  if (id <= 2 && Math.random() < 0.10) {
-    return genFillGapQ(TH_ALPHA)
-  }
-  // 10% chance for levels 1-2 to be a visual discrimination question
-  if (id <= 2 && Math.random() < 0.10) {
-    return genVisualDiscriminationQ(TH_ALPHA, true)
-  }
-  // 8% chance for levels 1-2 to be a memory card matching round
-  if (id <= 2 && Math.random() < 0.08) {
-    return genMemoryCardQ(TH_ALPHA)
-  }
-
-  if (id <= 1) {
-    // Level 1: alphabet match — hear word, tap correct emoji
-    const items = shuffle([...TH_ALPHA])
-    const correct = items[0]; const wrongs = items.slice(1, 4)
-    return { isThai:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
-  }
-  if (id === 2) {
-    // Level 2: SPELL_L1 — see emoji, choose correct 2-char word (อา/อิ/อู/เ/โ vowels)
-    const items = shuffle([...SPELL_L1])
-    const correct = items[0]; const wrongs = items.slice(1, 4)
-    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
-  }
-  if (id === 3) {
-    // Level 3: TH_L2 — see emoji, choose correct animal word
-    const items = shuffle([...TH_L2])
-    const correct = items[0]; const wrongs = items.slice(1, 4)
-    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
-  }
-  if (id === 4) {
-    // Level 4: TH_L3 — see emoji, choose correct 3-syllable word (fruits/objects)
-    const items = shuffle([...TH_L3])
-    const correct = items[0]; const wrongs = items.slice(1, 4)
-    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
-    return { isThai:true, ttsWord:correct.word, answer:correct.word, choices:shuffle([correct.word,...wrongs.map(w=>w.word)]), word:correct.emoji, chars:correct.chars, inputMode }
-  }
-  // Level 5: TH_L5 — see emoji, choose correct short sentence
-  const items = shuffle([...TH_L5])
-  const correct = items[0]; const wrongs = items.slice(1, 4)
-  const correctSentence = correct.words.join('')
-  return {
-    isThai:true, ttsWord:correct.sound || correctSentence,
-    answer:correctSentence,
-    choices:shuffle([correctSentence,...wrongs.map(w=>w.words.join(''))]),
-    word:correct.emoji,
-  }
-}
-
-function genEngMoveQ(lv) {
-  const type = lv?.type || 'phonics'
-
-  // 15% chance across ALL English levels to be a letter-sequencing question
-  if (Math.random() < 0.15) {
-    return genSequenceQ(EN_ALPHA, false)
-  }
-  // 10% chance across ALL English levels to be a fill-the-gap question
-  if (Math.random() < 0.10) {
-    return genFillGapQ(EN_ALPHA)
-  }
-  // 10% chance across ALL English levels to be a visual discrimination question
-  if (Math.random() < 0.10) {
-    return genVisualDiscriminationQ(EN_ALPHA, false)
-  }
-  // 8% chance across ALL English levels to be a memory card matching round
-  if (Math.random() < 0.08) {
-    return genMemoryCardQ(EN_ALPHA)
-  }
-
-  if (type === 'phonics') {
-    // Level 1: A–Z phonics — hear word, tap correct emoji
-    const items = shuffle([...EN_ALPHA])
-    const correct = items[0]; const wrongs = items.slice(1, 4)
-    return { isEng:true, ttsWord:correct.word, answer:correct.emoji, choices:shuffle([correct.emoji,...wrongs.map(w=>w.emoji)]), word:correct.word }
-  }
-  if (type === 'cvc') {
-    // Level 2: CVC words — see emoji, choose correct spelling
-    const items = shuffle([...CVC_WORDS])
-    const correct = items[0]
-    const inputMode = Math.random() < 0.5 ? 'wordbuild' : 'choice'
-    return {
-      isEng:true, ttsWord:correct.word, answer:correct.word,
-      choices:shuffle([correct.word,...correct.alts.slice(0,3)]),
-      word:correct.emoji,
-      chars: correct.word.split(''),
-      inputMode,
-    }
-  }
-  if (type === 'sight') {
-    // Level 3: sight words — see picture, choose word that fills the blank
-    const item = SIGHT_DATA[Math.floor(Math.random() * SIGHT_DATA.length)]
-    const inputMode = Math.random() < 0.35 ? 'wordbuild' : 'choice'
-    return {
-      isEng:true, ttsWord:item.sentence.replace('___', item.blank),
-      answer:item.blank, choices:shuffle([...item.choices]),
-      word:item.emoji,
-      question:item.sentence,
-      chars: inputMode === 'wordbuild' ? item.blank.split('') : undefined,
-      inputMode,
-    }
-  }
-  // Level 4: sentences — see emoji, choose correct full sentence
-  const items = shuffle([...ENG_SENTS])
-  const correct = items[0]; const wrongs = items.slice(1, 4)
-  const correctSentence = correct.words.join(' ')
-  return {
-    isEng:true, ttsWord:correctSentence, answer:correctSentence,
-    choices:shuffle([correctSentence,...wrongs.map(w=>w.words.join(' '))]),
-    word:correct.emoji,
-  }
-}
-
-function genMoveQuestion(subject, lv) {
-  if (subject === 'math') return genMathQ(lv)
-  if (subject === 'thai') return genThaiMoveQ(lv)
-  return genEngMoveQ(lv)
-}
-
-function getLevelConfig(subject, levelId) {
-  const id = typeof levelId === 'number' ? levelId : 1
-  return LEVELS[subject]?.find(l => l.id === id) || LEVELS[subject]?.[0] || { id:1 }
-}
-
 // ── WorldBattle ────────────────────────────────────────────────────────────────
+//
+// Question generation (2026-07-09, Phase 1.1): this file used to own its own
+// level-based generators (genThaiMoveQ/genMathQ/genEngMoveQ + the shared
+// genSequenceQ/genFillGapQ/genVisualDiscriminationQ/genMemoryCardQ helpers).
+// Those are now superseded by the node-driven curriculum system —
+// selectBattleQuestion() in src/lib/questionBank.js covers the same 5 real
+// input modes (choice/numpad/wordbuild/sequence/memory) plus the fillgap/
+// visual_discrimination question-category variants, built on
+// src/lib/curriculum.js's 43-node tree instead of the old per-subject LEVELS
+// config. This is a straight replacement, not a parallel system — LEVELS/
+// getLevelConfig's only consumer here was genMoveQuestion, which no longer
+// exists. (The separate GameThai.jsx/GameMath.jsx/GamePhonics.jsx/
+// GameMathBattle.jsx "practice mode" screens still have their own independent
+// level-based generators, driven by the older levelMastery/subjectLevels
+// system — deliberately left untouched this session, see the Phase 1.1
+// handoff note on scope.)
 
 export default function WorldBattle({ navigate }) {
   const { state, dispatch, eggStatsData, eggProgressData } = useAppState()
@@ -359,11 +106,12 @@ export default function WorldBattle({ navigate }) {
   const isBossBattle = !!(enemy?.isBossBattle)
 
   const subject     = enemy?.subject || 'thai'
-  const levelConfig = getLevelConfig(subject, enemy?.level)
 
-  // Generate initial question bank (loops continuously)
+  // Generate initial question bank (loops continuously). Node-driven per Phase
+  // 1.1 — selectBattleQuestion reads state.activeNodes/skillMastery directly,
+  // so the old per-enemy `level` config is no longer consulted here.
   const [qs, setQs] = useState(() =>
-    Array.from({ length: TOTAL_QS }, () => genMoveQuestion(subject, levelConfig))
+    Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state))
   )
   const [cur, setCur]          = useState(0)
   const [pendingRewards, setPendingRewards] = useState(null)
@@ -417,7 +165,7 @@ export default function WorldBattle({ navigate }) {
       setCur(nextIdx)
     } else {
       // Regenerate fresh bank and restart from 0
-      setQs(Array.from({ length: TOTAL_QS }, () => genMoveQuestion(subject, levelConfig)))
+      setQs(Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state)))
       setCur(0)
     }
   }
@@ -454,7 +202,7 @@ export default function WorldBattle({ navigate }) {
     dispatch({ type: ACTIONS.LOG_SESSION, payload: {
       ts: Date.now(), world: subject,
       missionId: `world-${enemy.type}`,
-      level: levelConfig.id, score: accuracy,
+      level: state.activeNodes?.[subject] ?? null, score: accuracy,
       questionsAnswered: accuracyRef.current.total,
       wrong: accuracyRef.current.total - accuracyRef.current.correct,
       dur, completed: true,

@@ -1,5 +1,82 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Learning Core Overhaul §1.2: adaptive placement test
+
+Continuation of the same direct-session style as §1.1 (staged commits, no
+subagent). Executed section 1.2 only ("ด่านทดสอบพลัง" / placement test);
+sections 1.3 (Teaching Moments)/1.4 (Speaking & Reading-Aloud) remain future
+sessions.
+
+### Post-ship fix carried over from §1.1 (found while starting this section)
+- `CURRICULUM`/`activeNodes`/`skillMastery` were keyed `english` (copied
+  literally from the spec's example), but this codebase uses `eng` as the
+  3-letter subject key everywhere else (`xpEng`, `subjectLevels.eng`, and
+  critically `enemyConfig.js`'s battle enemies: `subject:'eng'`). This would
+  have crashed every English world battle. Renamed to `eng`; reproduced the
+  crash before the fix (`selectBattleQuestion('eng', state)` → `generateQuestion:
+  node is required`) and confirmed it's gone after.
+
+### New: `src/lib/placementTest.js`
+- Pure adaptive algorithm (split from the UI, same pattern as
+  `questionBank.js` vs the battle UI): per subject, 5 questions starting at
+  the K3-grade node; correct 2-in-a-row → jump +2 nodes; any wrong → drop 1
+  node; both clamp to bounds. Result = highest node with ≥1 correct answer,
+  falling back to the subject's first node on an all-wrong run.
+- Verified via scripted traces (all-correct/all-wrong/mixed/alternating/2×
+  random, all 3 subjects), each also exercising real `generateQuestion()`
+  calls at every visited node with zero errors.
+
+### New: `src/components/PlacementQuest.jsx`
+- Intro ("มาทดสอบพลังกันเถอะ!") → 5 adaptive questions/subject → finale
+  ("พลังของหนูคือ...", shows each subject's resulting node name as a
+  "strength", never a grade label). Reuses `NumpadInput`/`WordBuildInput`/
+  `SequenceInput`; plain `choice` questions render as big single-column
+  buttons. No visible timer/progress bar; wrong answers get a gentle
+  "ลองข้อต่อไปนะ" with no ❌/negative animation.
+- Memory-mode questions (only reachable via `genVocabQ`, ~30% of
+  `eng_vocab_*`) are bounded-rerolled (≤9 retries) rather than given separate
+  matching-game handling — verified this actually triggers and resolves in
+  a full end-to-end flow simulation.
+
+### `src/App.jsx`
+- Blocking trigger gate added right after the existing `CompanionCreation`
+  gate: shown when `placementDone !== true` AND fewer than 20 total battle
+  answers are recorded. `PlacementQuest` dispatches `COMPLETE_PLACEMENT`
+  itself; the gate just stops matching once `placementDone` flips true.
+
+### `src/lib/state.js` / `src/context/StateContext.jsx`
+- `defaultState()` gains `placementDone: false`, `placementResults: null`.
+  New `COMPLETE_PLACEMENT` action sets both (stamped `completedAt`) plus
+  `activeNodes` directly from the placement results per subject.
+- `hasRealProgress()` extended (`placementDone === true` counts).
+  `validateState()` repairs wrong-typed garbage on both fields WITHOUT
+  coercing a legitimate `null` placementResults to `{}` (deliberately kept
+  out of the generic object-field repair loop for this reason).
+- **Existing-player skip-rule migration** (explicit user addition to the
+  original spec): an old save missing `placementDone` entirely skips
+  placement if it already has ≥1 mastered curriculum node OR any
+  `subjectLevels` reaching 3+ (this codebase has no single scalar "level"
+  field — "player level ≥ 3" is implemented as
+  `max(subjectLevels.thai/math/eng)`). Verified across 5 cases: old+level-3
+  skips, old+mastered-node skips, old+no-progress doesn't skip, fresh
+  account doesn't skip, already-decided account preserved untouched.
+
+### Tests
+- Two new regression tests in `resolveSync.test.js`: completed placement
+  (`placementDone:true`) is never wiped by a stale-but-newer-timestamped
+  blank remote (and its mirror); `validateState()` leaves a legitimate null
+  `placementResults` untouched. Caught and fixed a wrong test assumption
+  while writing the second one (asserted `repaired:false` on a raw
+  `defaultState()` object, which always reports `repaired:true` when
+  validated directly — `hatchedEggs` isn't set until `_migrateEggs` runs,
+  pre-existing unrelated behavior, not a bug).
+
+### Verified
+`npm run build` clean; `npm test` 9/9 pass. No live browser session this run
+(same constraint as §1.1) — the placement UI's logic was verified via
+scripted simulation of the exact functions the component calls, not by
+rendering it in a browser.
+
 ## 2026-07-09 — Learning Core Overhaul §1.1: curriculum tree + node-driven question bank
 
 Direct session (no subagent — the classifier that approves subagent launches was

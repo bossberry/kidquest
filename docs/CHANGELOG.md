@@ -1,5 +1,31 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Cleanup: retrofit §1.1 mastery bookkeeping out of StateContext.jsx
+
+`applyAnswerToMastery()` lived inline in the LOG_BATTLE_ANSWER reducer case
+since §1.1 — a JSX file Node's `--test` runner can't import, so it was only
+ever verified by manual trace. Extracted to `curriculum.js` as a pure
+function (explicit `(skillMastery, activeNodes, pendingNodeMastery, subject,
+nodeId, correct)` arguments, same shape as `teachingMoments.js`'s pure
+functions) rather than taking a whole `state` object. `StateContext.jsx`
+now just imports and calls it.
+
+No behavior change — verified byte-for-byte equivalent to the original
+inline version via a before/after trace comparison across 6 scenarios
+(all-correct, all-wrong, the exact EMA-mastery boundary, two mixed-answer
+runs, end-of-subject-tree) before removing the inline copy. Zero mismatches.
+
+Added `src/lib/__tests__/curriculum.test.js` (8 tests) — the committed
+regression suite §1.1 lacked. Caught 2 wrong assumptions in my own first
+draft while writing it: assumed mastering a node in isolation would advance
+`activeNodes` to whatever depends on it, not realizing
+`getNextEligibleNode` scans from the *start* of the curriculum for the
+earliest unmastered eligible node — fixed by pre-mastering every prior
+node, matching how `activeNodes` would realistically reach that point in
+real play.
+
+29/29 tests pass (21 pre-existing + 8 new), build clean.
+
 ## 2026-07-09 — Learning Core Overhaul §1.3: teaching moments ("Adaptive Engine v2")
 
 Same direct-session style as §1.1/§1.2 (staged commits, no subagent).

@@ -1,5 +1,95 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Learning Core Overhaul §1.4: Speaking & Reading-Aloud Mode
+
+Same direct-session style as §1.1-§1.3. Executes the final section of the
+4-part Learning Core Overhaul spec.
+
+### New: `src/lib/speech.js`
+- Web Speech API wrapper: `isSpeechAvailable()` (feature-detects
+  `SpeechRecognition`/`webkitSpeechRecognition`, false in any non-browser
+  context), `startListening(expected, {lang, timeoutMs})` returning
+  `{ promise, stop }` (`stop()` calls the recognition's graceful `.stop()`,
+  not `.abort()`, so a released "hold to talk" button still resolves with
+  whatever was actually heard), `listenForPhrase()` as a simple
+  fire-and-forget convenience wrapper.
+- Pure similarity logic: `normalize()` (lowercase, strip punctuation, strip
+  ONLY Thai tone marks — not other diacritics/vowels, which are real word
+  differences), `levenshteinDistance()`, `similarity()` (0-1 ratio),
+  `classifyMatch()` (≥0.7 correct, 0.4-0.7 almost, <0.4 incorrect).
+- Privacy note (code comment + this entry, per instruction): recognition
+  runs entirely inside the browser's own built-in API; this file never
+  records, stores, or transmits raw audio — only the short transcript,
+  compared locally and discarded. Nothing uploaded to any KidQuest server.
+- **Real edge case found+fixed during this session's own read-only review**
+  (done productively while a temporary tool-availability gap blocked
+  running build/test): `isSpeechAvailable()` only detects whether the
+  constructor EXISTS, not whether recognition actually WORKS — iOS Safari
+  specifically is known to expose it while recognition silently fails
+  (permission denied/no mic/service refusal), which without a fix would
+  have left the child stuck scoring "incorrect" forever with no path to
+  the spec's own listening-mode fallback. Added `isPermissionError(code)`
+  to distinguish that from an ordinary "didn't catch that", threaded
+  `errorCode` through `startListening`'s result. Also fixed a timing bug:
+  the timeout window now restarts from the real `onaudiostart` event
+  (mic capture actually starting) instead of `.start()` — a first-time
+  permission dialog could otherwise silently eat the child's real
+  speaking window.
+
+### New: `src/lib/readAloudWords.js`
+- Word/sentence pools per thai/eng curriculum node, built directly on
+  `wordPools.js` (not `questionBank.js` — quiz-question shapes don't map
+  onto "say this word aloud"). Covers all 28 thai+eng nodes; nodes with no
+  clean single-word/sentence source fall back to a generic subject pool.
+
+### New: `src/games/minigames/ReadAloud.jsx` ("อ่านให้ไข่ฟัง")
+- Registered in the existing minigame pool exactly like the other 5
+  (`MINIGAMES.readaloud` in `minigameLives.js`: unlock battleLevel 4, 3
+  lives/day; `THEMES.readaloud` in `minigameUI.jsx`; wired into
+  `GameScreen.jsx`'s world router and `Home.jsx`'s `MINI_SPLASH`).
+- Each round: picks thai or eng at random, reads the child's real
+  `activeNodes[subject]`, pulls 5 words. Mic path: one-time friendly
+  permission intro (voiced in Thai) → press-and-hold 🎤 per word → live
+  egg reactions → match ≥0.7 correct (coins/XP), 0.4-0.7 retry once, <0.4
+  models the pronunciation then one repeat attempt — max 2 tries/word,
+  never traps the child. Coins = 3 × words fully matched.
+- **Listening-mode fallback** when `SpeechRecognition` is unavailable, OR
+  when a real permission-type error fires mid-game (the edge case above)
+  — a `speechBroken` flag permanently switches the rest of that round to
+  listening mode rather than repeatedly scoring the child "incorrect"
+  for a systemic failure, resetting fresh each new round: TTS speaks the
+  word, child taps 1 of 3 picture choices instead of speaking.
+
+### New: `src/components/SpeechTestHarness.jsx` + `App.jsx` wiring
+- Dev-only page at `?speechtest=1` (checked before any auth/state gate) —
+  lets a real tester pick Thai/English + a phrase, tap to record, and see
+  the heard transcript + similarity score + tier + `errorCode` (flagging
+  permission/hardware issues specifically) logged on screen. Exists
+  specifically because this environment has no microphone to verify
+  recognition quality directly — needs a real-phone pass before §1.4 can
+  be called production-confident.
+
+### State
+- `readAloudLives: 3`, `lastReadAloudDate: ''` (same convention as the
+  other 5 minigames) + `READALOUD_DEDUCT_LIFE` reducer. No new
+  `hasRealProgress` protection needed — matches the existing precedent
+  that none of the other 5 minigames' daily-lives counters are protected
+  there either (they're not permanent progress).
+
+### Tests
+- `src/lib/__tests__/speech.test.js` (12 tests, incl. `isPermissionError`)
+  and `readAloudWords.test.js` (4 tests) — the pure logic is committed
+  and tested; the actual browser `SpeechRecognition` behavior can't be,
+  which is exactly what the harness page is for.
+
+### Verified
+`npm run build` clean; `npm test` 41/41 pass. The `ReadAloud.jsx`/
+`SpeechTestHarness.jsx` UI and real speech recognition (including
+whether the `speechBroken` fallback actually triggers on a real device
+that denies mic permission) were NOT verified live this session (no
+microphone/browser access) — flagged as the follow-up that actually
+needs a real device, not just a decision.
+
 ## 2026-07-09 — Cleanup: retrofit §1.1 mastery bookkeeping out of StateContext.jsx
 
 `applyAnswerToMastery()` lived inline in the LOG_BATTLE_ANSWER reducer case

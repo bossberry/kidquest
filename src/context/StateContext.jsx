@@ -151,6 +151,8 @@ export const ACTIONS = {
   LOG_BATTLE_ANSWER:         'LOG_BATTLE_ANSWER',
   // Phase 1.1 curriculum system
   CLEAR_NODE_MASTERY:        'CLEAR_NODE_MASTERY',
+  // Phase 1.2 placement test
+  COMPLETE_PLACEMENT:        'COMPLETE_PLACEMENT',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
@@ -689,6 +691,22 @@ function reducer(state, action) {
 
     case ACTIONS.CLEAR_NODE_MASTERY:
       return { ...state, pendingNodeMastery: null, lastSavedAt: Date.now() }
+
+    // Phase 1.2 — payload.results: { thai: nodeId, math: nodeId, eng: nodeId },
+    // one entry per subject from the adaptive placement test. Sets activeNodes
+    // directly from the results (this is the "starting node" the placement test
+    // exists to determine) — a fresh account has no skillMastery yet, so there's
+    // no mastery/prerequisite conflict to resolve here, just a direct assignment.
+    case ACTIONS.COMPLETE_PLACEMENT: {
+      const { results } = action.payload
+      return {
+        ...state,
+        placementDone: true,
+        placementResults: { ...results, completedAt: Date.now() },
+        activeNodes: { ...(state.activeNodes || {}), ...results },
+        lastSavedAt: Date.now(),
+      }
+    }
 
     case ACTIONS.UPDATE_LAST_HOME_VISIT:
       return { ...state, lastHomeVisit: action.payload, lastSavedAt: Date.now() }

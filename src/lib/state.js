@@ -59,6 +59,12 @@ export function hasRealProgress(s) {
   // are safe, losable-progress signals for this check.
   if (s.skillMastery && Object.values(s.skillMastery).some(m => (m?.attempts?.length ?? 0) > 0 || m?.mastered)) return true
   if (s.activeNodes && SUBJECTS.some(subj => s.activeNodes[subj] && s.activeNodes[subj] !== getFirstNodeId(subj))) return true
+  // Phase 1.2 placement test (2026-07-09). Completing placement is a real,
+  // deliberate one-time flow — only ever set true by COMPLETE_PLACEMENT, never
+  // by a maintenance dispatch, so it's safe here. Protects against a sync race
+  // silently resetting placementDone to false and forcing the placement quest
+  // to inappropriately reappear for a child who already completed it.
+  if (s.placementDone === true) return true
   return false
 }
 
@@ -157,6 +163,16 @@ export function validateState(state, profileId = _currentProfileId) {
   else {
     if (!('head' in s.equipped)) { s.equipped.head = null; repaired = true }
     if (!('face' in s.equipped)) { s.equipped.face = null; repaired = true }
+  }
+
+  // placementDone/placementResults — NOT handled by the generic objectFields
+  // loop above, because `null` is a legitimate, meaningful value for
+  // placementResults (placement not yet completed) that must never be
+  // coerced to `{}`. Only reset on genuinely wrong-typed garbage.
+  if (typeof s.placementDone !== 'boolean') { s.placementDone = false; repaired = true }
+  if (s.placementResults !== null && (typeof s.placementResults !== 'object' || Array.isArray(s.placementResults))) {
+    s.placementResults = null
+    repaired = true
   }
 
   // ── rooms integrity — the highest-value critical field ─────────────────────
@@ -307,6 +323,14 @@ export function defaultState() {
     skillMastery: {},
     activeNodes: {},
     pendingNodeMastery: null,
+    // Phase 1.2 placement test ("ด่านทดสอบพลัง", 2026-07-09). placementResults is
+    // null until COMPLETE_PLACEMENT fires, then { thai, math, eng, completedAt }.
+    // A brand-new save (this literal object) always gets placementDone:false —
+    // new players SHOULD see the placement flow. Existing saves that predate
+    // this field get an explicit skip-rule computation in migrateStateShape()
+    // below instead (never just inherit this false via the shallow merge).
+    placementDone: false,
+    placementResults: null,
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud
@@ -679,6 +703,28 @@ export function migrateStateShape(saved) {
     for (const subject of SUBJECTS) {
       merged.activeNodes[subject] = savedActiveNodes[subject] || getFirstNodeId(subject)
     }
+  }
+
+  // Phase 1.2 placement-test migration: a save that PREDATES this field
+  // entirely (typeof !== 'boolean' — defaultState() always sets a real boolean,
+  // so this only fires for genuinely old saves) skips the placement flow if it
+  // already shows meaningful progress: any mastered curriculum node (Phase 1.1)
+  // OR any subjectLevel reaching 3+ (the pre-curriculum adaptive-difficulty
+  // signal — this is the concrete meaning of the spec's "player level >= 3"
+  // in a codebase with no single scalar "level" field). A save that already
+  // has a real boolean here (including a fresh defaultState()) is left alone —
+  // it already went through this decision once.
+  if (typeof saved.placementDone !== 'boolean') {
+    const hasMasteredNode = Object.values(merged.skillMastery).some(m => m?.mastered)
+    const maxSubjectLevel = Math.max(
+      merged.subjectLevels?.thai ?? 1, merged.subjectLevels?.math ?? 1, merged.subjectLevels?.eng ?? 1,
+    )
+    merged.placementDone = hasMasteredNode || maxSubjectLevel >= 3
+  } else {
+    merged.placementDone = saved.placementDone
+  }
+  if (!saved.placementResults || typeof saved.placementResults !== 'object' || Array.isArray(saved.placementResults)) {
+    merged.placementResults = null
   }
 
   merged.stateVersion = STATE_VERSION

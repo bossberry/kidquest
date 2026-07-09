@@ -53,6 +53,7 @@ export function useBattleCombat(params) {
         timestamp: Date.now(),
         nodeId: q?.nodeId,
         countsForMastery: q?.countsForMastery,
+        inputMode: q?.inputMode,
       },
     })
     const { earned, isCrit } = onCorrect()
@@ -168,6 +169,7 @@ export function useBattleCombat(params) {
         timestamp: Date.now(),
         nodeId: q?.nodeId,
         countsForMastery: q?.countsForMastery,
+        inputMode: q?.inputMode,
       },
     })
     onWrong()

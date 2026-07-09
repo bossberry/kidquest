@@ -10,6 +10,7 @@ import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
 import { CRAFT_RECIPES } from '../lib/roomItems.js'
 import { getNode, getNextEligibleNode } from '../lib/curriculum.js'
+import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
 
 export const StateContext = createContext(null)
 
@@ -153,6 +154,8 @@ export const ACTIONS = {
   CLEAR_NODE_MASTERY:        'CLEAR_NODE_MASTERY',
   // Phase 1.2 placement test
   COMPLETE_PLACEMENT:        'COMPLETE_PLACEMENT',
+  // Phase 1.3 teaching moments
+  CLEAR_PENDING_TEACHING:    'CLEAR_PENDING_TEACHING',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
@@ -666,7 +669,7 @@ function reducer(state, action) {
     }
 
     case ACTIONS.LOG_BATTLE_ANSWER: {
-      const { subject, correct, responseTimeMs, timestamp, nodeId, countsForMastery } = action.payload
+      const { subject, correct, responseTimeMs, timestamp, nodeId, countsForMastery, inputMode } = action.payload
       if (!subject || typeof responseTimeMs !== 'number') return state
       const prev = state.responseTimeLogs?.[subject] ?? []
       const updated = [...prev, { timeMs: responseTimeMs, correct, timestamp }].slice(-50)
@@ -676,6 +679,12 @@ function reducer(state, action) {
       const masteryUpdate = (nodeId && countsForMastery !== false)
         ? applyAnswerToMastery(state, subject, nodeId, correct)
         : { skillMastery: state.skillMastery, activeNodes: state.activeNodes, pendingNodeMastery: state.pendingNodeMastery ?? null }
+      // Phase 1.3: same countsForMastery gate as mastery bookkeeping above —
+      // preview questions are exposure-only and shouldn't count as "struggling"
+      // toward a teaching moment either.
+      const teachingUpdate = (nodeId && inputMode && countsForMastery !== false)
+        ? recordMissForTeaching(state.missStreaks, state.pendingTeaching, nodeId, inputMode, correct)
+        : { missStreaks: state.missStreaks, pendingTeaching: state.pendingTeaching ?? null }
       return {
         ...state,
         responseTimeLogs: {
@@ -685,12 +694,23 @@ function reducer(state, action) {
         skillMastery: masteryUpdate.skillMastery,
         activeNodes: masteryUpdate.activeNodes,
         pendingNodeMastery: masteryUpdate.pendingNodeMastery,
+        missStreaks: teachingUpdate.missStreaks,
+        pendingTeaching: teachingUpdate.pendingTeaching,
         lastSavedAt: Date.now(),
       }
     }
 
     case ACTIONS.CLEAR_NODE_MASTERY:
       return { ...state, pendingNodeMastery: null, lastSavedAt: Date.now() }
+
+    // Phase 1.3 — dispatched by TeachingMoment.jsx when it finishes (correct
+    // practice answer, or hit the MAX_EXPLANATION_LOOPS cap). clearTeaching()
+    // also resets that node+type's miss streak to 0, guaranteeing the same
+    // teaching moment can't fire again until a fresh run of 3 misses.
+    case ACTIONS.CLEAR_PENDING_TEACHING: {
+      const { missStreaks } = clearTeaching(state.missStreaks, state.pendingTeaching)
+      return { ...state, pendingTeaching: null, missStreaks, lastSavedAt: Date.now() }
+    }
 
     // Phase 1.2 — payload.results: { thai: nodeId, math: nodeId, eng: nodeId },
     // one entry per subject from the adaptive placement test. Sets activeNodes

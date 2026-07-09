@@ -65,6 +65,16 @@ export function hasRealProgress(s) {
   // silently resetting placementDone to false and forcing the placement quest
   // to inappropriately reappear for a child who already completed it.
   if (s.placementDone === true) return true
+  // Phase 1.3 teaching moments (2026-07-09). pendingTeaching is a real,
+  // meaningful in-progress signal (a genuine intervention currently queued to
+  // show before the next battle question) — losing it to a sync race would
+  // silently drop the intervention without ever showing it. Only ever set by
+  // RECORD_ANSWER-equivalent logic (real battle misses), never a maintenance
+  // dispatch. missStreaks itself is deliberately NOT included here — a lone
+  // miss-streak counter reset by a stale sync is harmless (worst case the
+  // child just needs a few fresh misses to re-trigger), unlike the fields
+  // above which represent real, hard-won progress.
+  if (s.pendingTeaching) return true
   return false
 }
 
@@ -152,7 +162,7 @@ export function validateState(state, profileId = _currentProfileId) {
   }
   const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
                         'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs',
-                        'skillMastery', 'activeNodes']
+                        'skillMastery', 'activeNodes', 'missStreaks']
   for (const f of objectFields) {
     if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
       s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
@@ -172,6 +182,14 @@ export function validateState(state, profileId = _currentProfileId) {
   if (typeof s.placementDone !== 'boolean') { s.placementDone = false; repaired = true }
   if (s.placementResults !== null && (typeof s.placementResults !== 'object' || Array.isArray(s.placementResults))) {
     s.placementResults = null
+    repaired = true
+  }
+
+  // pendingTeaching — same null-is-legitimate care as placementResults above
+  // (missStreaks itself IS in the generic objectFields loop, since {} is
+  // always a valid value for it — no null case to protect there).
+  if (s.pendingTeaching !== null && (typeof s.pendingTeaching !== 'object' || Array.isArray(s.pendingTeaching))) {
+    s.pendingTeaching = null
     repaired = true
   }
 
@@ -331,6 +349,13 @@ export function defaultState() {
     // below instead (never just inherit this false via the shallow merge).
     placementDone: false,
     placementResults: null,
+    // Phase 1.3 teaching moments (2026-07-09). missStreaks: { "{nodeId}:{questionType}":
+    // count }, tracked per real (non-preview) battle answer, reset to 0 on a
+    // correct answer or when a teaching moment clears. pendingTeaching: null until
+    // a node+type streak hits 3, then { nodeId, questionType } (one-shot event,
+    // same convention as pendingNodeMastery/pendingEvoNotice).
+    missStreaks: {},
+    pendingTeaching: null,
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud

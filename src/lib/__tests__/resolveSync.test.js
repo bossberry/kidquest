@@ -180,6 +180,48 @@ test('regression: local skillMastery/activeNodes progress is never wiped by a st
   assert.equal(r2.remoteWon, true, 'remote curriculum progress must beat a blank local')
 })
 
+// ── Phase 1.2 placement test — placementDone/placementResults protection ────
+// A device that completed the placement test (a real, one-time, deliberate
+// flow) must never have placementDone silently reset to false by a stale sync
+// — that would incorrectly force the placement quest to reappear. Uses the
+// same Fix 3c symmetric guard added for the Phase 1.1 curriculum fields.
+test('regression: completed placement is never wiped by a stale blank remote', () => {
+  const localCompletedPlacement = {
+    ...defaultState(),
+    lastSavedAt: 1000, // older timestamp than remote below
+    placementDone: true,
+    placementResults: { thai: 'th_cvc_words', math: 'math_add_under_10', eng: 'eng_phonics_cvc', completedAt: 500 },
+  }
+  const remoteBlank = {
+    ...defaultState(),
+    lastSavedAt: 9000, // newer timestamp, but genuinely untouched defaults (placementDone still false)
+  }
+  assert.equal(hasRealProgress(localCompletedPlacement), true, 'a completed placement counts as real progress')
+  assert.equal(hasRealProgress(remoteBlank), false, 'an untouched default (placementDone:false) has no real progress')
+
+  const { winner, remoteWon } = resolveSync(localCompletedPlacement, remoteBlank)
+  assert.equal(remoteWon, false, 'completed placement must beat a newer-but-blank remote')
+  assert.equal(winner.placementDone, true)
+  assert.equal(winner.placementResults.thai, 'th_cvc_words')
+
+  // Mirror: remote genuinely completed placement, local is blank.
+  const r2 = resolveSync(remoteBlank, localCompletedPlacement)
+  assert.equal(r2.remoteWon, true, 'remote-completed placement must beat a blank local')
+})
+
+// validateState: placementResults' `null` (not-yet-completed) must be left alone —
+// it's a legitimate value, not corruption, and must never be coerced to `{}`.
+// (Note: a raw defaultState() object run through validateState() directly, bypassing
+// the _migrateEggs step that normally precedes it in loadState(), always reports
+// repaired:true because hatchedEggs is undefined until that migration adds it —
+// pre-existing, unrelated behavior; this test only asserts the placement fields.)
+test('C.1/1.2: validateState leaves a legitimate null placementResults untouched', () => {
+  const fresh = { ...defaultState(), xpThai: 50 } // has other real progress, so no backup-restore branch fires
+  const { state: s } = validateState(fresh)
+  assert.equal(s.placementResults, null, 'null placementResults must NOT be coerced to {}')
+  assert.equal(s.placementDone, false)
+})
+
 // The backup ring never grows past 3 and keeps the newest.
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()

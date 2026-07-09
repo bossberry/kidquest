@@ -26,6 +26,7 @@ import CompanionCreation from './components/CompanionCreation.jsx'
 import Room from './components/Room.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import PlacementQuest from './components/PlacementQuest.jsx'
+import SpeechTestHarness from './components/SpeechTestHarness.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -82,6 +83,13 @@ export default function App() {
     if (to === 'home') dispatch({ type: ACTIONS.SET_SESSION_XP, payload: 0 })
     setScreen(to)
     setEggPopupOpen(false)
+  }
+
+  // Dev-only speech-recognition test harness (Phase 1.4) — checked before any
+  // auth/state gate below, since it needs no login and touches no app state.
+  // Never linked from the normal UI; opened directly via ?speechtest=1.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('speechtest') === '1') {
+    return <SpeechTestHarness />
   }
 
   if (!authChecked || (isLoggedIn && companionLoading)) {

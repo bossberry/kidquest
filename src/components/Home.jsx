@@ -61,6 +61,7 @@ const MINI_SPLASH = {
   eggrun:  { emoji:'🏃', name:'ไข่วิ่ง' },
   tower:   { emoji:'🏗️', name:'ต่อบล็อก' },
   fishing: { emoji:'🎣', name:'ตกปลา' },
+  readaloud: { emoji:'🎤', name:'อ่านให้ไข่ฟัง' },
 }
 
 // Accent colors

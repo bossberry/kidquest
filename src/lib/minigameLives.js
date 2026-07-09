@@ -19,6 +19,7 @@ export const MINIGAMES = {
   eggrun:  { world: 'eggrun',  livesKey: 'eggRunLives',  dateKey: 'lastRunDate',     max: 2, unlockLevel: 6,  deductAction: 'ER_DEDUCT_LIFE',      title: '🏃 Egg Run' },
   tower:   { world: 'tower',   livesKey: 'towerLives',   dateKey: 'lastTowerDate',   max: 3, unlockLevel: 6,  deductAction: 'TOWER_DEDUCT_LIFE',   title: '🏗️ Egg Tower' },
   fishing: { world: 'fishing', livesKey: 'fishingLives', dateKey: 'lastFishingDate', max: 2, unlockLevel: 10, deductAction: 'FISHING_DEDUCT_LIFE', title: '🎣 Egg Fishing' },
+  readaloud: { world: 'readaloud', livesKey: 'readAloudLives', dateKey: 'lastReadAloudDate', max: 3, unlockLevel: 4, deductAction: 'READALOUD_DEDUCT_LIFE', title: '🎤 อ่านให้ไข่ฟัง' },
 }
 
 // Remaining lives for a game today. If the stored date isn't today, lives have

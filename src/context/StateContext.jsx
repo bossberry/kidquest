@@ -100,6 +100,7 @@ export const ACTIONS = {
   CATCH_DEDUCT_LIFE:   'CATCH_DEDUCT_LIFE',
   TOWER_DEDUCT_LIFE:   'TOWER_DEDUCT_LIFE',
   FISHING_DEDUCT_LIFE: 'FISHING_DEDUCT_LIFE',
+  READALOUD_DEDUCT_LIFE: 'READALOUD_DEDUCT_LIFE',
   UPDATE_HAPPINESS:   'UPDATE_HAPPINESS',
   CHECK_DAILY_RESET:  'CHECK_DAILY_RESET',
   DECAY_HAPPINESS:    'DECAY_HAPPINESS',
@@ -513,6 +514,13 @@ function reducer(state, action) {
       const reset = (state.lastFishingDate || '') !== today
       const lives = reset ? 2 : (state.fishingLives || 0)
       return { ...state, fishingLives: Math.max(0, lives - 1), lastFishingDate: today, lastSavedAt: Date.now() }
+    }
+
+    case ACTIONS.READALOUD_DEDUCT_LIFE: {
+      const today = todayStr()
+      const reset = (state.lastReadAloudDate || '') !== today
+      const lives = reset ? 3 : (state.readAloudLives || 0)
+      return { ...state, readAloudLives: Math.max(0, lives - 1), lastReadAloudDate: today, lastSavedAt: Date.now() }
     }
 
     case ACTIONS.ER_SAVE_SCORE: {

@@ -252,6 +252,9 @@ export function defaultState() {
     catchLives: 3, lastCatchDate: '',
     towerLives: 3, lastTowerDate: '',
     fishingLives: 2, lastFishingDate: '',
+    // Phase 1.4 speaking/reading-aloud minigame ("อ่านให้ไข่ฟัง", 2026-07-09) —
+    // same daily-lives convention as the other 5 minigames above.
+    readAloudLives: 3, lastReadAloudDate: '',
     subjectLevels: { thai: 1, math: 1, eng: 1 },
     levelMastery: { thai: {}, math: {}, eng: {} },
     seenTeach: [],

@@ -17,6 +17,7 @@ export const THEMES = {
   tower:   { top:'#2a1a44', bot:'#150f26', accent:'#7F77DD', ink:'#d8c7ff', amb:'stone' },
   eggrun:  { top:'#1e5a30', bot:'#0c2a16', accent:'#1D9E75', ink:'#c7ffd8', amb:'speed' },
   fishing: { top:'#0d6b7e', bot:'#062730', accent:'#378ADD', ink:'#bfeeff', amb:'bubbles' },
+  readaloud: { top:'#3a1a5c', bot:'#1a0d2e', accent:'#EF9F27', ink:'#ffe4c2', amb:'stars' },
 }
 
 // Paint the themed gradient + 2–3 ambient shapes ONCE (no per-frame animation) —

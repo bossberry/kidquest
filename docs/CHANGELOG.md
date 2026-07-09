@@ -1,5 +1,25 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — SPEC GAME-C: Stability & Bug Audit (C.1 + C.2 + C.3)
+
+One Opus session hardening the whole app against data loss and crashes.
+
+### C.1 — State Integrity Guard (`src/lib/state.js`, `src/context/StateContext.jsx`)
+- New `validateState(state, profileId)` — repairs minor corruption (coins → finite ≥0, arrays/objects coerced back to shape, rooms rebuilt/validated, `activeRoomId`/`homeRoomId` re-pointed to a real room) and, on **critical loss** (rooms wiped / no real progress), restores from a local backup. Returns `{ state, repaired, restored }`. Never throws — total garbage yields a clean `defaultState()`.
+- New **local rolling backup ring**: every successful real save writes the last 3 states (+timestamps) to `localStorage['kq_backup_{profileId}']` (`writeBackup`/`readBackups`/`latestGoodBackup`, `BACKUP_PREFIX`). Profile id is cached via `setCurrentProfileId()` (set from the resolved Supabase user in `loadState`/`syncToSupabase`), falling back to `'guest'` for logged-out/localStorage-only.
+- `hasRealProgress()` extended (still maintenance-immune — none of these are touched by DAILY_LOGIN/DECAY_HAPPINESS/CHECK_DAILY_RESET/ER_SAVE_SCORE): now also treats **extra rooms (>1), crafted items, equipped cosmetics, and collected materials** as losable progress → hardens `resolveSync()` against wiping them. (This is the concrete mapping of the spec's "extend looksLikeDefaultWipe to protect rooms/materials/eggCare/skillMastery": this codebase has no `looksLikeDefaultWipe`/`eggCare`/`skillMastery` — the equivalent guard is `hasRealProgress()` + the existing room-count check in `resolveSync`, and the real analogous fields are rooms/materials/craftedItems/equipped/levelMastery.)
+- Guard wired into `loadState()` (both cloud and local paths) and the synchronous `StateProvider` init (minor-repair before first render; the profile-keyed backup RESTORE happens in the async `loadState()` path which knows the user id).
+- **Tests** — `src/lib/__tests__/resolveSync.test.js`, run on **Node's built-in test runner** (`node --test`, no new dependency; `"test"` script added to `package.json`). 6 tests, all pass: the two historical wipes (multi-room migration wipe; defaultState race), the `migrateStateShape` desynced-mirror recovery, the kill-switch backup-restore, minor-repair, and the ring cap.
+
+### C.2 — Error Boundaries + Recovery (`src/components/ErrorBoundary.jsx`, `src/App.jsx`, `src/lib/roomScene.js`, `src/lib/tileEngine.js`)
+- `ErrorBoundary` rewritten: friendly egg-with-bandage 🩹 "อุ๊ปส์! ลองใหม่นะ" fallback with a retry (re-render) + reload button. **Never** shows the raw error message on screen (fixes a child-facing-rule violation — the old fallback printed `error.message`); full error + componentStack go to `console.error` only. Sentry left as a TODO (out of scope now).
+- `App.jsx`: every top-level screen wrapped in its own `<ErrorBoundary key={screen} name={screen}>` so a crash in one screen can't white-screen the app and auto-resets on navigation. Root boundary in `main.jsx` retained.
+- Per-item canvas draw guards: `roomScene.js` `drawFloorFurniture`/`drawWallFurniture` and `tileEngine.js`'s world-entity Y-sort pass now `try/catch` each `.draw()` (skip + `console.error`) so one bad item/entity can't kill the whole scene.
+
+### C.3 — Full Bug Audit → `BUGS.md`
+- New root `BUGS.md` documenting the 8-area sweep. Money/econ, sync, daily resets, multi-room, battle, minigames, audio, rendering all reviewed. Found + fixed 1 P0 (no integrity guard) and 3 P1 (ErrorBoundary error-text leak; screen-crash white-screen; per-item draw crash). No other P0/P1 found; 4 P2s filed in `docs/TASKS.md`.
+- **Verification limits (honest)**: no live browser session was run this session (Supabase login gate + Chrome background-tab RAF suspension make live sweeping of the sync/battle/render areas unreliable, and iOS silent-switch / real multi-device / fake-clock need hardware not available here). The highest-risk area (data integrity) is instead covered by the passing regression + kill-switch tests.
+
 ## 2026-07-08 — Map collectibles: visible resource nodes on the world map
 
 Replaces the invisible "15% chance per step" auto-collect (built 2026-07-07) with visible, walk-onto-to-gather nodes — the child can now actually see and aim for materials instead of them silently rolling in the background. Same daily cap (15/day) and `COLLECT_MATERIAL` reducer as before.

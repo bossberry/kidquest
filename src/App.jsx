@@ -25,6 +25,7 @@ import FriendsScreen from './components/FriendsScreen.jsx'
 import CompanionCreation from './components/CompanionCreation.jsx'
 import Room from './components/Room.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import PlacementQuest from './components/PlacementQuest.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -116,6 +117,23 @@ export default function App() {
   // Blocking: cannot be dismissed until completed.
   if (!companion) {
     return <CompanionCreation />
+  }
+
+  // Phase 1.2 placement test ("ด่านทดสอบพลัง") — shown once, before the child can
+  // reach a battle, for genuinely new accounts only. Trigger: placementDone !== true
+  // AND fewer than 20 total battle answers recorded so far (an existing account that
+  // predates this field gets placementDone defaulted correctly by migrateStateShape's
+  // skip-rule, so this check only ever fires live for a real first-launch case).
+  // Blocking, same pattern as CompanionCreation above.
+  const totalAnswersRecorded = Object.values(state.responseTimeLogs || {})
+    .reduce((sum, arr) => sum + (arr?.length || 0), 0)
+  const needsPlacement = state.placementDone !== true && totalAnswersRecorded < 20
+  if (needsPlacement) {
+    // No onDone handler needed here: PlacementQuest dispatches COMPLETE_PLACEMENT
+    // itself, which flips placementDone to true — this gate then simply stops
+    // matching on the next render and the app falls through to the normal screen
+    // router below, same as how the CompanionCreation gate above resolves itself.
+    return <PlacementQuest />
   }
 
   return (

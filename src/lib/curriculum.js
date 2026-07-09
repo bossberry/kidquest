@@ -207,3 +207,68 @@ export function getSkillReport(skillMastery = {}) {
   }
   return report
 }
+
+// ── RECORD_ANSWER mastery bookkeeping (retrofitted out of StateContext.jsx) ─
+//
+// Originally written inline in the LOG_BATTLE_ANSWER reducer case (Phase 1.1,
+// 2026-07-09) — that meant it could only ever be verified by manual trace,
+// never an automated test, since StateContext.jsx is a JSX file Node's
+// `--test` runner can't import. Retrofitted here as a pure function (same
+// signature shape as teachingMoments.js's recordMissForTeaching/clearTeaching:
+// explicit primitive/plain-object arguments in, a plain result object out —
+// no `state` object dependency) specifically so it can finally get a real
+// committed regression suite. Verified byte-for-byte behavior-equivalent to
+// the original inline version via before/after trace comparison across many
+// scenarios (see the handoff for the exact comparison method) — this is a
+// pure refactor, no behavior change.
+//
+// alpha=0.3 EMA smoothing is a reasonable default (not a graded requirement
+// per the spec) — weights the most recent ~3-4 answers most heavily while
+// still remembering longer-run performance. Always blends from the PRIOR ema
+// (starting at 0 for a brand-new node), never a "cold start = this attempt's
+// raw result" special case — that special case was tried first and caught by
+// this session's own manual trace: it set ema=1 after a single lucky correct
+// answer on a fresh node (since there was no prior attempt to blend against),
+// which would satisfy `ema > masteryThreshold` and instantly "master" a node
+// off one answer. Blending from 0 instead means ema only crosses a 0.8
+// threshold after ~5 consecutive correct answers, which is what "recent
+// performance" mastery is supposed to measure.
+export const MASTERY_EMA_ALPHA = 0.3
+
+export function applyAnswerToMastery(skillMastery, activeNodes, pendingNodeMastery, subject, nodeId, correct) {
+  const node = getNode(subject, nodeId)
+  const noop = { skillMastery, activeNodes, pendingNodeMastery: pendingNodeMastery ?? null }
+  if (!node) return noop
+
+  const prevRecord = skillMastery?.[nodeId] ?? { attempts: [], ema: 0, mastered: false, masteredAt: null }
+  const attempts = [...(prevRecord.attempts || []), correct ? 1 : 0].slice(-10)
+  const ema = (prevRecord.ema || 0) * (1 - MASTERY_EMA_ALPHA) + (correct ? 1 : 0) * MASTERY_EMA_ALPHA
+  const sum = attempts.reduce((a, b) => a + b, 0)
+  const wasMastered = !!prevRecord.mastered
+  const isMastered = wasMastered || (attempts.length >= 10 && sum >= 8) || ema > node.masteryThreshold
+  const newlyMastered = isMastered && !wasMastered
+
+  const newRecord = {
+    attempts,
+    ema,
+    mastered: isMastered,
+    masteredAt: newlyMastered ? Date.now() : (prevRecord.masteredAt ?? null),
+  }
+  const newSkillMastery = { ...(skillMastery || {}), [nodeId]: newRecord }
+
+  let newActiveNodes = activeNodes || {}
+  let newPendingNodeMastery = pendingNodeMastery ?? null
+  if (newlyMastered) {
+    const nextId = getNextEligibleNode(subject, newSkillMastery)
+    if (nextId) {
+      newActiveNodes = { ...newActiveNodes, [subject]: nextId }
+      const nextNode = getNode(subject, nextId)
+      newPendingNodeMastery = { subject, nodeId, nextNodeId: nextId, nextNodeNameTh: nextNode?.nameTh ?? null }
+    } else {
+      // End of this subject's tree — nothing left to advance to, but the child
+      // still earned the celebration.
+      newPendingNodeMastery = { subject, nodeId, nextNodeId: null, nextNodeNameTh: null }
+    }
+  }
+  return { skillMastery: newSkillMastery, activeNodes: newActiveNodes, pendingNodeMastery: newPendingNodeMastery }
+}

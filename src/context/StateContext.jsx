@@ -9,7 +9,7 @@ import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
 import { CRAFT_RECIPES } from '../lib/roomItems.js'
-import { getNode, getNextEligibleNode } from '../lib/curriculum.js'
+import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
 
 export const StateContext = createContext(null)
@@ -213,56 +213,10 @@ function applyRoomLayoutChange(state, roomId, newLayout) {
 // (selectBattleQuestion in questionBank.js) attach `nodeId`/`countsForMastery`
 // to the question object that flows back through here.
 //
-// alpha=0.3 EMA smoothing is a reasonable default (not a graded requirement
-// per the spec) — weights the most recent ~3-4 answers most heavily while
-// still remembering longer-run performance. Always blends from the PRIOR ema
-// (starting at 0 for a brand-new node), never a "cold start = this attempt's
-// raw result" special case — that special case was tried first and caught by
-// this session's own manual trace: it set ema=1 after a single lucky correct
-// answer on a fresh node (since there was no prior attempt to blend against),
-// which would satisfy `ema > masteryThreshold` and instantly "master" a node
-// off one answer. Blending from 0 instead means ema only crosses a 0.8
-// threshold after ~5 consecutive correct answers, which is what "recent
-// performance" mastery is supposed to measure.
-const MASTERY_EMA_ALPHA = 0.3
-
-function applyAnswerToMastery(state, subject, nodeId, correct) {
-  const node = getNode(subject, nodeId)
-  const noop = { skillMastery: state.skillMastery, activeNodes: state.activeNodes, pendingNodeMastery: state.pendingNodeMastery ?? null }
-  if (!node) return noop
-
-  const prevRecord = state.skillMastery?.[nodeId] ?? { attempts: [], ema: 0, mastered: false, masteredAt: null }
-  const attempts = [...(prevRecord.attempts || []), correct ? 1 : 0].slice(-10)
-  const ema = (prevRecord.ema || 0) * (1 - MASTERY_EMA_ALPHA) + (correct ? 1 : 0) * MASTERY_EMA_ALPHA
-  const sum = attempts.reduce((a, b) => a + b, 0)
-  const wasMastered = !!prevRecord.mastered
-  const isMastered = wasMastered || (attempts.length >= 10 && sum >= 8) || ema > node.masteryThreshold
-  const newlyMastered = isMastered && !wasMastered
-
-  const newRecord = {
-    attempts,
-    ema,
-    mastered: isMastered,
-    masteredAt: newlyMastered ? Date.now() : (prevRecord.masteredAt ?? null),
-  }
-  const skillMastery = { ...(state.skillMastery || {}), [nodeId]: newRecord }
-
-  let activeNodes = state.activeNodes || {}
-  let pendingNodeMastery = state.pendingNodeMastery ?? null
-  if (newlyMastered) {
-    const nextId = getNextEligibleNode(subject, skillMastery)
-    if (nextId) {
-      activeNodes = { ...activeNodes, [subject]: nextId }
-      const nextNode = getNode(subject, nextId)
-      pendingNodeMastery = { subject, nodeId, nextNodeId: nextId, nextNodeNameTh: nextNode?.nameTh ?? null }
-    } else {
-      // End of this subject's tree — nothing left to advance to, but the child
-      // still earned the celebration.
-      pendingNodeMastery = { subject, nodeId, nextNodeId: null, nextNodeNameTh: null }
-    }
-  }
-  return { skillMastery, activeNodes, pendingNodeMastery }
-}
+// applyAnswerToMastery() itself now lives in curriculum.js as a pure function
+// (retrofitted out of this file so it's finally covered by a real committed
+// test suite — see curriculum.test.js — instead of only ever being verifiable
+// by manual trace the way it was originally written here).
 
 function reducer(state, action) {
   switch (action.type) {
@@ -677,7 +631,7 @@ function reducer(state, action) {
       // + countsForMastery. Preview questions (countsForMastery === false) deliberately
       // skip mastery bookkeeping — see questionBank.js's selectBattleQuestion comment.
       const masteryUpdate = (nodeId && countsForMastery !== false)
-        ? applyAnswerToMastery(state, subject, nodeId, correct)
+        ? applyAnswerToMastery(state.skillMastery, state.activeNodes, state.pendingNodeMastery, subject, nodeId, correct)
         : { skillMastery: state.skillMastery, activeNodes: state.activeNodes, pendingNodeMastery: state.pendingNodeMastery ?? null }
       // Phase 1.3: same countsForMastery gate as mastery bookkeeping above —
       // preview questions are exposure-only and shouldn't count as "struggling"

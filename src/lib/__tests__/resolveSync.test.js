@@ -209,6 +209,45 @@ test('regression: completed placement is never wiped by a stale blank remote', (
   assert.equal(r2.remoteWon, true, 'remote-completed placement must beat a blank local')
 })
 
+// ── Phase 1.3 teaching moments — pendingTeaching protection ──────────────────
+// A queued teaching intervention (pendingTeaching set) is a real, meaningful
+// in-progress signal — losing it to a stale sync would silently drop the
+// intervention without ever showing it to the child. Uses the same Fix 3c
+// symmetric guard as the Phase 1.1/1.2 fields above.
+test('regression: a pending teaching moment is never wiped by a stale blank remote', () => {
+  const localWithPendingTeaching = {
+    ...defaultState(),
+    lastSavedAt: 1000, // older timestamp than remote below
+    pendingTeaching: { nodeId: 'math_add_under_10', questionType: 'numpad' },
+    missStreaks: { 'math_add_under_10:numpad': 3 },
+  }
+  const remoteBlank = {
+    ...defaultState(),
+    lastSavedAt: 9000, // newer timestamp, but genuinely untouched defaults
+  }
+  assert.equal(hasRealProgress(localWithPendingTeaching), true, 'a pending teaching moment counts as real progress')
+  assert.equal(hasRealProgress(remoteBlank), false)
+
+  const { winner, remoteWon } = resolveSync(localWithPendingTeaching, remoteBlank)
+  assert.equal(remoteWon, false, 'a pending teaching moment must beat a newer-but-blank remote')
+  assert.deepEqual(winner.pendingTeaching, { nodeId: 'math_add_under_10', questionType: 'numpad' })
+
+  // Mirror: remote genuinely has a pending teaching moment, local is blank.
+  const r2 = resolveSync(remoteBlank, localWithPendingTeaching)
+  assert.equal(r2.remoteWon, true, 'remote pending teaching moment must beat a blank local')
+})
+
+// validateState: a lone missStreaks counter is deliberately NOT part of
+// hasRealProgress (losing it to a sync is harmless), but it must still be
+// repaired to {} if corrupted, and pendingTeaching's legitimate null must be
+// left alone exactly like placementResults above.
+test('C.1/1.3: validateState repairs missStreaks garbage and leaves a legitimate null pendingTeaching untouched', () => {
+  const dirty = { ...defaultState(), xpThai: 50, missStreaks: 'not-an-object', pendingTeaching: null }
+  const { state: s } = validateState(dirty)
+  assert.ok(typeof s.missStreaks === 'object' && !Array.isArray(s.missStreaks), 'corrupted missStreaks must be coerced to an object')
+  assert.equal(s.pendingTeaching, null, 'null pendingTeaching must NOT be coerced to {}')
+})
+
 // validateState: placementResults' `null` (not-yet-completed) must be left alone —
 // it's a legitimate value, not corruption, and must never be coerced to `{}`.
 // (Note: a raw defaultState() object run through validateState() directly, bypassing

@@ -5,6 +5,7 @@ import MoveSelectBattleMode from '../games/MoveSelectBattleMode.jsx'
 import RewardChest from '../components/RewardChest.jsx'
 import { rollBattleItem } from '../config/itemConfig.js'
 import { selectBattleQuestion } from '../lib/questionBank.js'
+import TeachingMoment from './TeachingMoment.jsx'
 
 const HOME_DROP_TABLE = [
   { key: 'food',         weight: 50 },
@@ -293,6 +294,11 @@ export default function WorldBattle({ navigate }) {
           }}
         />
       )}
+      {/* Phase 1.3: full-screen teaching-moment overlay, additive on top of the
+          still-mounted battle UI underneath — same pattern as RewardChest above
+          (not a replacement/unmount, so no risk to MoveSelectBattleMode's
+          internal refs/HP state while the intervention is showing). */}
+      {state.pendingTeaching && <TeachingMoment />}
       <MoveSelectBattleMode
         q={qs[cur]}
         cur={cur}

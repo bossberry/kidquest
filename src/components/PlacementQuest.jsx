@@ -16,9 +16,7 @@ import {
 } from '../lib/placementTest.js'
 import { getNode } from '../lib/curriculum.js'
 import { speakTh, playTone, playSFX } from '../lib/audio.js'
-import NumpadInput from './battle/NumpadInput.jsx'
-import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from './battle/WordBuildInput.jsx'
-import SequenceInput from './battle/SequenceInput.jsx'
+import QuestionRenderer from './battle/QuestionRenderer.jsx'
 
 const SUBJECT_LABEL_TH = { thai: 'ภาษาไทย', math: 'คณิตศาสตร์', eng: 'ภาษาอังกฤษ' }
 const SUBJECT_ICON = { thai: '📖', math: '🔢', eng: '🔤' }
@@ -43,63 +41,6 @@ const btnBase = {
   WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
 }
 
-function ChoiceButtons({ question, onAnswer, disabled }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 340 }}>
-      {question.choices.map((c, i) => (
-        <button
-          key={i}
-          disabled={disabled}
-          onClick={() => onAnswer(String(c) === String(question.correctAnswer))}
-          style={{
-            ...btnBase,
-            padding: '18px 20px',
-            background: 'var(--card)',
-            border: '2px solid var(--border)',
-            color: 'var(--text)',
-            opacity: disabled ? 0.6 : 1,
-          }}
-        >
-          {question.emoji ? `${question.emoji}  ` : ''}{c}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function QuestionBody({ question, resetKey, onAnswer, disabled }) {
-  if (question.inputMode === 'numpad') {
-    return (
-      <NumpadInput
-        resetKey={resetKey}
-        disabled={disabled}
-        onSubmit={(val) => onAnswer(String(val) === String(question.correctAnswer))}
-      />
-    )
-  }
-  if (question.inputMode === 'wordbuild') {
-    return (
-      <WordBuildInput
-        chars={question.chars}
-        resetKey={resetKey}
-        disabled={disabled}
-        distractorPool={/^[a-zA-Z]/.test(question.chars?.[0] || '') ? DEFAULT_ENG_DISTRACTORS : undefined}
-        onSubmit={onAnswer}
-      />
-    )
-  }
-  if (question.inputMode === 'sequence') {
-    return (
-      <SequenceInput
-        correctOrder={question.sequenceChars}
-        resetKey={resetKey}
-        disabled={disabled}
-        onSubmit={onAnswer}
-      />
-    )
-  }
-  return <ChoiceButtons question={question} onAnswer={onAnswer} disabled={disabled} />
-}
 
 export default function PlacementQuest({ onDone }) {
   const { dispatch } = useAppState()
@@ -211,7 +152,7 @@ export default function PlacementQuest({ onDone }) {
           {question.emoji && question.inputMode !== 'choice' ? <div style={{ fontSize: 44 }}>{question.emoji}</div> : null}
           {question.prompt}
         </div>
-        <QuestionBody question={question} resetKey={resetKey} onAnswer={handleAnswer} disabled={locked} />
+        <QuestionRenderer question={question} resetKey={resetKey} onAnswer={handleAnswer} disabled={locked} />
         {/* Gentle feedback only — no ❌/negative animation on a wrong answer. */}
         {feedback === 'correct' && (
           <div style={{ marginTop: 20, fontSize: 16, color: '#7CFC7C' }}>เก่งมาก! 🎉</div>

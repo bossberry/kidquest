@@ -137,6 +137,18 @@ export function getNode(subject, nodeId) {
   return CURRICULUM[subject]?.nodes.find(n => n.id === nodeId) || null
 }
 
+// Phase 1.3: teaching-moment triggers only carry a bare nodeId (no subject) —
+// this searches across all 3 subjects to resolve both, since node ids are
+// globally unique (prefixed th_/math_/eng_) but that prefix isn't parsed here
+// to avoid a second, drifting source of truth for the subject key.
+export function findNodeAnywhere(nodeId) {
+  for (const subject of SUBJECTS) {
+    const node = CURRICULUM[subject].nodes.find(n => n.id === nodeId)
+    if (node) return { subject, node }
+  }
+  return null
+}
+
 export function getFirstNodeId(subject) {
   return CURRICULUM[subject]?.nodes[0]?.id || null
 }

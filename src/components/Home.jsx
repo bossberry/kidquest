@@ -12,15 +12,16 @@ import EggCanvas from './EggCanvas.jsx'
 import DecoratedRoom from './DecoratedRoom.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
-import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
+import { playTone, playBGM, stopBGM, playSFX, playCreatureSound } from '../lib/audio.js'
 import { drawItem } from '../lib/itemArt.js'
 import { HOME_ITEMS } from '../config/itemConfig.js'
 import { supabase } from '../lib/supabase.js'
 import { useHomeAmbience } from '../hooks/useHomeAmbience.js'
 import { useCreatureInteraction } from '../hooks/useCreatureInteraction.js'
 import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
-import { showToast } from './Toasts.jsx'
+import { showToast, spawnConfetti } from './Toasts.jsx'
 import { unlockedGames, livesRemaining } from '../lib/minigameLives.js'
+import { FOOD_CATALOG } from '../lib/eggCare.js'
 
 const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
 
@@ -69,6 +70,17 @@ const C_COIN   = '#FFD23F'
 const C_STREAK = '#FF6B35'
 const C_BOND   = '#9B5DE5'
 
+// SPEC GAME-A §A.1 Care Loop ────────────────────────────────────────────────
+// Quiet hours (device local time) — 19:30 to 07:00. No parentControls.
+// quietHours override exists in this codebase yet (grepped, confirmed absent),
+// so this is device-clock-only for now — flagged in the handoff as a real
+// gap between the spec's mention of an override and what this codebase
+// actually has to hook into.
+function isQuietHours(now = new Date()) {
+  const mins = now.getHours() * 60 + now.getMinutes()
+  return mins >= 19 * 60 + 30 || mins < 7 * 60
+}
+
 export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
   const { state, dispatch, eggProgressData } = useAppState()
   const { resolved } = useCompanion()
@@ -86,6 +98,17 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // floating emoji reaction over egg
   const [healFloat, setHealFloat]         = useState(null)  // null | id
+
+  // ── SPEC GAME-A §A.1 Care Loop state ────────────────────────────────────
+  const [foodTrayOpen, setFoodTrayOpen]   = useState(false)
+  const [armedFood, setArmedFood]         = useState(null) // foodKey armed, waiting for a tap-the-egg to feed
+  const [feedReaction, setFeedReaction]   = useState(null) // { emoji, text, id } | null — floats over the egg
+  const [wakeUpScene, setWakeUpScene]     = useState(null) // { grantedFood } | null — full-screen morning scene
+  const [comebackScene, setComebackScene] = useState(false) // full-screen "คิดถึงจังเลย!" long-absence joy scene
+  const [sleepSceneOpen, setSleepSceneOpen] = useState(false)
+  const [nowTick, setNowTick]             = useState(() => Date.now()) // re-evaluate isQuietHours periodically
+  const holdTimerRef = useRef(null)
+  const holdFiredRef = useRef(false)
 
   const initVisitRef    = useRef(state.lastHomeVisit)
 
@@ -147,6 +170,142 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     sessionXP: state.sessionXP,
   })
 
+  // ── SPEC GAME-A §A.1 Care Loop ───────────────────────────────────────────
+
+  // TICK_CARE on mount (catches up on any elapsed-while-closed gap) + every
+  // 5 minutes while the app stays open, per spec.
+  useEffect(() => {
+    dispatch({ type: ACTIONS.TICK_CARE })
+    const id = setInterval(() => dispatch({ type: ACTIONS.TICK_CARE }), 5 * 60_000)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line
+
+  // Re-check quiet-hours roughly once a minute so the sleepy indicator/scene
+  // appears and clears at the right wall-clock moment without a full reload.
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const quietHours = isQuietHours(new Date(nowTick))
+
+  // Daily wake-up scene: consumed once, then cleared. Framed entirely as a
+  // warm morning greeting + small gift — never a "you were asleep" scold.
+  useEffect(() => {
+    if (!state.eggCare?.pendingWakeUp) return
+    const granted = state.eggCare.pendingWakeUp
+    playTone('stageUp')
+    setWakeUpScene(granted)
+    const t = setTimeout(() => {
+      setWakeUpScene(null)
+      dispatch({ type: ACTIONS.CLEAR_PENDING_WAKE_UP })
+    }, 2600)
+    return () => clearTimeout(t)
+  }, [state.eggCare?.pendingWakeUp]) // eslint-disable-line
+
+  // Long-absence comeback joy: additive to (not a replacement for) the
+  // existing shorter-gap ambient "reunion" burst in useHomeAmbience.js —
+  // this one is reserved for genuinely long absences (see eggCare.js's
+  // COMEBACK_JOY_THRESHOLD_HOURS) and always shows ONLY joy, per the
+  // design guardrail — "คิดถึงจังเลย!" (I missed you so much!), never guilt.
+  useEffect(() => {
+    if (!state.eggCare?.pendingComebackJoy) return
+    enterState('reunion')
+    spawnParticles('hearts', 14)
+    spawnParticles('sparkle', 10)
+    setComebackScene(true)
+    const t = setTimeout(() => {
+      setComebackScene(false)
+      dispatch({ type: ACTIONS.CLEAR_PENDING_COMEBACK_JOY })
+    }, 2600)
+    return () => clearTimeout(t)
+  }, [state.eggCare?.pendingComebackJoy]) // eslint-disable-line
+
+  // Shake-to-dizzy (devicemotion, if available — many desktop browsers and
+  // some mobile ones never fire this event at all; feature-detected and
+  // silently absent where unsupported, per spec).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.DeviceMotionEvent) return
+    let lastShake = 0
+    function onMotion(e) {
+      const a = e.accelerationIncludingGravity
+      if (!a) return
+      const magnitude = Math.abs(a.x || 0) + Math.abs(a.y || 0) + Math.abs(a.z || 0)
+      const now = Date.now()
+      if (magnitude > 35 && now - lastShake > 2000) {
+        lastShake = now
+        enterState('happy', 900)
+        playTone('giggle')
+        spawnParticles('sparkle', 6)
+        dispatch({ type: ACTIONS.PET_EGG })
+      }
+    }
+    window.addEventListener('devicemotion', onMotion)
+    return () => window.removeEventListener('devicemotion', onMotion)
+  }, []) // eslint-disable-line
+
+  // Two-finger tickle — a native multi-touch touchstart on the room wrapper.
+  // Safe to add without touching DecoratedRoom.jsx's own single-pointer tap/
+  // swipe hit-testing: a genuine 2-finger touch is a distinguishable input
+  // its own logic doesn't meaningfully act on.
+  useEffect(() => {
+    const el = roomContainerRef.current
+    if (!el) return
+    function onTouchStart(e) {
+      if (e.touches && e.touches.length >= 2) {
+        playTone('giggle')
+        spawnParticles('hearts', 4)
+        spawnParticles('sparkle', 4)
+        enterState('happy', 700)
+        dispatch({ type: ACTIONS.PET_EGG })
+      }
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    return () => el.removeEventListener('touchstart', onTouchStart)
+  }, []) // eslint-disable-line
+
+  // Feed result reaction (chomp/favorite-hearts-burst/overfed) — driven by
+  // the transient _feedResult signal FEED_EGG's reducer case sets.
+  useEffect(() => {
+    const r = state._feedResult
+    if (!r) return
+    if (r.overfed) {
+      setFeedReaction({ emoji: '😌', text: 'อิ่มแล้ว~', id: r.id })
+      playTone('chirp')
+    } else if (r.fed) {
+      const food = FOOD_CATALOG[r.food]
+      enterState('eating')
+      playCreatureSoundSafe('food')
+      playTone('chirp')
+      spawnParticles('sparkle', r.isFavorite ? 3 : 6)
+      if (r.isFavorite) {
+        spawnParticles('hearts', 10)
+        setFeedReaction({ emoji: '💕', text: `${food.nameTh} ชอบที่สุดเลย!`, id: r.id })
+        playTone('celebrate')
+      } else {
+        spawnParticles('hearts', 3)
+        setFeedReaction({ emoji: food.emoji, text: 'อร่อย!', id: r.id })
+      }
+    }
+    const t = setTimeout(() => setFeedReaction(prev => prev?.id === r.id ? null : prev), 1400)
+    return () => clearTimeout(t)
+  }, [state._feedResult]) // eslint-disable-line
+
+  function playCreatureSoundSafe(moment) {
+    try { playCreatureSound(voiceProfile, moment) } catch { /* best-effort, never blocks feeding */ }
+  }
+
+  // Soft lullaby loop while the sleep scene is open — reuses the existing
+  // 'sleep' playCreatureSound moment (a slow 3-note descending tone) on a
+  // gentle interval rather than a full new composed BGM track, a deliberate
+  // scope simplification for A.1 (full musical polish is more natural §A.3
+  // "ให้สวยที่สุด" territory).
+  useEffect(() => {
+    if (!sleepSceneOpen) return
+    playCreatureSoundSafe('sleep')
+    const id = setInterval(() => playCreatureSoundSafe('sleep'), 4000)
+    return () => clearInterval(id)
+  }, [sleepSceneOpen]) // eslint-disable-line
+
   // ── Status bar values ──────────────────────────────────────────────────────
   const maxHP     = activeEgg?.stats?.HP ?? 100
   const currentHP = activeEgg?.currentHP ?? maxHP
@@ -172,6 +331,11 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     const pick = pool[Math.floor(Math.random() * pool.length)]
     playSFX('minigame_start')
     setMiniSplash(MINI_SPLASH[pick] || { emoji:'🎮', name:'มินิเกม' })
+    // SPEC GAME-A §A.1: energy decays "during PLAY time only" — modeled as a
+    // small cost per genuine play SESSION launched (see PLAY_TOUCH_GAME's own
+    // reducer comment for the full reasoning), distinct from PET_EGG's
+    // per-gesture cost.
+    dispatch({ type: ACTIONS.PLAY_TOUCH_GAME })
     setTimeout(() => {
       playBGM('minigame')
       dispatch({ type: ACTIONS.SET_CURRENT_WORLD, payload: pick })
@@ -191,9 +355,41 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     prevUnlockedRef.current = new Set(miniUnlocked)
   }, [eggLevel]) // eslint-disable-line
 
+  // Feed the currently-armed food (SPEC GAME-A §A.1 "drag food onto egg",
+  // simplified to arm-in-tray-then-tap-egg — the same established pattern
+  // this codebase already uses for the old homeItems 🍗/🎀/👟/⭐ tray, since
+  // genuine mobile drag-and-drop physics would be new, riskier surface area
+  // for comparatively little extra feel; a flying-food + chomp animation
+  // still sells a convincing "feeding" moment. Documented as a deliberate
+  // simplification, not a silent shortcut.
+  function feedArmedFood() {
+    if (!armedFood) return
+    setFlyingItem({ label: FOOD_CATALOG[armedFood]?.nameTh || '', id: Date.now() })
+    dispatch({ type: ACTIONS.FEED_EGG, payload: { food: armedFood, element: resolved.element } })
+    setArmedFood(null)
+    setTimeout(() => setFlyingItem(null), 620)
+  }
+
   // Egg tap (routed up from DecoratedRoom when a tap lands near the walker):
-  // armed item → use it; else post-hatch adds bond (+reaction), pre-hatch pets / triggers hatch.
+  // a held tap (>=1000ms down-to-up) leans the egg in with eyes closed
+  // (SPEC GAME-A §A.1 "Hold 1s" gesture) instead of the normal pet/combo —
+  // detected by composing with a wrapper-level pointerdown timestamp (see
+  // the onPointerDown handler on the room container below) rather than
+  // touching DecoratedRoom.jsx's own tap-vs-walk hit-testing internals.
+  // Otherwise: armed food → feed it; armed item → use it; else post-hatch
+  // adds bond (+reaction), pre-hatch pets / triggers hatch.
   const onEggTap = (e) => {
+    const heldMs = holdTimerRef.current ? Date.now() - holdTimerRef.current : 0
+    holdTimerRef.current = null
+    if (heldMs >= 1000 && !holdFiredRef.current) {
+      holdFiredRef.current = true
+      enterState('relax', 1400)
+      playTone('sigh')
+      dispatch({ type: ACTIONS.PET_EGG })
+      setTimeout(() => { holdFiredRef.current = false }, 1500)
+      return
+    }
+    if (armedFood) { feedArmedFood(); return }
     if (activeItem) { handleTapItem(activeItem); return }
     if (eggsHatched > 0) { handleCreatureTap(e); return }
     handleEggTap(e)
@@ -233,6 +429,72 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
           <div style={{ fontSize:96, animation:'mg-splash-emoji .5s cubic-bezier(.2,.8,.3,1.4) both' }}>{miniSplash.emoji}</div>
           <div style={{ fontFamily:'var(--font-thai)', fontSize:22, fontWeight:800, color:'#fff', animation:'mg-splash-fade .3s ease-out .25s both' }}>{miniSplash.name}</div>
           <div style={{ fontFamily:'var(--font-pixel)', fontSize:24, color:'#FFD23F', animation:'mg-splash-go .4s ease-out .45s both' }}>GO!</div>
+        </div>
+      )}
+
+      {/* Morning wake-up scene (SPEC GAME-A §A.1) — warm greeting + small gift,
+          never framed as "you slept in" or any kind of scold. */}
+      {wakeUpScene && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:1900, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center', gap:12,
+          background:'linear-gradient(180deg, rgba(255,214,140,0.92), rgba(255,180,120,0.92))',
+          animation:'mg-splash-fade .25s ease-out both',
+        }}>
+          <div style={{ fontSize:80, animation:'mg-splash-emoji .5s cubic-bezier(.2,.8,.3,1.4) both' }}>🌅🥚</div>
+          <div style={{ fontFamily:'var(--font-thai)', fontSize:22, fontWeight:800, color:'#5b3a1a', textShadow:'0 1px 4px rgba(255,255,255,0.5)' }}>
+            อรุณสวัสดิ์!
+          </div>
+          <div style={{ fontFamily:'var(--font-thai)', fontSize:14, color:'#6b4a2a' }}>
+            ได้รับ {FOOD_CATALOG[wakeUpScene.grantedFood]?.emoji} {FOOD_CATALOG[wakeUpScene.grantedFood]?.nameTh} ฟรี!
+          </div>
+        </div>
+      )}
+
+      {/* Long-absence comeback joy scene (SPEC GAME-A §A.1 design guardrail) —
+          ONLY ever joy, never guilt. Additive to the shorter-gap ambient
+          reunion burst already in useHomeAmbience.js. */}
+      {comebackScene && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:1900, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center', gap:10, pointerEvents:'none',
+          animation:'mg-splash-fade .25s ease-out both',
+        }}>
+          <div style={{ fontSize:70, animation:'mg-splash-emoji .5s cubic-bezier(.2,.8,.3,1.4) both' }}>🥚💕</div>
+          <div style={{
+            fontFamily:'var(--font-thai)', fontSize:24, fontWeight:800, color:'#fff',
+            textShadow:'0 2px 10px rgba(0,0,0,0.6)',
+          }}>
+            คิดถึงจังเลย!
+          </div>
+        </div>
+      )}
+
+      {/* Sleep scene overlay — dim room, stars, breathing egg, soft lullaby.
+          Playing is still fully allowed; this is a gentle visual cue only,
+          never an enforcement/lockout (enforcement is a parent-control
+          concern, out of scope here). */}
+      {sleepSceneOpen && (
+        <div
+          onClick={() => setSleepSceneOpen(false)}
+          style={{
+            position:'fixed', inset:0, zIndex:1800, cursor:'pointer',
+            background:'radial-gradient(ellipse at 50% 40%, rgba(40,40,90,0.85), rgba(8,8,24,0.96))',
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16,
+          }}
+        >
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={i} style={{
+              position:'absolute',
+              top: `${(i * 37) % 90 + 3}%`, left: `${(i * 53) % 92 + 2}%`,
+              fontSize: 6 + (i % 3) * 3, color:'#fff', opacity: 0.5 + (i % 4) * 0.12,
+              animation:`mg-spark-blink ${1.6 + (i % 5) * 0.4}s ease-in-out ${(i % 6) * 0.3}s infinite`,
+            }}>✦</span>
+          ))}
+          <div style={{ fontSize:72, animation:'egg-idle 3s ease-in-out infinite' }}>😴🥚</div>
+          <div style={{ fontFamily:'var(--font-thai)', fontSize:15, color:'rgba(255,255,255,0.75)' }}>
+            ไข่หลับอยู่... แตะเพื่อกลับไปเล่นนะ
+          </div>
         </div>
       )}
 
@@ -299,10 +561,14 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
       )}
 
       {/* ── Full-screen room (fills everything above the bottom nav) ─────────── */}
-      <div ref={roomContainerRef} style={{
-        position:'absolute', inset:0, marginBottom:BOTTOM_NAV_H,
-        overflow:'hidden',
-      }}>
+      <div
+        ref={roomContainerRef}
+        onPointerDown={() => { holdTimerRef.current = Date.now() }}
+        style={{
+          position:'absolute', inset:0, marginBottom:BOTTOM_NAV_H,
+          overflow:'hidden',
+        }}
+      >
         {/* The interactive walking-egg room */}
         <DecoratedRoom
           style={{ position:'absolute', inset:0, zIndex:0 }}
@@ -529,6 +795,106 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
         >
           <span style={{ fontSize:30, lineHeight:1 }}>🗺️</span>
         </button>
+
+        {/* 🍎 Food tray toggle — floating, upper-right (SPEC GAME-A §A.1).
+            While a food is armed, tapping this cancels the arm instead of
+            reopening the tray — a cheap escape hatch so an armed food doesn't
+            sit waiting indefinitely if the child changes their mind. */}
+        <button
+          onClick={() => {
+            playTone('tap')
+            if (armedFood) { setArmedFood(null); return }
+            setFoodTrayOpen(o => !o)
+          }}
+          aria-label="ให้อาหารไข่"
+          style={{
+            position:'absolute', top:96, right:14, zIndex:10,
+            width:54, height:54, borderRadius:'50%', padding:0,
+            background: armedFood ? 'rgba(242,184,56,0.35)' : 'rgba(10,8,22,0.60)',
+            backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+            border: armedFood ? '2px solid rgba(242,184,56,0.95)' : '2px solid rgba(124,191,90,0.85)',
+            boxShadow:'0 3px 10px rgba(0,0,0,0.5)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+          }}
+        >
+          <span style={{ fontSize:28, lineHeight:1 }}>🍎</span>
+        </button>
+
+        {/* Food tray panel — tap a food to arm it, then tap the egg to feed */}
+        {foodTrayOpen && (
+          <div style={{
+            position:'absolute', top:156, right:14, zIndex:11,
+            background:'rgba(10,8,22,0.85)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+            border:'1px solid rgba(255,255,255,0.18)', borderRadius:16,
+            padding:10, display:'grid', gridTemplateColumns:'repeat(3, 44px)', gap:8,
+            boxShadow:'0 6px 18px rgba(0,0,0,0.5)',
+          }}>
+            {Object.entries(FOOD_CATALOG).map(([key, food]) => {
+              const count = state.eggCare?.foodInventory?.[key] || 0
+              const isArmed = armedFood === key
+              return (
+                <button
+                  key={key}
+                  disabled={count <= 0}
+                  onClick={() => {
+                    if (count <= 0) return
+                    playTone('tap')
+                    setArmedFood(key)
+                    setFoodTrayOpen(false)
+                    showToast('แตะที่ไข่เพื่อป้อนอาหาร!')
+                  }}
+                  style={{
+                    position:'relative', width:44, height:44, borderRadius:10, padding:0,
+                    background: isArmed ? 'rgba(242,184,56,0.35)' : 'rgba(255,255,255,0.08)',
+                    border: isArmed ? '2px solid #F2B838' : '1px solid rgba(255,255,255,0.18)',
+                    opacity: count > 0 ? 1 : 0.35,
+                    cursor: count > 0 ? 'pointer' : 'default',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                  }}
+                >
+                  <span style={{ fontSize:22, lineHeight:1 }}>{food.emoji}</span>
+                  {count > 0 && (
+                    <span className="px-badge" style={{ position:'absolute', bottom:-4, right:-4, fontSize:8 }}>{count}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Feed reaction float (chomp/favorite/overfed) — anchors over the follow layer's egg position */}
+        {feedReaction && (
+          <div key={`fr-${feedReaction.id}`} style={{
+            position:'fixed', left:'50%', bottom:260, transform:'translateX(-50%)',
+            zIndex:500, pointerEvents:'none', textAlign:'center',
+            animation:'dmg-float 1.3s ease-out forwards',
+          }}>
+            <div style={{ fontSize:26 }}>{feedReaction.emoji}</div>
+            <div style={{ fontFamily:'var(--font-thai)', fontSize:12, color:'#fff', fontWeight:700, textShadow:'0 1px 4px rgba(0,0,0,0.7)' }}>
+              {feedReaction.text}
+            </div>
+          </div>
+        )}
+
+        {/* 😴 Sleep indicator (quiet hours) — tap to peek at the full sleep scene.
+            SPEC GAME-A §A.1: modeling healthy screen habits, never enforcement
+            (playing is still fully allowed — this is purely a gentle visual cue). */}
+        {quietHours && !sleepSceneOpen && (
+          <button
+            onClick={() => setSleepSceneOpen(true)}
+            aria-label="ไข่กำลังง่วงนอน"
+            style={{
+              position:'absolute', top:156, left:14, zIndex:10,
+              width:44, height:44, borderRadius:'50%', padding:0,
+              background:'rgba(20,20,50,0.55)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)',
+              border:'2px solid rgba(150,150,220,0.5)',
+              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+              animation:'egg-idle 3s ease-in-out infinite',
+            }}
+          >
+            <span style={{ fontSize:22, lineHeight:1 }}>😴</span>
+          </button>
+        )}
 
         {/* Item cluster (🍗🎀👟⭐) — floating, lower-left, 2×2 */}
         <div style={{

@@ -4,6 +4,7 @@ import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import EggCanvas from './EggCanvas.jsx'
 import { playSFX, playTone, playBGM, stopBGM } from '../lib/audio.js'
+import { FOOD_CATALOG } from '../lib/eggCare.js'
 
 // Clearance for the fixed .px-bottom-nav rendered by App.jsx (matches Room.jsx).
 const BOTTOM_NAV_H = 80
@@ -307,6 +308,7 @@ export default function Collection({ navigate }) {
   const owned    = state.ownedItems ?? []
   const equipped = state.equipped ?? { head: null, face: null }
   const stage    = eggProgressData?.stage ?? 1
+  const foodInventory = state.eggCare?.foodInventory ?? {}
 
   const activeEgg = (state.hatchedEggs ?? []).find(e => e.id === state.party?.[0]) ?? state.hatchedEggs?.[0]
   const eggLevel  = activeEgg?.battleLevel ?? 1
@@ -362,13 +364,30 @@ export default function Collection({ navigate }) {
     }
   }
 
-  const items = slot === 'head' ? HEAD_ITEMS : FACE_ITEMS
-  const selectedItem = preview ? COSMETIC_ITEMS.find(i => i.id === preview.id) : null
+  // ── Food tab (SPEC GAME-A §A.1) — a genuinely different transaction shape
+  // from the cosmetics above (stackable/repeatable "buy 1 more", never worn/
+  // equipped), so it deliberately bypasses the preview/CTA try-on machinery
+  // entirely rather than shoehorning it in. Tapping a card buys instantly (no
+  // confirm step), same low-friction pattern this project already uses for
+  // Room.jsx's instant-craft sheet.
+  function handleBuyFood(foodKey) {
+    const entry = FOOD_CATALOG[foodKey]
+    if (coins < entry.price) { showToast('เหรียญไม่พอ!'); return }
+    dispatch({ type: ACTIONS.BUY_FOOD_ITEM, payload: { food: foodKey } })
+    playSFX('coin_purchase')
+    playTone('tap')
+    showToast(`ได้รับ ${entry.emoji} ${entry.nameTh}!`)
+  }
+
+  const isFoodTab = slot === 'food'
+  const items = slot === 'head' ? HEAD_ITEMS : slot === 'face' ? FACE_ITEMS : []
+  const selectedItem = (!isFoodTab && preview) ? COSMETIC_ITEMS.find(i => i.id === preview.id) : null
   // Show the "trying on" tag only when the egg is wearing something that differs
   // from what's really equipped in that slot (a genuine try-on).
   const showTryTag = selectedItem && equipped[selectedItem.slot] !== selectedItem.id
 
-  // Bottom CTA descriptor derived from the selected item's state.
+  // Bottom CTA descriptor derived from the selected item's state. Not shown
+  // at all on the food tab — food buys instantly per-card, no confirm step.
   let cta
   if (!selectedItem) {
     cta = { label: '👀 แตะเพื่อลองใส่', disabled: true }
@@ -479,7 +498,7 @@ export default function Collection({ navigate }) {
         </div>
       </div>
 
-      {/* Slot switcher — 🎩 หัว / 😎 หน้า */}
+      {/* Slot switcher — 🎩 หัว / 😎 หน้า / 🍎 ของกิน (SPEC GAME-A §A.1) */}
       <div style={{
         display: 'flex', gap: 10, flexShrink: 0,
         padding: '12px 16px 8px',
@@ -487,6 +506,7 @@ export default function Collection({ navigate }) {
         {[
           { key: 'head', label: 'หัว', icon: '🎩' },
           { key: 'face', label: 'หน้า', icon: '😎' },
+          { key: 'food', label: 'ของกิน', icon: '🍎' },
         ].map(({ key, label, icon }) => {
           const active = slot === key
           return (
@@ -518,8 +538,64 @@ export default function Collection({ navigate }) {
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
         padding: '6px 14px',
-        paddingBottom: BOTTOM_NAV_H + 90,
+        paddingBottom: BOTTOM_NAV_H + (isFoodTab ? 24 : 90),
       }}>
+        {isFoodTab ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {Object.entries(FOOD_CATALOG).map(([key, food]) => {
+              const canAfford = coins >= food.price
+              const owned = foodInventory[key] || 0
+              return (
+                <div
+                  key={key}
+                  onClick={() => handleBuyFood(key)}
+                  style={{
+                    position: 'relative', cursor: 'pointer', minHeight: 96,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                    background: '#ffffff', border: '1px solid rgba(91,70,54,0.14)', borderRadius: 16,
+                    padding: '12px 6px 9px', boxShadow: '0 2px 6px rgba(120,90,60,0.1)',
+                  }}
+                >
+                  {/* Owned-count badge (top-left) — how many the child already has */}
+                  {owned > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -7, left: -7, zIndex: 2,
+                      minWidth: 22, height: 22, padding: '0 5px', borderRadius: 11,
+                      background: '#7CBF5A', color: '#fff', fontSize: 11, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+                    }}>
+                      ×{owned}
+                    </span>
+                  )}
+                  {/* Coin price badge (bottom-right) — every food is always buyable (stackable) */}
+                  <span style={{
+                    position: 'absolute', bottom: -6, right: -6, zIndex: 2,
+                    display: 'inline-flex', alignItems: 'center', gap: 2,
+                    background: canAfford ? '#F2B838' : 'rgba(120,100,90,0.9)',
+                    color: '#fff', borderRadius: 20, padding: '2px 8px',
+                    fontFamily: 'var(--font-pixel)', fontSize: 8, letterSpacing: 0.5,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
+                  }}>
+                    🪙{food.price}
+                  </span>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ fontSize: 44, lineHeight: 1, filter: canAfford ? 'none' : 'grayscale(0.6) opacity(0.7)' }}>{food.emoji}</div>
+                  </div>
+                  <div style={{
+                    width: '100%', textAlign: 'center',
+                    fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
+                    color: '#5b4636', lineHeight: 1.2,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {food.nameTh}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {items.map(item => {
             const owned_    = isOwned(item)
@@ -613,19 +689,22 @@ export default function Collection({ navigate }) {
             )
           })}
         </div>
+        )}
       </div>
 
       {/* Fade so a scrolled-up row doesn't hard-cut under the floating CTA —
           without this, on shorter viewports the initial (unscrolled) grid can
-          show a card row overlapping the button with a jarring flat edge. */}
-      <div style={{
+          show a card row overlapping the button with a jarring flat edge.
+          Not needed on the food tab — there's no floating CTA to fade into. */}
+      {!isFoodTab && <div style={{
         position: 'fixed', left: 0, right: 0, bottom: BOTTOM_NAV_H, zIndex: 35,
         height: 96, pointerEvents: 'none',
         background: 'linear-gradient(to bottom, rgba(253,241,227,0) 0%, rgba(253,241,227,0.88) 55%, rgba(253,241,227,1) 100%)',
-      }} />
+      }} />}
 
-      {/* Bottom CTA — single confirm action for the selected item */}
-      <button
+      {/* Bottom CTA — single confirm action for the selected item. Food buys
+          instantly per-card (see handleBuyFood), so this is cosmetics-only. */}
+      {!isFoodTab && <button
         onClick={cta.disabled ? undefined : handleCTA}
         disabled={!!cta.disabled}
         style={{
@@ -645,7 +724,7 @@ export default function Collection({ navigate }) {
         }}
       >
         {cta.label}
-      </button>
+      </button>}
 
       {/* Toast notification */}
       {toast && (

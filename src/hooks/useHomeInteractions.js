@@ -39,6 +39,12 @@ export function useHomeInteractions({
 
   const handlePetEgg = () => {
     if (readyToHatch && eggsHatched === 0) { dispatch({ type: ACTIONS.SET_HATCHING, payload: true }); return }
+    // SPEC GAME-A §A.1 "Touch play" — poke is the existing gesture this
+    // reducer call covers; the +2/day-capped happiness grant + small energy
+    // cost are handled entirely inside PET_EGG's reducer (applyPetEgg/
+    // applyPlayTouch in eggCare.js), so dispatching on every poke here is
+    // safe even well past the daily cap (extra dispatches become no-ops).
+    dispatch({ type: ACTIONS.PET_EGG })
     const sm = smRef.current
     sm.comboCount += 1
     const n = sm.comboCount
@@ -150,6 +156,11 @@ export function useHomeInteractions({
   }
 
   const handleCreatureSwipe = () => {
+    // SPEC GAME-A §A.1 "Touch play" — stroke (drag across). Dispatched on
+    // every swipe tick, not just the every-3rd bond-reward cadence below;
+    // the daily happiness cap inside PET_EGG's reducer makes extra calls
+    // harmless no-ops once reached.
+    dispatch({ type: ACTIONS.PET_EGG })
     swipeCountRef.current++
     if (swipeCountRef.current >= 3) {
       swipeCountRef.current = 0

@@ -1,5 +1,101 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — SPEC GAME-A §A.1: Egg Care Loop (feeding, energy, happiness)
+
+First section of SPEC GAME-A ("Egg Life System"). Same direct-session
+style as the Learning Core Overhaul (staged commits, pure-function
+extraction for testable logic, scripted traces where live verification
+isn't possible). eggAlgorithm.js untouched throughout, per the spec's
+own instruction — everything here is draw-layer/state only.
+
+### New: `src/lib/eggCare.js`
+- Pure logic (no React), same pattern as `questionBank.js`/
+  `placementTest.js`/`teachingMoments.js`. `computeCareTick()` is the
+  single source of truth for hunger/happiness decay — both from real
+  elapsed wall-clock hours since `lastCareTick`, floored at 20/30.
+  Verified against the spec's own literal acceptance test: a faked 26h
+  gap lands hunger exactly at its floor (100 − 26×4 = −4 → clamped to
+  20), never below.
+- energy deliberately NOT wall-clock-based — consumed by actual
+  touch-play interactions/gameplay sessions instead, per the spec's
+  "decays 6/hour during PLAY time only" wording and this codebase
+  having no existing foreground/background tracker to hook into safely
+  (flagged for Chatbot as a judgment call on ambiguous spec wording).
+- Daily wake-up (energy→100 + 1 food gift) and the touch-happiness cap
+  (+20/day) use the established `todayStr()` calendar-day convention.
+- **Terminology correction** (same class as Phase 1's `english`→`eng`
+  bug): the spec's favorite-food-per-element list doesn't match any
+  element this codebase produces (real elements: fire/water/thunder/
+  nature/shadow/light). Remapped 1:1, no collisions: fire→cookie,
+  water→milk, thunder→sushi, nature→apple, light→cake, shadow→rice.
+- `pendingWakeUp`/`pendingComebackJoy` are one-shot events, same
+  convention as `pendingNodeMastery`/`pendingTeaching`.
+  `pendingComebackJoy` (24h) is additive to, not a replacement for, the
+  pre-existing shorter-gap (4h) ambient reunion burst in
+  `useHomeAmbience.js`.
+- `src/lib/__tests__/eggCare.test.js` (14 tests) including the spec's
+  literal 26h-gap test. Caught a false-positive in the committed
+  guilt-string tripwire test while writing it (matched a doc-comment
+  describing the guardrail, not a real string) — fixed by scoping the
+  check to actual quoted string literals with comments stripped first.
+
+### `src/lib/state.js` / `src/context/StateContext.jsx`
+- `defaultState()` gains `eggCare`. `hasRealProgress()` protects only
+  the two one-shot events (same reasoning as `pendingTeaching`).
+  `validateState()` gets a dedicated eggCare repair block.
+- New `TICK_CARE`/`FEED_EGG`/`PET_EGG`/`PLAY_TOUCH_GAME`/
+  `CLEAR_PENDING_WAKE_UP`/`CLEAR_PENDING_COMEBACK_JOY`/`BUY_FOOD_ITEM`
+  reducers. `FEED_EGG` surfaces its result via a transient `_feedResult`
+  signal (same pattern as the existing `_dailyLoginBonus`).
+- 2 new `resolveSync.test.js` regressions: a pending wake-up/comeback-joy
+  event is never wiped by a stale blank remote (both directions), and
+  `validateState()` repairs corrupted eggCare fields while preserving
+  valid values and legitimate nulls.
+
+### `src/components/Collection.jsx`
+- New 3rd "ของกิน" (food) tab — bypasses the cosmetic try-on/CTA
+  machinery entirely (a genuinely different, stackable transaction
+  shape); tapping a food card buys instantly, no confirm step.
+
+### `src/components/Home.jsx` + `src/hooks/useHomeInteractions.js`
+- TICK_CARE dispatched on mount + every 5 minutes.
+- Food tray (🍎 toggle + panel): arm-then-tap-egg feeding — a
+  documented simplification of the spec's literal "drag food onto egg,"
+  reusing this project's already-shipped arm-then-tap pattern instead of
+  building new drag-and-drop touch physics. Tapping the tray button
+  while armed cancels the arm.
+- Feed reactions (overfed/favorite-hearts-burst/plain) consume the
+  reducer's `_feedResult` signal.
+- Touch-play extensions layered additively on `DecoratedRoom.jsx`'s
+  existing tap/swipe hit-testing WITHOUT modifying it (verified no
+  `stopPropagation`/pointerdown conflicts): two-finger tickle
+  (wrapper-level `touchstart`), shake (`devicemotion`, feature-detected),
+  hold-1s (wrapper `onPointerDown` timestamp composed with
+  `DecoratedRoom`'s own click-based tap).
+- The pre-existing poke/stroke gestures now also dispatch `PET_EGG` —
+  without this they wouldn't feed the new touch-happiness system at all.
+- `PLAY_TOUCH_GAME` wired into `launchRandomMinigame` (session-based
+  energy cost, distinct from `PET_EGG`'s per-gesture cost).
+- Morning wake-up scene + long-absence comeback-joy scene, both
+  one-shot and consumed/cleared via the new reducer actions.
+- Sleep scene: quiet hours (19:30-07:00, device-local time only — no
+  `parentControls.quietHours` system exists yet, flagged for Chatbot) —
+  small tap-to-peek indicator + full dim/stars/breathing-egg overlay
+  with a lullaby loop reusing the existing `playCreatureSound('sleep')`
+  moment (a deliberate scope simplification vs. composing a new BGM
+  track — full musical polish is §A.3 territory). Playing remains fully
+  allowed during quiet hours; visual cue only, never enforcement.
+
+### Verified
+Targeted guilt-string grep across every file this spec touched came
+back clean (one expected hit: the already-tested doc-comment in
+eggCare.js describing the guardrail). `npm run build` clean; `npm test`
+57/57 pass (43 pre-existing + 14 new eggCare tests + 2 new resolveSync
+tests). No live browser/device session this run — the actual UI (feed
+animations, touch gestures, devicemotion shake, sleep scene) was never
+exercised on a real device; flagged as the follow-up that needs a
+device, not a decision.
+
 ## 2026-07-09 — Learning Core Overhaul §1.4: Speaking & Reading-Aloud Mode
 
 Same direct-session style as §1.1-§1.3. Executes the final section of the

@@ -147,6 +147,39 @@ test('C.1: validateState repairs minor corruption without a restore', () => {
   assert.deepEqual(s.equipped, { head: null, face: null }, 'equipped rebuilt')
 })
 
+// ── Phase 1.1 curriculum system — skillMastery/activeNodes protection ───────
+// Same class of bug as Scenario 2 above, for the new curriculum fields added
+// in Phase 1.1: a device with real skillMastery progress (attempts recorded,
+// a node already mastered) and activeNodes advanced past the subject's first
+// node must never lose that to a stale/blank remote sync, even when the local
+// side's timestamp looks "older" on paper.
+test('regression: local skillMastery/activeNodes progress is never wiped by a stale blank remote', () => {
+  const localWithProgress = {
+    ...defaultState(),
+    lastSavedAt: 1000, // older timestamp than remote below
+    activeNodes: { thai: 'th_vowels_short', math: 'math_add_under_10', english: 'eng_phonics_cvc' },
+    skillMastery: {
+      th_consonants_1: { attempts: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], ema: 0.95, mastered: true, masteredAt: 5000 },
+      th_consonants_2: { attempts: [1, 0, 1, 1], ema: 0.6, mastered: false, masteredAt: null },
+    },
+  }
+  const remoteBlank = {
+    ...defaultState(),
+    lastSavedAt: 9000, // newer timestamp, but genuinely untouched defaults
+  }
+  assert.equal(hasRealProgress(localWithProgress), true, 'mastered node + advanced activeNodes must count as real progress')
+  assert.equal(hasRealProgress(remoteBlank), false, 'untouched default (first node, empty skillMastery) has no real progress')
+
+  const { winner, remoteWon } = resolveSync(localWithProgress, remoteBlank)
+  assert.equal(remoteWon, false, 'local curriculum progress must beat a newer-but-blank remote')
+  assert.equal(winner.skillMastery.th_consonants_1.mastered, true)
+  assert.equal(winner.activeNodes.thai, 'th_vowels_short')
+
+  // And the mirror case: remote genuinely has curriculum progress, local is blank.
+  const r2 = resolveSync(remoteBlank, localWithProgress)
+  assert.equal(r2.remoteWon, true, 'remote curriculum progress must beat a blank local')
+})
+
 // The backup ring never grows past 3 and keeps the newest.
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()

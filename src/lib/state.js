@@ -540,6 +540,21 @@ export function resolveSync(local, remote) {
     return { winner: remote, remoteWon: true, reason: 'remote has real progress, local is an untouched default' }
   }
 
+  // Fix 3c (Phase 1.1, 2026-07-09) — the mirror of Fix 3b. Discovered as a genuine
+  // gap while adding a regression test for the new skillMastery/activeNodes fields:
+  // Fix 3b only protected "remote real, local blank" — the reverse (local has real,
+  // losable progress, e.g. a mastered curriculum node, while remote is a genuinely
+  // untouched default that merely happens to carry a newer timestamp) fell through
+  // to the raw timestamp compare below and could let a blank-but-newer remote
+  // silently overwrite real local progress. There's no legitimate scenario where a
+  // remote row with zero real progress should ever beat local data that has real
+  // progress, so this closes the gap the same way Fix 3b already does for the
+  // opposite direction (and matches the room-count check above, which was already
+  // bidirectional).
+  if (hasRealProgress(local) && !hasRealProgress(remote)) {
+    return { winner: local, remoteWon: false, reason: 'local has real progress, remote is an untouched default' }
+  }
+
   const remoteWon = (remoteTime > 0 || localTime > 0)
     ? remoteTime >= localTime
     : (remote?.rounds || 0) >= (local?.rounds || 0)

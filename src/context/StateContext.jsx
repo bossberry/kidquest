@@ -210,7 +210,15 @@ function applyRoomLayoutChange(state, roomId, newLayout) {
 //
 // alpha=0.3 EMA smoothing is a reasonable default (not a graded requirement
 // per the spec) — weights the most recent ~3-4 answers most heavily while
-// still remembering longer-run performance.
+// still remembering longer-run performance. Always blends from the PRIOR ema
+// (starting at 0 for a brand-new node), never a "cold start = this attempt's
+// raw result" special case — that special case was tried first and caught by
+// this session's own manual trace: it set ema=1 after a single lucky correct
+// answer on a fresh node (since there was no prior attempt to blend against),
+// which would satisfy `ema > masteryThreshold` and instantly "master" a node
+// off one answer. Blending from 0 instead means ema only crosses a 0.8
+// threshold after ~5 consecutive correct answers, which is what "recent
+// performance" mastery is supposed to measure.
 const MASTERY_EMA_ALPHA = 0.3
 
 function applyAnswerToMastery(state, subject, nodeId, correct) {
@@ -220,9 +228,7 @@ function applyAnswerToMastery(state, subject, nodeId, correct) {
 
   const prevRecord = state.skillMastery?.[nodeId] ?? { attempts: [], ema: 0, mastered: false, masteredAt: null }
   const attempts = [...(prevRecord.attempts || []), correct ? 1 : 0].slice(-10)
-  const ema = prevRecord.attempts?.length
-    ? prevRecord.ema * (1 - MASTERY_EMA_ALPHA) + (correct ? 1 : 0) * MASTERY_EMA_ALPHA
-    : (correct ? 1 : 0)
+  const ema = (prevRecord.ema || 0) * (1 - MASTERY_EMA_ALPHA) + (correct ? 1 : 0) * MASTERY_EMA_ALPHA
   const sum = attempts.reduce((a, b) => a + b, 0)
   const wasMastered = !!prevRecord.mastered
   const isMastered = wasMastered || (attempts.length >= 10 && sum >= 8) || ema > node.masteryThreshold

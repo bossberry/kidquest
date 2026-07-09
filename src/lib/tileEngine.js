@@ -1197,7 +1197,9 @@ export function renderMapPandora(ctx, tileMap, camX, camY, frame = 0, extraEntit
   }
 
   standing.sort((a, b) => a.y - b.y)
-  standing.forEach(s => s.draw())
+  // Per-entity guard (C.2): one bad enemy/chest/collectible/player draw must not
+  // kill the whole map frame — skip+log it and keep rendering the rest.
+  standing.forEach(s => { try { s.draw() } catch (e) { console.error('[world] entity draw failed:', e) } })
 
   // Warm ambient sunlight wash (2026-07-05) — the map read flat/overcast
   // without it; a very faint warm tint over the whole frame (ground, trees,

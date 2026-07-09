@@ -24,6 +24,7 @@ import LoginBackdrop from './components/LoginBackdrop.jsx'
 import FriendsScreen from './components/FriendsScreen.jsx'
 import CompanionCreation from './components/CompanionCreation.jsx'
 import Room from './components/Room.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -119,22 +120,26 @@ export default function App() {
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       <ResetPasswordModal />
 
-      {/* Screens */}
-      {screen === 'home' && (
-        <Home
-          navigate={navigate}
-          onOpenEggPopup={() => setEggPopupOpen(true)}
-          onOpenLogin={() => setLoginOpen(true)}
-          onOpenProfile={() => setProfileOpen(true)}
-        />
-      )}
-      {screen === 'collection' && <Collection navigate={navigate} />}
-      {screen === 'room' && <Room navigate={navigate} />}
-      {screen === 'report' && <Report />}
-      {screen === 'game' && <GameScreen navigate={navigate} />}
-      {screen === 'world' && <WorldScreen navigate={navigate} />}
-      {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
-      {screen === 'friends' && <FriendsScreen />}
+      {/* Screens — each wrapped in its own ErrorBoundary (keyed by screen) so a
+          crash in one screen never white-screens the whole app; the boundary
+          resets automatically when the child navigates to a different screen. */}
+      <ErrorBoundary key={screen} name={screen}>
+        {screen === 'home' && (
+          <Home
+            navigate={navigate}
+            onOpenEggPopup={() => setEggPopupOpen(true)}
+            onOpenLogin={() => setLoginOpen(true)}
+            onOpenProfile={() => setProfileOpen(true)}
+          />
+        )}
+        {screen === 'collection' && <Collection navigate={navigate} />}
+        {screen === 'room' && <Room navigate={navigate} />}
+        {screen === 'report' && <Report />}
+        {screen === 'game' && <GameScreen navigate={navigate} />}
+        {screen === 'world' && <WorldScreen navigate={navigate} />}
+        {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
+        {screen === 'friends' && <FriendsScreen />}
+      </ErrorBoundary>
 
       {/* Party select overlay — shown when a battle is pending but no creature chosen yet */}
       {state.pendingBattle && !state.battleCreatureId && (

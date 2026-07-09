@@ -636,7 +636,10 @@ function drawFloorFurniture(ctx, g, layout, bounceKey, bounceScale) {
       const p = slotAnchor(g, 'floor', c, r)
       ctx.save()
       if (key === bounceKey) { ctx.translate(p.sx, p.sy); ctx.scale(bounceScale, bounceScale); ctx.translate(-p.sx, -p.sy) }
-      item.draw(ctx, p.sx, p.sy, g.TW)
+      // Per-item guard (C.2): a single throwing/malformed item draw must not kill
+      // the whole room scene — skip it and log, keep drawing the rest.
+      try { item.draw(ctx, p.sx, p.sy, g.TW) }
+      catch (e) { console.error('[room] floor item draw failed:', id, e) }
       ctx.restore()
     }
   }
@@ -666,7 +669,9 @@ function drawWallFurniture(ctx, g, layout, zone, bounceKey, bounceScale) {
       ctx.save()
       ctx.transform(1, skew, 0, 1, p.sx, p.sy)
       if (key === bounceKey) ctx.scale(bounceScale, bounceScale)
-      item.draw(ctx, 0, 0, g.TW)
+      // Per-item guard (C.2) — see drawFloorFurniture.
+      try { item.draw(ctx, 0, 0, g.TW) }
+      catch (e) { console.error('[room] wall item draw failed:', id, e) }
       ctx.restore()
     }
   }

@@ -24,11 +24,18 @@ function startIndexForSubject(subject) {
   return idx >= 0 ? idx : 0
 }
 
+// Escalating jump sizes: first correct-pair jumps +2, second +3, third +4.
+// Capped at 3 uses per subject session — there are only QUESTIONS_PER_SUBJECT
+// (5) questions total, so a 4th tier was never specified and isn't needed in
+// practice (see the trace math in the comment on recordPlacementAnswer below).
+const JUMP_SIZES = [2, 3, 4]
+
 export function createPlacementSession(subject) {
   return {
     subject,
     idx: startIndexForSubject(subject),
     correctStreak: 0,
+    jumpsUsed: 0, // how many escalating jumps have fired this subject (caps at JUMP_SIZES.length)
     highestCorrectIdx: -1, // -1 = no correct answer yet this subject
     questionsAsked: 0,
   }
@@ -39,33 +46,44 @@ export function currentPlacementQuestion(session) {
   return generateQuestion(node, PLACEMENT_DIFFICULTY)
 }
 
-// Binary-search-style adaptive step, per spec: correct 2-in-a-row -> jump up 2
-// nodes (streak then resets, so a run of exactly 2 correct produces exactly
-// one jump); any wrong answer -> drop 1 node immediately (no streak
-// requirement for the down direction — a single miss is enough signal that
-// the current node is too hard). Both directions clamp to the subject's
-// node-list bounds. A single correct answer that doesn't complete a streak of
-// 2 holds position (asks again at the same node) rather than nudging up by 1
-// — the spec only specifies movement on the 2-in-a-row/wrong conditions, so a
-// lone correct is treated as "not yet enough evidence to move."
+// Binary-search-style adaptive step with ESCALATING jumps (revised per explicit
+// user feedback on the original flat +2/-1 version, which only reached +4-5
+// nodes above the K3 start in an all-correct run — too conservative to
+// differentiate a clearly-advanced child within just 5 questions).
+//
+// Once a 2-answer correct streak is established, EVERY further correct answer
+// in that streak (not only a fresh, separate pair) triggers the next
+// escalation tier immediately — this is what makes the target math work out:
+// an all-correct run asks Q1 (streak 1, no jump yet) / Q2 (streak 2 -> jump
+// #1, +2) / Q3 (streak 3, still "in a streak" -> jump #2, +3) / Q4 (streak 4
+// -> jump #3, +4) / Q5 (streak 5, but jumpsUsed already hit the 3-jump cap ->
+// no further jump). Total displacement = 2+3+4 = +9 nodes above the K3 start,
+// landing ~2-3 grade levels up for a child who answers everything right.
+// Any wrong answer resets BOTH correctStreak and jumpsUsed to 0 (drops the
+// child back to the first escalation tier next time a streak re-forms) and
+// moves down 1 node immediately — a single miss is enough signal that the
+// current node is too hard, no streak requirement for the down direction.
+// Both directions clamp to the subject's node-list bounds.
 export function recordPlacementAnswer(session, correct) {
   const list = CURRICULUM[session.subject].nodes
-  let { idx, correctStreak, highestCorrectIdx } = session
+  let { idx, correctStreak, jumpsUsed, highestCorrectIdx } = session
   if (correct) {
     if (idx > highestCorrectIdx) highestCorrectIdx = idx
     correctStreak += 1
-    if (correctStreak >= 2) {
-      idx = Math.min(list.length - 1, idx + 2)
-      correctStreak = 0
+    if (correctStreak >= 2 && jumpsUsed < JUMP_SIZES.length) {
+      idx = Math.min(list.length - 1, idx + JUMP_SIZES[jumpsUsed])
+      jumpsUsed += 1
     }
   } else {
     correctStreak = 0
+    jumpsUsed = 0
     idx = Math.max(0, idx - 1)
   }
   return {
     ...session,
     idx,
     correctStreak,
+    jumpsUsed,
     highestCorrectIdx,
     questionsAsked: session.questionsAsked + 1,
   }

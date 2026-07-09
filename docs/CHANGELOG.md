@@ -1,5 +1,30 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Placement test: escalating jump ceiling (+2/+3/+4 instead of flat +2)
+
+Small follow-up per explicit feedback on §1.2: the original flat +2-per-pair/
+-1 scheme only let an all-correct run reach 4-5 nodes above the K3 start in 5
+questions — not enough to differentiate a clearly-advanced child. Revised
+`src/lib/placementTest.js`'s `recordPlacementAnswer`: once a 2-answer correct
+streak is established, every further correct answer in that streak triggers
+the next escalation tier (+2, then +3, then +4 — capped at 3 jumps/subject,
+since there are only 5 questions total). Any wrong answer still drops 1 node
+immediately AND now also resets the escalation ladder back to tier 1 (not
+just the streak counter).
+
+Re-ran all the original scripted traces (all-correct/all-wrong/mixed, all 3
+subjects) plus 2 new ones (reset-mid-escalation, wrong-after-2-jumps) —
+all-correct now lands exactly +9 above the K3 start in every subject
+(2+3+4 = 9); all-wrong still clamps correctly; a wrong answer mid-escalation
+correctly drops the jump-tier counter back to 0, not just the streak.
+
+Also added a proper committed regression suite,
+`src/lib/__tests__/placementTest.test.js` (4 tests, Node's built-in runner)
+— the original verification was ad hoc scripts only, not committed test
+coverage.
+
+Build clean, 13/13 tests pass (9 pre-existing + 4 new).
+
 ## 2026-07-09 — Learning Core Overhaul §1.2: adaptive placement test
 
 Continuation of the same direct-session style as §1.1 (staged commits, no

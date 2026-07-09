@@ -1,5 +1,87 @@
 # Changelog — KidQuest
 
+## 2026-07-09 — Learning Core Overhaul §1.3: teaching moments ("Adaptive Engine v2")
+
+Same direct-session style as §1.1/§1.2 (staged commits, no subagent).
+Executed section 1.3 only; §1.4 (Speaking & Reading-Aloud) remains a future
+session.
+
+### New: `src/lib/teachingMoments.js`
+- `TEACHING_TEMPLATES` (12 total, built on `wordPools.js` content per
+  instruction): math count/add/sub/multiplication/division (counting/
+  skip-counting/sharing visuals), `th_consonant_confusion` (`TH_CONFUSABLE_PAIRS`,
+  featuring the exact ผ/พ pair the spec named), `th_vowel_length`
+  (`TH_VOWELS_SHORT`/`LONG`), `th_tone` (`TH_TONE_SETS`), `th_cvc_blending`
+  (`TH_CVC_WORDS`), `eng_alphabet`, `eng_phonics_cvc` (`ENG_CVC`), and a
+  `generic_fallback` catch-all so all 43 curriculum nodes resolve to
+  something via `getTeachingTemplate(nodeId)`.
+- `recordMissForTeaching()`/`clearTeaching()` — kept as pure functions
+  separate from the JSX reducer (unlike §1.1's mastery bookkeeping, which
+  stayed inline in `StateContext.jsx` and could only be manually traced,
+  never automated-tested). 3 consecutive misses on the same `(nodeId,
+  questionType)` pair triggers `pendingTeaching`; correct answers reset the
+  streak; only one pending at a time; clearing resets that node+type's
+  streak to 0, guaranteeing it can never fire twice in a row.
+- Verified via a committed regression suite (6 tests) plus a full
+  end-to-end script exercising every one of the 12 templates' real node
+  resolution + practice-question generation.
+
+### New: `src/components/TeachingMoment.jsx` + `TeachingVisual.jsx`
+- Full-screen egg-as-teacher overlay (🥚🤓), NOT battle UI. Explain phase
+  (animated visual + explanation) → practice phase (one easiest-difficulty
+  question, hint always visible). Correct → clears with encouragement.
+  Wrong → repeats the explanation once, then clears anyway regardless
+  (`MAX_EXPLANATION_LOOPS = 2`, never traps the child).
+- `TeachingVisual.jsx`: one small CSS-transition/interval-driven staged
+  reveal per template (counting sequences, skip-counting groups, sharing
+  into groups, confusable-pair contrast, vowel-length contrast, tone
+  contrast, letter-by-letter blending, a big-letter reveal, generic).
+
+### Refactor: `src/components/battle/QuestionRenderer.jsx`
+- Extracted from `PlacementQuest.jsx` (§1.2) so both it and
+  `TeachingMoment.jsx` share the same input-mode-dispatch question
+  rendering instead of duplicating it. `PlacementQuest.jsx` updated to use
+  the shared component, no behavior change.
+
+### `src/lib/curriculum.js`
+- New `findNodeAnywhere(nodeId)` — teaching triggers only carry a bare
+  nodeId (no subject), so this resolves both by searching all 3 subjects.
+
+### `src/components/WorldBattle.jsx`
+- `TeachingMoment` rendered as an *additive* full-screen overlay on top of
+  the still-mounted `MoveSelectBattleMode` — same pattern as the existing
+  `RewardChest` overlay, not a replacement/unmount.
+
+### `src/lib/state.js` / `src/context/StateContext.jsx` / `useBattleCombat.js`
+- `defaultState()` gains `missStreaks: {}`, `pendingTeaching: null`.
+  `hasRealProgress()` extended (`pendingTeaching` truthy counts;
+  `missStreaks` itself deliberately excluded — losing a lone streak
+  counter to a sync is harmless). `validateState()` repairs corrupted
+  `missStreaks` and wrong-typed `pendingTeaching` garbage without
+  coercing a legitimate `null` to `{}`.
+- `LOG_BATTLE_ANSWER` (still the same reducer case, not duplicated) now
+  also calls `recordMissForTeaching()`, gated by the same
+  `countsForMastery !== false` check as the mastery bookkeeping beside it.
+  New `CLEAR_PENDING_TEACHING` action.
+- `useBattleCombat.js`'s two `LOG_BATTLE_ANSWER` dispatches now also
+  thread `q.inputMode` through.
+
+### Tests
+- `src/lib/__tests__/teachingMoments.test.js` (new, 6 tests): 3-miss
+  trigger, correct-answer streak reset, clear-resets-streak, only-one-
+  pending-at-a-time, the 2-loop cap, and all 43 nodes resolving to a
+  template.
+- `resolveSync.test.js`: 2 new tests — a pending teaching moment is never
+  wiped by a stale blank remote (reuses the existing Fix 3c guard), and
+  `validateState()` leaves a legitimate null `pendingTeaching` untouched
+  while still repairing corrupted `missStreaks`.
+
+### Verified
+`npm run build` clean; `npm test` 21/21 pass. No live browser session
+this run (same constraint as §1.1/§1.2) — the actual overlay UI was
+never rendered in a browser, only its trigger/template logic verified
+via script.
+
 ## 2026-07-09 — Placement test: escalating jump ceiling (+2/+3/+4 instead of flat +2)
 
 Small follow-up per explicit feedback on §1.2: the original flat +2-per-pair/

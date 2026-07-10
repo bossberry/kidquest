@@ -2,11 +2,12 @@ import React, { useRef, useEffect } from 'react'
 import { useAppState } from '../context/StateContext.jsx'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import {
-  drawRoomScene, computeRoomGeometry, hitTestZone, slotCenter,
+  drawRoomScene, computeRoomGeometry, hitTestZone, slotCenter, parseSlotKey,
   FLOOR_COLS, FLOOR_ROWS,
 } from '../lib/roomScene.js'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { playSFX } from '../lib/audio.js'
+import { FURNITURE_INTERACTIONS } from '../lib/roomItems.js'
 
 // ── DecoratedRoom — Home's exclusive interactive iso room ─────────────────────
 // Renders the full isometric room (via drawRoomScene) at the container's size and
@@ -47,6 +48,11 @@ function makeEntity(fx, fy) {
     state: 'idle', stateTimer: 60,
     walkStart: 0, walkDur: 0, commanded: false, silent: false,
     facing: 1, jumpY: 0, jumpVel: 0, spinAngle: 0, bounceStart: 0,
+    // SPEC GAME-B §B.2 — furniture interactions: `pendingInteraction` is set
+    // in nextIdleDecision() when a wander target is actually a furniture
+    // item worth interacting with; arrive() consumes it into an
+    // 'interacting' state holding `pose`/`interactionParticle` for a timer.
+    pendingInteraction: null, pose: null, interactionParticle: null,
   }
 }
 
@@ -165,6 +171,10 @@ export default function DecoratedRoom({
       e.silent    = !!opts.silent
       e.facing    = tx >= e.fx ? 1 : -1
       e.state     = 'walk'
+      // A fresh walk (tap-to-walk, item-button command, or a new wander pick)
+      // always supersedes whatever pose an interrupted interaction left behind.
+      e.pose = null
+      e.interactionParticle = null
     }
 
     function pickWander() {
@@ -176,8 +186,53 @@ export default function DecoratedRoom({
       startWalk(p.sx, p.sy, {})
     }
 
+    // SPEC GAME-B §B.2 — "Egg uses furniture more": scans the CURRENT room's
+    // placed floor furniture for anything with a FURNITURE_INTERACTIONS entry
+    // (roomItems.js), weighted-picks one, and resolves its on-screen tile
+    // center via the same slotCenter() the tap-to-walk handler already uses.
+    // Returns null (falls through to normal wander) if the room has none.
+    function pickFurnitureTarget() {
+      const g = geomRef.current?.g
+      const layout = roomLayoutRef.current
+      if (!g || !layout) return null
+      const candidates = []
+      for (const key in layout) {
+        const itemId = layout[key]
+        if (!itemId) continue
+        const parsed = parseSlotKey(key)
+        if (!parsed || parsed.zone !== 'floor') continue
+        const spec = FURNITURE_INTERACTIONS[itemId]
+        if (!spec) continue
+        candidates.push({ spec, a: parsed.a, b: parsed.b })
+      }
+      if (candidates.length === 0) return null
+      const totalWeight = candidates.reduce((s, c) => s + (c.spec.weight || 1), 0)
+      let r = Math.random() * totalWeight
+      for (const c of candidates) {
+        r -= (c.spec.weight || 1)
+        if (r <= 0) {
+          const p = slotCenter(g, 'floor', c.a, c.b)
+          return { sx: p.sx, sy: p.sy, spec: c.spec }
+        }
+      }
+      return null
+    }
+
     function nextIdleDecision(now) {
       const e = entityRef.current
+      // SPEC GAME-B §B.2 — a fraction of the time, walk to a furniture item
+      // and interact with it instead of a pure random wander. Falls through
+      // to the original roll unchanged whenever the room has no eligible
+      // furniture (pickFurnitureTarget returns null) — every pre-existing
+      // idle behavior (wander/look/jump/spin) is untouched.
+      if (Math.random() < 0.25) {
+        const target = pickFurnitureTarget()
+        if (target) {
+          startWalk(target.sx, target.sy, {})
+          e.pendingInteraction = target.spec
+          return
+        }
+      }
       const r = Math.random()
       if (r < 0.60) { pickWander() }
       else if (r < 0.80) { e.state = 'idle'; e.stateTimer = 60 + rand(70) }   // stop & look around
@@ -195,6 +250,18 @@ export default function DecoratedRoom({
         e.bounceStart = now
         e.commanded = false
         e.state = 'idle'; e.stateTimer = 150 + rand(90)
+      } else if (e.pendingInteraction) {
+        // SPEC GAME-B §B.2 — arrived at a furniture target picked in
+        // nextIdleDecision(). Holds the pose for `duration` seconds (frames,
+        // since update() ticks once per rAF frame — the pre-existing
+        // stateTimer convention in this file already counts frames, not ms,
+        // for 'idle'/'jump'/'spin', so this matches).
+        const spec = e.pendingInteraction
+        e.pendingInteraction = null
+        e.pose = spec.pose
+        e.interactionParticle = spec.particle || null
+        e.state = 'interacting'
+        e.stateTimer = Math.round((spec.duration || 3) * 60)
       } else {
         e.state = 'idle'; e.stateTimer = 50 + rand(90)
       }
@@ -215,6 +282,13 @@ export default function DecoratedRoom({
         case 'idle':
           e.stateTimer--
           if (e.stateTimer <= 0) nextIdleDecision(now)
+          break
+        case 'interacting':
+          e.stateTimer--
+          if (e.stateTimer <= 0) {
+            e.pose = null; e.interactionParticle = null
+            e.state = 'idle'; e.stateTimer = 40 + rand(60)
+          }
           break
         case 'jump':
           e.jumpY += e.jumpVel; e.jumpVel += 0.6
@@ -255,6 +329,24 @@ export default function DecoratedRoom({
       if (e.facing < 0 && e.state !== 'spin') ctx.scale(-1, 1)
       ctx.drawImage(off, -SIZE / 2, destY, SIZE, spriteH)
       ctx.restore()
+
+      // SPEC GAME-B §B.2 — "waters plants (new small pose + sparkle)": a
+      // couple of small blue droplets drifting down near the egg while
+      // e.interactionParticle === 'water'. Deliberately outside the save/
+      // restore above (not mirrored by the facing flip) — plain screen-space.
+      if (e.state === 'interacting' && e.interactionParticle === 'water') {
+        const cyc = 700
+        for (let i = 0; i < 2; i++) {
+          const ph = ((now + i * 350) % cyc) / cyc
+          const dx = (i === 0 ? -1 : 1) * SIZE * 0.22
+          const dy = destY + spriteH * 0.55 + ph * spriteH * 0.4
+          ctx.save()
+          ctx.globalAlpha = 1 - ph
+          ctx.fillStyle = '#6ecbff'
+          ctx.fillRect(Math.round(e.fx + dx), Math.round(e.fy + dy), 2, 3)
+          ctx.restore()
+        }
+      }
     }
 
     // Imperative command surface for the parent (item buttons walk the egg over)
@@ -303,19 +395,23 @@ export default function DecoratedRoom({
         if (showWalkerRef.current && entityRef.current && spriteOffRef.current) {
           const now = performance.now()
           const tSec = now / 1000
+          const e = entityRef.current
           const spriteCtx = spriteOffRef.current.getContext('2d')
           spriteCtx.imageSmoothingEnabled = false
           spriteCtx.clearRect(0, 0, spriteOffRef.current.width, spriteOffRef.current.height)
+          // SPEC GAME-B §B.2 — while interacting with a furniture item, the
+          // held pose (see eggPoses.js, e.g. 'sit'/'sleep'/'curious_tilt')
+          // takes over from whatever anim Home.jsx would otherwise pass in.
+          const poseOverride = (e.state === 'interacting' && e.pose) ? e.pose : null
           renderEggSprite(spriteCtx, {
             ...companionRef.current,
-            anim: spriteStateRef.current.anim,
+            anim: poseOverride || spriteStateRef.current.anim,
             mood: spriteStateRef.current.mood,
             t: tSec, canvasSize: SIZE, basePxOverride: SIZE >= 66 ? 3 : 2,
           })
           update(now)
           drawEntity(now)
 
-          const e = entityRef.current
           if (walkerPosRef) walkerPosRef.current = { x: e.fx, y: e.fy }
           if (followRef?.current) {
             followRef.current.style.transform = `translate(${e.fx}px, ${e.fy - SIZE * 0.55}px)`

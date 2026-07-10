@@ -6,6 +6,19 @@ import RoomScene from './RoomScene.jsx'
 import RoomVisit from './RoomVisit.jsx'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
+import { detectFullSet } from '../lib/outfitSets.js'
+
+// SPEC GAME-B §B.1 (2026-07-10) — builds the {head,face,body,back} equipped
+// map a friend/bot record actually has. equipped_body/equipped_back come
+// from a new RPC column (supabase/migrations/20260710_*.sql) — undefined
+// until that migration is applied, which degrades gracefully to null (no
+// body/back shown, no set ever detected) rather than throwing.
+function equippedFor(a) {
+  return {
+    head: a.equipped_head ?? null, face: a.equipped_face ?? null,
+    body: a.equipped_body ?? null, back: a.equipped_back ?? null,
+  }
+}
 
 const FONT_TH = { fontFamily: 'var(--font-thai)' }
 const FONT_PX = { fontFamily: 'var(--font-pixel)' }
@@ -358,6 +371,15 @@ function cosmeticIconsFor(a) {
     const it = COSMETIC_ITEMS.find(i => i.id === a.equipped_face && i.slot === 'face')
     if (it) out.push(it)
   }
+  // SPEC GAME-B §B.1 (2026-07-10)
+  if (a.equipped_body) {
+    const it = COSMETIC_ITEMS.find(i => i.id === a.equipped_body && i.slot === 'body')
+    if (it) out.push(it)
+  }
+  if (a.equipped_back) {
+    const it = COSMETIC_ITEMS.find(i => i.id === a.equipped_back && i.slot === 'back')
+    if (it) out.push(it)
+  }
   return out
 }
 
@@ -365,6 +387,7 @@ function cosmeticIconsFor(a) {
 
 function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
   const s = RARITY[rarityKey(a.rarity_label)] ?? RARITY.common
+  const outfitSet = detectFullSet(equippedFor(a))
   return createPortal(
     <div className="auth-overlay show" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="px-auth-sheet" style={{ maxWidth: 340 }}>
@@ -387,6 +410,8 @@ function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
             <EggCanvasCore
               element={a.element ?? 'fire'} eye={a.eye ?? 'gba'} gender={a.gender ?? 'male'}
               stage={a.stage ?? 1} aura={0} size={160}
+              equipped={equippedFor(a)}
+              auraTint={outfitSet?.tint} setPose={outfitSet?.pose}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -399,6 +424,12 @@ function AdventurerModal({ adventurer: a, onChallenge, onClose }) {
               </span>
               <RarityBadge label={a.rarity_label} />
             </div>
+            {/* SPEC GAME-B §B.1 — full outfit-set name */}
+            {outfitSet && (
+              <div style={{ ...FONT_TH, fontSize: 11, color: 'var(--px-yellow)', fontWeight: 700 }}>
+                ✨ ชุด: {outfitSet.nameTh} ✨
+              </div>
+            )}
           </div>
         </div>
 
@@ -520,7 +551,7 @@ function MysteryTab() {
                     theme={primaryRoom.theme ?? 'default'}
                     egg={{
                       ...eggIdentity, stage: a.stage ?? 1, aura: 0,
-                      equipped: { head: a.equipped_head ?? null, face: a.equipped_face ?? null },
+                      equipped: equippedFor(a),
                     }}
                   />
                 </div>
@@ -536,6 +567,14 @@ function MysteryTab() {
                   <div style={{ ...FONT_TH, fontSize: 10, color: 'var(--px-light)', opacity: 0.55 }}>
                     {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'} · Lv.{a.stage ?? 1}
                   </div>
+                  {/* SPEC GAME-B §B.1 — full outfit-set name, if the friend/bot's
+                      equipped combo forms one (undefined body/back pre-migration
+                      just means detectFullSet never matches — degrades cleanly) */}
+                  {detectFullSet(equippedFor(a)) && (
+                    <div style={{ ...FONT_TH, fontSize: 10, color: 'var(--px-yellow)', fontWeight: 700 }}>
+                      ✨ ชุด: {detectFullSet(equippedFor(a)).nameTh}
+                    </div>
+                  )}
                   {/* Stats */}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <MiniStat label="HP"  value={a.hp}  color="var(--px-green)" />

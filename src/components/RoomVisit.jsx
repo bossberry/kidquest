@@ -5,6 +5,7 @@ import RoomScene from './RoomScene.jsx'
 import { renderEggSprite } from '../egg/renderEggSprite.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { themeMeta } from '../lib/roomScene.js'
+import { detectFullSet } from '../lib/outfitSets.js'
 import { playSFX } from '../lib/audio.js'
 
 // Normalize an adventurer into a rooms[] array. Post-migration the RPC returns a
@@ -116,11 +117,19 @@ export default function RoomVisit({ adventurer: a, onClose }) {
   const roomTheme = curRoom.theme ?? 'default'
   const headId  = a.equipped_head ?? null
   const faceId  = a.equipped_face ?? null
-  const equipped = { head: headId, face: faceId }
+  // SPEC GAME-B §B.1 (2026-07-10) — new slots; equipped_body/equipped_back
+  // come from a new RPC column, undefined (→ null) until that migration is
+  // applied, which just means no body/back shows and no set ever detects.
+  const bodyId  = a.equipped_body ?? null
+  const backId  = a.equipped_back ?? null
+  const equipped = { head: headId, face: faceId, body: bodyId, back: backId }
+  const outfitSet = detectFullSet(equipped)
 
   const headItem = headId ? COSMETIC_ITEMS.find(i => i.id === headId && i.slot === 'head') : null
   const faceItem = faceId ? COSMETIC_ITEMS.find(i => i.id === faceId && i.slot === 'face') : null
-  const chips = [headItem, faceItem].filter(Boolean)
+  const bodyItem = bodyId ? COSMETIC_ITEMS.find(i => i.id === bodyId && i.slot === 'body') : null
+  const backItem = backId ? COSMETIC_ITEMS.find(i => i.id === backId && i.slot === 'back') : null
+  const chips = [headItem, faceItem, bodyItem, backItem].filter(Boolean)
 
   const eggIdentity = {
     element: a.element ?? 'fire',
@@ -204,9 +213,24 @@ export default function RoomVisit({ adventurer: a, onClose }) {
             anim="idle"
             size={190}
             equipped={equipped}
+            auraTint={outfitSet?.tint}
+            setPose={outfitSet?.pose}
             style={{ display: 'block' }}
           />
         </div>
+        {/* SPEC GAME-B §B.1 — full outfit-set name */}
+        {outfitSet && (
+          <div style={{
+            position: 'absolute', top: '52%', left: '50%',
+            transform: 'translate(-50%, 78px)', zIndex: 3,
+            background: 'rgba(10,8,22,0.7)', border: '1px solid rgba(255,210,63,0.4)',
+            borderRadius: 20, padding: '4px 14px', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ ...FONT_TH, fontSize: 12, fontWeight: 700, color: '#FFD23F' }}>
+              ✨ ชุด: {outfitSet.nameTh} ✨
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Bottom panel: stats + cosmetics */}

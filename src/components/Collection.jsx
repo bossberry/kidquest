@@ -1,8 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
+import { detectFullSet } from '../lib/outfitSets.js'
 import { EGG_STAGE_NAMES } from '../lib/eggAlgorithm.js'
 import EggCanvas from './EggCanvas.jsx'
+import CosmeticIcon from './CosmeticIcon.jsx'
+import { renderEggSprite } from '../egg/renderEggSprite.js'
+import { useCompanion } from '../context/CompanionContext.jsx'
 import { playSFX, playTone, playBGM, stopBGM } from '../lib/audio.js'
 import { FOOD_CATALOG } from '../lib/eggCare.js'
 
@@ -11,6 +15,19 @@ const BOTTOM_NAV_H = 80
 
 const HEAD_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'head')
 const FACE_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'face')
+// SPEC GAME-B §B.1 (2026-07-10) — new slots. All non-event items (shop +
+// drop + craft) are candidates for the grid; drop/craft ones are filtered to
+// "owned only" inside the component (see bodyBackItemsFor below) since they
+// have no coin price to show a locked/buyable card for. Event items never
+// appear here at all — "hidden from shop, dormant" per the acceptance
+// criterion, regardless of ownership (there's no path to own one yet).
+const BODY_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'body' && i.acquirable !== 'event')
+const BACK_ITEMS = COSMETIC_ITEMS.filter(i => i.slot === 'back' && i.acquirable !== 'event')
+// Items visible in the grid for a given owned-list: shop items always, drop/
+// craft items only once actually owned (no price to render otherwise).
+function visibleItems(list, owned) {
+  return list.filter(i => !i.acquirable || owned.includes(i.id))
+}
 
 // Map egg XP stage (0–8) to companion aura level (0–4) — mirrors Home.jsx
 function stageToAura(s) {
@@ -59,41 +76,12 @@ function drawSparkle(c, x, y, r, alpha, rot) {
   c.restore()
 }
 
-// ── ItemIcon: the cosmetic item alone, no egg body/eyes underneath ─────────
-// Each COSMETIC_ITEMS entry's own draw(ctx, {px, ox, oy, faceX, t}) fn draws
-// ONLY the hat/glasses/etc — it never touches the egg body itself, so calling
-// it directly (skipping the rest of the egg render pipeline) is all that's
-// needed for an icon-only preview. Coordinate convention is documented at the
-// top of eggCosmeticLayer.js: a baby egg is an 18×18 "cell" grid, faceX=9 is
-// the horizontal center, head items draw above y=0 (up to y≈-10 for tall
-// hats), face items draw around y≈7-13. ox/oy here are the grid's left/top
-// edge in canvas px — sized so both extremes (tallest hat, lowest face item)
-// fit with a small margin regardless of which slot is showing.
-function ItemIcon({ item, size = 76 }) {
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !item) return
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, size, size)
-    const usableH = size * 0.85
-    const padTop  = size * 0.075
-    const cellPx  = usableH / 25   // content spans y -10..+13 (23 units) + margin
-    const ox = size / 2 - 9 * cellPx
-    const oy = padTop + 10 * cellPx
-    item.draw(ctx, { px: cellPx, ox, oy, faceX: 9, t: 0 })
-  }, [item, size])
-  return (
-    <canvas
-      ref={canvasRef}
-      width={size}
-      height={size}
-      style={{ display: 'block', imageRendering: 'pixelated' }}
-    />
-  )
-}
-
-function DressingRoomBackground() {
+// SPEC GAME-B §B.1 (2026-07-10) — "full-body mirror that mirrors the egg
+// live (flipped renderEggSprite draw)". mirrorPropsRef always holds the
+// LATEST equipped/element/etc (updated by a separate effect below, not
+// captured once at effect-setup time) so the reflection stays live without
+// tearing down/rebuilding the sparkle animation loop on every equip change.
+function DressingRoomBackground({ mirrorPropsRef }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -103,6 +91,8 @@ function DressingRoomBackground() {
     let staticImg = null
     let sparkles = []
     let size = { w: 0, h: 0 }
+    let mirror = { mx: 0, my: 0, mrx: 0, mry: 0 }
+    let reflectCanvas = document.createElement('canvas')
     let raf = 0
 
     function buildStatic(w, h) {
@@ -173,6 +163,7 @@ function DressingRoomBackground() {
       const my = h * 0.44
       const mrx = Math.min(w * 0.15, 60)
       const mry = mrx * 1.35
+      mirror = { mx, my, mrx, mry }
       c.save()
       c.lineWidth = 8
       c.strokeStyle = '#e9b84a'
@@ -267,10 +258,33 @@ function DressingRoomBackground() {
     window.addEventListener('resize', resize)
 
     const start = performance.now()
+    function drawReflection(t) {
+      const props = mirrorPropsRef?.current
+      if (!props || !mirror.mrx) return
+      const rw = Math.round(mirror.mrx * 2)
+      const rh = Math.round(mirror.mry * 2.15)
+      if (reflectCanvas.width !== rw || reflectCanvas.height !== rh) {
+        reflectCanvas.width = rw
+        reflectCanvas.height = rh
+      }
+      const rctx = reflectCanvas.getContext('2d')
+      rctx.clearRect(0, 0, rw, rh)
+      renderEggSprite(rctx, { ...props, t, canvasSize: rw })
+      ctx.save()
+      ctx.beginPath()
+      ctx.ellipse(mirror.mx, mirror.my, mirror.mrx, mirror.mry, 0, 0, Math.PI * 2)
+      ctx.clip()
+      // Flip horizontally — a genuine mirror reflection, not just a copy.
+      ctx.translate(mirror.mx, mirror.my - mirror.mry * 0.08)
+      ctx.scale(-1, 1)
+      ctx.drawImage(reflectCanvas, -rw / 2, -rh * 0.42, rw, rh)
+      ctx.restore()
+    }
     function frame(now) {
       const t = (now - start) / 1000
       const { w, h } = size
       if (staticImg) ctx.drawImage(staticImg, 0, 0, w, h)
+      drawReflection(t)
       for (const s of sparkles) {
         const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * s.spd + s.phase))
         const rot = t * s.spd * 0.5 + s.phase
@@ -284,7 +298,7 @@ function DressingRoomBackground() {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
     }
-  }, [])
+  }, [mirrorPropsRef])
 
   return (
     <canvas
@@ -294,8 +308,52 @@ function DressingRoomBackground() {
   )
 }
 
+// ── FavoriteCard: one of the 4 wardrobe QoL "save a combo" slots ───────────
+// Big kid-friendly card with a live mini EggCanvas preview (per spec). An
+// empty slot is a big "+" tile that saves the CURRENT combo; a filled slot
+// shows the saved combo and offers one-tap wear or clear.
+function FavoriteCard({ fav, idx, onSave, onWear, onClear }) {
+  if (!fav) {
+    return (
+      <button onClick={() => onSave(idx)} style={{
+        minHeight: 150, borderRadius: 16, cursor: 'pointer',
+        border: '2px dashed rgba(91,70,54,0.3)', background: 'rgba(91,70,54,0.06)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}>
+        <span style={{ fontSize: 30 }}>➕</span>
+        <span style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(91,70,54,0.6)', fontWeight: 700 }}>
+          บันทึกชุดนี้
+        </span>
+      </button>
+    )
+  }
+  return (
+    <div style={{
+      minHeight: 150, borderRadius: 16, background: '#ffffff',
+      border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: '0 2px 6px rgba(120,90,60,0.1)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 6px 8px', gap: 6,
+    }}>
+      <div onClick={() => onWear(idx)} style={{ cursor: 'pointer' }}>
+        <EggCanvas width={90} height={107} anim="idle" equipped={fav} />
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button onClick={() => onWear(idx)} style={{
+          cursor: 'pointer', border: 'none', borderRadius: 10, padding: '5px 10px',
+          background: 'linear-gradient(180deg, #FFDf7a, #F2B838)', color: '#5b4020',
+          fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 800,
+        }}>✅ ใส่</button>
+        <button onClick={() => onClear(idx)} aria-label="ลบชุดโปรด" style={{
+          cursor: 'pointer', border: '1px solid rgba(91,70,54,0.2)', borderRadius: 10, padding: '5px 9px',
+          background: 'rgba(91,70,54,0.08)', color: 'rgba(91,70,54,0.7)', fontSize: 12,
+        }}>🗑️</button>
+      </div>
+    </div>
+  )
+}
+
 export default function Collection({ navigate }) {
   const { state, dispatch, eggProgressData } = useAppState()
+  const { resolved } = useCompanion()
   // Single dressing-room mode now — only the head/face slot switcher remains.
   const [slot, setSlot] = useState('head')
   const [toast, setToast] = useState(null)
@@ -306,7 +364,8 @@ export default function Collection({ navigate }) {
 
   const coins    = state.coins ?? 0
   const owned    = state.ownedItems ?? []
-  const equipped = state.equipped ?? { head: null, face: null }
+  const equipped = state.equipped ?? { head: null, face: null, body: null, back: null }
+  const favorites = state.favoriteOutfits ?? [null, null, null, null]
   const stage    = eggProgressData?.stage ?? 1
   const foodInventory = state.eggCare?.foodInventory ?? {}
 
@@ -319,12 +378,31 @@ export default function Collection({ navigate }) {
     return () => stopBGM()
   }, [])
 
+  useEffect(() => {
+    dispatch({ type: ACTIONS.CLEAR_NEW_ITEM })
+  }, [dispatch])
+
   // Equipped map for the big preview egg: real equipped, with the selected slot
   // overridden locally when a preview is active. undefined → EggCanvas wrapper
   // falls back to state.equipped (real).
   const previewEquipped = preview
     ? { ...equipped, [preview.slot]: preview.id }
     : undefined
+
+  // SPEC GAME-B §B.1 — full outfit-set detection on whatever's currently
+  // shown on the big egg (real equipped, or the local try-on preview), so
+  // the set badge/pose/tint update live while trying on the 3rd matching piece.
+  const outfitSetShown = detectFullSet(previewEquipped ?? equipped)
+
+  // Live mirror reflection (see DressingRoomBackground) — a ref, not state,
+  // so updating it every render doesn't restart the mirror's own RAF/sparkle
+  // effect (which only runs once, keyed on the ref's stable identity).
+  const mirrorPropsRef = useRef(null)
+  mirrorPropsRef.current = {
+    element: resolved.element, eye: resolved.eye, gender: resolved.gender,
+    stage, aura: stageToAura(stage), anim: 'idle',
+    equipped: previewEquipped ?? equipped,
+  }
 
   function showToast(msg) {
     setToast(msg)
@@ -379,9 +457,44 @@ export default function Collection({ navigate }) {
     showToast(`ได้รับ ${entry.emoji} ${entry.nameTh}!`)
   }
 
+  // SPEC GAME-B §B.1 wardrobe QoL — favorites/random/remove-all
+  function handleSaveFavorite(idx) {
+    dispatch({ type: ACTIONS.SAVE_FAVORITE_OUTFIT, payload: { slotIndex: idx } })
+    playSFX('coin_purchase')
+    showToast('บันทึกชุดแล้ว! ⭐')
+  }
+  function handleWearFavorite(idx) {
+    if (!favorites[idx]) return
+    dispatch({ type: ACTIONS.WEAR_FAVORITE_OUTFIT, payload: { slotIndex: idx } })
+    playSFX('item_equip')
+    setPreview(null)
+    showToast('ใส่ชุดโปรดแล้ว! ✨')
+  }
+  function handleClearFavorite(idx) {
+    dispatch({ type: ACTIONS.CLEAR_FAVORITE_OUTFIT, payload: { slotIndex: idx } })
+    playTone('tap')
+  }
+  function handleRandomOutfit() {
+    dispatch({ type: ACTIONS.RANDOM_OUTFIT })
+    playSFX('item_equip')
+    setPreview(null)
+    showToast('สุ่มชุดใหม่! 🎲')
+  }
+  function handleRemoveAllOutfit() {
+    dispatch({ type: ACTIONS.REMOVE_ALL_OUTFIT })
+    playTone('tap')
+    setPreview(null)
+    showToast('ถอดหมดแล้ว')
+  }
+
   const isFoodTab = slot === 'food'
-  const items = slot === 'head' ? HEAD_ITEMS : slot === 'face' ? FACE_ITEMS : []
-  const selectedItem = (!isFoodTab && preview) ? COSMETIC_ITEMS.find(i => i.id === preview.id) : null
+  const isFavTab  = slot === 'favorites'
+  const items = slot === 'head' ? HEAD_ITEMS
+    : slot === 'face' ? FACE_ITEMS
+    : slot === 'body' ? visibleItems(BODY_ITEMS, owned)
+    : slot === 'back' ? visibleItems(BACK_ITEMS, owned)
+    : []
+  const selectedItem = (!isFoodTab && !isFavTab && preview) ? COSMETIC_ITEMS.find(i => i.id === preview.id) : null
   // Show the "trying on" tag only when the egg is wearing something that differs
   // from what's really equipped in that slot (a genuine try-on).
   const showTryTag = selectedItem && equipped[selectedItem.slot] !== selectedItem.id
@@ -452,7 +565,36 @@ export default function Collection({ navigate }) {
         height: '43vh', minHeight: 250, maxHeight: 400,
         overflow: 'hidden',
       }}>
-        <DressingRoomBackground />
+        <DressingRoomBackground mirrorPropsRef={mirrorPropsRef} />
+
+        {/* SPEC GAME-B §B.1 — 🎲 random / ถอดหมด, reachable from any equip tab */}
+        <button
+          onClick={handleRandomOutfit}
+          aria-label="สุ่มชุด"
+          style={{
+            position: 'absolute', left: 12, bottom: 12, zIndex: 12,
+            width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(30,20,45,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+            fontSize: 19, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          🎲
+        </button>
+        <button
+          onClick={handleRemoveAllOutfit}
+          aria-label="ถอดหมด"
+          style={{
+            position: 'absolute', right: 12, bottom: 12, zIndex: 12,
+            minHeight: 40, padding: '0 12px', borderRadius: 20, cursor: 'pointer',
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(30,20,45,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+            fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 700, color: '#fff',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          🧺 ถอดหมด
+        </button>
 
         {/* Centered companion + label, above the scene */}
         <div style={{
@@ -495,17 +637,34 @@ export default function Collection({ navigate }) {
               {stageName}
             </span>
           </div>
+
+          {/* SPEC GAME-B §B.1 — full outfit-set badge (aura tint + exclusive pose active) */}
+          {outfitSetShown && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: `${outfitSetShown.tint}cc`, borderRadius: 20, padding: '3px 12px',
+              boxShadow: `0 0 12px ${outfitSetShown.tint}88`,
+              animation: 'mg-badge-lowpulse 1.6s ease-in-out infinite',
+            }}>
+              <span style={{ fontFamily: 'var(--font-thai)', fontSize: 11, fontWeight: 800, color: '#fff' }}>
+                ✨ ชุด: {outfitSetShown.nameTh} ✨
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Slot switcher — 🎩 หัว / 😎 หน้า / 🍎 ของกิน (SPEC GAME-A §A.1) */}
+      {/* Slot switcher — 🎩หัว / 🧥ตัว / 🎒หลัง / 😎หน้า / ⭐โปรด / 🍎ของกิน */}
       <div style={{
-        display: 'flex', gap: 10, flexShrink: 0,
-        padding: '12px 16px 8px',
+        display: 'flex', gap: 6, flexShrink: 0,
+        padding: '12px 12px 8px', overflowX: 'auto',
       }}>
         {[
           { key: 'head', label: 'หัว', icon: '🎩' },
+          { key: 'body', label: 'ตัว', icon: '🧥' },
+          { key: 'back', label: 'หลัง', icon: '🎒' },
           { key: 'face', label: 'หน้า', icon: '😎' },
+          { key: 'favorites', label: 'โปรด', icon: '⭐' },
           { key: 'food', label: 'ของกิน', icon: '🍎' },
         ].map(({ key, label, icon }) => {
           const active = slot === key
@@ -514,20 +673,20 @@ export default function Collection({ navigate }) {
               key={key}
               onClick={() => setSlot(key)}
               style={{
-                flex: 1, minHeight: 52, cursor: 'pointer', borderRadius: 14,
+                flex: '0 0 auto', minWidth: 60, minHeight: 52, cursor: 'pointer', borderRadius: 14,
                 border: active ? '1px solid rgba(224,163,46,0.9)' : '1px solid rgba(91,70,54,0.14)',
                 background: active
                   ? 'linear-gradient(180deg, #FFDf7a, #F2B838)'
                   : 'rgba(91,70,54,0.10)',
                 boxShadow: active ? '0 3px 10px rgba(242,184,56,0.4)' : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                fontFamily: 'var(--font-thai)', fontSize: 10, fontWeight: 700,
                 color: active ? '#ffffff' : 'rgba(91,70,54,0.55)',
                 textShadow: active ? '0 1px 2px rgba(150,90,0,0.4)' : 'none',
-                transition: 'all 0.15s',
+                transition: 'all 0.15s', padding: '4px 8px', position: 'relative',
               }}
             >
-              <span style={{ fontSize: 28, lineHeight: 1 }}>{icon}</span>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
               {label}
             </button>
           )
@@ -538,9 +697,18 @@ export default function Collection({ navigate }) {
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
         padding: '6px 14px',
-        paddingBottom: BOTTOM_NAV_H + (isFoodTab ? 24 : 90),
+        paddingBottom: BOTTOM_NAV_H + ((isFoodTab || isFavTab) ? 24 : 90),
       }}>
-        {isFoodTab ? (
+        {isFavTab ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+            {favorites.map((fav, idx) => (
+              <FavoriteCard
+                key={idx} fav={fav} idx={idx}
+                onSave={handleSaveFavorite} onWear={handleWearFavorite} onClear={handleClearFavorite}
+              />
+            ))}
+          </div>
+        ) : isFoodTab ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {Object.entries(FOOD_CATALOG).map(([key, food]) => {
               const canAfford = coins >= food.price
@@ -666,7 +834,7 @@ export default function Collection({ navigate }) {
 
                 {/* Item icon alone — no egg body/eyes underneath */}
                 <div style={{ position: 'relative' }}>
-                  <ItemIcon item={item} size={76} />
+                  <CosmeticIcon item={item} size={76} />
                   {/* Dark overlay over just the icon — can't-afford only */}
                   {locked && (
                     <div style={{
@@ -696,7 +864,7 @@ export default function Collection({ navigate }) {
           without this, on shorter viewports the initial (unscrolled) grid can
           show a card row overlapping the button with a jarring flat edge.
           Not needed on the food tab — there's no floating CTA to fade into. */}
-      {!isFoodTab && <div style={{
+      {!isFoodTab && !isFavTab && <div style={{
         position: 'fixed', left: 0, right: 0, bottom: BOTTOM_NAV_H, zIndex: 35,
         height: 96, pointerEvents: 'none',
         background: 'linear-gradient(to bottom, rgba(253,241,227,0) 0%, rgba(253,241,227,0.88) 55%, rgba(253,241,227,1) 100%)',
@@ -704,7 +872,7 @@ export default function Collection({ navigate }) {
 
       {/* Bottom CTA — single confirm action for the selected item. Food buys
           instantly per-card (see handleBuyFood), so this is cosmetics-only. */}
-      {!isFoodTab && <button
+      {!isFoodTab && !isFavTab && <button
         onClick={cta.disabled ? undefined : handleCTA}
         disabled={!!cta.disabled}
         style={{

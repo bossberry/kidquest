@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function BottomNav({ current, navigate, hasNewRoomItem }) {
+export default function BottomNav({ current, navigate, hasNewRoomItem, hasNewItem }) {
   const tabs = [
     { key: 'home',       label: 'หน้าหลัก', icon: '🏠' },
     { key: 'collection', label: 'แต่งตัว',   icon: '🛒' },
@@ -35,6 +35,19 @@ export default function BottomNav({ current, navigate, hasNewRoomItem }) {
             <span style={{ fontFamily: 'var(--font-thai)', fontSize: 10 }}>{label}</span>
             <div className="px-nav-dot" />
             {key === 'room' && hasNewRoomItem && (
+              <span aria-label="ของใหม่" style={{
+                position: 'absolute', top: 2, right: '22%',
+                background: '#FFD23F', color: '#3a2a00',
+                fontFamily: 'var(--font-thai)', fontSize: 8, fontWeight: 700,
+                borderRadius: 8, padding: '1px 5px', whiteSpace: 'nowrap',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                animation: 'mg-badge-lowpulse 1.4s ease-in-out infinite',
+              }}>
+                ✨ ของใหม่!
+              </span>
+            )}
+            {/* SPEC GAME-B §B.1 (2026-07-10) — same badge, cosmetic drop/craft on แต่งตัว */}
+            {key === 'collection' && hasNewItem && (
               <span aria-label="ของใหม่" style={{
                 position: 'absolute', top: 2, right: '22%',
                 background: '#FFD23F', color: '#3a2a00',

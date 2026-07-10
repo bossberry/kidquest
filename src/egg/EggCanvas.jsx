@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import {
   drawAuraLayer, drawRegalia, drawBodyMass, isBodyReplacedBy,
-  drawStageLayer, drawEyeLayer, drawExpression,
+  drawStageLayer, drawEyeLayer, drawExpression, drawAffinityLayer,
   getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
   EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
   drawEggBody, drawCosmetics,
@@ -10,6 +10,8 @@ import {
 /**
  * Animated Living Egg renderer — uses the finalized layer system.
  * Props: element, eye, gender, mood, anim, stage, aura, size (logical canvas width).
+ * affinityLine (SPEC GAME-A §A.2, optional) — 'sage'|'architect'|'explorer'|'prism';
+ * omit/null for no affinity tint or motif (fully backward compatible).
  * Canvas height auto-computed as size * 1.19.
  */
 export default function EggCanvas({
@@ -20,6 +22,7 @@ export default function EggCanvas({
   anim = 'idle',
   stage = 1,
   aura = 0,
+  affinityLine = null,
   size = 160,
   equipped = null,
   className,
@@ -89,6 +92,11 @@ export default function EggCanvas({
         drawStageLayer(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
       }
 
+      // 5.5. SPEC GAME-A §A.2 subject-affinity tint — faint wash restricted to
+      // the just-painted body pixels only (source-atop), before regalia-front/
+      // eyes/cosmetics so it never recolors a face or hat.
+      drawAffinityLayer(ctx, { line: affinityLine, pass: 'tint', px, ox, oy, eggW, eggH, t })
+
       // 6. Regalia front pass (flame/shadow horns, light halo, thunder Pikachu-horns)
       drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'front' })
 
@@ -110,6 +118,10 @@ export default function EggCanvas({
       // 9. Cosmetics (hat + face items — drawn on top of everything, inside pose)
       drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped)
 
+      // 9.5. SPEC GAME-A §A.2 subject-affinity motif — small pinned badge,
+      // drawn last (over cosmetics) so it always reads as a visible accessory.
+      drawAffinityLayer(ctx, { line: affinityLine, pass: 'motif', px, ox, oy, eggW, eggH, t })
+
       // 10. Flash (e.g., hurt animation)
       if (pose.flash) flashEgg(ctx, eggW, eggH, pose.flash)
 
@@ -121,7 +133,7 @@ export default function EggCanvas({
 
     raf = requestAnimationFrame(render)
     return () => { cancelAnimationFrame(raf) }
-  }, [element, eye, gender, mood, anim, stage, aura, size, equipped])
+  }, [element, eye, gender, mood, anim, stage, aura, affinityLine, size, equipped])
 
   const logicalH = Math.round(size * 1.19)
   return (

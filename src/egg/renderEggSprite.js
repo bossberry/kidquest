@@ -7,6 +7,8 @@
  *
  * Params:
  *   element, eye, gender, stage, aura, mood, anim — egg identity/state
+ *   affinityLine (SPEC GAME-A §A.2, optional) — 'sage'|'architect'|'explorer'|
+ *                'prism'; omit/null for no affinity tint or motif
  *   t           — animation time in seconds (use performance.now()/1000)
  *   canvasSize  — logical canvas width (height = canvasSize * 1.19)
  *   basePxOverride — if set, overrides the computed pixel-scale (use 2 for
@@ -14,7 +16,7 @@
  */
 import {
   drawAuraLayer, drawRegalia, drawBodyMass, isBodyReplacedBy,
-  drawStageLayer, drawEyeLayer, drawExpression,
+  drawStageLayer, drawEyeLayer, drawExpression, drawAffinityLayer,
   getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
   EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
   drawEggBody, drawCosmetics,
@@ -26,6 +28,7 @@ export function renderEggSprite(ctx, {
   gender  = 'male',
   stage   = 1,
   aura    = 0,
+  affinityLine = null,
   mood    = 'normal',
   anim    = 'idle',
   t       = 0,
@@ -73,6 +76,9 @@ export function renderEggSprite(ctx, {
     drawStageLayer(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
   }
 
+  // 5.5. SPEC GAME-A §A.2 subject-affinity tint (source-atop, body pixels only)
+  drawAffinityLayer(ctx, { line: affinityLine, pass: 'tint', px, ox, oy, eggW, eggH, t })
+
   // 6. Regalia front (horns, halo, thunder prongs)
   drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'front' })
 
@@ -93,6 +99,9 @@ export function renderEggSprite(ctx, {
 
   // 9. Cosmetics (hat + face items — on top of everything, inside pose)
   drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped)
+
+  // 9.5. SPEC GAME-A §A.2 subject-affinity motif (small pinned badge, on top)
+  drawAffinityLayer(ctx, { line: affinityLine, pass: 'motif', px, ox, oy, eggW, eggH, t })
 
   // 10. Flash overlay (hurt animation)
   if (pose.flash) flashEgg(ctx, eggW, eggH, pose.flash)

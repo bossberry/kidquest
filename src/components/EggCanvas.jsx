@@ -13,6 +13,7 @@ export default function EggCanvas({
   stats,             // legacy { stage, ... }
   stage,             // explicit override
   aura = 0,
+  affinityLine,      // SPEC GAME-A §A.2 override; if omitted, reads from context
   mood = 'normal',
   anim = 'idle',
   width = 160,
@@ -23,10 +24,18 @@ export default function EggCanvas({
   onClick,
 }) {
   const { resolved } = useCompanion()
-  const { state } = useAppState()
+  const { state, affinityLine: contextAffinityLine, masteredCount } = useAppState()
 
   const resolvedStage = stage ?? stats?.stage ?? 1
   const resolvedEquipped = equipped !== undefined ? equipped : (state.equipped ?? null)
+  // A zero-mastery account (brand-new, or a pre-curriculum account like
+  // Chopin's real one) resolves to 'balanced' by computeAffinity()'s own tie
+  // rule, but showing a prism badge for zero actual mastery would read as
+  // unearned — so the visual layer only appears once at least one curriculum
+  // node has genuinely been mastered.
+  const resolvedAffinityLine = affinityLine !== undefined
+    ? affinityLine
+    : ((masteredCount || 0) > 0 ? contextAffinityLine : null)
   // Use the smaller dimension to drive basePx; set CSS to the requested width×height
   const size = Math.min(width, height)
 
@@ -39,6 +48,7 @@ export default function EggCanvas({
       anim={anim}
       stage={resolvedStage}
       aura={aura}
+      affinityLine={resolvedAffinityLine}
       size={size}
       equipped={resolvedEquipped}
       className={className}

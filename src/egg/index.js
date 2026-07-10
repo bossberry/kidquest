@@ -29,6 +29,10 @@ export { stageToTier, isBodyReplacedBy, drawStageLayer, drawBodyMass, EGG_STAGE_
 // Aura glow (5 levels)
 export { AURA_LEVELS, drawAuraLayer, EGG_AURA_LAYER } from "./eggAuraLayer.js";
 
+// SPEC GAME-A §A.2: subject-affinity tint + motif badge (sage/architect/
+// explorer/prism). Purely additive — separate axis from element above.
+export { AFFINITY_COLOR, drawAffinityLayer, EGG_AFFINITY_LAYER } from "./eggAffinityLayer.js";
+
 // Regalia: element-themed stage appendages (fire/shadow horns, light halo,
 // thunder Pikachu-tail horns, nature leaf wings; water has none — body spins)
 export { regaliaTier, regaliaScale, drawRegalia, EGG_REGALIA_LAYER } from "./eggRegaliaLayer.js";

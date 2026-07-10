@@ -12,6 +12,7 @@ import PartySelect from './components/PartySelect.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import EggPopup from './components/EggPopup.jsx'
 import LevelUpCutscene from './components/LevelUpCutscene.jsx'
+import EvolutionScene from './components/EvolutionScene.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import ResetPasswordModal from './components/ResetPasswordModal.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
@@ -156,6 +157,12 @@ export default function App() {
         <LevelUpCutscene
           data={state.pendingLevelUp}
           onDone={() => { dispatch({ type: ACTIONS.CLEAR_PENDING_LEVEL_UP }); navigate('world') }}
+        />
+      )}
+      {state.pendingEvolutionCeremony && (
+        <EvolutionScene
+          data={state.pendingEvolutionCeremony}
+          onDone={() => dispatch({ type: ACTIONS.CLEAR_PENDING_EVOLUTION_CEREMONY })}
         />
       )}
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />

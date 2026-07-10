@@ -9,6 +9,7 @@ import {
 } from '../lib/roomScene.js'
 import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
+import EvolutionAlbum from './EvolutionAlbum.jsx'
 
 const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
 
@@ -147,6 +148,7 @@ export default function Room({ navigate }) {
   const [buyRoomAt, setBuyRoomAt] = useState(null)   // { gridX, gridY } — empty mini-map cell tapped, opens room-block purchase sheet
   const [buyRoomTheme, setBuyRoomTheme] = useState(null)  // theme id selected inside that sheet, awaiting confirm
   const [craftSheetOpen, setCraftSheetOpen] = useState(false)  // ⚒️ craft button tapped → affordable-recipes sheet
+  const [albumOpen, setAlbumOpen] = useState(false)  // SPEC GAME-A §A.2 — bookshelf "ดูอัลบั้ม" tapped
 
   const materials = state.materials ?? {}
   const craftFxRef = useRef(null)   // dedicated sparkle canvas layered over the craft sheet
@@ -771,6 +773,24 @@ export default function Room({ navigate }) {
                         วางอยู่ในห้อง
                       </div>
                     </div>
+                    {/* SPEC GAME-A §A.2 — a placed bookshelf doubles as the
+                        access point for the evolution album. */}
+                    {(occupiedItem.id === 'bookshelf' || occupiedItem.id === 'bookshelf_wall') && (
+                      <button
+                        onClick={() => setAlbumOpen(true)}
+                        aria-label="ดูอัลบั้ม"
+                        style={{
+                          flexShrink: 0,
+                          border: '1.5px solid rgba(255,210,63,0.4)', cursor: 'pointer',
+                          background: 'rgba(255,210,63,0.18)', borderRadius: 10,
+                          padding: '8px 14px', fontFamily: 'var(--font-thai)', fontSize: 13,
+                          color: '#FFD23F', whiteSpace: 'nowrap',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                      >
+                        📔 ดูอัลบั้ม
+                      </button>
+                    )}
                     <button
                       onClick={handleRemove}
                       aria-label="เอาออก"
@@ -1016,6 +1036,8 @@ export default function Room({ navigate }) {
           {toast}
         </div>
       )}
+
+      <EvolutionAlbum open={albumOpen} onClose={() => setAlbumOpen(false)} />
     </div>
   )
 }

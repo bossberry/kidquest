@@ -22,6 +22,7 @@ import { useHomeInteractions } from '../hooks/useHomeInteractions.js'
 import { showToast, spawnConfetti } from './Toasts.jsx'
 import { unlockedGames, livesRemaining } from '../lib/minigameLives.js'
 import { FOOD_CATALOG } from '../lib/eggCare.js'
+import { computeCozy, deriveCozyComment } from '../lib/cozyScore.js'
 
 const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
 
@@ -97,6 +98,20 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
   }, [])
   const [creatureBounce, setCreatureBounce] = useState(false)
   const [bondReaction, setBondReaction]     = useState(null) // floating emoji reaction over egg
+
+  // SPEC GAME-B §B.2 (2026-07-10) — Cozy Score's egg-comment expression: an
+  // occasional, gentle remark about the home room, NEVER a number. Fired
+  // once per Home mount (not on every render/room edit) with a short delay
+  // so it doesn't collide with other mount-time toasts/animations.
+  useEffect(() => {
+    const homeRoom = (state.rooms ?? []).find(r => r.id === state.homeRoomId) ?? state.rooms?.[0]
+    const layout = homeRoom?.layout ?? (state.roomLayout ?? {})
+    const comment = deriveCozyComment(computeCozy(layout))
+    if (!comment) return
+    const t = setTimeout(() => showToast(comment), 4000 + Math.random() * 4000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [healFloat, setHealFloat]         = useState(null)  // null | id
 
   // ── SPEC GAME-A §A.1 Care Loop state ────────────────────────────────────
@@ -191,6 +206,12 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     return () => clearInterval(id)
   }, [])
   const quietHours = isQuietHours(new Date(nowTick))
+  // SPEC GAME-B §B.2 — "egg sleeps IN bed during sleep scene": a bed placed
+  // in the home room changes the sleep-scene flavor (🛏️ + bed-specific line)
+  // rather than the generic floating-in-the-dark version.
+  const homeRoomForSleep = (state.rooms ?? []).find(r => r.id === state.homeRoomId) ?? state.rooms?.[0]
+  const sleepLayout = homeRoomForSleep?.layout ?? (state.roomLayout ?? {})
+  const hasBed = Object.values(sleepLayout).includes('bed')
 
   // Daily wake-up scene: consumed once, then cleared. Framed entirely as a
   // warm morning greeting + small gift — never a "you were asleep" scold.
@@ -495,9 +516,16 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
               animation:`mg-spark-blink ${1.6 + (i % 5) * 0.4}s ease-in-out ${(i % 6) * 0.3}s infinite`,
             }}>✦</span>
           ))}
-          <div style={{ fontSize:72, animation:'egg-idle 3s ease-in-out infinite' }}>😴🥚</div>
+          {hasBed ? (
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+              <span style={{ fontSize: 60, position: 'absolute', top: 30, filter: 'brightness(0.7)' }}>🛏️</span>
+              <span style={{ fontSize: 60, position: 'relative', animation: 'egg-idle 3s ease-in-out infinite' }}>😴🥚</span>
+            </div>
+          ) : (
+            <div style={{ fontSize:72, animation:'egg-idle 3s ease-in-out infinite' }}>😴🥚</div>
+          )}
           <div style={{ fontFamily:'var(--font-thai)', fontSize:15, color:'rgba(255,255,255,0.75)' }}>
-            ไข่หลับอยู่... แตะเพื่อกลับไปเล่นนะ
+            {hasBed ? 'ไข่นอนหลับอยู่บนเตียง... แตะเพื่อกลับไปเล่นนะ' : 'ไข่หลับอยู่... แตะเพื่อกลับไปเล่นนะ'}
           </div>
         </div>
       )}

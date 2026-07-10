@@ -1,6 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { ROOM_ITEMS, CRAFT_RECIPES, CRAFT_RECIPE_LIST, MATERIAL_ICON } from '../lib/roomItems.js'
+import {
+  ROOM_ITEMS, CRAFT_RECIPES, CRAFT_RECIPE_LIST, MATERIAL_ICON,
+  WALLPAPER_ITEMS, FLOORING_ITEMS, WALLPAPER_BY_ID, FLOORING_BY_ID,
+  COZY_CRAFT_RECIPES, COZY_CRAFT_RECIPE_LIST,
+} from '../lib/roomItems.js'
 import {
   drawRoomScene, hitTestZone, parseSlotKey, slotCenter,
   ROOM_THEMES, THEME_PALETTES, themeMeta, ROOM_BLOCK_PRICE,
@@ -12,6 +16,46 @@ import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 import EvolutionAlbum from './EvolutionAlbum.jsx'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import CosmeticIcon from './CosmeticIcon.jsx'
+import { computeCozy, cozyParticleDensity } from '../lib/cozyScore.js'
+import { supabase } from '../lib/supabase.js'
+
+// SPEC GAME-B §B.2 (2026-07-10) — ambient firefly/sparkle drift, density
+// tiers 0-3 (see cozyParticleDensity). Deterministic per-index sine drift,
+// same lightweight style as Collection.jsx's drawSparkle — NOT a burst
+// effect (mkSparks/tickEffects are for one-shot fades), a continuous glow
+// the loop redraws every frame while density > 0.
+const COZY_COUNTS = [0, 4, 8, 14]
+function drawCozyFireflies(ctx, W, H, density, t) {
+  const n = COZY_COUNTS[density] || 0
+  for (let i = 0; i < n; i++) {
+    const seed = i * 12.9
+    const x = (Math.sin(t * 0.15 + seed) * 0.5 + 0.5) * W * 0.86 + W * 0.07
+    const y = (Math.sin(t * 0.11 + seed * 1.7) * 0.5 + 0.5) * H * 0.6 + H * 0.15
+    const tw = Math.sin(t * 1.6 + seed * 3) * 0.5 + 0.5
+    ctx.save()
+    ctx.globalAlpha = 0.35 + tw * 0.5
+    ctx.fillStyle = '#ffe8a0'
+    ctx.shadowColor = 'rgba(255,224,140,0.9)'
+    ctx.shadowBlur = 6
+    ctx.beginPath()
+    ctx.arc(x, y, tw > 0.7 ? 2 : 1.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+}
+
+// SPEC GAME-B §B.2 (2026-07-10) — swatch-only icon for wallpaper/flooring
+// picker cards (a live iso render would be overkill for a flat pattern
+// preview; the catalog's own `swatch` field — also used for the room-scene
+// thumbnail fast path, see roomScene.js — is enough here).
+function SwatchIcon({ item, size = 56 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 8, background: item.swatch,
+      border: '1px solid rgba(255,255,255,0.25)', flexShrink: 0,
+    }} />
+  )
+}
 
 // SPEC GAME-B §B.1 (2026-07-10) — CRAFT_RECIPES/CRAFT_RECIPE_LIST now hold 2
 // cosmetic ids (butterfly_wings/mini_umbrella) alongside the 6 furniture
@@ -157,6 +201,20 @@ export default function Room({ navigate }) {
   const [buyRoomTheme, setBuyRoomTheme] = useState(null)  // theme id selected inside that sheet, awaiting confirm
   const [craftSheetOpen, setCraftSheetOpen] = useState(false)  // ⚒️ craft button tapped → affordable-recipes sheet
   const [albumOpen, setAlbumOpen] = useState(false)  // SPEC GAME-A §A.2 — bookshelf "ดูอัลบั้ม" tapped
+  // SPEC GAME-B §B.2 (2026-07-10) — 🎨 decorate sheet: wallpaper/flooring,
+  // room-wide (not per-slot) so it's a separate entry point from selectedSlot.
+  const [decorateOpen, setDecorateOpen] = useState(false)
+  const [decorateTab, setDecorateTab] = useState('wallpaper')  // 'wallpaper' | 'flooring'
+  // { itemId, confirmReady } | null — an unowned item just tapped: shows live
+  // on the room canvas immediately, then a buy-confirm prompt after 2s (per
+  // spec: "2s preview-then-confirm prompt for unowned"). Owned items skip
+  // this entirely — instant apply.
+  const [decoratePreview, setDecoratePreview] = useState(null)
+  useEffect(() => {
+    if (!decoratePreview || decoratePreview.confirmReady) return
+    const t = setTimeout(() => setDecoratePreview(p => (p ? { ...p, confirmReady: true } : p)), 2000)
+    return () => clearTimeout(t)
+  }, [decoratePreview?.itemId])
 
   const materials = state.materials ?? {}
   const craftFxRef = useRef(null)   // dedicated sparkle canvas layered over the craft sheet
@@ -168,13 +226,20 @@ export default function Room({ navigate }) {
   // items (see the craft sheet below); their "already owned" check needs the
   // wearable catalog's array, not ownedRoomItems.
   const ownedCosmetic = state.ownedItems ?? []
-  const rooms       = state.rooms ?? [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} }]
+  // SPEC GAME-B §B.2 (2026-07-10) — wallpaper/flooring owned catalogs.
+  const ownedWallpaper = state.ownedWallpaper ?? []
+  const ownedFlooring  = state.ownedFlooring ?? []
+  const rooms       = state.rooms ?? [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {}, wallpaper: null, flooring: null }]
   const activeRoomId = state.activeRoomId ?? 'main'
   const homeRoomId  = state.homeRoomId ?? 'main'
   const activeRoom  = rooms.find(r => r.id === activeRoomId) || rooms[0]
   const activeTheme = activeRoom?.theme ?? 'default'
   const roomLayout  = activeRoom?.layout ?? (state.roomLayout ?? {})
   const activeMeta  = themeMeta(activeTheme)
+  // Live preview override: an unowned item just tapped shows immediately on
+  // the canvas even before it's bought (see decoratePreview state above).
+  const previewWallpaper = (decoratePreview && decorateTab === 'wallpaper') ? decoratePreview.itemId : (activeRoom?.wallpaper ?? null)
+  const previewFlooring  = (decoratePreview && decorateTab === 'flooring')  ? decoratePreview.itemId : (activeRoom?.flooring ?? null)
 
   const wrapRef    = useRef(null)
   const canvasRef  = useRef(null)
@@ -188,10 +253,16 @@ export default function Room({ navigate }) {
   const themeRef       = useRef(activeTheme)
   const activeRoomRef  = useRef(activeRoom)
   const roomsRef       = useRef(rooms)
+  const wallpaperRef   = useRef(previewWallpaper)  // SPEC GAME-B §B.2
+  const flooringRef    = useRef(previewFlooring)
+  const cozyDensityRef = useRef(0)  // SPEC GAME-B §B.2 — ambient firefly density, 0-3
   layoutRef.current      = roomLayout
   selectedKeyRef.current = selectedSlot?.key ?? null
   themeRef.current       = activeTheme
   activeRoomRef.current   = activeRoom
+  wallpaperRef.current    = previewWallpaper
+  flooringRef.current     = previewFlooring
+  cozyDensityRef.current  = cozyParticleDensity(computeCozy(roomLayout))
   roomsRef.current        = rooms
 
   // Neighbor ghost/real-room screen zones, recomputed every drawFrame() —
@@ -222,6 +293,24 @@ export default function Room({ navigate }) {
 
   // Clears the "✨ ของใหม่!" BottomNav bubble now that the child has opened Room.
   useEffect(() => { dispatch({ type: ACTIONS.CLEAR_NEW_ROOM_ITEM }) }, [dispatch])
+
+  // SPEC GAME-B §B.2 (2026-07-10) — "mystery adventurers visited today" ambient
+  // heart credit (0-2, once/day, DB-enforced via a unique constraint so
+  // calling this more than once for the same room+day is a safe no-op — see
+  // supabase/migrations/20260711_room_hearts.sql). Fires whenever the active
+  // room changes (covers "opened Room" and "switched room"). Guest/offline
+  // (no supabase client) or a pre-migration RPC both fail silently — hearts
+  // just don't accrue, same graceful-degrade convention as every other
+  // Supabase-dependent feature in this project.
+  useEffect(() => {
+    if (!supabase || !activeRoomId) return
+    let cancelled = false
+    supabase.rpc('credit_ambient_room_hearts', { p_room_id: activeRoomId }).then(({ data, error }) => {
+      if (cancelled || error || typeof data !== 'number') return
+      dispatch({ type: ACTIONS.SET_ROOM_HEARTS, payload: { roomId: activeRoomId, hearts: data } })
+    })
+    return () => { cancelled = true }
+  }, [activeRoomId, dispatch])
 
   // Draws a scrollable multi-room view: the active room renders at FULL SIZE
   // (same scale as before multi-room existed — computeRoomGeometry, not a
@@ -285,6 +374,7 @@ export default function Room({ navigate }) {
       showTapHints: true, hintOpacity,
       bounceKey, bounceScale, theme: themeRef.current,
       geometry: g, paintBg: false,
+      wallpaper: wallpaperRef.current, flooring: flooringRef.current,
     })
     geomRef.current = { g, W, H, isoRoomWidth, isoRoomHeight }
   }, [])
@@ -320,9 +410,18 @@ export default function Room({ navigate }) {
 
     const overlay = overlayRef.current
     const octx = overlay?.getContext('2d')
+    const cozyDensity = cozyDensityRef.current
     if (octx) {
-      if (effectsRef.current.length > 0) effectsRef.current = tickEffects(octx, effectsRef.current, dt)
-      else octx.clearRect(0, 0, overlay.width, overlay.height)
+      if (effectsRef.current.length > 0 || cozyDensity > 0) {
+        octx.clearRect(0, 0, overlay.width, overlay.height)
+        if (effectsRef.current.length > 0) effectsRef.current = tickEffects(octx, effectsRef.current, dt)
+        // SPEC GAME-B §B.2 — Cozy Score's ONLY child-visible expression here:
+        // ambient firefly density, never a number. Drawn on top of any
+        // craft-sparkle burst still fading out.
+        if (cozyDensity > 0) drawCozyFireflies(octx, overlay.width, overlay.height, cozyDensity, now / 1000)
+      } else {
+        octx.clearRect(0, 0, overlay.width, overlay.height)
+      }
     }
 
     drawFrame(hintOpacityRef.current, bounceKey, bounceScale)
@@ -332,7 +431,7 @@ export default function Room({ navigate }) {
     // so the loop must keep running whenever any ghost is on screen — which is
     // almost always true unless the active room has real rooms in all 4 dirs.
     const hasGhost = neighborZonesRef.current.some(z => z.type === 'ghost')
-    const stillActive = !hintsSettled || !!bounceKey || effectsRef.current.length > 0 || hasGhost
+    const stillActive = !hintsSettled || !!bounceKey || effectsRef.current.length > 0 || hasGhost || cozyDensity > 0
     if (stillActive) rafRef.current = requestAnimationFrame(loop)
     else rafRef.current = null
   }, [drawFrame])
@@ -555,8 +654,11 @@ export default function Room({ navigate }) {
   }
 
   // ── Instant crafting (2026-07-07 — replaces the workbench+confirm-step flow) ─
+  // SPEC GAME-B §B.2 (2026-07-10): also checks COZY_CRAFT_RECIPES (wallpaper/
+  // flooring's own separate recipe table — see roomItems.js's comment on why
+  // it's not folded into CRAFT_RECIPES).
   function canAfford(itemId) {
-    const recipe = CRAFT_RECIPES[itemId]
+    const recipe = CRAFT_RECIPES[itemId] || COZY_CRAFT_RECIPES[itemId]
     if (!recipe) return false
     return Object.keys(recipe).every(k => (materials[k] || 0) >= recipe[k])
   }
@@ -583,23 +685,64 @@ export default function Room({ navigate }) {
     craftFxRafRef.current = requestAnimationFrame(step)
   }
 
-  // SPEC GAME-B §B.1 (2026-07-10) — 2 of the 8 craft recipes are cosmetics
-  // now (see COSMETIC_BY_ID above); "already owned" must check the right
-  // catalog's owned array, not always ownedRoomItems.
+  // SPEC GAME-B §B.1/§B.2 (2026-07-10) — craft recipes now span 3 catalogs
+  // (furniture/cosmetics via CRAFT_RECIPES, wallpaper/flooring via
+  // COZY_CRAFT_RECIPES); "already owned" must check the right owned array.
   function isCraftOwned(itemId) {
-    return COSMETIC_BY_ID[itemId] ? ownedCosmetic.includes(itemId) : ownedRoom.includes(itemId)
+    if (COSMETIC_BY_ID[itemId]) return ownedCosmetic.includes(itemId)
+    if (WALLPAPER_BY_ID[itemId]) return ownedWallpaper.includes(itemId)
+    if (FLOORING_BY_ID[itemId]) return ownedFlooring.includes(itemId)
+    return ownedRoom.includes(itemId)
   }
 
   // Instant — no confirm dialog. Tapping an affordable recipe card crafts it
-  // immediately (per spec, simplicity over ceremony for a 6-recipe list).
+  // immediately (per spec, simplicity over ceremony for a small recipe list).
   function handleCraft(itemId) {
     if (!canAfford(itemId)) return
     if (isCraftOwned(itemId)) return
-    dispatch({ type: ACTIONS.CRAFT_ITEM, payload: { itemId } })
+    const isCozy = !!(WALLPAPER_BY_ID[itemId] || FLOORING_BY_ID[itemId])
+    dispatch({ type: isCozy ? ACTIONS.CRAFT_COZY_ITEM : ACTIONS.CRAFT_ITEM, payload: { itemId } })
     playSFX('coin_purchase')
     fireCraftSparkle()
-    const item = ITEM_BY_ID[itemId] || COSMETIC_BY_ID[itemId]
+    const item = ITEM_BY_ID[itemId] || COSMETIC_BY_ID[itemId] || WALLPAPER_BY_ID[itemId] || FLOORING_BY_ID[itemId]
     flash(item ? `ประดิษฐ์${item.nameTh}แล้ว! ✨` : 'ประดิษฐ์สำเร็จ! ✨')
+  }
+
+  // ── SPEC GAME-B §B.2 wallpaper/flooring (decorate sheet) ────────────────────
+  function handleTapDecorItem(item) {
+    const ownedArr = decorateTab === 'wallpaper' ? ownedWallpaper : ownedFlooring
+    if (ownedArr.includes(item.id)) {
+      // Owned: instant apply, or toggle off (back to theme default) if already applied.
+      const current = decorateTab === 'wallpaper' ? activeRoom?.wallpaper : activeRoom?.flooring
+      const nextId = current === item.id ? null : item.id
+      dispatch({
+        type: decorateTab === 'wallpaper' ? ACTIONS.APPLY_WALLPAPER : ACTIONS.APPLY_FLOORING,
+        payload: { roomId: activeRoomId, itemId: nextId },
+      })
+      playSFX('item_equip')
+      setDecoratePreview(null)
+      return
+    }
+    // Unowned shop item: live-preview immediately, buy-confirm prompt after 2s.
+    setDecoratePreview({ itemId: item.id, confirmReady: false })
+  }
+  function handleConfirmDecorBuy() {
+    if (!decoratePreview) return
+    const catalog = decorateTab === 'wallpaper' ? WALLPAPER_ITEMS : FLOORING_ITEMS
+    const item = catalog.find(i => i.id === decoratePreview.itemId)
+    if (!item) return
+    if (coins < item.price) { flash('เหรียญไม่พอ!'); return }
+    dispatch({ type: decorateTab === 'wallpaper' ? ACTIONS.BUY_WALLPAPER : ACTIONS.BUY_FLOORING, payload: { itemId: item.id, price: item.price } })
+    dispatch({
+      type: decorateTab === 'wallpaper' ? ACTIONS.APPLY_WALLPAPER : ACTIONS.APPLY_FLOORING,
+      payload: { roomId: activeRoomId, itemId: item.id },
+    })
+    playSFX('coin_purchase')
+    flash(`ได้${item.nameTh}แล้ว! ✨`)
+    setDecoratePreview(null)
+  }
+  function handleCancelDecorPreview() {
+    setDecoratePreview(null)
   }
 
   useEffect(() => () => { if (craftFxRafRef.current) cancelAnimationFrame(craftFxRafRef.current) }, [])
@@ -674,6 +817,12 @@ export default function Room({ navigate }) {
           <span style={{ fontFamily: 'var(--font-thai)', fontSize: 12, fontWeight: 700, color: '#fff' }}>
             {activeMeta.nameTh}
           </span>
+          {/* SPEC GAME-B §B.2 — room heart total ("Heart total shown on room label") */}
+          {(state.roomHearts?.[activeRoomId] ?? 0) > 0 && (
+            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#ff9ec0' }}>
+              ❤️ {state.roomHearts[activeRoomId]}
+            </span>
+          )}
         </div>
 
         {/* Craft button (⚒️) — floating bottom-right, only shown once the child
@@ -697,6 +846,28 @@ export default function Room({ navigate }) {
             ⚒️
           </button>
         )}
+
+        {/* SPEC GAME-B §B.2 (2026-07-10) — Decorate button (🎨), stacked above
+            the craft button — always available (unlike ⚒️, doesn't need any
+            material to be worth opening; browsing/buying wallpaper works with
+            just coins). */}
+        <button
+          onClick={() => { setDecorateOpen(true); setDecoratePreview(null) }}
+          aria-label="ตกแต่งห้อง"
+          style={{
+            position: 'absolute', right: 14,
+            bottom: `calc(${Object.values(materials).some(v => v > 0) ? '24px + 52px + 10px' : '24px'} + env(safe-area-inset-bottom))`,
+            zIndex: 5,
+            width: 52, height: 52, borderRadius: 30, border: 'none',
+            background: 'linear-gradient(180deg, #ff9ec0, #d9448a)',
+            color: '#fff', fontSize: 22, lineHeight: 1, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 0 rgba(0,0,0,0.35), 0 8px 14px rgba(0,0,0,0.3)',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          🎨
+        </button>
 
         {/* Hint text — pinned bottom overlay, taps pass through to the canvas */}
         <div style={{
@@ -949,7 +1120,7 @@ export default function Room({ navigate }) {
 
       {/* ── Craft sheet (⚒️ button) — instant craft, affordable recipes only ─── */}
       {craftSheetOpen && (() => {
-        const affordable = CRAFT_RECIPE_LIST.filter(id => canAfford(id) && !isCraftOwned(id))
+        const affordable = [...CRAFT_RECIPE_LIST, ...COZY_CRAFT_RECIPE_LIST].filter(id => canAfford(id) && !isCraftOwned(id))
         return (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9100,
@@ -998,12 +1169,13 @@ export default function Room({ navigate }) {
                   paddingBottom: 12,
                 }}>
                   {affordable.map(itemId => {
-                    // SPEC GAME-B §B.1 (2026-07-10) — 2 recipes are cosmetics
-                    // (COSMETIC_BY_ID), which need CosmeticIcon's draw
-                    // signature instead of SlotCanvas's (incompatible shapes).
+                    // SPEC GAME-B §B.1/§B.2 (2026-07-10) — recipes span 3
+                    // catalogs now (furniture/cosmetics/cozy), each needing
+                    // its own icon shape (SlotCanvas/CosmeticIcon/SwatchIcon).
                     const cosmeticItem = COSMETIC_BY_ID[itemId]
-                    const item = cosmeticItem || ITEM_BY_ID[itemId]
-                    const recipe = CRAFT_RECIPES[itemId] || {}
+                    const cozyItem = WALLPAPER_BY_ID[itemId] || FLOORING_BY_ID[itemId]
+                    const item = cosmeticItem || cozyItem || ITEM_BY_ID[itemId]
+                    const recipe = CRAFT_RECIPES[itemId] || COZY_CRAFT_RECIPES[itemId] || {}
                     return (
                       <button
                         key={itemId}
@@ -1016,7 +1188,10 @@ export default function Room({ navigate }) {
                           cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                         }}
                       >
-                        {cosmeticItem ? <CosmeticIcon item={cosmeticItem} size={60} /> : <SlotCanvas item={item} size={60} />}
+                        {cosmeticItem
+                          ? <CosmeticIcon item={cosmeticItem} size={60} />
+                          : cozyItem ? <SwatchIcon item={cozyItem} size={60} />
+                          : <SlotCanvas item={item} size={60} />}
                         <span style={{
                           fontFamily: 'var(--font-thai)', fontSize: 12, color: '#fff',
                           textAlign: 'center', lineHeight: 1.15,
@@ -1041,6 +1216,146 @@ export default function Room({ navigate }) {
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: 'none', zIndex: 2,
             }} />
+          </div>
+        )
+      })()}
+
+      {/* ── Decorate sheet (🎨 button, SPEC GAME-B §B.2) — wallpaper/flooring,
+          room-wide. Shop items always shown; drop/craft items only once
+          owned (no price to render a locked card for); event items never
+          shown here regardless of ownership — dormant until Phase 3.3. ─── */}
+      {decorateOpen && (() => {
+        const catalog = decorateTab === 'wallpaper' ? WALLPAPER_ITEMS : FLOORING_ITEMS
+        const ownedArr = decorateTab === 'wallpaper' ? ownedWallpaper : ownedFlooring
+        const applied = decorateTab === 'wallpaper' ? activeRoom?.wallpaper : activeRoom?.flooring
+        const items = catalog.filter(i => i.acquirable !== 'event' && (!i.acquirable || ownedArr.includes(i.id)))
+        const previewItem = decoratePreview && catalog.find(i => i.id === decoratePreview.itemId)
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div
+              onClick={() => { setDecorateOpen(false); setDecoratePreview(null) }}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
+            />
+            <div style={{
+              position: 'relative', zIndex: 1,
+              maxHeight: '68vh', display: 'flex', flexDirection: 'column',
+              background: 'rgba(26,16,64,0.92)', backdropFilter: 'blur(14px)',
+              borderRadius: '24px 24px 0 0', padding: '16px 16px 0',
+              paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+              animation: 'fadeInUp 0.22s ease both', boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+                <span style={{ fontFamily: 'var(--font-thai)', fontSize: 15, fontWeight: 700, color: '#ff9ec0' }}>
+                  🎨 ตกแต่งห้อง
+                </span>
+                <button onClick={() => { setDecorateOpen(false); setDecoratePreview(null) }} aria-label="ปิด"
+                  style={{
+                    border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.06)', borderRadius: 9, padding: '5px 9px',
+                    fontSize: 14, color: '#fff', WebkitTapHighlightColor: 'transparent',
+                  }}>✕</button>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+                {[{ key: 'wallpaper', label: 'วอลเปเปอร์', icon: '🖼️' }, { key: 'flooring', label: 'พื้น', icon: '🟫' }].map(({ key, label, icon }) => {
+                  const active = decorateTab === key
+                  return (
+                    <button key={key} onClick={() => { setDecorateTab(key); setDecoratePreview(null) }}
+                      style={{
+                        flex: 1, minHeight: 44, cursor: 'pointer', borderRadius: 12,
+                        border: active ? '1px solid rgba(255,158,192,0.9)' : '1px solid rgba(255,255,255,0.14)',
+                        background: active ? 'linear-gradient(180deg, #ff9ec0, #d9448a)' : 'rgba(255,255,255,0.06)',
+                        color: '#fff', fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        WebkitTapHighlightColor: 'transparent',
+                      }}>
+                      <span style={{ fontSize: 16 }}>{icon}</span>{label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div style={{
+                flex: 1, minHeight: 0, overflowY: 'auto',
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+                paddingBottom: 12,
+              }}>
+                {items.map(item => {
+                  const owned = ownedArr.includes(item.id)
+                  const isApplied = applied === item.id
+                  const canAffordShop = coins >= (item.price ?? 0)
+                  const locked = !owned && !canAffordShop
+                  return (
+                    <button key={item.id} onClick={() => handleTapDecorItem(item)}
+                      aria-label={item.nameTh}
+                      style={{
+                        position: 'relative', borderRadius: 12, padding: '10px 8px', boxSizing: 'border-box',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        background: isApplied ? 'rgba(255,158,192,0.18)' : 'rgba(255,255,255,0.05)',
+                        border: isApplied ? '1.5px solid #ff9ec0' : '1px solid rgba(255,255,255,0.12)',
+                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                      }}>
+                      {isApplied && (
+                        <span style={{
+                          position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
+                          background: '#ff9ec0', color: '#3a0a20', fontSize: 11, fontWeight: 800,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        }}>✓</span>
+                      )}
+                      <SwatchIcon item={item} size={56} />
+                      <span style={{ fontFamily: 'var(--font-thai)', fontSize: 11, color: '#fff', textAlign: 'center', lineHeight: 1.15 }}>
+                        {item.nameTh}
+                      </span>
+                      {!owned && (
+                        <span style={{
+                          fontFamily: 'var(--font-pixel)', fontSize: 9, letterSpacing: 0.5,
+                          color: locked ? 'rgba(255,255,255,0.4)' : '#FFD23F',
+                        }}>
+                          {locked ? '🔒' : `🪙${item.price}`}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Preview-confirm prompt (unowned item, shown live for 2s first) */}
+              {previewItem && (
+                <div style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 4px', borderTop: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                  {!decoratePreview.confirmReady ? (
+                    <span style={{ flex: 1, textAlign: 'center', fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                      👀 กำลังลองดู {previewItem.nameTh}...
+                    </span>
+                  ) : (
+                    <>
+                      <button onClick={handleCancelDecorPreview} style={{
+                        flex: 1, minHeight: 46, borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)',
+                        background: 'rgba(255,255,255,0.06)', color: '#fff',
+                        fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}>
+                        ยกเลิก
+                      </button>
+                      <button onClick={handleConfirmDecorBuy} disabled={coins < previewItem.price} style={{
+                        flex: 2, minHeight: 46, borderRadius: 12, border: 'none',
+                        background: coins < previewItem.price ? 'rgba(120,100,90,0.4)' : 'linear-gradient(180deg, #FFDf7a, #F2B838)',
+                        color: coins < previewItem.price ? 'rgba(255,255,255,0.6)' : '#5b4020',
+                        fontFamily: 'var(--font-thai)', fontSize: 13, fontWeight: 800,
+                        cursor: coins < previewItem.price ? 'default' : 'pointer',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}>
+                        🛒 ซื้อ + ใช้เลย 🪙{previewItem.price}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )
       })()}

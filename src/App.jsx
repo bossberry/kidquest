@@ -29,6 +29,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import PlacementQuest from './components/PlacementQuest.jsx'
 import SpeechTestHarness from './components/SpeechTestHarness.jsx'
 import EggPoseHarness from './components/EggPoseHarness.jsx'
+import RoomHarness from './components/RoomHarness.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -98,6 +99,12 @@ export default function App() {
   // above. Never linked from the normal UI; opened directly via ?eggharness=1.
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('eggharness') === '1') {
     return <EggPoseHarness />
+  }
+
+  // Dev-only room test harness (SPEC GAME-B §B.2) — same pattern as above.
+  // Never linked from the normal UI; opened directly via ?roomharness=1.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('roomharness') === '1') {
+    return <RoomHarness />
   }
 
   if (!authChecked || (isLoggedIn && companionLoading)) {

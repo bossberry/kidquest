@@ -10,6 +10,14 @@ import {
 import { mkSparks, tickEffects } from '../lib/particles.js'
 import { playSFX, playBGM, stopBGM } from '../lib/audio.js'
 import EvolutionAlbum from './EvolutionAlbum.jsx'
+import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
+import CosmeticIcon from './CosmeticIcon.jsx'
+
+// SPEC GAME-B §B.1 (2026-07-10) — CRAFT_RECIPES/CRAFT_RECIPE_LIST now hold 2
+// cosmetic ids (butterfly_wings/mini_umbrella) alongside the 6 furniture
+// ones; this catalog lookup + the isCraftOwned() helper below let the craft
+// sheet treat both uniformly without duplicating its rendering logic.
+const COSMETIC_BY_ID = COSMETIC_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
 
 const BOTTOM_NAV_H = 80   // px — clearance for the fixed .px-bottom-nav rendered by App.jsx
 
@@ -156,6 +164,10 @@ export default function Room({ navigate }) {
 
   const coins       = state.coins ?? 0
   const ownedRoom   = state.ownedRoomItems ?? []
+  // SPEC GAME-B §B.1 (2026-07-10) — CRAFT_RECIPES now also holds 2 cosmetic
+  // items (see the craft sheet below); their "already owned" check needs the
+  // wearable catalog's array, not ownedRoomItems.
+  const ownedCosmetic = state.ownedItems ?? []
   const rooms       = state.rooms ?? [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} }]
   const activeRoomId = state.activeRoomId ?? 'main'
   const homeRoomId  = state.homeRoomId ?? 'main'
@@ -571,15 +583,22 @@ export default function Room({ navigate }) {
     craftFxRafRef.current = requestAnimationFrame(step)
   }
 
+  // SPEC GAME-B §B.1 (2026-07-10) — 2 of the 8 craft recipes are cosmetics
+  // now (see COSMETIC_BY_ID above); "already owned" must check the right
+  // catalog's owned array, not always ownedRoomItems.
+  function isCraftOwned(itemId) {
+    return COSMETIC_BY_ID[itemId] ? ownedCosmetic.includes(itemId) : ownedRoom.includes(itemId)
+  }
+
   // Instant — no confirm dialog. Tapping an affordable recipe card crafts it
   // immediately (per spec, simplicity over ceremony for a 6-recipe list).
   function handleCraft(itemId) {
     if (!canAfford(itemId)) return
-    if (ownedRoom.includes(itemId)) return
+    if (isCraftOwned(itemId)) return
     dispatch({ type: ACTIONS.CRAFT_ITEM, payload: { itemId } })
     playSFX('coin_purchase')
     fireCraftSparkle()
-    const item = ITEM_BY_ID[itemId]
+    const item = ITEM_BY_ID[itemId] || COSMETIC_BY_ID[itemId]
     flash(item ? `ประดิษฐ์${item.nameTh}แล้ว! ✨` : 'ประดิษฐ์สำเร็จ! ✨')
   }
 
@@ -930,7 +949,7 @@ export default function Room({ navigate }) {
 
       {/* ── Craft sheet (⚒️ button) — instant craft, affordable recipes only ─── */}
       {craftSheetOpen && (() => {
-        const affordable = CRAFT_RECIPE_LIST.filter(id => canAfford(id) && !ownedRoom.includes(id))
+        const affordable = CRAFT_RECIPE_LIST.filter(id => canAfford(id) && !isCraftOwned(id))
         return (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9100,
@@ -979,7 +998,11 @@ export default function Room({ navigate }) {
                   paddingBottom: 12,
                 }}>
                   {affordable.map(itemId => {
-                    const item = ITEM_BY_ID[itemId]
+                    // SPEC GAME-B §B.1 (2026-07-10) — 2 recipes are cosmetics
+                    // (COSMETIC_BY_ID), which need CosmeticIcon's draw
+                    // signature instead of SlotCanvas's (incompatible shapes).
+                    const cosmeticItem = COSMETIC_BY_ID[itemId]
+                    const item = cosmeticItem || ITEM_BY_ID[itemId]
                     const recipe = CRAFT_RECIPES[itemId] || {}
                     return (
                       <button
@@ -993,7 +1016,7 @@ export default function Room({ navigate }) {
                           cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                         }}
                       >
-                        <SlotCanvas item={item} size={60} />
+                        {cosmeticItem ? <CosmeticIcon item={cosmeticItem} size={60} /> : <SlotCanvas item={item} size={60} />}
                         <span style={{
                           fontFamily: 'var(--font-thai)', fontSize: 12, color: '#fff',
                           textAlign: 'center', lineHeight: 1.15,

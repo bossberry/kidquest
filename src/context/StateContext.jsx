@@ -9,6 +9,7 @@ import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
 import { CRAFT_RECIPES } from '../lib/roomItems.js'
+import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
 import { computeCareTick, applyFeed, applyPetEgg, applyPlayTouch, FOOD_CATALOG } from '../lib/eggCare.js'
@@ -193,6 +194,14 @@ export const ACTIONS = {
   // Cosmetic shop
   BUY_ITEM:       'BUY_ITEM',
   EQUIP_ITEM:     'EQUIP_ITEM',
+  // SPEC GAME-B §B.1 (2026-07-10) — Dressing Room: body/back slots, wardrobe QoL
+  ADD_OWNED_ITEM:        'ADD_OWNED_ITEM',
+  CLEAR_NEW_ITEM:        'CLEAR_NEW_ITEM',
+  SAVE_FAVORITE_OUTFIT:  'SAVE_FAVORITE_OUTFIT',
+  WEAR_FAVORITE_OUTFIT:  'WEAR_FAVORITE_OUTFIT',
+  CLEAR_FAVORITE_OUTFIT: 'CLEAR_FAVORITE_OUTFIT',
+  RANDOM_OUTFIT:         'RANDOM_OUTFIT',
+  REMOVE_ALL_OUTFIT:     'REMOVE_ALL_OUTFIT',
   // Room / Den decoration
   BUY_ROOM_ITEM:    'BUY_ROOM_ITEM',
   PLACE_ROOM_ITEM:  'PLACE_ROOM_ITEM',
@@ -1288,11 +1297,18 @@ function reducer(state, action) {
     // add the item to ownedRoomItems (placeable through the normal Room flow)
     // + craftedItems (provenance) + flag hasNewRoomItem for the nav badge.
     // No-op if the recipe is unknown, requirements aren't met, or already owned.
+    // SPEC GAME-B §B.1 (2026-07-10): CRAFT_RECIPES now also holds 2 cosmetic
+    // items (butterfly_wings/mini_umbrella) — same shared recipe table the
+    // spec asked to extend, but a cosmetic craft must land in ownedItems (the
+    // wearable catalog) rather than ownedRoomItems, so this branches on which
+    // catalog itemId actually belongs to.
     case ACTIONS.CRAFT_ITEM: {
       const { itemId } = action.payload
       const recipe = CRAFT_RECIPES[itemId]
       if (!recipe) return state
-      if ((state.ownedRoomItems || []).includes(itemId)) return state
+      const isCosmetic = COSMETIC_ITEMS.some(i => i.id === itemId)
+      const ownedArr = isCosmetic ? 'ownedItems' : 'ownedRoomItems'
+      if ((state[ownedArr] || []).includes(itemId)) return state
       const mats = state.materials || {}
       for (const k in recipe) if ((mats[k] || 0) < recipe[k]) return state
       const newMats = { ...mats }
@@ -1300,9 +1316,9 @@ function reducer(state, action) {
       return {
         ...state,
         materials: newMats,
-        ownedRoomItems: [...(state.ownedRoomItems || []), itemId],
+        [ownedArr]: [...(state[ownedArr] || []), itemId],
         craftedItems: [...(state.craftedItems || []), itemId],
-        hasNewRoomItem: true,
+        ...(isCosmetic ? { hasNewItem: true } : { hasNewRoomItem: true }),
         lastSavedAt: Date.now(),
       }
     }
@@ -1326,6 +1342,83 @@ function reducer(state, action) {
     // BottomNav "✨ ของใหม่!" bubble now that the child has seen the new item.
     case ACTIONS.CLEAR_NEW_ROOM_ITEM:
       return state.hasNewRoomItem ? { ...state, hasNewRoomItem: false } : state
+
+    // SPEC GAME-B §B.1 (2026-07-10) — ADD_OWNED_ITEM: monster-drop cosmetics
+    // (turtle_shell/ninja_suit), the wearable-catalog sibling of
+    // ADD_OWNED_ROOM_ITEM. Same no-op-if-already-owned guard.
+    case ACTIONS.ADD_OWNED_ITEM: {
+      const { itemId } = action.payload
+      if (!itemId || (state.ownedItems || []).includes(itemId)) return state
+      return {
+        ...state,
+        ownedItems: [...(state.ownedItems || []), itemId],
+        hasNewItem: true,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // CLEAR_NEW_ITEM — dispatched when Collection.jsx mounts, same convention
+    // as CLEAR_NEW_ROOM_ITEM above.
+    case ACTIONS.CLEAR_NEW_ITEM:
+      return state.hasNewItem ? { ...state, hasNewItem: false } : state
+
+    // SAVE_FAVORITE_OUTFIT — snapshot the currently-equipped combo into one of
+    // the 4 favorite slots (overwrites whatever was there). slotIndex 0-3.
+    case ACTIONS.SAVE_FAVORITE_OUTFIT: {
+      const { slotIndex } = action.payload
+      if (slotIndex == null || slotIndex < 0 || slotIndex > 3) return state
+      const favs = [...(state.favoriteOutfits || [null, null, null, null])]
+      const eq = state.equipped || {}
+      favs[slotIndex] = { head: eq.head ?? null, face: eq.face ?? null, body: eq.body ?? null, back: eq.back ?? null }
+      return { ...state, favoriteOutfits: favs, lastSavedAt: Date.now() }
+    }
+
+    // WEAR_FAVORITE_OUTFIT — equip a saved favorite combo in one dispatch.
+    // Defensively only wears pieces still actually owned (nothing in this
+    // codebase currently allows losing an owned cosmetic, but a favorite is
+    // long-lived saved data, so this guards against any future drift).
+    case ACTIONS.WEAR_FAVORITE_OUTFIT: {
+      const { slotIndex } = action.payload
+      const fav = (state.favoriteOutfits || [])[slotIndex]
+      if (!fav) return state
+      const owned = state.ownedItems || []
+      const next = { head: null, face: null, body: null, back: null }
+      for (const slot of ['head', 'face', 'body', 'back']) {
+        if (fav[slot] && owned.includes(fav[slot])) next[slot] = fav[slot]
+      }
+      return { ...state, equipped: next, lastSavedAt: Date.now() }
+    }
+
+    // CLEAR_FAVORITE_OUTFIT — empty one favorite slot back to null.
+    case ACTIONS.CLEAR_FAVORITE_OUTFIT: {
+      const { slotIndex } = action.payload
+      if (slotIndex == null || slotIndex < 0 || slotIndex > 3) return state
+      const favs = [...(state.favoriteOutfits || [null, null, null, null])]
+      if (!favs[slotIndex]) return state
+      favs[slotIndex] = null
+      return { ...state, favoriteOutfits: favs, lastSavedAt: Date.now() }
+    }
+
+    // RANDOM_OUTFIT — 🎲 button: randomize each of the 4 slots among the
+    // child's OWNED items for that slot (never something they don't have).
+    // A slot with nothing owned is left empty rather than forced blank —
+    // preserves whatever's currently there if there's genuinely nothing to
+    // randomize into, so tapping 🎲 with e.g. no owned "back" items yet
+    // never yanks off a piece the child does own.
+    case ACTIONS.RANDOM_OUTFIT: {
+      const owned = state.ownedItems || []
+      const eq = state.equipped || {}
+      const next = { ...eq }
+      for (const slot of ['head', 'face', 'body', 'back']) {
+        const pool = COSMETIC_ITEMS.filter(i => i.slot === slot && owned.includes(i.id))
+        if (pool.length > 0) next[slot] = pool[Math.floor(Math.random() * pool.length)].id
+      }
+      return { ...state, equipped: next, lastSavedAt: Date.now() }
+    }
+
+    // REMOVE_ALL_OUTFIT — "ถอดหมด" button: clear all 4 slots at once.
+    case ACTIONS.REMOVE_ALL_OUTFIT:
+      return { ...state, equipped: { head: null, face: null, body: null, back: null }, lastSavedAt: Date.now() }
 
     default:
       return state

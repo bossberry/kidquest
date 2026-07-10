@@ -144,7 +144,7 @@ test('C.1: validateState repairs minor corruption without a restore', () => {
   assert.equal(repaired, true)
   assert.equal(s.coins, 0, 'negative coins clamped to 0')
   assert.ok(Array.isArray(s.ownedRoomItems), 'ownedRoomItems coerced to array')
-  assert.deepEqual(s.equipped, { head: null, face: null }, 'equipped rebuilt')
+  assert.deepEqual(s.equipped, { head: null, face: null, body: null, back: null }, 'equipped rebuilt (SPEC GAME-B §B.1 adds body/back)')
 })
 
 // ── Phase 1.1 curriculum system — skillMastery/activeNodes protection ───────
@@ -379,6 +379,41 @@ test('§A.2: validateState repairs corrupted evolutionAlbum/pendingEvolutionCere
   const withNull = { ...defaultState(), pendingEvolutionCeremony: null }
   const { state: s3 } = validateState(withNull)
   assert.equal(s3.pendingEvolutionCeremony, null, 'legitimate null pendingEvolutionCeremony must NOT be coerced to {}')
+})
+
+// SPEC GAME-B §B.1 (2026-07-10): a body/back cosmetic equip, or a saved
+// favorite-outfit slot, is real progress — same category as head/face
+// equipping above (a deliberate wardrobe choice), must never be wiped by a
+// stale-but-newer-timestamped blank remote.
+test('regression: an equipped body/back cosmetic or a saved favorite outfit is never wiped by a stale blank remote', () => {
+  const localBody = { ...defaultState(), lastSavedAt: 1000, equipped: { head: null, face: null, body: 'raincoat', back: null } }
+  const remoteBlank = { ...defaultState(), lastSavedAt: 9000 }
+  assert.equal(hasRealProgress(localBody), true, 'an equipped body item counts as real progress')
+  const r1 = resolveSync(localBody, remoteBlank)
+  assert.equal(r1.remoteWon, false, 'an equipped body item must beat a newer-but-blank remote')
+  assert.deepEqual(r1.winner.equipped, localBody.equipped)
+
+  const localBack = { ...defaultState(), lastSavedAt: 1000, equipped: { head: null, face: null, body: null, back: 'balloon' } }
+  assert.equal(hasRealProgress(localBack), true, 'an equipped back item counts as real progress')
+
+  const favCombo = { head: 'cap', face: null, body: 'adventurer_suit', back: 'backpack' }
+  const localFavorite = { ...defaultState(), lastSavedAt: 1000, favoriteOutfits: [favCombo, null, null, null] }
+  assert.equal(hasRealProgress(localFavorite), true, 'a saved favorite-outfit slot counts as real progress')
+  const r2 = resolveSync(localFavorite, remoteBlank)
+  assert.equal(r2.remoteWon, false, 'a saved favorite outfit must beat a newer-but-blank remote')
+  assert.deepEqual(r2.winner.favoriteOutfits, localFavorite.favoriteOutfits)
+
+  // 4 empty favorite slots (the real default) must NOT read as real progress.
+  assert.equal(hasRealProgress({ ...defaultState() }), false)
+})
+
+// validateState: equipped repairs to include body/back (not just head/face),
+// and favoriteOutfits coerces to a real array on corruption.
+test('§B.1: validateState repairs equipped to include body/back and coerces a corrupted favoriteOutfits', () => {
+  const dirty = { ...defaultState(), xpThai: 10, equipped: { head: 'cap' }, favoriteOutfits: 'oops' }
+  const { state: s } = validateState(dirty)
+  assert.deepEqual(s.equipped, { head: 'cap', face: null, body: null, back: null })
+  assert.ok(Array.isArray(s.favoriteOutfits), 'a corrupted (non-array) favoriteOutfits must repair to an array')
 })
 
 // The backup ring never grows past 3 and keeps the newest.

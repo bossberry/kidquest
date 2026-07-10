@@ -920,32 +920,48 @@ export const MATERIALS = [
 export const MATERIAL_ICON = MATERIALS.reduce((m, x) => (m[x.id] = x.icon, m), {})
 
 // ── Monster drops ────────────────────────────────────────────────────────────
-// Enemy type (drawEnemy.js / enemyConfig.js keys) → 2 candidate drop items.
+// Enemy type (drawEnemy.js / enemyConfig.js keys) → candidate drop items.
 // Consumed by useBattleCombat.js's showVictory() on a 30%-per-win roll.
+// SPEC GAME-B §B.1 (2026-07-10) adds 2 drop-only COSMETIC items (turtle_shell/
+// ninja_suit — see src/egg/eggCosmeticLayer.js COSMETIC_ITEMS) as a 3rd
+// candidate on top of each enemy's existing 2 furniture drops, rather than a
+// separate drop system — literally extends MONSTER_DROPS per the spec's own
+// instruction. Enemy picks are a thematic judgment call (documented in
+// CHATBOT_NOTES.md): turtle_shell → snake (reptile theme), ninja_suit →
+// fox_kit (foxes read as sly/agile, closest thing to "stealthy" this enemy
+// roster has — no enemy is literally ninja-themed).
 export const MONSTER_DROPS = {
   sleepy_bunny: ['bunny_cushion', 'carrot_planter'],
   bouncy_slime: ['slime_lamp', 'jelly_rug'],
-  fox_kit:      ['fox_plushie', 'forest_lantern'],
+  fox_kit:      ['fox_plushie', 'forest_lantern', 'ninja_suit'],
   egg_pawn:     ['robot_shelf', 'gear_clock'],
   leaf_sprite:  ['leaf_hammock', 'vine_curtain'],
   mushroom_imp: ['mushroom_stool', 'spore_lamp'],
   baby_zombie:  ['zombie_poster', 'bone_shelf'],
   ghost_wisp:   ['ghost_lamp', 'spirit_mirror'],
-  snake:        ['snake_rug', 'scale_shelf'],
+  snake:        ['snake_rug', 'scale_shelf', 'turtle_shell'],
 }
 
 // ── Craft recipes ────────────────────────────────────────────────────────────
 // Keyed by the crafted item's id. Each value maps a material id → required
 // count. Consumed by CRAFT_ITEM (StateContext) and Room.jsx's craft sheet.
+// SPEC GAME-B §B.1 (2026-07-10) adds 2 craft-only COSMETIC items (
+// butterfly_wings/mini_umbrella — see eggCosmeticLayer.js COSMETIC_ITEMS) to
+// this SAME shared recipe table, per the spec's own instruction — CRAFT_ITEM
+// (StateContext.jsx) routes the crafted item into ownedItems vs
+// ownedRoomItems depending on which catalog it actually belongs to.
 export const CRAFT_RECIPES = {
-  flower_wreath:  { flower: 4 },
-  mossy_log:      { wood: 3 },
-  pebble_path:    { stone: 3 },
-  water_bowl:     { water: 3 },
-  star_lantern:   { stardust: 4 },
-  mushroom_ring:  { mushroom: 3 },
+  flower_wreath:    { flower: 4 },
+  mossy_log:        { wood: 3 },
+  pebble_path:      { stone: 3 },
+  water_bowl:       { water: 3 },
+  star_lantern:     { stardust: 4 },
+  mushroom_ring:    { mushroom: 3 },
+  butterfly_wings:  { flower: 4, stardust: 2 },
+  mini_umbrella:    { wood: 3, water: 2 },
 }
 
 export const CRAFT_RECIPE_LIST = [
   'flower_wreath', 'mossy_log', 'pebble_path', 'water_bowl', 'star_lantern', 'mushroom_ring',
+  'butterfly_wings', 'mini_umbrella',
 ]

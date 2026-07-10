@@ -51,7 +51,11 @@ export function hasRealProgress(s) {
   // stay safe to use as the maintenance-immune "is this a real save?" signal.
   if ((s.rooms?.length ?? 0) > 1) return true                 // bought a room block (1000 coins each)
   if ((s.craftedItems?.length ?? 0) > 0) return true          // crafted furniture
-  if (s.equipped && (s.equipped.head || s.equipped.face)) return true
+  if (s.equipped && (s.equipped.head || s.equipped.face || s.equipped.body || s.equipped.back)) return true
+  // SPEC GAME-B §B.1 (2026-07-10). A saved favorite-outfit slot is a real,
+  // deliberate wardrobe choice the child made — same category as owned
+  // items/equipped above, not a fluctuating gauge.
+  if ((s.favoriteOutfits || []).some(f => f)) return true
   if (s.materials && Object.values(s.materials).some(v => (v || 0) > 0)) return true
   // Phase 1.1 curriculum system (2026-07-09). Same maintenance-immunity rule as
   // everything else here: skillMastery is ONLY ever written by RECORD_ANSWER (a
@@ -182,7 +186,7 @@ export function validateState(state, profileId = _currentProfileId) {
   }
   const arrayFields = ['ownedItems', 'ownedRoomItems', 'craftedItems', 'party', 'hatchedEggs',
                        'seenTeach', 'discoveredScreens', 'clearedMaps', 'battleHistory', 'sessionLog',
-                       'evolutionAlbum']
+                       'evolutionAlbum', 'favoriteOutfits']
   for (const f of arrayFields) {
     if (!Array.isArray(s[f])) { s[f] = Array.isArray(base[f]) ? [...base[f]] : []; repaired = true }
   }
@@ -195,10 +199,15 @@ export function validateState(state, profileId = _currentProfileId) {
       repaired = true
     }
   }
-  if (!s.equipped || typeof s.equipped !== 'object') { s.equipped = { head: null, face: null }; repaired = true }
-  else {
+  if (!s.equipped || typeof s.equipped !== 'object') {
+    s.equipped = { head: null, face: null, body: null, back: null }
+    repaired = true
+  } else {
     if (!('head' in s.equipped)) { s.equipped.head = null; repaired = true }
     if (!('face' in s.equipped)) { s.equipped.face = null; repaired = true }
+    // SPEC GAME-B §B.1 (2026-07-10) — new slots
+    if (!('body' in s.equipped)) { s.equipped.body = null; repaired = true }
+    if (!('back' in s.equipped)) { s.equipped.back = null; repaired = true }
   }
 
   // placementDone/placementResults — NOT handled by the generic objectFields
@@ -377,7 +386,13 @@ export function defaultState() {
     loginStreak: 0,
     coinsLevelBonus: {},
     ownedItems: [],
-    equipped: { head: null, face: null },
+    equipped: { head: null, face: null, body: null, back: null },
+    // SPEC GAME-B §B.1 (2026-07-10) — 4 save-a-combo slots, each null or a
+    // snapshot { head, face, body, back }. hasNewItem drives the "ของใหม่!"
+    // bubble on BottomNav's แต่งตัว tab (cosmetic drop/craft), cleared when
+    // Collection.jsx mounts — same convention as hasNewRoomItem below.
+    favoriteOutfits: [null, null, null, null],
+    hasNewItem: false,
     ownedRoomItems: [],
     // Room items — two acquisition paths (2026-07-07 simplified replacement of
     // the earlier workbench+20/day-collect-button system): monster drops

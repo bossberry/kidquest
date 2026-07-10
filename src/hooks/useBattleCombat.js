@@ -5,6 +5,7 @@ import { getElementTier } from '../config/elementConfig.js'
 import { playElementAttack } from '../lib/elementAnimations.js'
 import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
 import { MONSTER_DROPS, ROOM_ITEMS } from '../lib/roomItems.js'
+import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 
 /**
  * useBattleCombat — owns the core combat resolution logic: fireHit, fireMiss,
@@ -282,11 +283,25 @@ export function useBattleCombat(params) {
     // (2026-07-07 — replaces the earlier manual crafting-table system's sole
     // acquisition path with a second, direct one). Already-owned items pay a
     // 15-coin consolation instead of being re-dropped.
+    // SPEC GAME-B §B.1 (2026-07-10): 2 of MONSTER_DROPS' candidates
+    // (turtle_shell/ninja_suit) are now wearable cosmetics, not furniture —
+    // this branches on which catalog the rolled itemId actually belongs to
+    // so it lands in ownedItems (equippable via the dressing room) instead
+    // of ownedRoomItems. victoryDrop's badge (icon+nameTh) renders either
+    // shape identically since both catalogs carry those 2 fields.
     if (isWorldBattle && enemy?.type && !enemy?.isBossBattle) {
       const dropPool = MONSTER_DROPS[enemy.type]
       if (dropPool && Math.random() < 0.30) {
         const itemId = dropPool[Math.floor(Math.random() * dropPool.length)]
-        if ((state.ownedRoomItems || []).includes(itemId)) {
+        const cosmeticItem = COSMETIC_ITEMS.find(i => i.id === itemId)
+        if (cosmeticItem) {
+          if ((state.ownedItems || []).includes(itemId)) {
+            dispatchAddCoins(dispatch, 15)
+          } else {
+            dispatch({ type: ACTIONS.ADD_OWNED_ITEM, payload: { itemId } })
+            if (mountedRef.current) setVictoryDrop?.(cosmeticItem)
+          }
+        } else if ((state.ownedRoomItems || []).includes(itemId)) {
           dispatchAddCoins(dispatch, 15)
         } else {
           dispatch({ type: ACTIONS.ADD_OWNED_ROOM_ITEM, payload: { itemId } })

@@ -38,10 +38,15 @@ const CORE_STATES = ["idle", "happy", "hurt", "attack", "sleepy", "excited"];
  * @param {string} [careMood] SPEC GAME-A §A.3 — 'happy'|'hungry'|'sleepy'|'content'
  *        (see deriveCareMood in eggPoses.js). Only affects the plain 'idle'
  *        state, so passing it is always safe even mid-interaction/battle.
+ * @param {string} [setPose] SPEC GAME-B §B.1 — a pose name (see EGG_POSES)
+ *        to use instead of the normal idle/mood-idle when a full outfit set
+ *        is equipped (see outfitSets.js). Only affects the plain 'idle'
+ *        state; takes priority over careMood when both are set.
  * @returns {{tx:number, ty:number, sx:number, sy:number, rot:number, flash:number}}
  *          translate (px), scale, rotate (rad), flash (0..1 red overlay alpha)
  */
-export function getEggPose(state, t, careMood) {
+export function getEggPose(state, t, careMood, setPose) {
+  if (state === "idle" && setPose) return getPoseTransform(setPose, t);
   if (state === "idle" && careMood) return getIdleMoodTransform(careMood, t);
   if (!CORE_STATES.includes(state) && EGG_POSES.includes(state)) {
     return getPoseTransform(state, t);

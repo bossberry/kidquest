@@ -369,6 +369,188 @@ function drawEyeMask(ctx, { px, ox, oy, faceX: fx = 9 }) {
   q(ctx, ox, oy, px, fx + 5.0, 8.7, 0.5, 0.5, W)
 }
 
+// ── BODY ITEMS (SPEC GAME-B §B.1) ───────────────────────────────────────────
+// "Overlay band on egg lower-half" — a garment silhouette following the
+// baby sprite's own lower-body taper (rows 9-16 of EGG_SPRITE_BABY), drawn
+// right after the body (before eyes/regalia-front). BODY_BAND's [y, width]
+// pairs were read directly off the real sprite's row spans so the garment
+// hugs the egg's own shape instead of floating as a rectangle over it.
+const BODY_BAND = [
+  [9, 16], [10, 16], [11, 16], [12, 16],
+  [13, 14], [14, 12], [15, 10], [16, 8],
+]
+function drawBand(ctx, ox, oy, px, fx, color, rows = BODY_BAND) {
+  rows.forEach(([y, w]) => q(ctx, ox, oy, px, fx - w / 2, y, w, 1, color))
+}
+
+function drawAdventurerSuit(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#8a9a5a', H = '#a8b878', belt = '#6b4226', buckle = '#c9a24a'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 1, H)                 // collar highlight
+  q(ctx, ox, oy, px, fx - 7, 12, 14, 1, belt)             // belt
+  q(ctx, ox, oy, px, fx - 1, 11.7, 2, 1.6, buckle)        // buckle
+}
+function drawWinterCoat(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#6bb8e8', D = '#4a90c8', W = '#ffffff'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 1.4, W)               // furry collar
+  q(ctx, ox, oy, px, fx - 0.4, 10, 0.8, 6.5, D)           // zipper line
+}
+function drawSwimsuit(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#2ecfc4', A = '#ff9933'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 7, 11, 14, 0.9, A)              // diagonal-ish wave stripe
+  q(ctx, ox, oy, px, fx - 5, 14, 10, 0.9, A)
+}
+function drawHawaiianShirt(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const M = '#ff7a45', Y = '#FFD23F', G = '#5bbf6a'
+  drawBand(ctx, ox, oy, px, fx, M)
+  const spots = [[fx - 5, 10], [fx + 3, 11], [fx - 2, 13], [fx + 4, 14.5]]
+  spots.forEach(([sx, sy], i) => {
+    q(ctx, ox, oy, px, sx - 0.4, sy, 0.9, 0.9, i % 2 === 0 ? Y : G)
+  })
+}
+function drawScientistCoat(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#f5f5f0', C = '#aaddff', pocket = '#d8d8d0', pen = '#e83c3c'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 1, C)                 // light collar
+  q(ctx, ox, oy, px, fx + 2, 12, 2.4, 2, pocket)          // pocket
+  q(ctx, ox, oy, px, fx + 2.7, 10.5, 0.5, 2, pen)         // pen
+}
+function drawSportJersey(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#e83c3c', W = '#ffffff'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 6, 9, 2, 8, W)                  // side stripe
+  q(ctx, ox, oy, px, fx + 4, 9, 2, 8, W)
+  // stylized "1" numeral on the chest
+  q(ctx, ox, oy, px, fx - 0.4, 10.5, 0.8, 3.2, W)
+  q(ctx, ox, oy, px, fx - 1.0, 10.5, 0.8, 0.8, W)
+}
+function drawRoyalOutfit(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#6a3fa0', G = '#FFD23F', E = '#f5f0e8'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 0.8, G)               // gold trim collar
+  q(ctx, ox, oy, px, fx - 4, 16, 8, 0.8, E)               // ermine hem
+  q(ctx, ox, oy, px, fx - 4, 15.2, 8, 0.6, G)             // gold hem trim
+}
+function drawNinjaSuit(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#232330', D = '#15151d', sash = '#c62828'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx + 4, 9, 2, 8, D)                  // side shade
+  q(ctx, ox, oy, px, fx - 7, 11.5, 14, 1.2, sash)         // red sash
+}
+function drawGardenerOveralls(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#4a72a8', D = '#375a88', pocket = '#375a88'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 4.5, 9, 1, 3, D)                // left strap
+  q(ctx, ox, oy, px, fx + 3.5, 9, 1, 3, D)                // right strap
+  q(ctx, ox, oy, px, fx - 2, 11, 4, 3, pocket)            // bib pocket
+  q(ctx, ox, oy, px, fx - 2, 11, 4, 0.6, '#5a8ac0')       // pocket rim highlight
+}
+function drawRaincoat(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#ffd23f', D = '#e0a81a'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 1, D)                 // collar
+  const buttons = [10.5, 12, 13.5]
+  buttons.forEach(y => q(ctx, ox, oy, px, fx - 0.4, y, 0.8, 0.8, D))
+}
+function drawPajamas(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#a8d8f0', W = '#ffffff'
+  drawBand(ctx, ox, oy, px, fx, M)
+  const dots = [[fx - 5, 10.5], [fx + 3, 10.5], [fx - 3, 12.5], [fx + 4, 13.5], [fx - 1, 15]]
+  dots.forEach(([dx, dy]) => q(ctx, ox, oy, px, dx - 0.4, dy, 0.8, 0.8, W))
+}
+function drawThaiCostume(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#c62828', G = '#FFD23F'
+  drawBand(ctx, ox, oy, px, fx, M)
+  q(ctx, ox, oy, px, fx - 8, 9, 16, 0.7, G)               // gold collar trim
+  q(ctx, ox, oy, px, fx - 4, 16, 8, 0.7, G)               // gold hem trim
+  // diagonal gold sash
+  const sash = [[9.5, -6], [11, -4], [12.5, -2], [14, 0]]
+  sash.forEach(([y, dx]) => q(ctx, ox, oy, px, fx + dx, y, 2.4, 1, G))
+}
+
+// ── BACK ITEMS (SPEC GAME-B §B.1) ───────────────────────────────────────────
+// Drawn BEHIND the egg body (pass:'behind', before the body draw), so packs/
+// wings/capes read as worn ON the back rather than floating over the face.
+function drawBackpack(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#a86b3c', D = '#8a5530', strap = '#6b4226'
+  q(ctx, ox, oy, px, fx - 7.5, 10, 3, 6, strap)           // left strap peeking out
+  q(ctx, ox, oy, px, fx + 4.5, 10, 3, 6, strap)
+  q(ctx, ox, oy, px, fx - 7, 9.5, 14, 7, M)               // pack body (mostly hidden behind egg)
+  q(ctx, ox, oy, px, fx - 7, 9.5, 14, 1, D)
+}
+function drawButterflyWings(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const flap = Math.sin(t * 3) * 0.6
+  const P = '#c77dff', Sp = '#ffe08a'
+  ctx.globalAlpha = 0.78
+  // Left wing
+  q(ctx, ox, oy, px, fx - 11 + flap, 5, 5, 4, P)
+  q(ctx, ox, oy, px, fx - 10 + flap, 9, 4, 3, P)
+  q(ctx, ox, oy, px, fx - 9.5 + flap, 6, 1.2, 1.2, Sp)
+  // Right wing (mirrored)
+  q(ctx, ox, oy, px, fx + 6 - flap, 5, 5, 4, P)
+  q(ctx, ox, oy, px, fx + 6 - flap, 9, 4, 3, P)
+  q(ctx, ox, oy, px, fx + 8.3 - flap, 6, 1.2, 1.2, Sp)
+  ctx.globalAlpha = 1
+}
+function drawAngelWings(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const bob = Math.sin(t * 1.5) * 0.4
+  const W = '#fdfdfb', S = '#e8e4dc'
+  const rowsL = [[4 + bob, -12, 5], [6 + bob, -13, 6], [8 + bob, -12, 5], [10 + bob, -10, 4], [12 + bob, -8, 3]]
+  rowsL.forEach(([y, dx, w]) => q(ctx, ox, oy, px, fx + dx, y, w, 1.4, W))
+  const rowsR = [[4 + bob, 7, 5], [6 + bob, 7, 6], [8 + bob, 7, 5], [10 + bob, 6, 4], [12 + bob, 5, 3]]
+  rowsR.forEach(([y, dx, w]) => q(ctx, ox, oy, px, fx + dx, y, w, 1.4, W))
+  q(ctx, ox, oy, px, fx - 11, 6, 3, 1, S)
+  q(ctx, ox, oy, px, fx + 8, 6, 3, 1, S)
+}
+function drawTurtleShell(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const M = '#5d9c55', D = '#3a6638', line = '#2a4a28'
+  q(ctx, ox, oy, px, fx - 6, 8, 12, 8, M)
+  q(ctx, ox, oy, px, fx - 6, 8, 12, 1.2, D)
+  const grid = [[fx - 3, 10], [fx + 1, 10], [fx - 3, 13], [fx + 1, 13]]
+  grid.forEach(([gx, gy]) => q(ctx, ox, oy, px, gx, gy, 2, 0.5, line))
+}
+function drawMiniRocket(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const M = '#e83c3c', W = '#ffffff', fin = '#c62828', flame = '#FFD23F'
+  const rx = fx + 6.5
+  q(ctx, ox, oy, px, rx - 1.2, 3, 2.4, 8, M)
+  q(ctx, ox, oy, px, rx - 1.2, 3, 2.4, 2, W)
+  q(ctx, ox, oy, px, rx - 0.5, 5.5, 1, 1, W)              // window
+  q(ctx, ox, oy, px, rx - 2.3, 9, 1.5, 2.5, fin)          // left fin
+  q(ctx, ox, oy, px, rx + 1.3, 9, 1.5, 2.5, fin)          // right fin
+  const flick = 0.6 + 0.4 * Math.sin(t * 8)
+  ctx.globalAlpha = flick
+  q(ctx, ox, oy, px, rx - 0.8, 11, 1.6, 2, flame)
+  ctx.globalAlpha = 1
+}
+function drawHeroCape(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const sway = Math.sin(t * 1.8) * 0.5
+  const M = '#e83c3c', D = '#c62828', clasp = '#FFD23F'
+  const rows = [
+    [4, -6, 12], [6, -6.3 + sway * 0.3, 12.6], [8, -6.6 + sway * 0.5, 13.2],
+    [10, -7 + sway * 0.7, 14], [12, -7.4 + sway, 14.8], [14, -7.8 + sway * 1.2, 15.6],
+    [16, -8.2 + sway * 1.4, 16.4],
+  ]
+  rows.forEach(([y, dx, w], i) => q(ctx, ox, oy, px, fx + dx, y, w, 1.3, i % 3 === 0 ? D : M))
+  q(ctx, ox, oy, px, fx - 1, 3.3, 2, 1.4, clasp)          // shoulder clasp
+}
+function drawMiniUmbrella(ctx, { px, ox, oy, faceX: fx = 9 }) {
+  const cols = ['#e83c3c', '#FFD23F', '#4db8e8', '#5bbf6a']
+  const cx = fx + 6
+  cols.forEach((c, i) => q(ctx, ox, oy, px, cx - 2 + i, 2, 1, 2, c))
+  q(ctx, ox, oy, px, cx - 2, 4, 4, 0.6, '#8a5530')        // canopy rim
+  q(ctx, ox, oy, px, cx - 0.3, 4.6, 0.6, 5, '#8a5530')    // handle
+}
+function drawBalloon(ctx, { px, ox, oy, faceX: fx = 9, t = 0 }) {
+  const drift = Math.sin(t * 1.2) * 0.6
+  const M = '#ff6e9c', H = '#ffb3ce', string = '#6b6b76'
+  const bx = fx + drift
+  q(ctx, ox, oy, px, bx - 2, -6, 4, 5, M)
+  q(ctx, ox, oy, px, bx - 1.5, -5.5, 1.3, 1.3, H)         // highlight
+  q(ctx, ox, oy, px, bx - 0.2, -1, 0.4, 8, string)        // string down behind egg
+}
+
 // ── CATALOG ────────────────────────────────────────────────────────────────
 
 export const COSMETIC_ITEMS = [
@@ -392,17 +574,56 @@ export const COSMETIC_ITEMS = [
   { id: 'eye_mask',       slot: 'face', nameTh: 'หน้ากากตา',       nameEn: 'Eye Mask',     price: 180, tier: 'mid',   draw: drawEyeMask },
   { id: 'sunglasses',     slot: 'face', nameTh: 'แว่นกันแดด',     nameEn: 'Sunglasses',   price: 150, tier: 'mid',   draw: drawSunglasses },
   { id: 'star_glasses',   slot: 'face', nameTh: 'แว่นดาว',         nameEn: 'Star Glasses', price: 200, tier: 'mid',   draw: drawStarGlasses },
+  // ─── BODY (SPEC GAME-B §B.1, 12 items — all shop unless noted) ───
+  { id: 'adventurer_suit',    slot: 'body', nameTh: 'ชุดนักผจญภัย',  nameEn: 'Adventurer Suit',    price: 120, tier: 'mid', draw: drawAdventurerSuit },
+  { id: 'winter_coat',        slot: 'body', nameTh: 'เสื้อกันหนาว',   nameEn: 'Winter Coat',        price: 130, tier: 'mid', draw: drawWinterCoat },
+  { id: 'swimsuit',           slot: 'body', nameTh: 'ชุดว่ายน้ำ',     nameEn: 'Swimsuit',           price: 90,  tier: 'mid', draw: drawSwimsuit },
+  { id: 'hawaiian_shirt',     slot: 'body', nameTh: 'เสื้อฮาวาย',     nameEn: 'Hawaiian Shirt',     price: 90,  tier: 'mid', draw: drawHawaiianShirt },
+  { id: 'scientist_coat',     slot: 'body', nameTh: 'ชุดนักวิทย์',    nameEn: 'Scientist Coat',     price: 140, tier: 'mid', draw: drawScientistCoat },
+  { id: 'sport_jersey',       slot: 'body', nameTh: 'เสื้อกีฬา',      nameEn: 'Sport Jersey',       price: 100, tier: 'mid', draw: drawSportJersey },
+  { id: 'royal_outfit',       slot: 'body', nameTh: 'ชุดเจ้าหญิง/เจ้าชาย', nameEn: 'Royal Outfit',  price: 220, tier: 'big', draw: drawRoyalOutfit },
+  { id: 'ninja_suit',         slot: 'body', nameTh: 'ชุดนินจา',       nameEn: 'Ninja Suit',         price: 150, tier: 'mid', draw: drawNinjaSuit, acquirable: 'drop', icon: '🥷' },
+  { id: 'gardener_overalls',  slot: 'body', nameTh: 'เอี๊ยมชาวสวน',   nameEn: 'Gardener Overalls',  price: 100, tier: 'mid', draw: drawGardenerOveralls },
+  { id: 'raincoat',           slot: 'body', nameTh: 'เสื้อกันฝน',     nameEn: 'Raincoat',           price: 80,  tier: 'small', draw: drawRaincoat },
+  { id: 'pajamas',            slot: 'body', nameTh: 'ชุดนอน',         nameEn: 'Pajamas',            price: 70,  tier: 'small', draw: drawPajamas },
+  { id: 'thai_costume',       slot: 'body', nameTh: 'ชุดไทย',         nameEn: 'Thai Costume',       price: null, tier: 'big', draw: drawThaiCostume, acquirable: 'event' },
+  // ─── BACK (SPEC GAME-B §B.1, 8 items) ───
+  { id: 'backpack',           slot: 'back', nameTh: 'กระเป๋าเป้',     nameEn: 'Backpack',           price: 60,  tier: 'small', draw: drawBackpack },
+  { id: 'butterfly_wings',    slot: 'back', nameTh: 'ปีกผีเสื้อ',     nameEn: 'Butterfly Wings',    price: null, tier: 'mid', draw: drawButterflyWings, acquirable: 'craft' },
+  { id: 'angel_wings',        slot: 'back', nameTh: 'ปีกนางฟ้า',      nameEn: 'Angel Wings',        price: null, tier: 'big', draw: drawAngelWings, acquirable: 'event' },
+  { id: 'turtle_shell',       slot: 'back', nameTh: 'กระดองเต่า',     nameEn: 'Turtle Shell',       price: 110, tier: 'mid', draw: drawTurtleShell, acquirable: 'drop', icon: '🐢' },
+  { id: 'mini_rocket',        slot: 'back', nameTh: 'จรวดจิ๋ว',       nameEn: 'Mini Rocket',        price: 180, tier: 'mid', draw: drawMiniRocket },
+  { id: 'hero_cape',          slot: 'back', nameTh: 'ผ้าคลุมฮีโร่',   nameEn: 'Hero Cape',          price: 160, tier: 'mid', draw: drawHeroCape },
+  { id: 'mini_umbrella',      slot: 'back', nameTh: 'ร่มจิ๋ว',        nameEn: 'Mini Umbrella',      price: null, tier: 'small', draw: drawMiniUmbrella, acquirable: 'craft' },
+  { id: 'balloon',            slot: 'back', nameTh: 'ลูกโป่ง',        nameEn: 'Balloon',            price: 65,  tier: 'small', draw: drawBalloon },
 ]
 
 /**
- * Draw all equipped cosmetics on the Living Egg canvas.
- * Called last in EggCanvas render pipeline — items appear on top of everything.
+ * Draw equipped cosmetics on the Living Egg canvas, in 3 passes so body/back
+ * (SPEC GAME-B §B.1) sit at the correct depth relative to the egg body,
+ * while head/face keep their original "on top of everything" behavior:
+ *   pass 'behind' — back slot only (packs/wings/capes), call BEFORE the body
+ *   pass 'body'   — body slot only (outfits), call right AFTER the body
+ *   pass 'front'  — head+face (default, original behavior), call last
  * @param {CanvasRenderingContext2D} ctx
  * @param {{ px, ox, oy, faceX, t }} o  — same coordinate object passed to other layers
- * @param {{ head: string|null, face: string|null }|null} equipped
+ * @param {{ head: string|null, face: string|null, body: string|null, back: string|null }|null} equipped
+ * @param {'behind'|'body'|'front'} [pass]
  */
-export function drawCosmetics(ctx, o, equipped) {
+export function drawCosmetics(ctx, o, equipped, pass = 'front') {
   if (!equipped) return
+  if (pass === 'behind') {
+    const item = equipped.back && COSMETIC_ITEMS.find(i => i.id === equipped.back && i.slot === 'back')
+    if (item) { ctx.globalAlpha = 1; item.draw(ctx, o) }
+    ctx.globalAlpha = 1
+    return
+  }
+  if (pass === 'body') {
+    const item = equipped.body && COSMETIC_ITEMS.find(i => i.id === equipped.body && i.slot === 'body')
+    if (item) { ctx.globalAlpha = 1; item.draw(ctx, o) }
+    ctx.globalAlpha = 1
+    return
+  }
   const { face, head } = equipped
   // Face slot first (below head items)
   if (face) {

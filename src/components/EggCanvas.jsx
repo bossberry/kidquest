@@ -1,6 +1,7 @@
 import React from 'react'
 import EggCanvasCore from '../egg/EggCanvas.jsx'
 import { deriveCareMood } from '../egg/eggPoses.js'
+import { detectFullSet } from '../lib/outfitSets.js'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import { useAppState } from '../context/StateContext.jsx'
 
@@ -22,6 +23,8 @@ export default function EggCanvas({
   equipped,          // optional override; if omitted, reads from state.equipped
   lowFx = false,     // SPEC GAME-A §A.3, optional — skip element aura particles
   careMood,          // SPEC GAME-A §A.3 override; if omitted, derived from state.eggCare
+  auraTint,          // SPEC GAME-B §B.1 override; if omitted, derived from a full outfit set
+  setPose,           // SPEC GAME-B §B.1 override; if omitted, derived from a full outfit set
   className,
   style,
   onClick,
@@ -42,6 +45,12 @@ export default function EggCanvas({
   const resolvedAffinityLine = affinityLine !== undefined
     ? affinityLine
     : ((masteredCount || 0) > 0 ? contextAffinityLine : null)
+  // SPEC GAME-B §B.1 — full outfit-set bonus (aura tint + exclusive pose),
+  // auto-derived from the resolved equipped combo, same pattern as
+  // affinityLine/careMood above. Purely cosmetic (fairness rule).
+  const outfitSet = detectFullSet(resolvedEquipped)
+  const resolvedAuraTint = auraTint !== undefined ? auraTint : (outfitSet?.tint ?? null)
+  const resolvedSetPose = setPose !== undefined ? setPose : (outfitSet?.pose ?? null)
   // Use the smaller dimension to drive basePx; set CSS to the requested width×height
   const size = Math.min(width, height)
 
@@ -59,6 +68,8 @@ export default function EggCanvas({
       equipped={resolvedEquipped}
       lowFx={lowFx}
       careMood={resolvedCareMood}
+      auraTint={resolvedAuraTint}
+      setPose={resolvedSetPose}
       className={className}
       style={{ width, height, ...style }}
       onClick={onClick}

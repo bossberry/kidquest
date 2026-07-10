@@ -27,6 +27,8 @@ export default function EggCanvas({
   equipped = null,
   lowFx = false,
   careMood = null,
+  auraTint = null,
+  setPose = null,
   className,
   style,
   onClick,
@@ -56,7 +58,7 @@ export default function EggCanvas({
 
       renderEggSprite(ctx, {
         element, eye, gender, stage, aura, affinityLine, mood, anim, t,
-        canvasSize: size, equipped, lowFx, careMood,
+        canvasSize: size, equipped, lowFx, careMood, auraTint, setPose,
       })
 
       raf = requestAnimationFrame(render)
@@ -64,7 +66,7 @@ export default function EggCanvas({
 
     raf = requestAnimationFrame(render)
     return () => { cancelAnimationFrame(raf) }
-  }, [element, eye, gender, mood, anim, stage, aura, affinityLine, size, equipped, lowFx, careMood])
+  }, [element, eye, gender, mood, anim, stage, aura, affinityLine, size, equipped, lowFx, careMood, auraTint, setPose])
 
   const logicalH = Math.round(size * 1.19)
   return (

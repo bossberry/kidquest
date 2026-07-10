@@ -129,13 +129,20 @@ function rgba(hex, a) {
  *   o.t        animation clock (seconds)
  *   o.stage    1..9, SPEC GAME-A §A.3 element-particle intensity (optional, default 1)
  *   o.lowFx    true to skip the element-particle pass entirely (optional)
+ *   o.tintOverride  SPEC GAME-B §B.1, optional hex color — full-outfit-set
+ *                   aura-tint bonus, replaces the element glow color at
+ *                   levels 1-3 (legendary/level-4 stays rainbow regardless).
+ *                   This bonus is always visible even at aura level 0 (a
+ *                   common-rarity companion), so completing a set doesn't
+ *                   depend on rarity RNG — floors the level to "small".
  */
 export function drawAuraLayer(ctx, o) {
   let level = o.level;
   if (typeof level === "string") level = AURA_LEVELS.indexOf(level);
+  if ((!level || level <= 0) && o.tintOverride) level = 1;
   if (!level || level <= 0) return;
   const { cx, cy, eggR, t = 0, stage = 1, lowFx = false } = o;
-  const glow = AURA_GLOW[o.element] || "#ffd9a0";
+  const glow = (level < 4 && o.tintOverride) || AURA_GLOW[o.element] || "#ffd9a0";
   const pulse = (Math.sin(t * 2) + 1) / 2;
 
   drawElementParticles(ctx, { element: o.element, cx, cy, eggR, t, stage, lowFx });

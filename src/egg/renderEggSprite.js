@@ -19,6 +19,14 @@
  *   careMood    — SPEC GAME-A §A.3, optional — 'happy'|'hungry'|'sleepy'|
  *                 'content' (see deriveCareMood in eggPoses.js). Only
  *                 modulates the plain 'idle' anim; ignored otherwise.
+ *   equipped    — SPEC GAME-B §B.1, optional — {head,face,body,back} cosmetic
+ *                 ids; body/back are new slots, see eggCosmeticLayer.js
+ *   auraTint    — SPEC GAME-B §B.1, optional — hex color override for the
+ *                 aura glow (full outfit-set bonus, see outfitSets.js);
+ *                 ignored at aura level 4 (legendary stays rainbow)
+ *   setPose     — SPEC GAME-B §B.1, optional — pose name override for the
+ *                 plain 'idle' anim (full outfit-set exclusive pose); takes
+ *                 priority over careMood when both are set
  */
 import {
   drawAuraLayer, drawRegalia, drawBodyMass, isBodyReplacedBy,
@@ -43,6 +51,8 @@ export function renderEggSprite(ctx, {
   equipped = null,
   lowFx = false,
   careMood = null,
+  auraTint = null,
+  setPose = null,
 }) {
   const logicalW  = canvasSize
   const logicalH  = Math.round(canvasSize * 1.19)
@@ -58,10 +68,11 @@ export function renderEggSprite(ctx, {
   const eggR      = eggW / 2
 
   // 1. Aura (behind everything, not pose-transformed)
-  drawAuraLayer(ctx, { level: aura, element, cx, cy: eggCenterY, eggR, t, stage, lowFx })
+  drawAuraLayer(ctx, { level: aura, element, cx, cy: eggCenterY, eggR, t, stage, lowFx, tintOverride: auraTint })
 
-  // 2. Pose + ground shadow — SPEC GAME-A §A.3 mood-driven idle
-  const pose = getEggPose(anim, t, careMood)
+  // 2. Pose + ground shadow — SPEC GAME-A §A.3 mood-driven idle, SPEC GAME-B
+  // §B.1 full-outfit-set exclusive pose (takes priority over careMood)
+  const pose = getEggPose(anim, t, careMood, setPose)
   drawGroundShadow(ctx, cx, groundY, eggR, pose)
 
   // 3. Apply pose transform — applyEggPose calls ctx.save()
@@ -69,6 +80,10 @@ export function renderEggSprite(ctx, {
 
   const ox = -eggW / 2
   const oy = -eggH
+
+  // 3.5. SPEC GAME-B §B.1 back-slot cosmetic (packs/wings/capes) — behind the
+  // body, same depth idea as regalia-behind, drawn first so it reads as worn.
+  drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped, 'behind')
 
   // 4. Regalia behind (nature leaf wings)
   drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'behind' })
@@ -83,6 +98,10 @@ export function renderEggSprite(ctx, {
     ctx.filter = 'none'
     drawStageLayer(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
   }
+
+  // 5.2. SPEC GAME-B §B.1 body-slot cosmetic (outfit) — overlay band on the
+  // just-painted body, before rim light/affinity so those still read on top.
+  drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped, 'body')
 
   // 5.3. SPEC GAME-A §A.3 rim light — sells roundness, on every body-render path
   drawEggRimLight(ctx, { shape: 'baby', px, ox, oy })

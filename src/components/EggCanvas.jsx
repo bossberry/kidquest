@@ -1,5 +1,6 @@
 import React from 'react'
 import EggCanvasCore from '../egg/EggCanvas.jsx'
+import { deriveCareMood } from '../egg/eggPoses.js'
 import { useCompanion } from '../context/CompanionContext.jsx'
 import { useAppState } from '../context/StateContext.jsx'
 
@@ -19,12 +20,17 @@ export default function EggCanvas({
   width = 160,
   height = 190,
   equipped,          // optional override; if omitted, reads from state.equipped
+  lowFx = false,     // SPEC GAME-A §A.3, optional — skip element aura particles
+  careMood,          // SPEC GAME-A §A.3 override; if omitted, derived from state.eggCare
   className,
   style,
   onClick,
 }) {
   const { resolved } = useCompanion()
   const { state, affinityLine: contextAffinityLine, masteredCount } = useAppState()
+  // Only affects the plain 'idle' anim (see getEggPose), so it's always safe
+  // to pass — a caller mid-interaction/battle with a non-idle anim ignores it.
+  const resolvedCareMood = careMood !== undefined ? careMood : deriveCareMood(state.eggCare)
 
   const resolvedStage = stage ?? stats?.stage ?? 1
   const resolvedEquipped = equipped !== undefined ? equipped : (state.equipped ?? null)
@@ -51,6 +57,8 @@ export default function EggCanvas({
       affinityLine={resolvedAffinityLine}
       size={size}
       equipped={resolvedEquipped}
+      lowFx={lowFx}
+      careMood={resolvedCareMood}
       className={className}
       style={{ width, height, ...style }}
       onClick={onClick}

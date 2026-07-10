@@ -28,6 +28,7 @@ import Room from './components/Room.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import PlacementQuest from './components/PlacementQuest.jsx'
 import SpeechTestHarness from './components/SpeechTestHarness.jsx'
+import EggPoseHarness from './components/EggPoseHarness.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -91,6 +92,12 @@ export default function App() {
   // Never linked from the normal UI; opened directly via ?speechtest=1.
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('speechtest') === '1') {
     return <SpeechTestHarness />
+  }
+
+  // Dev-only egg pose/aura test harness (SPEC GAME-A §A.3) — same pattern as
+  // above. Never linked from the normal UI; opened directly via ?eggharness=1.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('eggharness') === '1') {
+    return <EggPoseHarness />
   }
 
   if (!authChecked || (isLoggedIn && companionLoading)) {

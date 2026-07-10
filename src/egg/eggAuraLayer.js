@@ -13,6 +13,100 @@ import { EGG_TINTS } from "./eggBaseLayer.js";
 
 export const AURA_LEVELS = ["none", "small", "medium", "large", "legendary"];
 
+function rand(seed) { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+// SPEC GAME-A §A.3: per-element drifting particle motif around the egg, at
+// the aura layer (distinct from eggStageLayer.js's on-body element FX). The
+// spec's own element list (fire/water/grass/electric/ice/ghost) doesn't match
+// this game's real 6 elements — same mismatch A.1 found for favorite foods —
+// remapped 1:1 here (grass->nature, electric->thunder, ghost->shadow); "ice"
+// has no equivalent so "light" gets a twinkling-glimmer motif instead of snow.
+const ELEMENT_PARTICLE = {
+  fire:    { color: "#ff9d4d", kind: "ember" },    // drifting embers, rise + flicker
+  water:   { color: "#8fd8f5", kind: "bubble" },   // rising bubbles, gentle wobble
+  nature:  { color: "#8fce6a", kind: "leaf" },     // floating leaves, slow sway
+  thunder: { color: "#ffe066", kind: "spark" },    // tiny sparks, <=3Hz snap-fade
+  shadow:  { color: "#a99bd6", kind: "wisp" },     // slow drifting wisps
+  light:   { color: "#fff2b8", kind: "glimmer" },  // twinkling glimmers
+};
+
+// Pooled/capped so combined with the existing glow sparkles (up to 6, level 3)
+// the total stays comfortably under the spec's "<=20 alive" ceiling.
+function particleCountForStage(stage) {
+  const tier = stage <= 3 ? 0 : stage <= 6 ? 1 : 2;
+  return [3, 7, 12][tier];
+}
+
+/**
+ * Ambient element particles drifting around the egg. Deterministic from `t`
+ * (no persistent object pool needed — matches this codebase's existing
+ * seeded-procedural-FX style, see eggStageLayer.js's fxFire/fxWater/etc).
+ * @param {object} o o.element, o.cx, o.cy, o.eggR, o.t, o.stage, o.lowFx
+ */
+function drawElementParticles(ctx, o) {
+  const { element, cx, cy, eggR, t = 0, stage = 1, lowFx = false } = o;
+  const spec = ELEMENT_PARTICLE[element];
+  if (!spec || lowFx) return;
+  const n = particleCountForStage(stage);
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const seed = i * 13.7;
+    const cycle = 2.2 + rand(seed) * 1.6;
+    const gen = Math.floor((t + i * 0.37) / cycle);
+    const age = ((t + i * 0.37) % cycle) / cycle;
+    const rseed = gen * 41.1 + seed;
+    const ang = rand(rseed) * Math.PI * 2;
+    const dist = eggR * (1.1 + rand(rseed + 1) * 0.9);
+    let px_, py_, alpha, size;
+    switch (spec.kind) {
+      case "ember":
+        px_ = cx + Math.cos(ang) * dist * 0.6 + Math.sin(t * 2 + i) * 4;
+        py_ = cy - age * eggR * 1.4 + Math.sin(ang) * eggR * 0.3;
+        alpha = Math.sin(age * Math.PI) * 0.8;
+        size = 2 + rand(rseed + 2) * 1.5;
+        break;
+      case "bubble":
+        px_ = cx + Math.cos(ang) * dist * 0.7;
+        py_ = cy + eggR * 0.8 - age * eggR * 1.8;
+        alpha = Math.sin(age * Math.PI) * 0.7;
+        size = 1.5 + rand(rseed + 2) * 2;
+        break;
+      case "leaf":
+        px_ = cx + Math.cos(ang + t * 0.3) * dist;
+        py_ = cy + Math.sin(ang * 1.3 + t * 0.5) * dist * 0.5 + Math.sin(age * Math.PI * 2) * 3;
+        alpha = Math.sin(age * Math.PI) * 0.75;
+        size = 2.5;
+        break;
+      case "spark": {
+        const flick = (Math.sin(t * 3 + i) + 1) / 2; // <=3Hz
+        px_ = cx + Math.cos(ang) * dist;
+        py_ = cy + Math.sin(ang) * dist * 0.85;
+        alpha = flick > 0.7 ? (flick - 0.7) / 0.3 : 0;
+        size = 1.5 + rand(rseed + 2);
+        break;
+      }
+      case "wisp":
+        px_ = cx + Math.cos(ang + t * 0.15) * dist;
+        py_ = cy + Math.sin(ang + t * 0.2) * dist * 0.85;
+        alpha = Math.sin(age * Math.PI) * 0.5;
+        size = 3 + rand(rseed + 2) * 1.5;
+        break;
+      case "glimmer":
+      default:
+        px_ = cx + Math.cos(ang) * dist;
+        py_ = cy + Math.sin(ang) * dist * 0.85;
+        alpha = Math.max(0, Math.sin(age * Math.PI * 4)) * 0.8;
+        size = 1.5;
+        break;
+    }
+    if (alpha <= 0.01) continue;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = spec.color;
+    ctx.fillRect(px_ - size / 2, py_ - size / 2, size, size);
+  }
+  ctx.restore();
+}
+
 // Glow color per element (for levels 1-3). Legendary ignores this.
 export const AURA_GLOW = {
   fire: "#ff8c2c", water: "#4db8e8", thunder: "#ffd23c",
@@ -33,14 +127,18 @@ function rgba(hex, a) {
  *   o.cx,o.cy  egg center (device px)
  *   o.eggR     egg radius (device px) ~ (spriteWidth*px)/2
  *   o.t        animation clock (seconds)
+ *   o.stage    1..9, SPEC GAME-A §A.3 element-particle intensity (optional, default 1)
+ *   o.lowFx    true to skip the element-particle pass entirely (optional)
  */
 export function drawAuraLayer(ctx, o) {
   let level = o.level;
   if (typeof level === "string") level = AURA_LEVELS.indexOf(level);
   if (!level || level <= 0) return;
-  const { cx, cy, eggR, t = 0 } = o;
+  const { cx, cy, eggR, t = 0, stage = 1, lowFx = false } = o;
   const glow = AURA_GLOW[o.element] || "#ffd9a0";
   const pulse = (Math.sin(t * 2) + 1) / 2;
+
+  drawElementParticles(ctx, { element: o.element, cx, cy, eggR, t, stage, lowFx });
 
   if (level < 4) {
     const rad = [0, 1.45, 1.8, 2.3][level] * eggR * (0.95 + pulse * 0.1);

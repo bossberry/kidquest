@@ -13,13 +13,19 @@
  *   canvasSize  — logical canvas width (height = canvasSize * 1.19)
  *   basePxOverride — if set, overrides the computed pixel-scale (use 2 for
  *                    48-63 px sprites so the egg fills the frame)
+ *   lowFx       — SPEC GAME-A §A.3, optional — true skips the element aura
+ *                 particle pass (no global perf-settings system exists yet
+ *                 to source this from automatically; callers opt in)
+ *   careMood    — SPEC GAME-A §A.3, optional — 'happy'|'hungry'|'sleepy'|
+ *                 'content' (see deriveCareMood in eggPoses.js). Only
+ *                 modulates the plain 'idle' anim; ignored otherwise.
  */
 import {
   drawAuraLayer, drawRegalia, drawBodyMass, isBodyReplacedBy,
   drawStageLayer, drawEyeLayer, drawExpression, drawAffinityLayer,
   getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
   EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
-  drawEggBody, drawCosmetics,
+  drawEggBody, drawCosmetics, drawEggRimLight, shouldBlink,
 } from './index.js'
 
 export function renderEggSprite(ctx, {
@@ -35,6 +41,8 @@ export function renderEggSprite(ctx, {
   canvasSize    = 48,
   basePxOverride = null,
   equipped = null,
+  lowFx = false,
+  careMood = null,
 }) {
   const logicalW  = canvasSize
   const logicalH  = Math.round(canvasSize * 1.19)
@@ -50,10 +58,10 @@ export function renderEggSprite(ctx, {
   const eggR      = eggW / 2
 
   // 1. Aura (behind everything, not pose-transformed)
-  drawAuraLayer(ctx, { level: aura, element, cx, cy: eggCenterY, eggR, t })
+  drawAuraLayer(ctx, { level: aura, element, cx, cy: eggCenterY, eggR, t, stage, lowFx })
 
-  // 2. Pose + ground shadow
-  const pose = getEggPose(anim, t)
+  // 2. Pose + ground shadow — SPEC GAME-A §A.3 mood-driven idle
+  const pose = getEggPose(anim, t, careMood)
   drawGroundShadow(ctx, cx, groundY, eggR, pose)
 
   // 3. Apply pose transform — applyEggPose calls ctx.save()
@@ -76,14 +84,17 @@ export function renderEggSprite(ctx, {
     drawStageLayer(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
   }
 
+  // 5.3. SPEC GAME-A §A.3 rim light — sells roundness, on every body-render path
+  drawEggRimLight(ctx, { shape: 'baby', px, ox, oy })
+
   // 5.5. SPEC GAME-A §A.2 subject-affinity tint (source-atop, body pixels only)
   drawAffinityLayer(ctx, { line: affinityLine, pass: 'tint', px, ox, oy, eggW, eggH, t })
 
   // 6. Regalia front (horns, halo, thunder prongs)
   drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'front' })
 
-  // 7. Eyes
-  const blink = isEyesClosed(anim) || mood === 'sleepy'
+  // 7. Eyes — SPEC GAME-A §A.3: always-on blink layered atop pose/mood state
+  const blink = isEyesClosed(anim) || mood === 'sleepy' || shouldBlink(t)
   drawEyeLayer(ctx, {
     style: eye, element, px, ox, oy,
     faceX: shape.crownX, eyeY: shape.eyeY,

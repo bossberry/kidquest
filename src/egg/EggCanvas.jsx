@@ -1,18 +1,18 @@
 import React, { useRef, useEffect } from 'react'
-import {
-  drawAuraLayer, drawRegalia, drawBodyMass, isBodyReplacedBy,
-  drawStageLayer, drawEyeLayer, drawExpression, drawAffinityLayer,
-  getEggPose, applyEggPose, flashEgg, drawGroundShadow, isEyesClosed,
-  EGG_SHAPES, stageSizeMul, stageSaturation, stageToTier,
-  drawEggBody, drawCosmetics,
-} from './index.js'
+import { renderEggSprite } from './renderEggSprite.js'
 
 /**
  * Animated Living Egg renderer — uses the finalized layer system.
  * Props: element, eye, gender, mood, anim, stage, aura, size (logical canvas width).
  * affinityLine (SPEC GAME-A §A.2, optional) — 'sage'|'architect'|'explorer'|'prism';
  * omit/null for no affinity tint or motif (fully backward compatible).
+ * lowFx (SPEC GAME-A §A.3, optional) — true skips element aura particles.
  * Canvas height auto-computed as size * 1.19.
+ *
+ * SPEC GAME-A §A.3 consistency pass: this is a thin RAF/DPR wrapper around
+ * renderEggSprite() — the same single painter every non-React canvas context
+ * (world map, room scene, friends list, login backdrop) already uses, so the
+ * egg renders identically everywhere it appears.
  */
 export default function EggCanvas({
   element = 'fire',
@@ -25,6 +25,8 @@ export default function EggCanvas({
   affinityLine = null,
   size = 160,
   equipped = null,
+  lowFx = false,
+  careMood = null,
   className,
   style,
   onClick,
@@ -52,88 +54,17 @@ export default function EggCanvas({
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
       ctx.clearRect(0, 0, logicalW, logicalH)
 
-      const shape   = EGG_SHAPES.baby
-      const basePx  = Math.max(1, Math.floor(Math.min(logicalW, logicalH) / 32))
-      const px      = basePx * stageSizeMul(stage)
-      const eggW    = shape.w * px
-      const eggH    = shape.h * px
-      const tier    = stageToTier(stage)
-      const cx      = logicalW / 2
-      const groundY = logicalH * 0.83
-      const eggCenterY = groundY - eggH / 2
-      const eggR    = eggW / 2
-
-      // 1. Aura behind everything — NOT pose-transformed
-      drawAuraLayer(ctx, { level: aura, element, cx, cy: eggCenterY, eggR, t })
-
-      // 2. Pose + ground shadow (in canvas space, before pose transform)
-      const pose = getEggPose(anim, t)
-      drawGroundShadow(ctx, cx, groundY, eggR, pose)
-
-      // 3. Apply pose transform — ctx.save() is called inside applyEggPose
-      applyEggPose(ctx, pose, cx, groundY)
-
-      const ox = -eggW / 2
-      const oy = -eggH
-
-      // 4. Regalia behind pass (nature leaf wings, drawn before body)
-      drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'behind' })
-
-      // 5. Body
-      if (isBodyReplacedBy(element)) {
-        // fire/water/shadow/light: draw animated mass instead of solid egg body
-        drawBodyMass(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
-      } else {
-        // nature/thunder: tinted egg body with stage saturation + element FX overlay
-        const sat = stageSaturation(stage)
-        ctx.filter = `saturate(${Math.round(sat * 100)}%)`
-        drawEggBody(ctx, { element, shape: 'baby', px, ox, oy, gender })
-        ctx.filter = 'none'
-        drawStageLayer(ctx, { element, px, ox, oy, t, tier, sprite: shape.sprite })
-      }
-
-      // 5.5. SPEC GAME-A §A.2 subject-affinity tint — faint wash restricted to
-      // the just-painted body pixels only (source-atop), before regalia-front/
-      // eyes/cosmetics so it never recolors a face or hat.
-      drawAffinityLayer(ctx, { line: affinityLine, pass: 'tint', px, ox, oy, eggW, eggH, t })
-
-      // 6. Regalia front pass (flame/shadow horns, light halo, thunder Pikachu-horns)
-      drawRegalia(ctx, { element, stage, px, ox, oy, faceX: shape.crownX, t, pass: 'front' })
-
-      // 7. Eyes (female gets eyelashes + blush via gender param)
-      const blink = isEyesClosed(anim) || mood === 'sleepy'
-      drawEyeLayer(ctx, {
-        style: eye, element, px, ox, oy,
-        faceX: shape.crownX, eyeY: shape.eyeY,
-        blink, gender,
+      renderEggSprite(ctx, {
+        element, eye, gender, stage, aura, affinityLine, mood, anim, t,
+        canvasSize: size, equipped, lowFx, careMood,
       })
-
-      // 8. Expression overlay (brows, mouth, cheeks, extras)
-      drawExpression(ctx, {
-        mood, eyeStyle: eye, element,
-        faceX: shape.crownX, eyeY: shape.eyeY, mouthY: shape.mouthY,
-        px, ox, oy, t,
-      })
-
-      // 9. Cosmetics (hat + face items — drawn on top of everything, inside pose)
-      drawCosmetics(ctx, { px, ox, oy, faceX: shape.crownX, t }, equipped)
-
-      // 9.5. SPEC GAME-A §A.2 subject-affinity motif — small pinned badge,
-      // drawn last (over cosmetics) so it always reads as a visible accessory.
-      drawAffinityLayer(ctx, { line: affinityLine, pass: 'motif', px, ox, oy, eggW, eggH, t })
-
-      // 10. Flash (e.g., hurt animation)
-      if (pose.flash) flashEgg(ctx, eggW, eggH, pose.flash)
-
-      // Restore pose transform (matches ctx.save() inside applyEggPose)
-      ctx.restore()
 
       raf = requestAnimationFrame(render)
     }
 
     raf = requestAnimationFrame(render)
     return () => { cancelAnimationFrame(raf) }
-  }, [element, eye, gender, mood, anim, stage, aura, affinityLine, size, equipped])
+  }, [element, eye, gender, mood, anim, stage, aura, affinityLine, size, equipped, lowFx, careMood])
 
   const logicalH = Math.round(size * 1.19)
   return (

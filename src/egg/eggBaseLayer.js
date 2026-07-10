@@ -132,7 +132,46 @@ export function drawEggBody(ctx, o) {
   return shape;
 }
 
+// --- Rim light (SPEC GAME-A §A.3 polish pass) ------------------------------
+// A subtle highlight along the top-left of the silhouette's own outline
+// ring ("D" cells) — "sells roundness" on every element/body-render path.
+// Targets the dark outline specifically (classic pixel-art rim-light
+// technique: brighten the border on the light-facing side, not the fill —
+// brightening the fill did nothing visible since the sprite's own H
+// (highlight) tone up there is already near-white). Cells precomputed once
+// per shape (static geometry), not per frame.
+function computeRimCells(shape) {
+  const { sprite, w: W, h: H } = shape;
+  const cells = [];
+  const cx = W / 2;
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      if (sprite[r][c] !== "D") continue;
+      const angFrac = (c - cx) / (W / 2);      // -1..1, negative = left half
+      const vertFrac = r / (H * 0.55);          // 0..~1, top portion
+      if (angFrac < 0.15 && vertFrac < 0.75) cells.push([c, r]);
+    }
+  }
+  return cells;
+}
+const RIM_CELLS = { baby: computeRimCells(EGG_SHAPES.baby), grown: computeRimCells(EGG_SHAPES.grown) };
+
+/**
+ * Draw the top-left rim highlight. Call right after the body (sprite-grid or
+ * mass) is drawn, before regalia/eyes so a hat/face never gets washed.
+ * @param {object} o  o.shape 'baby'|'grown' (default 'baby'), o.px, o.ox, o.oy
+ */
+export function drawEggRimLight(ctx, o) {
+  const cells = RIM_CELLS[o.shape || "baby"] || RIM_CELLS.baby;
+  const px = o.px, ox = o.ox || 0, oy = o.oy || 0;
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = "#ffffff";
+  for (const [c, r] of cells) ctx.fillRect(ox + c * px, oy + r * px, px, px);
+  ctx.restore();
+}
+
 export const EGG_BASE_LAYER = {
   SHAPES: EGG_SHAPES, STAGE_SHAPE, STAGE_SHAPE_ROUND, GRAYSCALE: EGG_GRAYSCALE, TINTS: EGG_TINTS,
-  draw: drawEggBody, stageSizeMul, stageSaturation, adjustSaturation,
+  draw: drawEggBody, stageSizeMul, stageSaturation, adjustSaturation, drawRimLight: drawEggRimLight,
 };

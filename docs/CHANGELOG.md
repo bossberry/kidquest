@@ -1,5 +1,100 @@
 # Changelog — KidQuest
 
+## 2026-07-10 — SPEC GAME-B §B.2: Room
+
+Second section of SPEC GAME-B. Four features: wallpaper/flooring, Cozy
+Score, Room Hearts, and furniture-aware idle wander.
+
+### Wallpaper & flooring — `roomItems.js` + `roomScene.js`
+- 16 new items (8 wallpaper, applies to both walls / 8 flooring; 5 shop +
+  2 craft + 1 event each). Each a pattern-painter decoupled from iso
+  projection math (`draw(ctx, {x,y,w,h}[, light])`), plus a flat `swatch`
+  fallback for the 72x80 thumbnail path and item-picker icons.
+  `drawFloor`/`drawLeftWall`/`drawRightWall` REPLACE the theme's flat/
+  checkerboard base fill with the pattern when set (per the spec's own
+  wording), `wallPolish`/grid/vignette/decor still layer on top either way.
+- New `rooms[i].wallpaper`/`.flooring` (null = theme default),
+  `ownedWallpaper`/`ownedFlooring` (owned once, apply anywhere for free).
+  New reducers: `BUY_WALLPAPER`/`BUY_FLOORING`, `APPLY_WALLPAPER`/
+  `APPLY_FLOORING`, `CRAFT_COZY_ITEM` (a separate recipe table,
+  `COZY_CRAFT_RECIPES`, from furniture/cosmetics' `CRAFT_RECIPES`).
+- `Room.jsx`: new 🎨 decorate sheet (wallpaper/flooring tabs). Owned items
+  apply instantly; an unowned shop item live-previews on the real canvas
+  immediately, then shows a buy-confirm prompt after 2s. The existing ⚒️
+  craft sheet now also lists the 2 craft-only cozy recipes via a new
+  `SwatchIcon` component.
+
+### Cozy Score — new `src/lib/cozyScore.js`
+- `computeCozy(layout)` — additive-only (variety/light/soft/plant/wall-
+  balance, 0-100), exported for a future parent dashboard, **never shown to
+  the child as a number**. Child-facing expression is exactly 2 things:
+  `cozyParticleDensity` drives an ambient firefly overlay in `Room.jsx`
+  (deterministic sine drift, not the burst-oriented particle system already
+  in this file), and `deriveCozyComment` (gated at score>=40) fires an
+  occasional egg comment via the existing `showToast()` on `Home.jsx` mount.
+
+### Room Hearts — architecture note before any code was written
+- Found that `get_mystery_adventurers`'s bots have NO STABLE IDENTITY
+  (every call re-rolls RANDOM(), no seed, no persisted row) — "hearts on a
+  bot's room" can't mean anything real. Split the spec's 2 heart clauses
+  into 2 deliberately different mechanisms:
+  1. Real visits: `RoomVisit.jsx`'s new ❤️ button (real accounts only — the
+     RPC's new `target_user_id` column is NULL for bots, client hides the
+     button) calls `like_room`, 1/visitor/day via a DB unique constraint.
+  2. Ambient bot credit: `Room.jsx` calls `credit_ambient_room_hearts` once
+     per active-room change (self-only, 0-2 random, once/day DB-enforced),
+     flavored as "mystery adventurers visited today" on the player's OWN
+     room. Cached in `state.roomHearts` (`SET_ROOM_HEARTS`, deliberately
+     doesn't stamp `lastSavedAt` — it's a server-data read-cache).
+- New `supabase/migrations/20260711_room_hearts.sql` (⚠️ needs manual apply):
+  `room_hearts` table (RLS owner-only read, writes only via 2 SECURITY
+  DEFINER RPCs) + `like_room`/`credit_ambient_room_hearts` + a 3rd extension
+  of `get_mystery_adventurers` (`heart_total`/`target_user_id` — the latter
+  a privacy-adjacent judgment call, flagged in the migration itself).
+- `FriendsScreen.jsx` card list gains a heart-count badge.
+
+### Egg uses furniture more — `DecoratedRoom.jsx`
+- This file has been flagged "the most technically novel piece of work" in
+  every prior session's handoff and deliberately left untouched — read in
+  full before writing anything this time. New data-driven
+  `FURNITURE_INTERACTIONS` map (`roomItems.js`: bed/small_chair/plant/
+  carrot_planter/fish_tank/rug/jelly_rug/bunny_cushion -> pose/duration/
+  weight/particle) wired into `nextIdleDecision()` as a purely additive
+  branch: 25% of the time, weighted-picks a placed interactable item and
+  walks there via the same `startWalk()`/`slotCenter()` the tap-to-walk
+  handler already uses; a new `'interacting'` FSM state holds an
+  `eggPoses.js` pose (sit/sleep/curious_tilt) for a timer — this file
+  previously had no pose concept at all beyond position/rotation. A couple
+  of small blue droplet particles render during the plant-watering
+  interaction. Zero changes to the existing tap-vs-walk hit-testing
+  internals or any pre-existing state transition.
+- `Home.jsx`'s sleep scene separately gained bed-awareness (checks for a
+  placed 'bed', swaps in a 🛏️ + bed-specific line) — turned out to be a
+  simple emoji-overlay change since the sleep scene isn't a real iso-room
+  render.
+
+### New: `?roomharness=1` dev route (`src/components/RoomHarness.jsx`)
+- Same pattern as `?eggharness=1`. Renders all 16 wallpaper/flooring
+  patterns + 4 combined examples via `drawRoomScene` directly (confirmed
+  fully decoupled from app context first) + a live Cozy Score tier table +
+  a `DecoratedRoom` smoke-render.
+
+### Verification
+- `npm run build` clean at every commit stage. `npm test` +16 new tests
+  (`cozyScore.test.js`: empty/null-safety, additive-only, each signal fires
+  from real item ids, wall-balance requires both walls, variety caps at 8,
+  a max-decorated room hits exactly 100, density tier boundaries, comment
+  gating + never contains a digit; 2 new `resolveSync.test.js` regressions
+  for wallpaper/flooring/owned-cozy-item `hasRealProgress` protection +
+  `validateState` backfill/repair). Live-verified in Chrome via
+  `?roomharness=1`: all 16 patterns + combined renders + Cozy Score tiers
+  match the unit tests exactly, `DecoratedRoom` renders/runs without
+  crashing, zero console errors throughout. **Not verified**: the
+  furniture-interaction FSM actually firing live (a probabilistic event
+  needing real-time observation against a furnished room) and the full
+  Room Hearts flow end-to-end — same Supabase login-gate/pre-migration
+  limitation every prior session's handoff has flagged.
+
 ## 2026-07-10 — SPEC GAME-B §B.1: Dressing Room ("ให้สุด")
 
 First section of a new spec (SPEC GAME-B — Core Loops). 20 purely-cosmetic

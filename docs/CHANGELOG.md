@@ -1,5 +1,96 @@
 # Changelog — KidQuest
 
+## 2026-07-10 — SPEC GAME-B §B.1: Dressing Room ("ให้สุด")
+
+First section of a new spec (SPEC GAME-B — Core Loops). 20 purely-cosmetic
+items, 6 outfit sets, wardrobe QoL. All new items render through the single
+`renderEggSprite.js` painter §A.3 already established.
+
+### `eggCosmeticLayer.js` — 20 new items, `pass`-aware `drawCosmetics`
+- `COSMETIC_ITEMS` grows 18→38: 12 body outfits (a color band following the
+  baby sprite's own lower-body row taper, so garments hug the real
+  silhouette) + 8 back items (packs/wings/capes/etc). New optional
+  `acquirable` field (`'drop'|'craft'|'event'`) marks the 6 non-shop items.
+- `drawCosmetics(ctx, o, equipped, pass)` gained a `pass` param
+  (`'behind'|'body'|'front'`, default `'front'` = unchanged head+face
+  behavior) so `renderEggSprite.js` can call it 3 times at the right pipeline
+  depth: back items before the body draw, outfits right after, head+face
+  unchanged at the end.
+
+### New: `src/lib/outfitSets.js`
+- `OUTFIT_SETS` (6 sets) + `detectFullSet(equipped)`. Each set pairs the 2
+  new items with the CLOSEST-MATCHING existing head/face item — the spec
+  explicitly asked this be inspected against the real catalog, not guessed;
+  picks and reasoning are in the file's header comment and this session's
+  `CHATBOT_NOTES.md` handoff (adventurer→cap, hero→eye_mask, ninja→
+  sunglasses, royal→jeweled_crown, gardener→flower_crown, aviator→
+  round_glasses). A full set gives a cosmetic-only bonus (fairness rule, no
+  stats): a unique aura-tint color (`drawAuraLayer`'s new `tintOverride`,
+  floored to "small" so it's visible even at aura 0 — not gated behind
+  rarity RNG) and an exclusive idle pose (reuses one of §A.3's 15 poses per
+  set, `getEggPose`'s new `setPose` param). `components/EggCanvas.jsx`
+  auto-derives both from the resolved equipped combo.
+
+### State + reducers
+- `equipped` gains `body`/`back` (was `{head,face}`). New `favoriteOutfits`
+  (4 slots) + `hasNewItem`, both protected in `hasRealProgress`/
+  `validateState`. `BUY_ITEM`/`EQUIP_ITEM` already slot-agnostic — zero
+  changes needed. New: `ADD_OWNED_ITEM`+`CLEAR_NEW_ITEM` (cosmetic-drop
+  parallel to `ADD_OWNED_ROOM_ITEM`), `SAVE_FAVORITE_OUTFIT`/
+  `WEAR_FAVORITE_OUTFIT`/`CLEAR_FAVORITE_OUTFIT`, `RANDOM_OUTFIT` (owned
+  items only, per slot), `REMOVE_ALL_OUTFIT`. `CRAFT_ITEM` now branches
+  cosmetic (→ `ownedItems`) vs furniture (→ `ownedRoomItems`, unchanged)
+  since `CRAFT_RECIPES` is one shared table per the spec's own instruction.
+
+### Acquisition — drop/craft/event (the 6 non-shop items)
+- Drop: `MONSTER_DROPS` (`roomItems.js`) gets a 3rd candidate on 2 enemies'
+  existing 2-item pools — `turtle_shell`→`snake` (reptile theme),
+  `ninja_suit`→`fox_kit` (no enemy in this roster is literally
+  ninja-themed, a documented judgment call) — not a separate drop system.
+  `useBattleCombat.js`'s `showVictory()` branches cosmetic vs furniture
+  before dispatching.
+- Craft: `CRAFT_RECIPES`/`CRAFT_RECIPE_LIST` gain `butterfly_wings`
+  (🌸×4+⭐×2) and `mini_umbrella` (🪵×3+💧×2). New shared
+  `src/components/CosmeticIcon.jsx` (extracted from `Collection.jsx`'s
+  previously-local `ItemIcon`) lets `Room.jsx`'s craft sheet render either
+  catalog's incompatible `draw()` signature correctly.
+- Event: `thai_costume`/`angel_wings` marked `acquirable:'event'`, fully
+  hidden from the shop grid regardless of ownership — dormant until Phase
+  3.3.
+
+### UI
+- `Collection.jsx`: slot switcher 3→6 tabs (head/body/back/face/favorites/
+  food, horizontally scrollable). Body/back tabs show shop items always,
+  drop/craft items only once owned. New favorites tab: 4 big cards with a
+  live mini `EggCanvas` preview each. 🎲 random + 🧺ถอดหมด floating buttons.
+  A "✨ ชุด: {name} ✨" badge on a completed set. The dressing-room mirror now
+  shows a genuinely live, flipped reflection (`renderEggSprite` into an
+  offscreen canvas each frame, clipped to the mirror's oval, driven by a ref
+  so it doesn't restart the sparkle loop on every equip change).
+- `FriendsScreen.jsx`/`RoomVisit.jsx`/`AdventurerModal`: read the 2 new RPC
+  columns and show the same set badge; `AdventurerModal`'s avatar didn't
+  even pass `equipped` before this — fixed in passing.
+
+### New: `supabase/migrations/20260710_mystery_adventurers_dressing_room.sql`
+- ⚠️ Needs manual apply (SQL Editor) — same convention as every prior
+  RPC-touching migration in this project. Extends `get_mystery_adventurers`
+  to return `equipped_body`/`equipped_back`; degrades gracefully (no set
+  badge) until applied.
+
+### Verification
+- `npm run build` clean at every commit stage. `npm test` +21 new tests
+  (`outfitSets.test.js`: catalog-id sanity, no reused existing-item across
+  sets, detection from the exact combo, breaks on any missing piece, no
+  cross-set false-positive, null-safety, tint/pose shape; 2 new
+  `resolveSync.test.js` regressions for body/back-equip and
+  favorite-outfit `hasRealProgress` protection + `validateState` repair).
+  Live-verified in Chrome via the `?eggharness=1` harness (extended with a
+  body/back/6-sets grid) — all 20 items render correctly, all 6 sets'
+  detection/tint/pose confirmed. **Not verified**: the new screen-level UI
+  (Collection.jsx tabs, Room.jsx craft sheet, FriendsScreen cards) inside
+  the actual logged-in app — same Supabase login-gate limitation every prior
+  SPEC session's in-app checks hit; see `CHATBOT_NOTES.md`'s handoff.
+
 ## 2026-07-10 — SPEC GAME-A §A.3: Egg Visuals ("ให้สวยที่สุด")
 
 Third and final section of SPEC GAME-A. All additive draw-layer/state work

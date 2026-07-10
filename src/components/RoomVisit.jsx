@@ -113,20 +113,22 @@ export default function RoomVisit({ adventurer: a, onClose }) {
   const stage   = a.stage ?? 1
   const visitRooms = adventurerRooms(a)
   const [roomIdx, setRoomIdx] = useState(0)
-  // SPEC GAME-B §B.2 (2026-07-10) — Room Hearts. `a.target_user_id` only
-  // exists for real (non-bot) rows (see the new RPC column + its privacy
-  // note in supabase/migrations/20260711_room_hearts.sql) — bots have no
-  // stable identity to like_room against, so the button is hidden for them
-  // entirely rather than doing something that can't mean anything real.
+  // SPEC GAME-B §B.2 (2026-07-10) — Room Hearts. `a.like_token` is an OPAQUE,
+  // per-viewer/per-day token minted server-side (get_or_create_like_token,
+  // see supabase/migrations/20260711_room_hearts.sql) — the client never
+  // sees or sends a raw user id in either direction; like_room resolves the
+  // real owner from the token itself. Only exists for real (non-bot) rows —
+  // bots have no stable identity to like against, so the button is hidden
+  // for them entirely rather than doing something that can't mean anything real.
   const [heartTotal, setHeartTotal] = useState(a.heart_total ?? 0)
   const [liking, setLiking] = useState(false)
   const [liked, setLiked] = useState(false)
-  const canLike = !a.is_bot && !!a.target_user_id
+  const canLike = !a.is_bot && !!a.like_token
   async function handleLikeRoom() {
     if (!supabase || !canLike || liking || liked) return
     setLiking(true)
     const { data, error } = await supabase.rpc('like_room', {
-      p_owner_user_id: a.target_user_id,
+      p_token: a.like_token,
       p_room_id: curRoom.id ?? 'main',
     })
     setLiking(false)

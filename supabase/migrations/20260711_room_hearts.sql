@@ -1,8 +1,10 @@
 -- Migration: 2026-07-11 — SPEC GAME-B §B.2 Room Hearts
 -- New room_hearts table + like_room/credit_ambient_room_hearts RPCs, and a
 -- 3rd extension of get_mystery_adventurers to surface heart_total (+, for
--- real non-bot rows only, an opaque target_user_id used solely to power the
--- ❤️ like button — see the judgment-call note below).
+-- real non-bot rows only, an opaque like_token — see the token design below,
+-- revised after review flagged the first draft's raw target_user_id
+-- exposure as a child-privacy violation; this migration was never applied,
+-- so this is a straight replacement, not a follow-up correction).
 --
 -- ── Architecture note (found while building this, not assumed) ─────────────
 -- Bots returned by get_mystery_adventurers have NO STABLE IDENTITY: every
@@ -11,8 +13,8 @@
 -- therefore never mean anything real — the next fetch (or the reshuffle
 -- button) returns a different random bot. So this migration implements the
 -- spec's two heart clauses as two DELIBERATELY DIFFERENT mechanisms:
---   1. "Friend room visits get a ❤️ button" → like_room(target_user_id, room_id),
---      real accounts only (bots: target_user_id is NULL, client hides the
+--   1. "Friend room visits get a ❤️ button" → like_room(like_token, room_id),
+--      real accounts only (bots: like_token is NULL, client hides the
 --      button — see RoomVisit.jsx).
 --   2. "Mystery adventurer bots leave 0-2 hearts daily" → NOT bots liking the
 --      PLAYER back (impossible, they don't persist) — instead a one-way,
@@ -23,24 +25,38 @@
 --      visitor_user_id = NULL as the sentinel for "ambient/bot credit"
 --      instead of a real visitor.
 --
--- ── Privacy judgment call (flagged for review, see CHATBOT_NOTES.md) ───────
--- get_mystery_adventurers' real-user branch already anonymizes DISPLAY (masked
--- name, no other identifying fields) but has never exposed the row's raw
--- user_id to the client. This migration adds target_user_id ONLY so
--- like_room has something to write against — the client can do nothing with
--- it beyond calling like_room (RLS still blocks any direct table access to
--- another user's rows). If this is judged too much even for that limited
--- purpose, the fallback is to drop target_user_id/heart_total from real rows
--- too and scope hearts to a future real-friends-can-visit-each-other feature
--- instead (not built yet — see FriendsScreen.jsx's friends tab, which
--- currently has no room-visit entry point at all).
+-- ── Opaque like_token design (child-privacy fix) ────────────────────────────
+-- get_mystery_adventurers anonymizes DISPLAY (masked name, no other
+-- identifying fields) and must never expose a raw user_id to the client —
+-- not even one the client can't otherwise query with (RLS would still block
+-- direct table reads), because the CLIENT SEEING/HOLDING/TRANSMITTING a raw
+-- uuid identifying a child's account is itself the thing to avoid. Instead:
+--   • get_or_create_like_token(target_user_id) is a SECURITY DEFINER helper,
+--     called from INSIDE get_mystery_adventurers (never callable by the
+--     client directly — no EXECUTE grant to `authenticated`), that
+--     upserts a row into like_tokens keyed (viewer_user_id=auth.uid(),
+--     target_user_id, issued_date=today) and returns its opaque `token`
+--     (a random uuid, unrelated in form or derivation to either user's real
+--     id — you cannot recover target_user_id from the token by inspection).
+--   • get_mystery_adventurers returns that token as `like_token` instead of
+--     any user id. The client holds/sends ONLY this token, never a user id.
+--   • like_room(p_token, p_room_id) resolves target_user_id server-side by
+--     looking up the token — AND requires viewer_user_id = auth.uid() AND
+--     issued_date = today, so a token is unusable by anyone but the exact
+--     viewer it was minted for, on the exact day it was minted (stolen/
+--     replayed tokens fail closed). The row-per-day upsert (ON CONFLICT
+--     ... DO UPDATE ... RETURNING) also keeps the table from growing
+--     unboundedly across repeated fetches/reshuffles of the same day.
+-- Net effect: the client never sees, stores, or transmits a raw user id
+-- anywhere in this feature, in either direction.
 --
 -- ⚠️ APPLY MANUALLY: paste-and-run this in the Supabase SQL Editor
 --    (Dashboard → SQL Editor → Run). There is no Supabase CLI / service key in
 --    the repo, so it CANNOT be applied automatically. Until it is run, the
 --    client's supabase.rpc('like_room', ...) / ('credit_ambient_room_hearts', ...)
---    calls fail silently (caught, see RoomVisit.jsx/Room.jsx) and heart_total
---    comes back undefined — degrades to "no hearts shown" everywhere.
+--    calls fail silently (caught, see RoomVisit.jsx/Room.jsx) and heart_total/
+--    like_token come back undefined — degrades to "no hearts shown, no like
+--    button" everywhere.
 --    https://supabase.com/dashboard/project/dgpsnlkedergkbhqnjpu/sql
 
 -- ── room_hearts table ────────────────────────────────────────────────────────
@@ -71,22 +87,71 @@ CREATE POLICY "select own room hearts" ON room_hearts
 REVOKE ALL ON room_hearts FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON room_hearts TO authenticated;
 
--- ── like_room — a real visitor hearting someone else's room, 1/day ─────────
-CREATE OR REPLACE FUNCTION like_room(p_owner_user_id uuid, p_room_id text)
+-- ── like_tokens table — opaque, single-viewer, single-day resolution ───────
+-- NEVER exposed to any client, no RLS SELECT policy at all: the only ways
+-- into or out of this table are the 2 SECURITY DEFINER functions below.
+CREATE TABLE IF NOT EXISTS like_tokens (
+  viewer_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  target_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  issued_date date NOT NULL DEFAULT CURRENT_DATE,
+  token uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (viewer_user_id, target_user_id, issued_date)
+);
+ALTER TABLE like_tokens ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON like_tokens FROM PUBLIC, anon, authenticated;
+-- No GRANTs at all to authenticated/anon — zero direct client access in any
+-- direction (not even SELECT). Only the table owner's own SECURITY DEFINER
+-- functions below ever touch it.
+
+-- get_or_create_like_token — called ONLY from inside get_mystery_adventurers
+-- (no EXECUTE grant to `authenticated`, so the client cannot call this
+-- directly even though it's a plain function). One token per (viewer,
+-- target, day); a repeat call the same day returns the SAME token (keeps
+-- the table bounded across repeated fetches/reshuffles instead of growing
+-- one row per call).
+CREATE OR REPLACE FUNCTION get_or_create_like_token(p_target_user_id uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_token uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN NULL;
+  END IF;
+  INSERT INTO like_tokens (viewer_user_id, target_user_id, issued_date)
+  VALUES (auth.uid(), p_target_user_id, CURRENT_DATE)
+  ON CONFLICT (viewer_user_id, target_user_id, issued_date)
+  DO UPDATE SET issued_date = EXCLUDED.issued_date -- no-op write, just so RETURNING fires on conflict too
+  RETURNING token INTO v_token;
+  RETURN v_token;
+END;
+$$;
+REVOKE ALL ON FUNCTION get_or_create_like_token(uuid) FROM PUBLIC, anon, authenticated;
+
+-- ── like_room — resolves an opaque like_token server-side, real visitor,
+-- 1/day. The client sends ONLY the token + a room_id string (not sensitive —
+-- just 'main'/'r2'/etc, never a user id) — never any user id in either
+-- direction. A token only resolves for the exact viewer it was minted for
+-- (viewer_user_id = auth.uid()) on the exact day it was minted, so a
+-- stolen/replayed/stale token fails closed rather than silently doing
+-- nothing useful.
+CREATE OR REPLACE FUNCTION like_room(p_token uuid, p_room_id text)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_total integer;
+DECLARE v_owner uuid; v_total integer;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not authenticated';
   END IF;
-  IF p_owner_user_id = auth.uid() THEN
-    RAISE EXCEPTION 'cannot like your own room';
+  SELECT target_user_id INTO v_owner
+  FROM like_tokens
+  WHERE token = p_token AND viewer_user_id = auth.uid() AND issued_date = CURRENT_DATE;
+  IF v_owner IS NULL THEN
+    RAISE EXCEPTION 'invalid or expired like token';
   END IF;
   INSERT INTO room_hearts (owner_user_id, room_id, visitor_user_id, hearts, liked_date)
-  VALUES (p_owner_user_id, p_room_id, auth.uid(), 1, CURRENT_DATE)
+  VALUES (v_owner, p_room_id, auth.uid(), 1, CURRENT_DATE)
   ON CONFLICT (owner_user_id, room_id, visitor_user_id, liked_date) DO NOTHING;
   SELECT COALESCE(SUM(hearts), 0) INTO v_total
-  FROM room_hearts WHERE owner_user_id = p_owner_user_id AND room_id = p_room_id;
+  FROM room_hearts WHERE owner_user_id = v_owner AND room_id = p_room_id;
   RETURN v_total;
 END;
 $$;
@@ -97,7 +162,9 @@ GRANT EXECUTE ON FUNCTION like_room(uuid, text) TO authenticated;
 -- self-only, once/day (the unique constraint with visitor_user_id NULL
 -- makes a 2nd same-day call a safe no-op). Called client-side once per Room
 -- mount per day (see Room.jsx) — the DB constraint is authoritative, not a
--- client-side dedupe, so it's safe to call more than once.
+-- client-side dedupe, so it's safe to call more than once. No user-id
+-- exposure concern here at all: this only ever touches the CALLER's own row
+-- (auth.uid()), never another user's.
 CREATE OR REPLACE FUNCTION credit_ambient_room_hearts(p_room_id text)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_hearts integer; v_total integer;
@@ -117,11 +184,12 @@ $$;
 REVOKE ALL ON FUNCTION credit_ambient_room_hearts(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION credit_ambient_room_hearts(text) TO authenticated;
 
--- ── get_mystery_adventurers — 3rd extension: heart_total (+ target_user_id
--- for real rows only, see the privacy note above; bots get target_user_id
--- NULL and heart_total 0, since neither can mean anything for a row with no
--- persisted identity). Full re-definition, all previously-returned columns
--- preserved (SPEC GAME-B §B.1's equipped_body/back included).
+-- ── get_mystery_adventurers — 3rd extension: heart_total (+ like_token for
+-- real rows only, minted via get_or_create_like_token above — NEVER a raw
+-- user id; bots get like_token NULL and heart_total 0, since neither can
+-- mean anything for a row with no persisted identity). Full re-definition,
+-- all previously-returned columns preserved (SPEC GAME-B §B.1's
+-- equipped_body/back included).
 DROP FUNCTION IF EXISTS get_mystery_adventurers(integer);
 
 CREATE OR REPLACE FUNCTION get_mystery_adventurers(p_limit integer DEFAULT 8)
@@ -143,7 +211,7 @@ RETURNS TABLE (
   equipped_back   text,
   room_layout     jsonb,
   rooms           jsonb,
-  target_user_id  uuid,     -- SPEC GAME-B §B.2 — real rows only; NULL for bots
+  like_token      uuid,     -- SPEC GAME-B §B.2 — real rows only; opaque, NEVER a user id; NULL for bots
   heart_total     integer   -- SPEC GAME-B §B.2 — 0 for bots (no persisted identity)
 ) LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -185,8 +253,8 @@ BEGIN
   v_real_count := LEAST(v_real_count, p_limit);
   v_bot_count  := p_limit - v_real_count;
 
-  -- Real users (anonymized display, but target_user_id + heart_total exposed
-  -- so the ❤️ button + heart badge can work — see the privacy note above).
+  -- Real users (anonymized display; like_token is an opaque per-viewer/day
+  -- token, never the row's real user_id — see get_or_create_like_token above).
   IF v_real_count > 0 THEN
     RETURN QUERY
     SELECT
@@ -224,7 +292,7 @@ BEGIN
           'layout', COALESCE(e.state_json -> 'roomLayout', '{}'::jsonb)
         ))
       )                                           AS rooms,
-      c.user_id                                   AS target_user_id,
+      get_or_create_like_token(c.user_id)         AS like_token,
       COALESCE((SELECT SUM(rh.hearts) FROM room_hearts rh WHERE rh.owner_user_id = c.user_id), 0)::integer AS heart_total
     FROM companions c
     LEFT JOIN eggs e ON e.user_id = c.user_id
@@ -234,7 +302,7 @@ BEGIN
   END IF;
 
   -- Bots — plausible cosmetics + 1–2 themed rooms with iso-format furniture
-  -- keys. target_user_id/heart_total always NULL/0 (no persisted identity).
+  -- keys. like_token/heart_total always NULL/0 (no persisted identity).
   IF v_bot_count > 0 THEN
     RETURN QUERY
     SELECT

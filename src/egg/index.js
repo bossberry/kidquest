@@ -10,7 +10,7 @@
 // Base body: round sprite for all stages, palettes, capped-size + saturation helpers
 export {
   EGG_SHAPES, STAGE_SHAPE_ROUND, EGG_TINTS, EGG_GRAYSCALE,
-  drawEggBody, stageSizeMul, stageSaturation, EGG_BASE_LAYER,
+  drawEggBody, stageSizeMul, stageSaturation, EGG_BASE_LAYER, drawEggRimLight,
 } from "./eggBaseLayer.js";
 
 // Eyes (+ female eyelashes/blush via the `gender` option) and dark-body set
@@ -42,6 +42,12 @@ export {
   getEggPose, isEyesClosed, applyEggPose, flashEgg, drawGroundShadow,
   EGG_STATES, EGG_ANIMATIONS,
 } from "./eggAnimations.js";
+
+// SPEC GAME-A §A.3: 14-pose vocabulary, mood-driven idle, always-on blink timer
+export {
+  EGG_POSES, getPoseTransform, isPoseEyesClosed,
+  deriveCareMood, getIdleMoodTransform, shouldBlink,
+} from "./eggPoses.js";
 
 // Cosmetic items (head + face wearables) drawn last in the render pipeline
 export { COSMETIC_ITEMS, drawCosmetics } from "./eggCosmeticLayer.js";

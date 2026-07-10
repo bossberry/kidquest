@@ -20,17 +20,32 @@
  *   // ...draw element / eyes / expression layers with the same ox/oy...
  *   if (p.flash) flashEgg(ctx, w*px, h*px);
  *   ctx.restore();
+ *
+ * SPEC GAME-A §A.3: the 6 states below (idle/happy/hurt/attack/sleepy/excited)
+ * are the battle/reaction states and stay untouched. getEggPose() falls
+ * through to eggPoses.js's richer 14-pose vocabulary (eat/sleep/yawn/hug/
+ * dizzy/proud/sit/walk_l/walk_r/celebrate/etc — see EGG_POSES) for any other
+ * `state` name, so every existing caller gets all 14 poses for free.
  */
+import { getPoseTransform, isPoseEyesClosed, getIdleMoodTransform, EGG_POSES } from "./eggPoses.js";
 
 const TAU = Math.PI * 2;
+const CORE_STATES = ["idle", "happy", "hurt", "attack", "sleepy", "excited"];
 
 /**
  * @param {string} state
  * @param {number} t  seconds since this state began
+ * @param {string} [careMood] SPEC GAME-A §A.3 — 'happy'|'hungry'|'sleepy'|'content'
+ *        (see deriveCareMood in eggPoses.js). Only affects the plain 'idle'
+ *        state, so passing it is always safe even mid-interaction/battle.
  * @returns {{tx:number, ty:number, sx:number, sy:number, rot:number, flash:number}}
  *          translate (px), scale, rotate (rad), flash (0..1 red overlay alpha)
  */
-export function getEggPose(state, t) {
+export function getEggPose(state, t, careMood) {
+  if (state === "idle" && careMood) return getIdleMoodTransform(careMood, t);
+  if (!CORE_STATES.includes(state) && EGG_POSES.includes(state)) {
+    return getPoseTransform(state, t);
+  }
   const p = { tx: 0, ty: 0, sx: 1, sy: 1, rot: 0, flash: 0 };
   switch (state) {
     case "happy": {
@@ -87,7 +102,7 @@ export function getEggPose(state, t) {
 }
 
 /** Whether this state should render with eyes closed (for the expression layer). */
-export function isEyesClosed(state) { return state === "sleepy"; }
+export function isEyesClosed(state) { return state === "sleepy" || isPoseEyesClosed(state); }
 
 /**
  * Apply a pose to the context. Anchor is the egg's BOTTOM-CENTER (its "feet"),
@@ -123,7 +138,7 @@ export function drawGroundShadow(ctx, cx, groundY, baseRadiusX, pose) {
   ctx.restore();
 }
 
-export const EGG_STATES = ["idle", "happy", "hurt", "attack", "sleepy", "excited"];
+export const EGG_STATES = [...CORE_STATES, ...EGG_POSES.filter(s => !CORE_STATES.includes(s))];
 
 export const EGG_ANIMATIONS = {
   STATES: EGG_STATES, getPose: getEggPose, apply: applyEggPose,

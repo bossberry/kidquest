@@ -8,7 +8,7 @@ import { buildCreatureDNA, generateCreatureName } from '../lib/creatureGenerator
 import { determineElement, calcEvoStage } from '../lib/creatureSystem.js'
 import { showItemToast } from '../components/Toasts.jsx'
 import { playSFX } from '../lib/audio.js'
-import { CRAFT_RECIPES } from '../lib/roomItems.js'
+import { CRAFT_RECIPES, COZY_CRAFT_RECIPES, WALLPAPER_BY_ID } from '../lib/roomItems.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
@@ -202,6 +202,13 @@ export const ACTIONS = {
   CLEAR_FAVORITE_OUTFIT: 'CLEAR_FAVORITE_OUTFIT',
   RANDOM_OUTFIT:         'RANDOM_OUTFIT',
   REMOVE_ALL_OUTFIT:     'REMOVE_ALL_OUTFIT',
+  // SPEC GAME-B §B.2 (2026-07-10) — Room: wallpaper/flooring, room hearts
+  BUY_WALLPAPER:      'BUY_WALLPAPER',
+  BUY_FLOORING:       'BUY_FLOORING',
+  APPLY_WALLPAPER:    'APPLY_WALLPAPER',
+  APPLY_FLOORING:     'APPLY_FLOORING',
+  CRAFT_COZY_ITEM:    'CRAFT_COZY_ITEM',
+  SET_ROOM_HEARTS:    'SET_ROOM_HEARTS',
   // Room / Den decoration
   BUY_ROOM_ITEM:    'BUY_ROOM_ITEM',
   PLACE_ROOM_ITEM:  'PLACE_ROOM_ITEM',
@@ -1247,7 +1254,7 @@ function reducer(state, action) {
       return {
         ...state,
         coins: (state.coins || 0) - price,
-        rooms: [...rooms, { id, theme, gridX, gridY, layout: {} }],
+        rooms: [...rooms, { id, theme, gridX, gridY, layout: {}, wallpaper: null, flooring: null }],
         activeRoomId: id,
         roomLayout: {},   // mirror follows the newly-active (empty) room
         lastSavedAt: Date.now(),
@@ -1419,6 +1426,78 @@ function reducer(state, action) {
     // REMOVE_ALL_OUTFIT — "ถอดหมด" button: clear all 4 slots at once.
     case ACTIONS.REMOVE_ALL_OUTFIT:
       return { ...state, equipped: { head: null, face: null, body: null, back: null }, lastSavedAt: Date.now() }
+
+    // SPEC GAME-B §B.2 (2026-07-10) — Room: wallpaper/flooring are OWNED
+    // separately from being APPLIED to a specific room (buy once, apply to
+    // any room for free afterward) — same buy-once/place-anywhere shape as
+    // ownedRoomItems/furniture placement, just room-wide instead of per-slot.
+    case ACTIONS.BUY_WALLPAPER: {
+      const { itemId, price } = action.payload
+      if ((state.coins || 0) < price) return state
+      if ((state.ownedWallpaper || []).includes(itemId)) return state
+      return {
+        ...state,
+        coins: (state.coins || 0) - price,
+        ownedWallpaper: [...(state.ownedWallpaper || []), itemId],
+        lastSavedAt: Date.now(),
+      }
+    }
+    case ACTIONS.BUY_FLOORING: {
+      const { itemId, price } = action.payload
+      if ((state.coins || 0) < price) return state
+      if ((state.ownedFlooring || []).includes(itemId)) return state
+      return {
+        ...state,
+        coins: (state.coins || 0) - price,
+        ownedFlooring: [...(state.ownedFlooring || []), itemId],
+        lastSavedAt: Date.now(),
+      }
+    }
+    // APPLY_WALLPAPER/APPLY_FLOORING — instant apply (itemId) or clear back
+    // to the theme default (itemId: null). No-op if not actually owned —
+    // the UI's buy-then-apply flow already guarantees ownership first, but
+    // the reducer guards too (same convention as EQUIP_ITEM).
+    case ACTIONS.APPLY_WALLPAPER: {
+      const { roomId, itemId } = action.payload
+      if (itemId && !(state.ownedWallpaper || []).includes(itemId)) return state
+      const rooms = (state.rooms || []).map(r => (r.id === roomId ? { ...r, wallpaper: itemId } : r))
+      return { ...state, rooms, lastSavedAt: Date.now() }
+    }
+    case ACTIONS.APPLY_FLOORING: {
+      const { roomId, itemId } = action.payload
+      if (itemId && !(state.ownedFlooring || []).includes(itemId)) return state
+      const rooms = (state.rooms || []).map(r => (r.id === roomId ? { ...r, flooring: itemId } : r))
+      return { ...state, rooms, lastSavedAt: Date.now() }
+    }
+    // CRAFT_COZY_ITEM — the 2 craft-only wallpaper + 2 craft-only flooring
+    // items (COZY_CRAFT_RECIPES, roomItems.js) use a SEPARATE recipe table
+    // from CRAFT_RECIPES (§B.1's furniture+cosmetics one) since their target
+    // is ownedWallpaper/ownedFlooring, not ownedRoomItems/ownedItems.
+    case ACTIONS.CRAFT_COZY_ITEM: {
+      const { itemId } = action.payload
+      const recipe = COZY_CRAFT_RECIPES[itemId]
+      if (!recipe) return state
+      const ownedArr = WALLPAPER_BY_ID[itemId] ? 'ownedWallpaper' : 'ownedFlooring'
+      if ((state[ownedArr] || []).includes(itemId)) return state
+      const mats = state.materials || {}
+      for (const k in recipe) if ((mats[k] || 0) < recipe[k]) return state
+      const newMats = { ...mats }
+      for (const k in recipe) newMats[k] = (newMats[k] || 0) - recipe[k]
+      return {
+        ...state,
+        materials: newMats,
+        [ownedArr]: [...(state[ownedArr] || []), itemId],
+        lastSavedAt: Date.now(),
+      }
+    }
+    // SET_ROOM_HEARTS — caches the current room's heart total, read from the
+    // new Supabase room_hearts table (see supabase/migrations/20260710-b2).
+    // Deliberately does NOT stamp lastSavedAt: this mirrors externally-sourced
+    // server data, not local progress this device needs to sync up.
+    case ACTIONS.SET_ROOM_HEARTS: {
+      const { roomId, hearts } = action.payload
+      return { ...state, roomHearts: { ...(state.roomHearts || {}), [roomId]: hearts } }
+    }
 
     default:
       return state

@@ -417,6 +417,41 @@ test('§B.1: validateState repairs equipped to include body/back and coerces a c
 })
 
 // The backup ring never grows past 3 and keeps the newest.
+// SPEC GAME-B §B.2 (2026-07-10): a room's wallpaper/flooring choice, or an
+// owned wallpaper/flooring item, is a real, deliberate decoration purchase —
+// same category as ownedRoomItems above, must never be wiped by a
+// stale-but-newer-timestamped blank remote.
+test('regression: a room wallpaper/flooring choice or owned cozy item is never wiped by a stale blank remote', () => {
+  const roomsWithWallpaper = [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {}, wallpaper: 'stripes_pink', flooring: null }]
+  const localWallpaper = { ...defaultState(), lastSavedAt: 1000, rooms: roomsWithWallpaper }
+  const remoteBlank = { ...defaultState(), lastSavedAt: 9000 }
+  assert.equal(hasRealProgress(localWallpaper), true, 'an applied wallpaper counts as real progress')
+  const r1 = resolveSync(localWallpaper, remoteBlank)
+  assert.equal(r1.remoteWon, false, 'an applied wallpaper must beat a newer-but-blank remote')
+  assert.deepEqual(r1.winner.rooms, roomsWithWallpaper)
+
+  const localOwnedCozy = { ...defaultState(), lastSavedAt: 1000, ownedFlooring: ['wood_planks'] }
+  assert.equal(hasRealProgress(localOwnedCozy), true, 'an owned flooring item counts as real progress even if not yet applied to any room')
+  const r2 = resolveSync(localOwnedCozy, remoteBlank)
+  assert.equal(r2.remoteWon, false)
+
+  // A default room (wallpaper/flooring both null, nothing owned) must NOT read as real progress.
+  assert.equal(hasRealProgress({ ...defaultState() }), false)
+})
+
+// validateState: rooms missing wallpaper/flooring entirely (pre-§B.2 saves)
+// get backfilled to null; wrongly-typed values reset to null; legitimate
+// string values survive untouched.
+test('§B.2: validateState backfills/repairs rooms wallpaper/flooring without disturbing legitimate values', () => {
+  const legacyRoom = { id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} } // no wallpaper/flooring keys at all
+  const dirty = { ...defaultState(), xpThai: 10, rooms: [legacyRoom, { id: 'r2', theme: 'pool', gridX: 1, gridY: 0, layout: {}, wallpaper: 42, flooring: 'wood_planks' }] }
+  const { state: s } = validateState(dirty)
+  assert.equal(s.rooms[0].wallpaper, null, 'a legacy room missing wallpaper must backfill to null')
+  assert.equal(s.rooms[0].flooring, null, 'a legacy room missing flooring must backfill to null')
+  assert.equal(s.rooms[1].wallpaper, null, 'a wrongly-typed (non-string) wallpaper must reset to null')
+  assert.equal(s.rooms[1].flooring, 'wood_planks', 'a legitimate string flooring must survive untouched')
+})
+
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()
   const pid = 'ring-profile'

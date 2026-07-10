@@ -104,6 +104,12 @@ export function hasRealProgress(s) {
   // dropped by a stale sync mid-flight.
   if ((s.evolutionAlbum?.length ?? 0) > 0) return true
   if (s.pendingEvolutionCeremony) return true
+  // SPEC GAME-B §B.2 (2026-07-10). A room's wallpaper/flooring choice is a
+  // real, deliberate decoration purchase — same category as ownedRoomItems/
+  // equipped above, not a fluctuating gauge.
+  if (Array.isArray(s.rooms) && s.rooms.some(r => r?.wallpaper || r?.flooring)) return true
+  if ((s.ownedWallpaper?.length ?? 0) > 0) return true
+  if ((s.ownedFlooring?.length ?? 0) > 0) return true
   return false
 }
 
@@ -186,13 +192,13 @@ export function validateState(state, profileId = _currentProfileId) {
   }
   const arrayFields = ['ownedItems', 'ownedRoomItems', 'craftedItems', 'party', 'hatchedEggs',
                        'seenTeach', 'discoveredScreens', 'clearedMaps', 'battleHistory', 'sessionLog',
-                       'evolutionAlbum', 'favoriteOutfits']
+                       'evolutionAlbum', 'favoriteOutfits', 'ownedWallpaper', 'ownedFlooring']
   for (const f of arrayFields) {
     if (!Array.isArray(s[f])) { s[f] = Array.isArray(base[f]) ? [...base[f]] : []; repaired = true }
   }
   const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
                         'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs',
-                        'skillMastery', 'activeNodes', 'missStreaks']
+                        'skillMastery', 'activeNodes', 'missStreaks', 'roomHearts']
   for (const f of objectFields) {
     if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
       s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
@@ -292,6 +298,21 @@ export function validateState(state, profileId = _currentProfileId) {
   if (Array.isArray(s.rooms) && s.rooms.length > 0) {
     if (!s.rooms.some(r => r.id === s.activeRoomId)) { s.activeRoomId = s.rooms[0].id; repaired = true }
     if (!s.rooms.some(r => r.id === s.homeRoomId)) { s.homeRoomId = s.rooms[0].id; repaired = true }
+  }
+  // SPEC GAME-B §B.2 (2026-07-10) — wallpaper/flooring: backfill missing keys
+  // to null (= "use the theme's own base fill") and reset any wrongly-typed
+  // value, same light-touch level as the room-shape checks above (this
+  // system doesn't deep-validate theme/gridX/gridY either). This single pass
+  // covers every older room-spawn site that predates these 2 fields, so they
+  // don't each need updating individually.
+  if (Array.isArray(s.rooms)) {
+    for (const r of s.rooms) {
+      if (!r || typeof r !== 'object') continue
+      if (r.wallpaper !== null && r.wallpaper !== undefined && typeof r.wallpaper !== 'string') { r.wallpaper = null; repaired = true }
+      else if (r.wallpaper === undefined) { r.wallpaper = null }
+      if (r.flooring !== null && r.flooring !== undefined && typeof r.flooring !== 'string') { r.flooring = null; repaired = true }
+      else if (r.flooring === undefined) { r.flooring = null }
+    }
   }
 
   // ── Critical restore: repaired state is indistinguishable from a fresh wipe,
@@ -416,7 +437,18 @@ export function defaultState() {
     // keep working. `homeRoomId` is INDEPENDENT of `activeRoomId`: it picks which
     // room's layout+theme Home's DecoratedRoom background shows, so browsing rooms
     // in the Room editor never changes the Home backdrop.
-    rooms: [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {} }],
+    // SPEC GAME-B §B.2 (2026-07-10) — wallpaper/flooring: item ids applying
+    // to the WHOLE room (not one furniture slot); null = theme default.
+    rooms: [{ id: 'main', theme: 'default', gridX: 0, gridY: 0, layout: {}, wallpaper: null, flooring: null }],
+    // Owned separately from being applied to any one room (buy once, apply
+    // to any room for free) — same shape as ownedRoomItems/ownedItems.
+    ownedWallpaper: [],
+    ownedFlooring: [],
+    // Local read-cache of room_hearts totals (server-side table, see the new
+    // Supabase migration) keyed by room id — NOT authoritative, just what
+    // this device last fetched for display; never written to directly by
+    // gameplay, only by SET_ROOM_HEARTS after a fetch/like_room response.
+    roomHearts: {},
     activeRoomId: 'main',
     homeRoomId: 'main',
     roomLayout: {},

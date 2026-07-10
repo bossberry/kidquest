@@ -25,7 +25,7 @@
  * so the "ผนังซ้าย / ผนังขวา" tabs match what the child sees. Slot counts are
  * identical (20 wall slots), only the two walls' widths are swapped vs the brief.
  */
-import { ROOM_ITEMS } from './roomItems.js'
+import { ROOM_ITEMS, WALLPAPER_BY_ID, FLOORING_BY_ID } from './roomItems.js'
 
 export const FLOOR_COLS = 6   // x: 0-5
 export const FLOOR_ROWS = 4   // y: 0-3
@@ -365,11 +365,37 @@ function fillQuad(ctx, pts, color, stroke) {
 }
 
 // ── Room surfaces ────────────────────────────────────────────────────────────
-function drawFloor(ctx, g, P) {
+// SPEC GAME-B §B.2: quadBBox reduces an iso quad to an axis-aligned rect so
+// the (deliberately iso/canvas-agnostic) wallpaper/flooring pattern painters
+// in roomItems.js can fill a plain rectangle rather than knowing about
+// projection math. The quad path is still used for the actual clip/fill.
+function quadBBox(pts) {
+  const xs = pts.map(p => p.sx), ys = pts.map(p => p.sy)
+  const minX = Math.min(...xs), minY = Math.min(...ys)
+  return { x: minX, y: minY, w: Math.max(...xs) - minX, h: Math.max(...ys) - minY }
+}
+
+function drawFloor(ctx, g, P, flooringId) {
+  const flooring = flooringId && FLOORING_BY_ID[flooringId]
   for (let r = 0; r < FLOOR_ROWS; r++) {
     for (let c = 0; c < FLOOR_COLS; c++) {
       const light = (c + r) % 2 === 0
-      fillQuad(ctx, floorQuad(g, c, r), light ? P.floorLight : P.floorDark, P.floorStroke)
+      const quad = floorQuad(g, c, r)
+      if (flooring && g.small) {
+        // Thumbnail fast path: the real per-tile pattern would just read as
+        // noise at 72x80px — use the item's flat representative swatch instead.
+        fillQuad(ctx, quad, flooring.swatch, P.floorStroke)
+      } else if (flooring) {
+        ctx.save()
+        ctx.beginPath(); ctx.moveTo(quad[0].sx, quad[0].sy)
+        for (let i = 1; i < quad.length; i++) ctx.lineTo(quad[i].sx, quad[i].sy)
+        ctx.closePath(); ctx.clip()
+        flooring.draw(ctx, quadBBox(quad), light)
+        ctx.restore()
+        if (P.floorStroke) { ctx.strokeStyle = P.floorStroke; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(quad[0].sx, quad[0].sy); for (let i = 1; i < quad.length; i++) ctx.lineTo(quad[i].sx, quad[i].sy); ctx.closePath(); ctx.stroke() }
+      } else {
+        fillQuad(ctx, quad, light ? P.floorLight : P.floorDark, P.floorStroke)
+      }
     }
   }
   if (!g.small) drawFloorDecor(ctx, g, P.decor)
@@ -507,13 +533,30 @@ function wallPolish(ctx, g, face) {
   ctx.restore()
 }
 
-function drawLeftWall(ctx, g, P) {
+// SPEC GAME-B §B.2: paints a wallpaper pattern clipped to the wall face,
+// replacing the theme's flat base fill (wallPolish/grid/baseboard still
+// layer on top either way, for shading continuity). Thumbnail (g.small)
+// fast path uses the item's flat swatch — same reasoning as drawFloor's.
+function drawWallpaper(ctx, g, face, wallpaperId) {
+  const item = wallpaperId && WALLPAPER_BY_ID[wallpaperId]
+  if (!item) return false
+  if (g.small) { fillQuad(ctx, face, item.swatch); return true }
+  ctx.save()
+  ctx.beginPath(); ctx.moveTo(face[0].sx, face[0].sy)
+  for (let i = 1; i < face.length; i++) ctx.lineTo(face[i].sx, face[i].sy)
+  ctx.closePath(); ctx.clip()
+  item.draw(ctx, quadBBox(face))
+  ctx.restore()
+  return true
+}
+
+function drawLeftWall(ctx, g, P, wallpaperId) {
   // back-left wall face (x = 0, y 0..FLOOR_ROWS, z 0..WALL_HEIGHT)
   const face = [
     g.project(0, 0, 0), g.project(0, FLOOR_ROWS, 0),
     g.project(0, FLOOR_ROWS, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
-  fillQuad(ctx, face, P.leftWall)
+  if (!drawWallpaper(ctx, g, face, wallpaperId)) fillQuad(ctx, face, P.leftWall)
   wallPolish(ctx, g, face)
   if (!g.small && P.decor === 'space') drawWallStars(ctx, g, face)
   // faint tile grid
@@ -534,13 +577,13 @@ function drawLeftWall(ctx, g, P) {
   fillQuad(ctx, bb, P.leftBase)
 }
 
-function drawRightWall(ctx, g, P) {
+function drawRightWall(ctx, g, P, wallpaperId) {
   // back-right wall face (y = 0, x 0..FLOOR_COLS, z 0..WALL_HEIGHT) — slightly darker
   const face = [
     g.project(0, 0, 0), g.project(FLOOR_COLS, 0, 0),
     g.project(FLOOR_COLS, 0, WALL_HEIGHT), g.project(0, 0, WALL_HEIGHT),
   ]
-  fillQuad(ctx, face, P.rightWall)
+  if (!drawWallpaper(ctx, g, face, wallpaperId)) fillQuad(ctx, face, P.rightWall)
   wallPolish(ctx, g, face)
   if (!g.small && P.decor === 'space') drawWallStars(ctx, g, face)
   ctx.strokeStyle = P.rightGrid; ctx.lineWidth = 1
@@ -701,6 +744,9 @@ export function drawRoomScene(ctx, {
   W, H, roomLayout, small = false, hint = true, activeZone = null, selectedKey = null,
   showTapHints = false, hintOpacity = 0, bounceKey = null, bounceScale = 1, theme = 'default',
   geometry = null, paintBg = true,
+  // SPEC GAME-B §B.2, optional — room.wallpaper/room.flooring item ids; null
+  // (the default, every existing caller) keeps the theme's own base fill.
+  wallpaper = null, flooring = null,
 }) {
   const layout = roomLayout ?? {}
   const P = resolveThemePalette(theme)
@@ -716,9 +762,9 @@ export function drawRoomScene(ctx, {
   }
 
   // surfaces (back → front): right wall, left wall, floor
-  drawRightWall(ctx, g, P)
-  drawLeftWall(ctx, g, P)
-  drawFloor(ctx, g, P)
+  drawRightWall(ctx, g, P, wallpaper)
+  drawLeftWall(ctx, g, P, wallpaper)
+  drawFloor(ctx, g, P, flooring)
 
   if (!small) {
     // faint warm "ceiling light" ambient glow near the top-center of the scene

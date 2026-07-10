@@ -965,3 +965,168 @@ export const CRAFT_RECIPE_LIST = [
   'flower_wreath', 'mossy_log', 'pebble_path', 'water_bowl', 'star_lantern', 'mushroom_ring',
   'butterfly_wings', 'mini_umbrella',
 ]
+
+// ── Wallpaper & Flooring (SPEC GAME-B §B.2, 2026-07-10) ─────────────────────
+// A NEW per-room-wide (not per-slot) cosmetic category — applies to the whole
+// room, not one furniture slot, so it's a separate catalog from ROOM_ITEMS.
+// Each entry's `draw` is a PATTERN PAINTER, deliberately decoupled from
+// roomScene.js's iso/projection math (same self-contained style as every
+// other draw fn in this file) — it receives a plain rectangle to fill:
+//   wallpaper: draw(ctx, {x,y,w,h})            — roomScene.js clips to the
+//              real wall-face polygon first, then calls this with its bbox
+//   flooring:  draw(ctx, {x,y,w,h}, light)      — called once per floor tile
+//              (light = the existing checkerboard-parity boolean, optional
+//              to use for 2-tone variation within the pattern itself)
+// `null` on a room (the default) means "use the theme's own base fill" —
+// these patterns REPLACE that base fill when set, per the spec's own wording;
+// roomScene.js still layers wallPolish/grid/vignette/decor on top either way.
+function wallpaperStripes(ctx, { x, y, w, h }, bg, stripe, stripeW = 10) {
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h)
+  ctx.fillStyle = stripe
+  for (let dx = 0; dx < w + h; dx += stripeW * 2) ctx.fillRect(x + dx, y, stripeW, h)
+}
+function wallpaperDots(ctx, { x, y, w, h }, bg, dot, spacing = 16, r = 3) {
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h)
+  ctx.fillStyle = dot
+  for (let dy = spacing / 2; dy < h; dy += spacing) {
+    for (let dx = spacing / 2; dx < w; dx += spacing) {
+      ctx.beginPath(); ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2); ctx.fill()
+    }
+  }
+}
+function wallpaperPlaid(ctx, { x, y, w, h }, bg, line) {
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h)
+  ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.globalAlpha = 0.5
+  for (let dx = 0; dx < w; dx += 14) { ctx.beginPath(); ctx.moveTo(x + dx, y); ctx.lineTo(x + dx, y + h); ctx.stroke() }
+  for (let dy = 0; dy < h; dy += 14) { ctx.beginPath(); ctx.moveTo(x, y + dy); ctx.lineTo(x + w, y + dy); ctx.stroke() }
+  ctx.globalAlpha = 1
+}
+function wallpaperHearts(ctx, { x, y, w, h }, bg, heart, spacing = 20) {
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h)
+  ctx.fillStyle = heart
+  for (let dy = spacing / 2; dy < h; dy += spacing) {
+    for (let dx = spacing / 2; dx < w; dx += spacing) {
+      const hx = x + dx, hy = y + dy, s = 2.5
+      ctx.fillRect(hx - s * 1.5, hy - s * 0.5, s, s)
+      ctx.fillRect(hx + s * 0.5, hy - s * 0.5, s, s)
+      ctx.fillRect(hx - s * 0.5, hy - s * 1.5, s, s)
+      ctx.fillRect(hx - s * 0.5, hy + s * 0.5, s, s)
+      ctx.fillRect(hx - s * 0.5, hy - s * 0.5, s, s)
+    }
+  }
+}
+function wallpaperClouds(ctx, { x, y, w, h }, bg, cloud, spacing = 30) {
+  ctx.fillStyle = bg; ctx.fillRect(x, y, w, h)
+  ctx.fillStyle = cloud
+  for (let dy = spacing / 2; dy < h; dy += spacing) {
+    for (let dx = spacing / 2; dx < w; dx += spacing) {
+      const cx2 = x + dx, cy2 = y + dy
+      ctx.beginPath()
+      ctx.arc(cx2 - 4, cy2, 3.5, 0, Math.PI * 2)
+      ctx.arc(cx2 + 4, cy2, 3.5, 0, Math.PI * 2)
+      ctx.arc(cx2, cy2 - 2, 4, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
+// bg: pass null to skip the background fill (caller already painted one).
+function wallpaperStars(ctx, { x, y, w, h }, bg, star, n = 30) {
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, h) }
+  ctx.fillStyle = star
+  for (let i = 0; i < n; i++) {
+    const sx = x + ((i * 53.7) % w), sy = y + ((i * 97.3) % h)
+    const s = i % 3 === 0 ? 2 : 1
+    ctx.fillRect(sx, sy, s, s)
+  }
+}
+
+// `swatch` — a single representative hex color, used for the small
+// (72x80 thumbnail) room-preview render path where the real pattern would
+// just read as noise, and for the item-picker card icon.
+export const WALLPAPER_ITEMS = [
+  { id: 'stripes_pink', nameTh: 'ลายทางชมพู', price: 80,  tier: 'small', swatch: '#ffcfe0', draw: (ctx, r) => wallpaperStripes(ctx, r, '#ffe0ec', '#ffb3cf') },
+  { id: 'stars_navy',   nameTh: 'ลายดาวน้ำเงิน', price: 100, tier: 'small', swatch: '#1b2a4a', draw: (ctx, r) => wallpaperStars(ctx, r, '#1b2a4a', '#ffffff', 30) },
+  { id: 'polka_mint',   nameTh: 'ลายจุดมิ้นต์', price: 90,  tier: 'small', swatch: '#d8f5ea', draw: (ctx, r) => wallpaperDots(ctx, r, '#d8f5ea', '#ffffff') },
+  { id: 'gingham_brown',nameTh: 'ลายตารางน้ำตาล', price: 120, tier: 'mid', swatch: '#e0c898', draw: (ctx, r) => wallpaperPlaid(ctx, r, '#f0e0c0', '#a87c3c') },
+  { id: 'clouds_sky',   nameTh: 'ลายเมฆฟ้า', price: 150, tier: 'mid', swatch: '#cfe9ff', draw: (ctx, r) => wallpaperClouds(ctx, r, '#cfe9ff', '#ffffff') },
+  { id: 'rainbow_stripe', nameTh: 'ลายทางรุ้ง', price: null, tier: 'mid', acquirable: 'craft', swatch: '#ffb84d', draw: (ctx, r) => {
+    const cols = ['#ff6e6e', '#ffb84d', '#ffe066', '#7dffa0', '#6ecbff', '#c78cff']
+    ctx.fillStyle = '#fffaf0'; ctx.fillRect(r.x, r.y, r.w, r.h)
+    let i = 0
+    for (let dx = 0; dx < r.w + r.h; dx += 8) { ctx.fillStyle = cols[i++ % cols.length]; ctx.fillRect(r.x + dx, r.y, 8, r.h) }
+  } },
+  { id: 'hearts_pastel', nameTh: 'ลายหัวใจพาสเทล', price: null, tier: 'small', acquirable: 'craft', swatch: '#ffdce8', draw: (ctx, r) => wallpaperHearts(ctx, r, '#fff0f5', '#ffaacb') },
+  { id: 'galaxy_dream',  nameTh: 'ลายกาแล็กซี่', price: null, tier: 'big', acquirable: 'event', swatch: '#241b4a', draw: (ctx, r) => {
+    ctx.fillStyle = '#241b4a'; ctx.fillRect(r.x, r.y, r.w, r.h)
+    wallpaperStars(ctx, r, null, '#e8ddff', 26) // null bg: background already painted above
+  } },
+]
+export const WALLPAPER_BY_ID = WALLPAPER_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
+
+function flooringChecker(ctx, { x, y, w, h }, light, colA, colB) {
+  ctx.fillStyle = light ? colA : colB
+  ctx.fillRect(x, y, w, h)
+}
+function flooringPlanks(ctx, { x, y, w, h }, light) {
+  ctx.fillStyle = light ? '#c9915a' : '#b87d46'
+  ctx.fillRect(x, y, w, h)
+  ctx.strokeStyle = 'rgba(70,40,10,0.25)'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(x, y + h * 0.5); ctx.lineTo(x + w, y + h * 0.5); ctx.stroke()
+}
+function flooringSpeckle(ctx, { x, y, w, h }, base, speck, n = 4) {
+  ctx.fillStyle = base; ctx.fillRect(x, y, w, h)
+  ctx.fillStyle = speck
+  for (let i = 0; i < n; i++) {
+    const sx = x + ((i * 37.1) % w), sy = y + ((i * 61.7) % h)
+    ctx.fillRect(sx, sy, 2, 2)
+  }
+}
+
+export const FLOORING_ITEMS = [
+  { id: 'wood_planks',   nameTh: 'พื้นไม้',       price: 90,  tier: 'small', swatch: '#c9915a', draw: (ctx, r, light) => flooringPlanks(ctx, r, light) },
+  { id: 'checker_mono',  nameTh: 'พื้นลายตาราง',  price: 80,  tier: 'small', swatch: '#c8c8c8', draw: (ctx, r, light) => flooringChecker(ctx, r, light, '#f2f2f2', '#2a2a2a') },
+  { id: 'pebble_floor',  nameTh: 'พื้นกรวด',      price: 100, tier: 'small', swatch: '#bfbaae', draw: (ctx, r, light) => flooringSpeckle(ctx, r, light ? '#c9c4b8' : '#b6b0a2', '#8a8478', 5) },
+  { id: 'grass_patch',   nameTh: 'พื้นหญ้า',      price: 110, tier: 'mid',   swatch: '#6fbe4a', draw: (ctx, r, light) => flooringSpeckle(ctx, r, light ? '#6fbe4a' : '#5fae3a', '#4a8c2a', 6) },
+  { id: 'star_tile',     nameTh: 'พื้นลายดาว',    price: 140, tier: 'mid',   swatch: '#243258', draw: (ctx, r, light) => flooringSpeckle(ctx, r, light ? '#2a3a6a' : '#1e2a52', '#ffe066', 3) },
+  { id: 'rainbow_tile',  nameTh: 'พื้นลายรุ้ง',   price: null, tier: 'mid', acquirable: 'craft', swatch: '#7dffa0', draw: (ctx, r) => {
+    const cols = ['#ff6e6e', '#ffb84d', '#ffe066', '#7dffa0', '#6ecbff', '#c78cff']
+    ctx.fillStyle = cols[Math.floor((r.x + r.y) / 20) % cols.length]
+    ctx.fillRect(r.x, r.y, r.w, r.h)
+  } },
+  { id: 'cloud_carpet',  nameTh: 'พรมเมฆนุ่ม',    price: null, tier: 'small', acquirable: 'craft', swatch: '#eaf6ff', draw: (ctx, r, light) => flooringSpeckle(ctx, r, light ? '#eaf6ff' : '#dcefff', '#ffffff', 4) },
+  { id: 'galaxy_floor',  nameTh: 'พื้นกาแล็กซี่', price: null, tier: 'big', acquirable: 'event', swatch: '#241948', draw: (ctx, r, light) => flooringSpeckle(ctx, r, light ? '#2a1f52' : '#1c1440', '#e8ddff', 5) },
+]
+export const FLOORING_BY_ID = FLOORING_ITEMS.reduce((m, i) => (m[i.id] = i, m), {})
+
+// ── Cozy Room craft recipes (SPEC GAME-B §B.2) — kept in a SEPARATE table
+// from CRAFT_RECIPES/CRAFT_RECIPE_LIST above (which is furniture+cosmetics
+// only) since wallpaper/flooring are a different acquisition target
+// (rooms[i].wallpaper/flooring, not ownedRoomItems/ownedItems) — StateContext's
+// APPLY_WALLPAPER/APPLY_FLOORING-craft path looks these up separately so the
+// existing CRAFT_ITEM reducer's ownedItems/ownedRoomItems branching (§B.1)
+// doesn't need a 3rd branch.
+export const COZY_CRAFT_RECIPES = {
+  rainbow_stripe: { stardust: 3, crystal: 2 },
+  hearts_pastel:  { flower: 3, mushroom: 2 },
+  rainbow_tile:   { stardust: 2, stone: 3 },
+  cloud_carpet:   { water: 3, flower: 2 },
+}
+export const COZY_CRAFT_RECIPE_LIST = ['rainbow_stripe', 'hearts_pastel', 'rainbow_tile', 'cloud_carpet']
+
+// ── Furniture interactions (SPEC GAME-B §B.2) ────────────────────────────────
+// Data-driven map: DecoratedRoom.jsx's idle/wander AI reads this to know
+// which placed furniture ids it can walk to and interact with, which egg
+// pose to hold (see src/egg/eggPoses.js's 15-pose vocabulary), for how long,
+// and any one-shot particle to spawn. `weight` biases how often that specific
+// interaction gets picked relative to the others when several are available
+// in the current room (plain wander still dominates — see nextIdleDecision).
+export const FURNITURE_INTERACTIONS = {
+  bed:        { pose: 'sleep', duration: 6, weight: 1, particle: null },
+  small_chair:{ pose: 'sit', duration: 5, weight: 2, particle: null },
+  plant:      { pose: 'curious_tilt', duration: 3, weight: 2, particle: 'water' },
+  carrot_planter: { pose: 'curious_tilt', duration: 3, weight: 1, particle: 'water' },
+  fish_tank:  { pose: 'curious_tilt', duration: 4, weight: 2, particle: null },
+  rug:        { pose: 'sleep', duration: 5, weight: 2, particle: null },
+  jelly_rug:  { pose: 'sleep', duration: 4, weight: 1, particle: null },
+  bunny_cushion: { pose: 'sit', duration: 4, weight: 1, particle: null },
+}

@@ -1,5 +1,88 @@
 # Changelog — KidQuest
 
+## 2026-07-10 — SPEC GAME-A §A.3: Egg Visuals ("ให้สวยที่สุด")
+
+Third and final section of SPEC GAME-A. All additive draw-layer/state work
+inside the already-separate `src/egg/` module system; `eggAlgorithm.js`
+untouched (still LOCKED).
+
+### New: `src/egg/eggPoses.js`
+- 15 named pose transforms for the spec's "14 poses" (walk_l/walk_r are one
+  spec list item but two real distinct transforms): idle_blink, happy_bounce,
+  eat, sleep, yawn, curious_tilt, laugh, hug, dizzy, proud, sit, walk_l,
+  walk_r, celebrate. Additive to the 6 existing battle-state poses in
+  `eggAnimations.js` (idle/happy/hurt/attack/sleepy/excited, untouched).
+  `getEggPose()` now delegates here for any state name outside the core 6.
+- `deriveCareMood(eggCare)` + `getIdleMoodTransform(mood, t)` — mood-driven
+  idle: happy (occasional spin), hungry (tummy-glance tilt), sleepy
+  (droop+micro-nod), content (base bob), read live from §A.1's `eggCare`
+  state. Auto-wired into Home's egg via `components/EggCanvas.jsx`'s new
+  `careMood` auto-derivation (same pattern as §A.2's `affinityLine`).
+- `shouldBlink(t)` — always-on blink, fixed ~4.2s cadence (inside the spec's
+  3-6s range; a literal per-cycle-randomized period would need persistent
+  per-egg RNG state this stateless draw pipeline doesn't carry), ~120ms
+  closed-eye window, OR'd into every render call site's blink flag.
+
+### `eggBaseLayer.js` — rim light
+- `drawEggRimLight()` — top-left highlight on the sprite's own dark outline
+  ("D") cells specifically, not the fill (a first pass targeting any edge
+  body-pixel was live-checked in the new harness and was nearly invisible,
+  since the sprite's H/highlight tone is already near-white right where an
+  edge-based selection lands). Applies after body draw on every element/body
+  type (sprite-grid and mass bodies alike).
+
+### `eggAuraLayer.js` — element aura particles
+- `drawElementParticles()` — per-element drifting motif around the egg (fire
+  embers, water bubbles, nature leaves, thunder sparks ≤3Hz, shadow wisps,
+  light glimmers), same deterministic seeded-procedural style as
+  `eggStageLayer.js`'s on-body FX. **Terminology correction** (same class as
+  §A.1's favorite-food fix): the spec's element list (fire/water/grass/
+  electric/ice/ghost) doesn't match this game's real 6 elements — remapped
+  1:1 (grass→nature, electric→thunder, ghost→shadow; light gets glimmers in
+  place of the spec's unmapped "ice"). Intensity scales by stage tier
+  (3/7/12 particles), capped so combined with the pre-existing glow sparkles
+  the total stays under the spec's "≤20 alive" ceiling. New optional `lowFx`
+  param skips this pass (no global perf-settings system exists to auto-source
+  it yet).
+
+### L4/L5 "layer stack" audit — no fix needed
+- Grepped every `src/egg/*.js` draw file for `fillText`/`strokeText`: none
+  exist. No `getEggPath()` exists either — the body is a static pixel-grid
+  sprite, not a path. Confirmed clean rendering at every stage/element combo
+  in the new harness. Same "generic spec vs. this codebase's real structure"
+  mismatch found in §A.1/§A.2 — documented, not force-fixed.
+
+### Consistency pass
+- `egg/EggCanvas.jsx` (React) previously reimplemented the entire render
+  pipeline inline instead of calling `renderEggSprite.js`, despite the two
+  being kept in lockstep by hand across every prior SPEC GAME-A session —
+  the real duplication the spec's "single renderEgg painter" acceptance
+  criterion means. Now a thin RAF/DPR wrapper around one
+  `renderEggSprite(ctx, {...})` call. Audited the other 7 real egg-render
+  call sites (DecoratedRoom, RoomScene, tileEngine, FriendsScreen, RoomVisit,
+  LoginBackdrop, CompanionCreation) — all already funnel through
+  `renderEggSprite`/`EggCanvasCore`.
+
+### New: `src/components/EggPoseHarness.jsx` + `?eggharness=1` route
+- Dev-only visual harness (same pattern as `SpeechTestHarness`'s
+  `?speechtest=1`) rendering all 15 poses / all 6 elements' aura particles /
+  a rim-light close-up, with live aura/stage/lowFx controls, using the real
+  render code. Used to live-verify this entire session's visual work in
+  Chrome — renders before the Supabase login gate, so it wasn't blocked the
+  way every prior session's live egg-visual check was.
+
+### Verification
+- `npm run build` clean at both commit stages. `npm test` 85/85 pass (15 new
+  `eggPoses.test.js`: all poses finite/well-formed, walk_l/walk_r opposite
+  lean, one-shot ease-in settle, `isPoseEyesClosed` scoped correctly,
+  `deriveCareMood`'s 4 branches + null-safety, `getIdleMoodTransform`
+  distinctness, `shouldBlink` cadence/window-shape). Live-verified in Chrome
+  via the new harness: zero console errors, particles correctly disappear
+  under `lowFx`, rim light visible after the outline-cell fix, no debug text
+  anywhere. **Not verified**: the real in-app `Home.jsx` egg reacting to
+  live `eggCare` changes over time — same login-gate limitation every prior
+  SPEC GAME-A session hit; see `CHATBOT_NOTES.md`'s handoff.
+
 ## 2026-07-10 — SPEC GAME-A §A.2: Evolution × Education (mastery-driven stage + subject affinity)
 
 Second section of SPEC GAME-A. Hard constraint from the user: `eggAlgorithm.js`

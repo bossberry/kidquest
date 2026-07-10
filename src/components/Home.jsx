@@ -82,7 +82,7 @@ function isQuietHours(now = new Date()) {
 }
 
 export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
-  const { state, dispatch, eggProgressData } = useAppState()
+  const { state, dispatch, eggProgressData, affinity, affinityLine, masteredCount } = useAppState()
   const { resolved } = useCompanion()
 
   const [activeItem, setActiveItem]       = useState(null)
@@ -158,7 +158,7 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     setParticles,
   })
 
-  const { ambientEvent, stageUp, growthBanner } = useHomeAmbience({
+  const { ambientEvent, growthBanner } = useHomeAmbience({
     stage,
     readyToHatch,
     eggAnim,
@@ -168,6 +168,10 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
     voiceProfile,
     initialLastHomeVisit: initVisitRef.current,
     sessionXP: state.sessionXP,
+    element: resolved.element,
+    affinity,
+    affinityLine,
+    masteredCount,
   })
 
   // ── SPEC GAME-A §A.1 Care Loop ───────────────────────────────────────────
@@ -532,19 +536,9 @@ export default function Home({ navigate, onOpenLogin, onOpenProfile }) {
         }}><div style={{ width:6, height:6, background:'#ffdd44', boxShadow:'0 0 6px #ffdd44' }} /></div>
       )}
 
-      {/* Stage-up celebration banner */}
-      {stageUp && (
-        <div key={`su-${stageUp.id}`} className="stage-up-banner" style={{ animation:'stage-up-pop 2.8s ease forwards' }}>
-          <div style={{
-            fontFamily:"'Fredoka One',cursive", fontSize:22,
-            color:'#FFD700', textShadow:'0 2px 12px rgba(80,30,0,.8)',
-          }}>ขึ้นระดับแล้ว!</div>
-          <div style={{
-            fontFamily:'Mitr,sans-serif', fontSize:15, color:'#fff',
-            marginTop:4, textShadow:'0 1px 6px rgba(0,0,0,.55)',
-          }}>{EGG_STAGE_NAMES[stageUp.stage]}</div>
-        </div>
-      )}
+      {/* Stage-up celebration is now the full-screen EvolutionScene ceremony
+          (SPEC GAME-A §A.2), triggered by pendingEvolutionCeremony below —
+          this lightweight banner was superseded to avoid double-celebration. */}
 
       {/* Post-session egg growth message */}
       {growthBanner && (

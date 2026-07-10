@@ -294,6 +294,43 @@ test('regression: a pending eggCare wake-up/comeback-joy event is never wiped by
   assert.equal(r3.remoteWon, false, 'a pending comeback-joy event must beat a newer-but-blank remote')
 })
 
+// ── SPEC GAME-A §A.2 Evolution x Education — evolutionAlbum/pendingEvolutionCeremony protection ─
+// Same Fix 3c symmetric guard as pendingWakeUp/pendingComebackJoy above: a
+// minted evolutionAlbum entry is permanent, hard-won progress (a real curriculum
+// mastery milestone), and a queued ceremony is a real one-shot event — neither
+// may be silently wiped by a stale-but-newer-timestamped blank remote.
+test('regression: a minted evolutionAlbum entry / pending evolution ceremony is never wiped by a stale blank remote', () => {
+  const evolutionEntry = { stage: 3, date: 5000, affinity: 'math', affinityLine: 'architect', masteredCount: 9, snapshot: null }
+  const localWithAlbum = {
+    ...defaultState(),
+    lastSavedAt: 1000, // older timestamp than remote below
+    evolutionAlbum: [evolutionEntry],
+    pendingEvolutionCeremony: evolutionEntry,
+  }
+  const remoteBlank = {
+    ...defaultState(),
+    lastSavedAt: 9000, // newer timestamp, but genuinely untouched defaults
+  }
+  assert.equal(hasRealProgress(localWithAlbum), true, 'a minted evolutionAlbum entry counts as real progress')
+  assert.equal(hasRealProgress(remoteBlank), false)
+
+  const { winner, remoteWon } = resolveSync(localWithAlbum, remoteBlank)
+  assert.equal(remoteWon, false, 'a minted evolutionAlbum entry must beat a newer-but-blank remote')
+  assert.deepEqual(winner.evolutionAlbum, [evolutionEntry])
+  assert.deepEqual(winner.pendingEvolutionCeremony, evolutionEntry)
+
+  // Mirror: remote genuinely has the album entry, local is blank.
+  const r2 = resolveSync(remoteBlank, localWithAlbum)
+  assert.equal(r2.remoteWon, true, 'remote evolutionAlbum entry must beat a blank local')
+
+  // A pending ceremony alone (album already recorded elsewhere, e.g. after
+  // CLEAR_PENDING_EVOLUTION_CEREMONY hasn't fired yet) also counts on its own.
+  const localCeremonyOnly = { ...defaultState(), lastSavedAt: 1000, pendingEvolutionCeremony: evolutionEntry }
+  assert.equal(hasRealProgress(localCeremonyOnly), true)
+  const r3 = resolveSync(localCeremonyOnly, remoteBlank)
+  assert.equal(r3.remoteWon, false, 'a pending evolution ceremony alone must beat a newer-but-blank remote')
+})
+
 // validateState: eggCare repairs corrupted numeric/nested fields while
 // leaving legitimate null pendingWakeUp/pendingComebackJoy untouched, and
 // fills in any missing foodInventory keys without touching existing counts.
@@ -320,6 +357,28 @@ test('C.1/A.1: validateState repairs corrupted eggCare fields without disturbing
   assert.equal(typeof s.eggCare.lastTouchDate, 'string')
   assert.equal(s.eggCare.pendingWakeUp, null, 'legitimate null pendingWakeUp must NOT be coerced to {}')
   assert.equal(s.eggCare.pendingComebackJoy, null, 'a bogus non-boolean-true value must reset to null, never left as garbage')
+})
+
+// SPEC GAME-A §A.2: validateState repairs a corrupted evolutionAlbum/
+// pendingEvolutionCeremony shape without disturbing legitimate values.
+test('§A.2: validateState repairs corrupted evolutionAlbum/pendingEvolutionCeremony fields without disturbing legitimate values', () => {
+  const entry = { stage: 4, date: 1000, affinity: 'thai', affinityLine: 'sage', masteredCount: 14, snapshot: null }
+  const dirty = { ...defaultState(), evolutionAlbum: 'oops', pendingEvolutionCeremony: 'oops' }
+  const { state: s } = validateState(dirty)
+  assert.ok(Array.isArray(s.evolutionAlbum), 'a corrupted (non-array) evolutionAlbum must repair to an array')
+  assert.equal(s.evolutionAlbum.length, 0)
+  assert.equal(s.pendingEvolutionCeremony, null, 'a corrupted (non-object) pendingEvolutionCeremony must repair to null')
+
+  // Legitimate values must survive untouched.
+  const clean = { ...defaultState(), evolutionAlbum: [entry], pendingEvolutionCeremony: entry }
+  const { state: s2 } = validateState(clean)
+  assert.deepEqual(s2.evolutionAlbum, [entry], 'a legitimate evolutionAlbum entry must NOT be wiped')
+  assert.deepEqual(s2.pendingEvolutionCeremony, entry, 'a legitimate pendingEvolutionCeremony must NOT be wiped')
+
+  // A legitimate null pendingEvolutionCeremony (no ceremony queued) must stay null.
+  const withNull = { ...defaultState(), pendingEvolutionCeremony: null }
+  const { state: s3 } = validateState(withNull)
+  assert.equal(s3.pendingEvolutionCeremony, null, 'legitimate null pendingEvolutionCeremony must NOT be coerced to {}')
 })
 
 // The backup ring never grows past 3 and keeps the newest.

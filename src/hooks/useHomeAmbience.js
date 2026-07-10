@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { playTone, playSFX, playCreatureSound } from '../lib/audio.js'
+import { playTone, playCreatureSound } from '../lib/audio.js'
 
 const IDLE_DUR = {
   'idle-wiggle': 600,
@@ -32,11 +32,11 @@ const IDLE_DUR = {
 export function useHomeAmbience({
   stage, readyToHatch, eggAnim, setIdleAnim, spawnParticles, enterState,
   voiceProfile, initialLastHomeVisit, sessionXP,
+  element, affinity, affinityLine, masteredCount,
 }) {
   const { dispatch } = useAppState()
 
   const [ambientEvent, setAmbientEvent] = useState(null) // null | {type, id}
-  const [stageUp, setStageUp]           = useState(null) // null | {stage, id}
   const [growthBanner, setGrowthBanner] = useState(null) // null | string
 
   const idleTimerRef  = useRef(null)
@@ -47,16 +47,18 @@ export function useHomeAmbience({
   useEffect(() => { eggAnimRef.current = eggAnim }, [eggAnim])
   useEffect(() => { stageRef.current = stage }, [stage])
 
-  // Stage-up detection — skip first render by initializing prevStageRef to null
+  // Stage-up detection — skip first render by initializing prevStageRef to null.
+  // SPEC GAME-A §A.2: a real stage-up now mints a permanent evolutionAlbum
+  // entry + raises pendingEvolutionCeremony (consumed by Home.jsx's full-screen
+  // EvolutionScene), which supersedes this effect's old lightweight
+  // stageUp-banner+SFX so a single stage-up isn't celebrated twice.
   useEffect(() => {
     if (prevStageRef.current === null) { prevStageRef.current = stage; return }
     if (stage > prevStageRef.current) {
-      playTone('stageUp'); playSFX('stage_up')
-      spawnParticles('sparkle', 18)
-      spawnParticles('hearts', 6)
-      const id = Date.now()
-      setStageUp({ stage, id })
-      setTimeout(() => setStageUp(prev => prev?.id === id ? null : prev), 2800)
+      dispatch({
+        type: ACTIONS.RECORD_EVOLUTION,
+        payload: { stage, affinity, affinityLine, element, masteredCount },
+      })
     }
     prevStageRef.current = stage
   }, [stage]) // eslint-disable-line
@@ -147,5 +149,5 @@ export function useHomeAmbience({
     return () => clearTimeout(timer)
   }, []) // eslint-disable-line
 
-  return { ambientEvent, stageUp, growthBanner }
+  return { ambientEvent, growthBanner }
 }

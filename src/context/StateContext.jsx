@@ -12,6 +12,7 @@ import { CRAFT_RECIPES } from '../lib/roomItems.js'
 import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
 import { computeCareTick, applyFeed, applyPetEgg, applyPlayTouch, FOOD_CATALOG } from '../lib/eggCare.js'
+import { computeDisplayStage, computeAffinity, countMasteredNodes, AFFINITY_LINES } from '../lib/eggEvolution.js'
 
 export const StateContext = createContext(null)
 
@@ -166,6 +167,13 @@ export const ACTIONS = {
   CLEAR_PENDING_WAKE_UP:      'CLEAR_PENDING_WAKE_UP',
   CLEAR_PENDING_COMEBACK_JOY: 'CLEAR_PENDING_COMEBACK_JOY',
   BUY_FOOD_ITEM:              'BUY_FOOD_ITEM',
+  // SPEC GAME-A §A.2 Evolution x Education — mints an evolutionAlbum entry +
+  // one-shot ceremony signal when the combined mastery-aware stage (see
+  // eggEvolution.js) advances. Dispatched from useHomeAmbience's existing
+  // stage-up detection effect (same place the old lightweight stageUp banner
+  // already lived), which supersedes that banner for real stage-ups.
+  RECORD_EVOLUTION:               'RECORD_EVOLUTION',
+  CLEAR_PENDING_EVOLUTION_CEREMONY: 'CLEAR_PENDING_EVOLUTION_CEREMONY',
   // Atomic battle entry (prevents intermediate render between SET_BATTLE_CREATURE + ENTER_BATTLE_FROM_WORLD)
   SELECT_CREATURE_AND_ENTER_BATTLE: 'SELECT_CREATURE_AND_ENTER_BATTLE',
   CREATURE_STAT_BOOST:             'CREATURE_STAT_BOOST',
@@ -736,6 +744,25 @@ function reducer(state, action) {
 
     case ACTIONS.CLEAR_PENDING_COMEBACK_JOY:
       return { ...state, eggCare: { ...state.eggCare, pendingComebackJoy: null }, lastSavedAt: Date.now() }
+
+    // payload: { stage, affinity, affinityLine, element, masteredCount }. The
+    // caller (useHomeAmbience's stage-up detection effect) already knows the
+    // NEW combined stage crossed a threshold — this just mints the permanent
+    // album record and raises the one-shot ceremony flag. snapshot is left
+    // null; the album viewer re-renders the historical form live from the
+    // stored stage/affinity/element instead of storing a pixel snapshot.
+    case ACTIONS.RECORD_EVOLUTION: {
+      const entry = { ...action.payload, date: Date.now(), snapshot: null }
+      return {
+        ...state,
+        evolutionAlbum: [...(state.evolutionAlbum || []), entry],
+        pendingEvolutionCeremony: entry,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    case ACTIONS.CLEAR_PENDING_EVOLUTION_CEREMONY:
+      return { ...state, pendingEvolutionCeremony: null, lastSavedAt: Date.now() }
 
     // payload: { food: foodKey }. Coins-for-food purchase — mirrors BUY_ITEM's
     // shape (guard insufficient funds, deduct coins, grant the thing).
@@ -1503,12 +1530,26 @@ export function StateProvider({ children }) {
   const derived = useMemo(() => {
     const sp = scaledEggProgress(state)
     const rawStats = buildEggStats(state)
+    // SPEC GAME-A §A.2 — stage stops being purely XP-driven; it's now
+    // max(xpDrivenStage, masteryDrivenStage) so mastering curriculum nodes
+    // can advance it, while an account that predates the curriculum system
+    // entirely (real example: Chopin's — high XP-driven stage, completely
+    // empty skillMastery) is NEVER demoted. See eggEvolution.js's own
+    // extensive comment on why this simple non-persisted max() is safe.
+    // Reuses eggAlgorithm.js's locked stage number as ONE of the two inputs
+    // (not modifying it) — same externally-overriding technique already
+    // established by `sp.stage` overriding rawStats.stage just below.
+    const displayStage = computeDisplayStage(sp.stage, state.skillMastery)
+    const affinity = computeAffinity(state.skillMastery)
     return {
       totalXPValue: totalXP(state),
-      eggProgressData: sp,
-      eggStatsData: { ...rawStats, stage: sp.stage }, // stage overridden to scaled value
+      eggProgressData: { ...sp, stage: displayStage },
+      eggStatsData: { ...rawStats, stage: displayStage }, // stage overridden to the combined mastery-aware value
+      affinity,
+      affinityLine: AFFINITY_LINES[affinity],
+      masteredCount: countMasteredNodes(state.skillMastery),
     }
-  }, [state.xpThai, state.xpEng, state.xpMath, state.streak, state.acc, state.speed, state.mins, state.eggDow, state.eggMonth, state.eggDay, state.eggHour, state.firstSubject, state.name, state.grade, state.hatchedEggs]) // eslint-disable-line
+  }, [state.xpThai, state.xpEng, state.xpMath, state.streak, state.acc, state.speed, state.mins, state.eggDow, state.eggMonth, state.eggDay, state.eggHour, state.firstSubject, state.name, state.grade, state.hatchedEggs, state.skillMastery]) // eslint-disable-line
 
   const value = useMemo(() => ({
     state,
@@ -1516,6 +1557,9 @@ export function StateProvider({ children }) {
     totalXP: derived.totalXPValue,
     eggProgressData: derived.eggProgressData,
     eggStatsData: derived.eggStatsData,
+    affinity: derived.affinity,
+    affinityLine: derived.affinityLine,
+    masteredCount: derived.masteredCount,
   }), [state, derived])
 
   return <StateContext.Provider value={value}>{children}</StateContext.Provider>

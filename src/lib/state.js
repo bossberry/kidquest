@@ -91,6 +91,15 @@ export function hasRealProgress(s) {
   // low-stakes inconvenience, not a meaningful loss on the scale of the
   // fields already protected above.
   if (s.eggCare?.pendingWakeUp || s.eggCare?.pendingComebackJoy) return true
+  // SPEC GAME-A §A.2 Evolution × Education (2026-07-09). Unlike eggCare's
+  // fluctuating meters above, a minted evolutionAlbum entry IS genuine,
+  // hard-won, permanent progress — a real stage transition the child earned,
+  // exactly the same category as hatchedEggs/ownedRoomItems above. Also
+  // protects the one-shot pendingEvolutionCeremony event (same reasoning as
+  // pendingTeaching/pendingWakeUp) so a queued ceremony can't be silently
+  // dropped by a stale sync mid-flight.
+  if ((s.evolutionAlbum?.length ?? 0) > 0) return true
+  if (s.pendingEvolutionCeremony) return true
   return false
 }
 
@@ -172,7 +181,8 @@ export function validateState(state, profileId = _currentProfileId) {
     repaired = true
   }
   const arrayFields = ['ownedItems', 'ownedRoomItems', 'craftedItems', 'party', 'hatchedEggs',
-                       'seenTeach', 'discoveredScreens', 'clearedMaps', 'battleHistory', 'sessionLog']
+                       'seenTeach', 'discoveredScreens', 'clearedMaps', 'battleHistory', 'sessionLog',
+                       'evolutionAlbum']
   for (const f of arrayFields) {
     if (!Array.isArray(s[f])) { s[f] = Array.isArray(base[f]) ? [...base[f]] : []; repaired = true }
   }
@@ -206,6 +216,10 @@ export function validateState(state, profileId = _currentProfileId) {
   // always a valid value for it — no null case to protect there).
   if (s.pendingTeaching !== null && (typeof s.pendingTeaching !== 'object' || Array.isArray(s.pendingTeaching))) {
     s.pendingTeaching = null
+    repaired = true
+  }
+  if (s.pendingEvolutionCeremony !== null && (typeof s.pendingEvolutionCeremony !== 'object' || Array.isArray(s.pendingEvolutionCeremony))) {
+    s.pendingEvolutionCeremony = null
     repaired = true
   }
 
@@ -423,6 +437,17 @@ export function defaultState() {
     // TICK_CARE dispatch computes elapsed time from account creation rather
     // than a huge bogus gap from epoch.
     eggCare: defaultEggCare(),
+    // SPEC GAME-A §A.2 Evolution × Education (2026-07-09). evolutionAlbum
+    // entries are minted by the RECORD_EVOLUTION reducer (StateContext.jsx)
+    // whenever the combined display stage (see src/lib/eggEvolution.js's
+    // computeDisplayStage — max of the pre-existing XP-driven stage and the
+    // new mastery-driven one, so existing accounts are never demoted)
+    // increases: { stage, date, affinity, masteredCount, snapshot }.
+    // pendingEvolutionCeremony is a one-shot UI event (same convention as
+    // pendingNodeMastery/pendingTeaching/pendingWakeUp) consumed by
+    // EvolutionScene.jsx, superseding the older lightweight stage-up banner.
+    evolutionAlbum: [],
+    pendingEvolutionCeremony: null,
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud

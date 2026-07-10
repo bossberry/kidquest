@@ -563,6 +563,12 @@ function MysteryTab() {
                       {a.display_name ?? 'นักผจญภัยลึกลับ'}
                     </span>
                     <RarityBadge label={a.rarity_label} />
+                    {/* SPEC GAME-B §B.2 — room heart total ("...friends-list card") */}
+                    {(a.heart_total ?? 0) > 0 && (
+                      <span style={{ ...FONT_TH, fontSize: 10, fontWeight: 700, color: '#ff9ec0' }}>
+                        ❤️ {a.heart_total}
+                      </span>
+                    )}
                   </div>
                   <div style={{ ...FONT_TH, fontSize: 10, color: 'var(--px-light)', opacity: 0.55 }}>
                     {ELEMENT_TH[a.element] ?? 'ธาตุลึกลับ'} · Lv.{a.stage ?? 1}

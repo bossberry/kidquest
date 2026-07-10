@@ -7,6 +7,7 @@ import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
 import { themeMeta } from '../lib/roomScene.js'
 import { detectFullSet } from '../lib/outfitSets.js'
 import { playSFX } from '../lib/audio.js'
+import { supabase } from '../lib/supabase.js'
 
 // Normalize an adventurer into a rooms[] array. Post-migration the RPC returns a
 // `rooms` jsonb array; pre-migration it only has the flat `room_layout` — degrade
@@ -112,6 +113,28 @@ export default function RoomVisit({ adventurer: a, onClose }) {
   const stage   = a.stage ?? 1
   const visitRooms = adventurerRooms(a)
   const [roomIdx, setRoomIdx] = useState(0)
+  // SPEC GAME-B §B.2 (2026-07-10) — Room Hearts. `a.target_user_id` only
+  // exists for real (non-bot) rows (see the new RPC column + its privacy
+  // note in supabase/migrations/20260711_room_hearts.sql) — bots have no
+  // stable identity to like_room against, so the button is hidden for them
+  // entirely rather than doing something that can't mean anything real.
+  const [heartTotal, setHeartTotal] = useState(a.heart_total ?? 0)
+  const [liking, setLiking] = useState(false)
+  const [liked, setLiked] = useState(false)
+  const canLike = !a.is_bot && !!a.target_user_id
+  async function handleLikeRoom() {
+    if (!supabase || !canLike || liking || liked) return
+    setLiking(true)
+    const { data, error } = await supabase.rpc('like_room', {
+      p_owner_user_id: a.target_user_id,
+      p_room_id: curRoom.id ?? 'main',
+    })
+    setLiking(false)
+    if (error) return // pre-migration RPC / offline — fail silently, same convention as elsewhere
+    if (typeof data === 'number') setHeartTotal(data)
+    setLiked(true)
+    playSFX('item_equip')
+  }
   const curRoom = visitRooms[Math.min(roomIdx, visitRooms.length - 1)]
   const layout  = curRoom.layout ?? {}
   const roomTheme = curRoom.theme ?? 'default'
@@ -255,12 +278,40 @@ export default function RoomVisit({ adventurer: a, onClose }) {
         </div>
 
         {chips.length > 0 ? (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: canLike || heartTotal > 0 ? 14 : 0 }}>
             {chips.map(item => <CosmeticChip key={item.id} egg={eggIdentity} item={item} />)}
           </div>
         ) : (
-          <div style={{ ...FONT_TH, fontSize: 12, color: 'var(--px-light)', opacity: 0.5, textAlign: 'center' }}>
+          <div style={{ ...FONT_TH, fontSize: 12, color: 'var(--px-light)', opacity: 0.5, textAlign: 'center', marginBottom: canLike || heartTotal > 0 ? 14 : 0 }}>
             ยังไม่ได้แต่งตัว
+          </div>
+        )}
+
+        {/* SPEC GAME-B §B.2 — ❤️ ชอบห้องนี้ (1/visitor/day, real accounts only —
+            bots have no stable identity to like against, see canLike above) */}
+        {(canLike || heartTotal > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {canLike && (
+              <button onClick={handleLikeRoom} disabled={liking || liked}
+                aria-label="ชอบห้องนี้"
+                style={{
+                  flex: 1, minHeight: 46, borderRadius: 12, cursor: liked ? 'default' : 'pointer',
+                  border: liked ? '1px solid rgba(255,158,192,0.5)' : '2px solid var(--px-border)',
+                  background: liked ? 'rgba(255,158,192,0.15)' : 'transparent',
+                  color: liked ? '#ff9ec0' : 'var(--px-light)',
+                  boxShadow: liked ? 'none' : '2px 2px 0 var(--px-black)',
+                  ...FONT_TH, fontSize: 13, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
+                {liked ? '❤️ ชอบแล้ว!' : '🤍 ชอบห้องนี้'}
+              </button>
+            )}
+            {heartTotal > 0 && (
+              <span style={{ ...FONT_TH, fontSize: 13, fontWeight: 700, color: '#ff9ec0', whiteSpace: 'nowrap' }}>
+                ❤️ {heartTotal}
+              </span>
+            )}
           </div>
         )}
       </div>

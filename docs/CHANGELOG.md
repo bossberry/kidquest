@@ -1,5 +1,109 @@
 # Changelog — KidQuest
 
+## 2026-07-10 — SPEC GAME-A §A.2: Evolution × Education (mastery-driven stage + subject affinity)
+
+Second section of SPEC GAME-A. Hard constraint from the user: `eggAlgorithm.js`
+is permanently LOCKED — read first to understand the layer pipeline, never
+modified. Confirmed by reading it that its own `drawEgg()`/`eggProgress()`
+aren't even what the live companion renders — the real pipeline is the
+already-separate, non-locked `src/egg/` folder, which already had a precedent
+(`scaledEggProgress()` in `StateContext.jsx`) for overriding the locked file's
+stage number from outside it. Same technique reused here.
+
+### New: `src/lib/eggEvolution.js`
+- Pure logic (no React), same pattern as `eggCare.js`/`questionBank.js`.
+  `STAGE_THRESHOLDS = [0,2,5,9,14,20,27,35,43]` maps mastered-node count to
+  stage 0-8 (`stageFromMasteredCount`). `computeAffinity(skillMastery)`
+  returns the subject key with the most mastered nodes, or `'balanced'` on a
+  tie (including zero-mastery). `AFFINITY_LINES`: thai→sage, math→architect,
+  eng→explorer, balanced→prism.
+- `computeDisplayStage(xpDrivenStage, skillMastery) = max(xpDrivenStage,
+  masteryStage)` — computed fresh every render, no new persisted "current
+  stage" field. Safe because both inputs are already monotonically
+  non-decreasing in this codebase (XP never decreases; `skillMastery.mastered`
+  is sticky once true) — this is what guarantees never-demote for an account
+  like Chopin's real one (a high XP-driven stage, but completely empty
+  `skillMastery` since his account predates the curriculum system).
+- `src/lib/__tests__/eggEvolution.test.js` (13 tests) including the 3
+  requested scripted-trace scenarios: threshold boundaries (1→2, 42→43),
+  affinity flip on subject-balance change with tie-to-balanced, and the
+  Chopin never-demote case verified at every stage level 0-8.
+
+### `src/lib/state.js` / `src/context/StateContext.jsx`
+- `defaultState()` gains `evolutionAlbum: []` / `pendingEvolutionCeremony:
+  null`. `hasRealProgress()` protects both (a minted album entry is genuine,
+  permanent progress; a pending ceremony is a real one-shot event).
+  `validateState()` repairs a corrupted `evolutionAlbum` (non-array → `[]`)
+  and `pendingEvolutionCeremony` (non-object → `null`) without disturbing
+  legitimate values.
+- `derived.eggProgressData.stage`/`eggStatsData.stage` now report the
+  COMBINED mastery-aware stage (was XP-only before); new
+  `derived.affinity`/`affinityLine`/`masteredCount` exposed via
+  `useAppState()`.
+- New `RECORD_EVOLUTION` reducer (mints an `evolutionAlbum` entry, sets
+  `pendingEvolutionCeremony`) and `CLEAR_PENDING_EVOLUTION_CEREMONY`.
+- `useHomeAmbience.js`'s stage-up detection effect now dispatches
+  `RECORD_EVOLUTION` instead of showing the old lightweight `stageUp` banner
+  (removed from `Home.jsx` too, to avoid double-celebrating the same
+  stage-up now that the full ceremony scene exists).
+- 2 new `resolveSync.test.js` regressions: a minted `evolutionAlbum`
+  entry / pending ceremony is never wiped by a stale blank remote (both
+  directions), and `validateState()` repairs corrupted
+  `evolutionAlbum`/`pendingEvolutionCeremony` fields while preserving valid
+  values and legitimate nulls.
+
+### New: `src/egg/eggAffinityLayer.js`
+- Additive layer in the existing (non-locked) `src/egg/` pipeline. Two
+  passes (`'tint'`/`'motif'`, same convention as `eggRegaliaLayer.js`'s
+  `'behind'`/`'front'`): `tint` is a faint `source-atop` color wash
+  restricted to already-painted body pixels only (drawn right after the
+  body, before regalia-front/eyes/cosmetics — never recolors a face or hat);
+  `motif` is a small pinned pixel badge (leaf/gear/compass-needle/
+  4-color-rainbow for sage/architect/explorer/prism), drawn last.
+- Wired into `EggCanvas.jsx` and `renderEggSprite.js` behind a new optional
+  `affinityLine` prop, default `null` — every existing caller/screen is
+  unaffected.
+- `components/EggCanvas.jsx` (app-level wrapper) auto-injects the local
+  player's affinity from context, but only once `masteredCount > 0` — a
+  zero-mastery account (brand-new, or pre-curriculum like Chopin's) shows no
+  cosmetic change, since a prism badge for zero actual mastery would read as
+  unearned. Callers rendering a friend's/opponent's egg use `EggCanvasCore`
+  directly and never pass `affinityLine`, so this can't leak the local
+  player's affinity onto someone else's companion.
+- The existing per-stage rarity aura (`stageToAura()`) already derives from
+  `stage` alone, which now already reflects the combined mastery-aware
+  value — no separate change needed there.
+
+### New: `src/components/EvolutionScene.jsx`
+- Full-screen stage-up ceremony (dim → flash ≤300ms → reveal → celebrate →
+  done), modeled directly on `LevelUpCutscene.jsx`'s phase structure. Wired
+  as a new global overlay in `App.jsx`, shown whenever
+  `state.pendingEvolutionCeremony` is set. Uses the existing
+  `playSFX('stage_up')`/`playTone('stageUp')` + `speakTh()` for the voiced
+  line ("ไข่โตขึ้นเพราะหนูเก่งขึ้น!") — no new audio primitives.
+
+### New: `src/components/EvolutionAlbum.jsx`
+- Permanent record viewer for every `evolutionAlbum` entry, accessed via
+  `Room.jsx`'s existing occupied-slot detail sheet: a placed
+  `bookshelf`/`bookshelf_wall` now shows a "📔 ดูอัลบั้ม" button alongside the
+  existing remove button. Re-renders each historical entry live from its
+  stored `stage`/`affinityLine` (element/eye/gender are fixed companion
+  attributes, so no pixel snapshot is stored — `snapshot` is always `null`).
+
+### Verification
+72/72 tests pass (13 new `eggEvolution.test.js` + 2 new
+`resolveSync.test.js`), `npm run build` clean at every one of the 3 commit
+stages. A Node-side smoke test additionally exercised
+`drawAffinityLayer` for all 4 lines × both passes × null/undefined with zero
+exceptions, since the canvas-drawing code can't run under `node --test`.
+**Not verified live** — attempted via the local dev server + Chrome
+automation (seeded a guest `kq_state` with real `skillMastery` via
+localStorage), but the app's `isLoggedIn` gate blocks the whole UI behind a
+login screen, and typing the test account's credentials into the login form
+was blocked by the permission classifier. See `CHATBOT_NOTES.md`'s
+2026-07-10 handoff for the judgment calls flagged and what's left to
+spot-check live.
+
 ## 2026-07-09 — SPEC GAME-A §A.1: Egg Care Loop (feeding, energy, happiness)
 
 First section of SPEC GAME-A ("Egg Life System"). Same direct-session

@@ -39,18 +39,27 @@ Score, Room Hearts, and furniture-aware idle wander.
   bot's room" can't mean anything real. Split the spec's 2 heart clauses
   into 2 deliberately different mechanisms:
   1. Real visits: `RoomVisit.jsx`'s new ❤️ button (real accounts only — the
-     RPC's new `target_user_id` column is NULL for bots, client hides the
-     button) calls `like_room`, 1/visitor/day via a DB unique constraint.
+     RPC's new `like_token` column is NULL for bots, client hides the
+     button) calls `like_room(like_token, room_id)`, 1/visitor/day via a DB
+     unique constraint.
   2. Ambient bot credit: `Room.jsx` calls `credit_ambient_room_hearts` once
      per active-room change (self-only, 0-2 random, once/day DB-enforced),
      flavored as "mystery adventurers visited today" on the player's OWN
      room. Cached in `state.roomHearts` (`SET_ROOM_HEARTS`, deliberately
      doesn't stamp `lastSavedAt` — it's a server-data read-cache).
 - New `supabase/migrations/20260711_room_hearts.sql` (⚠️ needs manual apply):
-  `room_hearts` table (RLS owner-only read, writes only via 2 SECURITY
+  `room_hearts` table (RLS owner-only read, writes only via SECURITY
   DEFINER RPCs) + `like_room`/`credit_ambient_room_hearts` + a 3rd extension
-  of `get_mystery_adventurers` (`heart_total`/`target_user_id` — the latter
-  a privacy-adjacent judgment call, flagged in the migration itself).
+  of `get_mystery_adventurers` (`heart_total`/`like_token`). **Revised after
+  review**: the first draft exposed the visited row's raw `user_id` so
+  `like_room` had something to write against — rejected as a child-privacy
+  violation before this migration was ever applied. Replaced with a new
+  `like_tokens` table + `get_or_create_like_token(target_user_id)` (callable
+  only from inside `get_mystery_adventurers`, never by the client), minting
+  an opaque random `uuid` per `(viewer, target, day)` that `like_room`
+  resolves server-side — bound to the exact viewer/day it was minted for, so
+  a stolen/replayed token fails closed. The client never sees or sends a raw
+  user id in either direction.
 - `FriendsScreen.jsx` card list gains a heart-count badge.
 
 ### Egg uses furniture more — `DecoratedRoom.jsx`

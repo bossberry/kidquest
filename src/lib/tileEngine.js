@@ -136,6 +136,12 @@ export function setWorldTheme(themeName) {
   currentTheme = THEMES[themeName] ?? THEMES.grassland
 }
 
+// SPEC GAME-B §B.3 (2026-07-11) — surface-aware footstep SFX reads this to
+// pick grass/sand/snow/cloud (see audio.js's footstep_* SFX + THEMES above).
+export function getGroundStyle() {
+  return currentTheme.GROUND_STYLE
+}
+
 // -- Neighbor lookups (Round 2 polish) — used for water-edge foam, shoreline
 // fringes on adjacent land tiles, and palm-vs-round tree selection. `tileMap`
 // may be undefined/out-of-bounds at any given (r,c); treated as non-water.
@@ -986,7 +992,7 @@ function drawPandoraNPCStanding(ctx, px, py, npcType) {
     return
   }
 
-  const bodyColor = '#40a860'
+  const bodyColor = npcType === 'quest_giver' ? '#a8609c' : '#40a860'
   const bodyCy = groundY - 8
   pandoraFriendlyBody(ctx, cx, bodyCy, 7, 8, bodyColor)
   const headCy = bodyCy - 11
@@ -1003,6 +1009,23 @@ function drawPandoraNPCStanding(ctx, px, py, npcType) {
   ctx.fillStyle = '#1a1a1a'
   ctx.beginPath(); ctx.arc(cx - 2, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(cx + 2, headCy, 1.1, 0, Math.PI * 2); ctx.fill()
+
+  // SPEC GAME-B §B.3 (2026-07-11) — side-quest ❗/❓ marker. WorldScreen.jsx
+  // publishes window.__kq_questMarker per-frame, same established
+  // global-passing convention as window.__kq_companionEgg for the player
+  // sprite (this renderer has no other channel back to React state).
+  const marker = window.__kq_questMarker
+  if (npcType === 'quest_giver' && marker?.char) {
+    ctx.fillStyle = marker.char === '❗' ? '#ffcc00' : '#80c8ff'
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'
+    ctx.lineWidth = 2
+    ctx.font = 'bold 15px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    const my = headCy - 12 + Math.sin(Date.now() * 0.005) * 2
+    ctx.strokeText(marker.char, cx, my)
+    ctx.fillText(marker.char, cx, my)
+  }
 }
 
 // Small local helper shared by drawPandoraNPCStanding — a lighter-weight

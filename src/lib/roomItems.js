@@ -899,7 +899,27 @@ export const ROOM_ITEMS = [
   { id: 'water_bowl',    nameTh: 'อ่างน้ำ',      icon: '💧', craftedOnly: true, tier: 'small', allowedZones: ['floor'], draw: withGround(drawWaterBowl) },
   { id: 'star_lantern',  nameTh: 'โคมดาว',       icon: '⭐', craftedOnly: true, tier: 'small', allowedZones: ['left_wall', 'right_wall'], draw: drawStarLantern },
   { id: 'mushroom_ring', nameTh: 'วงแหวนเห็ด',   icon: '🍄', craftedOnly: true, tier: 'small', allowedZones: ['floor'], draw: withGround(drawMushroomRing) },
+
+  // ─── SECRET-GLADE collectibles (secretOnly: true → never coin-buyable/
+  //     craftable; granted once per world by MARK_SECRET_FOUND after the
+  //     3rd bump into that world's hidden-passage bush, SPEC GAME-B §B.3,
+  //     2026-07-11). Reuses existing draw fns rather than new pixel art —
+  //     a scope judgment call, documented in CHATBOT_NOTES — each is a
+  //     genuinely unique id/name/icon the child has never seen before, just
+  //     sharing an existing renderer. `world` = WORLD_LEVELS index it belongs to. ───
+  { id: 'clover_charm',   nameTh: 'เครื่องรางโคลเวอร์สี่ใบ', icon: '🍀', secretOnly: true, world: 0, tier: 'small', allowedZones: ['left_wall', 'right_wall'], draw: drawFlowerWreath },
+  { id: 'pearl_shell',    nameTh: 'เปลือกหอยมุก',            icon: '🐚', secretOnly: true, world: 1, tier: 'small', allowedZones: ['floor'], draw: withGround(drawWaterBowl) },
+  { id: 'moonlit_acorn',  nameTh: 'ลูกโอ๊กแสงจันทร์',        icon: '🌰', secretOnly: true, world: 2, tier: 'small', allowedZones: ['floor'], draw: withGround(drawMossyLog) },
+  { id: 'frost_crystal',  nameTh: 'คริสตัลน้ำแข็ง',          icon: '❄️', secretOnly: true, world: 3, tier: 'small', allowedZones: ['left_wall', 'right_wall'], draw: drawStarLantern },
+  { id: 'golden_feather', nameTh: 'ขนนกทองคำ',              icon: '🪶', secretOnly: true, world: 4, tier: 'mid',   allowedZones: ['left_wall'], draw: drawTrophy },
 ]
+
+// SPEC GAME-B §B.3 (2026-07-11) — one secret collectible per world, keyed by
+// WORLD_LEVELS index (see worldConfig.js's SECRET_CONFIG for the bush
+// position that unlocks each one).
+export const SECRET_COLLECTIBLE_BY_WORLD = ROOM_ITEMS
+  .filter(i => i.secretOnly)
+  .reduce((acc, i) => { acc[i.world] = i; return acc }, {})
 
 // ── MATERIALS ────────────────────────────────────────────────────────────────
 // Material display meta (icon-first — a pre-reader recognises the emoji). Keys

@@ -1,4 +1,6 @@
 import { T, MAP_ROWS, MAP_COLS, PANDORA_TILE } from './tileEngine.js'
+import { MATERIALS } from './roomItems.js'
+import { ENEMY_DATA } from '../config/enemyConfig.js'
 
 // ── Pandora-style chest (2026-07-02, Stage 5/6) ───────────────────────────────
 // The original flat-renderer drawChest() was removed in Stage 6 along with
@@ -157,6 +159,69 @@ export function drawPandoraCollectible(ctx, cx, groundY, node, frame, locked) {
   }
 }
 
+// ── Secret-glade hidden bush (2026-07-11, SPEC GAME-B §B.3) ──────────────────
+// A standing bush-like clump (not a real tile — WorldScreen tracks its
+// position/hit-count in a ref and treats it as a manual collision target so
+// tileMaps.js/canMove stay untouched). Wiggles subtly on an ~8s cycle
+// (frame % 480, since the RAF loop runs ~60fps) so the hint is visible but
+// genuinely subtle the rest of the time, per the spec's acceptance criteria.
+export function drawPandoraSecretBush(ctx, cx, groundY, frame) {
+  const cycle = frame % 480
+  const wiggling = cycle < 24
+  const wiggle = wiggling ? Math.sin(cycle * 1.3) * 3 : 0
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'
+  ctx.beginPath()
+  ctx.ellipse(cx, groundY, 12, 4, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  const bx = cx + wiggle
+  const by = groundY - 10
+  ctx.fillStyle = '#2f6a28'
+  for (const [dx, dy, r] of [[-6, 2, 8], [6, 2, 8], [0, -4, 9]]) {
+    ctx.beginPath()
+    ctx.arc(bx + dx, by + dy, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.14)'
+  ctx.beginPath()
+  ctx.arc(bx - 2, by - 6, 4, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// ── Side-quest "find" sparkle (2026-07-11, SPEC GAME-B §B.3) ─────────────────
+export function drawSideQuestSparkle(ctx, cx, groundY, frame) {
+  const bob = Math.sin(frame * 0.08) * 3
+  const cy = groundY - 10 + bob
+  const pulse = (Math.sin(frame * 0.15) + 1) / 2
+  ctx.fillStyle = `rgba(255,230,120,${0.5 + pulse * 0.4})`
+  ctx.beginPath()
+  ctx.arc(cx, cy, 10 + pulse * 3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.font = '16px serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('✨', cx, cy)
+}
+
+// ── Run dust puff (2026-07-11, SPEC GAME-B §B.3) ──────────────────────────────
+// Drawn behind the player's feet every few frames while running — deliberately
+// NOT routed through particles.js's mkSparks/tickEffects (that system owns its
+// own effects array + separate canvas/rAF loop, built for burst-style battle
+// FX; this is a per-frame procedural draw inline in the same pass as the
+// player sprite, cheaper and simpler for a continuous "while moving" effect).
+export function drawDustPuff(ctx, cx, groundY, frame) {
+  for (let i = 0; i < 2; i++) {
+    const t = ((frame + i * 6) % 18) / 18
+    const spread = (i === 0 ? -1 : 1) * t * 7
+    const alpha = (1 - t) * 0.35
+    ctx.fillStyle = `rgba(210,200,180,${alpha})`
+    ctx.beginPath()
+    ctx.ellipse(cx + spread, groundY - t * 3, 4 - t * 2, 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
 export const STAGE_COLORS = ['#78c878','#58b878','#38a8c8','#5888e8','#8858e8','#d840d0','#e86040','#f0a830','#ffd040']
 
 // ── Player glow rendering ────────────────────────────────────────────────────
@@ -255,6 +320,40 @@ export const SIGN_LINES = [
   '← ทุ่งดอกไม้',
   '↑ ยังไปไม่ได้...',
 ]
+
+// ── Side-quest NPC dialogue (2026-07-11, SPEC GAME-B §B.3) ───────────────────
+function matLabel(id) {
+  const m = MATERIALS.find(x => x.id === id)
+  return m ? `${m.icon}${m.nameTh}` : id
+}
+
+export function questOfferLines(quest) {
+  const intro = 'ภารกิจใหม่มาแล้ว!'
+  if (quest.template === 'fetch') {
+    return [intro, `ช่วยหา ${matLabel(quest.material)} × ${quest.amount} มาให้หน่อยนะ!`]
+  }
+  if (quest.template === 'defeat') {
+    const name = ENEMY_DATA[quest.enemyType]?.nameTH ?? quest.enemyType
+    return [intro, `ปราบ ${name} ให้ได้ ${quest.count} ตัวในแมพนี้นะ!`]
+  }
+  return [intro, 'มีจุดประกาย✨ซ่อนอยู่แถวนี้... ลองเดินหาดูสิ!']
+}
+
+export function questProgressLines(quest, materials) {
+  if (quest.template === 'fetch') {
+    const have = materials?.[quest.material] ?? 0
+    return [`เอา ${matLabel(quest.material)} มาให้ครบ ${quest.amount} นะ (ตอนนี้มี ${have})`]
+  }
+  if (quest.template === 'defeat') {
+    const name = ENEMY_DATA[quest.enemyType]?.nameTH ?? quest.enemyType
+    return [`ปราบ ${name} ไปแล้ว ${quest.progress ?? 0}/${quest.count} ตัว สู้ๆนะ!`]
+  }
+  return ['ยังหาจุดประกาย✨ไม่เจอเลย... ลองเดินสำรวจดูนะ!']
+}
+
+export function questCompleteLines(quest) {
+  return ['เยี่ยมมาก! ขอบใจนะ 🎉', `รางวัล: 💰${quest.rewardCoins ?? 0} + 🍎1 + ${matLabel(quest.rewardMaterial)}×1`]
+}
 
 export function findSpecials(tileMap) {
   const npcs = [], signs = []

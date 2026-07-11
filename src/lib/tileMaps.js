@@ -1,6 +1,6 @@
 // Tile maps: legacy 9-screen Green Meadow + dynamic level generators
 import { T } from './tileEngine.js'
-import { WORLD_LEVELS } from '../config/worldConfig.js'
+import { WORLD_LEVELS, QUEST_GIVER } from '../config/worldConfig.js'
 
 const G = T.GRASS
 const TL = T.TALL
@@ -239,6 +239,14 @@ export function generateScreenMap(screenSlot, worldLevel) {
   // Flower accents
   for (let c = 2; c < 18; c += 4) map[2][c] = T.FLOWER
 
+  // SPEC GAME-B §B.3 (2026-07-11) — side-quest NPC. The only pre-existing NPC
+  // (the owl) lives in the legacy BM_MAP, which is unreachable from the live
+  // dynamic NW/NE/SW/SE navigation (WorldScreen.jsx always starts screenId at
+  // 'NW' from VALID_DYNAMIC) — a judgment call, documented in CHATBOT_NOTES:
+  // rather than "extend" a genuinely dead NPC, this places one reachable
+  // quest-giver on NW at a spot clear of the path/tall-grass/exit tiles above.
+  if (screenSlot === 'NW') map[QUEST_GIVER.row][QUEST_GIVER.col] = NPC(QUEST_GIVER.npcType)
+
   // Exit tiles
   const slot = screenSlot
   if (slot === 'NW' || slot === 'SW' || slot === 'SE') {
@@ -263,6 +271,22 @@ export function generateScreenMap(screenSlot, worldLevel) {
 
   return map
 }
+
+// SPEC GAME-B §B.3 (2026-07-11) — hidden-passage secret glade. A small,
+// fully tree-enclosed 1-screen reward room: a single chest at the center
+// (spawned by the caller, same generic chestsRef mechanism as every other
+// screen), one EXIT_S tile back to the NW screen the bush lives on.
+export function generateGladeMap() {
+  const map = Array.from({ length: 15 }, () => Array(20).fill(T.GRASS))
+  for (let r = 0; r < 15; r++)
+    for (let c = 0; c < 20; c++)
+      if (r === 0 || r === 14 || c === 0 || c === 19) map[r][c] = T.TREE
+  for (let c = 2; c < 18; c += 3) map[2][c] = T.FLOWER
+  map[14][9] = T.EXIT_S; map[14][10] = T.EXIT_S
+  return map
+}
+export const GLADE_START = { col: 10, row: 6 }
+export const GLADE_CHEST = { col: 10, row: 8 }
 
 export function generateBossMap(worldLevel) {
   const map = Array.from({ length: 15 }, () => Array(20).fill(T.GRASS))

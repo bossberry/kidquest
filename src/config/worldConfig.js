@@ -89,6 +89,19 @@ export const WORLD_LEVELS = [
   },
 ]
 
+// SPEC GAME-B §B.3 (2026-07-11) — one hidden-passage secret per world. The
+// bush lives at the same (col,row) on the NW screen for every world level
+// (generateScreenMap's NW layout — border/path/tall-grass patches — doesn't
+// vary by worldLevel, only its color theme does, so one shared safe spot
+// works everywhere; verified clear of TALL_PATCHES/path/exit tiles in
+// tileMaps.js). `itemId` matches roomItems.js's SECRET_COLLECTIBLE_BY_WORLD.
+export const SECRET_CONFIG = WORLD_LEVELS.map((_, i) => ({ col: 15, row: 11, world: i }))
+
+// SPEC GAME-B §B.3 (2026-07-11) — side-quest NPC. One reachable quest-giver
+// per the current judgment call in tileMaps.js (the pre-existing owl NPC
+// lives in the unreachable legacy BM_MAP), placed on every world's NW screen.
+export const QUEST_GIVER = { npcType: 'quest_giver', col: 14, row: 4 }
+
 // Per-theme identifying emoji — icon-first UI (a pre-reader must recognise the
 // current world by icon alone). Used by the HUD world badge + unlock banner.
 export const WORLD_THEME_ICON = {

@@ -629,6 +629,17 @@ const SFX = {
   // step; much quieter/shorter than item_collect's celebratory two-note arp.
   collect_tick: ctx => _t(ctx, 1800, 0.045, 45, 'sine'),
   footstep:     ctx => _noise(ctx, 0.016, 16),
+  // SPEC GAME-B §B.3 (2026-07-11) — 4 tiny surface-specific footstep variants,
+  // selected by tileEngine.js's getGroundStyle() (grass/sand/snow/cloud — see
+  // that file's THEMES table). The spec's literal "grass/path/stone/snow" list
+  // doesn't map 1:1 onto the 4 real GROUND_STYLE values, so this is a judgment
+  // call (documented in CHATBOT_NOTES): sand→footstep_path (soft shuffly
+  // step, closest to a sandy trail sound) and cloud→footstep_stone (a firmer,
+  // more resonant footfall for the one non-soft/non-grass/non-snow ground).
+  footstep_grass: ctx => { _noise(ctx, 0.020, 22); _t(ctx, 180, 0.012, 30, 'sine') },
+  footstep_path:  ctx => { _noise(ctx, 0.024, 14); _t(ctx, 340, 0.010, 18, 'triangle') },
+  footstep_stone: ctx => { _noise(ctx, 0.014, 12); _t(ctx, 520, 0.018, 24, 'square') },
+  footstep_snow:  ctx => _noise(ctx, 0.030, 34),
   tall_grass:   ctx => _noise(ctx, 0.026, 60),
   npc_talk:     ctx => _t(ctx, 600, 0.045, 65, 'sine'),
   screen_enter: ctx => _sweep(ctx, 150, 400, 0.055, 'sine', 280),

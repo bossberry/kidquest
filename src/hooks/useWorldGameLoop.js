@@ -4,7 +4,10 @@ import {
   PANDORA_TILE, renderMapPandora, renderPlayerPandora,
 } from '../lib/tileEngine.js'
 import { drawEnemyPandora } from '../lib/drawEnemy.js'
-import { drawPandoraChest, drawPandoraPlayerGlow, drawMazePortal, drawPandoraCollectible } from '../lib/worldDrawHelpers.js'
+import {
+  drawPandoraChest, drawPandoraPlayerGlow, drawMazePortal, drawPandoraCollectible,
+  drawPandoraSecretBush, drawSideQuestSparkle, drawDustPuff,
+} from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
 
 const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
@@ -23,6 +26,7 @@ export function useWorldGameLoop({
   HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
   fogOverlayRef, torchRingRef, mazeExitPosRef,
   collectiblesRef, materialsLeftRef,
+  secretBushRef,
 }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -319,6 +323,13 @@ export function useWorldGameLoop({
           // DOM overlay instead, positioned below) drawn UNDER the player
           // sprite, same layering as the original flat renderer.
           if (!inMaze) drawPandoraPlayerGlow(ctx, playerGroundX, playerGroundY - 24, g.frame)
+          // SPEC GAME-B §B.3 (2026-07-11) — run dust puffs, only while
+          // actually moving at run speed (1.6× threshold; the 4× shoes
+          // boost also clears this bar, which reads fine — a bigger boost
+          // kicking up more dust isn't a bug).
+          if (g.moving && (window.__kq_moveSpeedMult ?? 1) >= 1.6) {
+            drawDustPuff(ctx, playerGroundX, playerGroundY, g.frame)
+          }
           if (saiyanOn) {
             ctx.save()
             // Fast rainbow cycle: full 360° hue rotation every ~60 frames (≈1s @60fps)
@@ -375,6 +386,24 @@ export function useWorldGameLoop({
           const ny = node.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
           entities.push({ y: ny, draw: () => drawPandoraCollectible(ctx, nx, ny, node, g.frame, capped) })
         }
+      }
+
+      // SPEC GAME-B §B.3 (2026-07-11) — secret hidden-passage bush (not a
+      // real tile; WorldScreen tracks it in a ref and treats it as a manual
+      // collision target so tileMaps.js/canMove stay untouched).
+      if (secretBushRef?.current) {
+        const b = secretBushRef.current
+        const bx = b.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        const by = b.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        entities.push({ y: by, draw: () => drawPandoraSecretBush(ctx, bx, by, g.frame) })
+      }
+
+      // Active "find" side-quest sparkle — only on the screen it was spawned on.
+      const sq = stateRef.current.sideQuest
+      if (sq?.template === 'find' && !sq.found && sq.screenId === screenIdRef?.current) {
+        const sx = sq.col * PANDORA_TILE + PANDORA_TILE / 2 - camX
+        const sy = sq.row * PANDORA_TILE + PANDORA_TILE * 0.8 - camY
+        entities.push({ y: sy, draw: () => drawSideQuestSparkle(ctx, sx, sy, g.frame) })
       }
 
       // World-map entry portal (shown on NW/NE/SW/SE screens) + maze exit

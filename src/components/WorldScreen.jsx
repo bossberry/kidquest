@@ -1,15 +1,18 @@
 // WorldScreen.jsx — world map, node progression, and zone unlock for Green Meadow (and future worlds).
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { useAppState, ACTIONS } from '../context/StateContext.jsx'
-import { WORLD_LEVELS, DYNAMIC_SCREENS, WORLD_THEME_ICON } from '../config/worldConfig.js'
+import { WORLD_LEVELS, DYNAMIC_SCREENS, WORLD_THEME_ICON, SECRET_CONFIG } from '../config/worldConfig.js'
 import { playTone, playBGM, stopBGM, playSFX } from '../lib/audio.js'
 import { BOSS_XP_THRESHOLD, todayStr } from '../config/gameConfig.js'
 import {
   T, canMove, getExitAt,
-  EXIT_DIR_NAME, getEntryPosition, setWorldTheme,
+  EXIT_DIR_NAME, getEntryPosition, setWorldTheme, getGroundStyle,
 } from '../lib/tileEngine.js'
 import { mkSparks, tickEffects } from '../lib/particles.js'
-import { generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies, spawnMazeContents } from '../lib/tileMaps.js'
+import {
+  generateScreenMap, generateBossMap, generateMazeMap, getScreenEnemies, spawnMazeContents,
+  generateGladeMap, GLADE_START, GLADE_CHEST,
+} from '../lib/tileMaps.js'
 import { useWorldGameLoop } from '../hooks/useWorldGameLoop.js'
 import { getBattleSubject } from '../lib/battleSubject.js'
 import useBattleTrigger from '../hooks/useBattleTrigger.js'
@@ -17,12 +20,23 @@ import TreasureSlot from './TreasureSlot.jsx'
 import PixelItemIcon from './PixelItemIcon.jsx'
 import { drawItem } from '../lib/itemArt.js'
 import WorldHUD, { HUD_CONTENT_H, HOME_ITEM_KEYS, BATTLE_ITEM_KEYS } from './world/WorldHUD.jsx'
+import WorldMiniMap from './world/WorldMiniMap.jsx'
 import MissionPanel from './world/MissionPanel.jsx'
 import {
   spawnChests, findSpecials, spawnCollectibles, COLLECTIBLE_NODES,
   getOwlLines, SIGN_LINES, STAGE_COLORS,
+  questOfferLines, questProgressLines, questCompleteLines,
 } from '../lib/worldDrawHelpers.js'
+import { pickQuestTemplate, buildFetchQuest, buildDefeatQuest, buildFindQuest, isQuestComplete } from '../lib/sideQuests.js'
+import { SECRET_COLLECTIBLE_BY_WORLD } from '../lib/roomItems.js'
+import { spawnAmbientLife, tickAmbientLife, drawAmbientLife } from '../lib/ambientLife.js'
 import { useCompanion } from '../context/CompanionContext.jsx'
+
+// SPEC GAME-B §B.3 (2026-07-11) — surface footstep SFX. GROUND_STYLE only has
+// 4 real values (grass/sand/snow/cloud, tileEngine.js THEMES) vs the spec's
+// literal grass/path/stone/snow — see audio.js's footstep_* comment for the
+// documented sand→path / cloud→stone judgment call.
+const FOOTSTEP_BY_GROUND = { grass: 'footstep_grass', sand: 'footstep_path', snow: 'footstep_snow', cloud: 'footstep_stone' }
 
 const TILE = 16 // px per tile (matches tileEngine TILE constant)
 
@@ -179,6 +193,17 @@ export default function WorldScreen({ navigate }) {
   const { triggerBattle, triggerBattleRef, battleDispatchedRef, battlePendingRef, enterBossBattle } =
     useBattleTrigger({ stateRef, screenIdRef, gameRef, setEncounterFlash, setBossConfirm, BOSS_TILE })
 
+  // ── SPEC GAME-B §B.3 (2026-07-11) — Run, secrets, side-quests, ambient life ──
+  const twoFingerRef      = useRef(false)   // hold-second-finger run trigger
+  const dpadHoldRef       = useRef(false)   // double-tap-hold-D-pad run trigger
+  const lastDirTapRef     = useRef({})
+  const activePointersRef = useRef(new Set())
+  const secretBushRef     = useRef(null)    // { col, row, hits } | null — not a real tile
+  const [secretRewardBanner, setSecretRewardBanner] = useState(null)
+  const ambientCanvasRef  = useRef(null)
+  const ambientListRef    = useRef([])
+  const ambientRafRef     = useRef(null)
+
   screenIdRef.current   = screenId
   transRef.current      = transitioning
   dialogueRef.current   = dialogue
@@ -201,6 +226,20 @@ export default function WorldScreen({ navigate }) {
     window.__kq_playerOffscreen = null  // stop tileEngine falling back to old baked sprite
     return () => { window.__kq_companionEgg = null }
   }, [companionResolved.element, companionResolved.eye, companionResolved.gender, eggStatsData?.stage, state.equipped]) // eslint-disable-line
+
+  // SPEC GAME-B §B.3 (2026-07-11) — side-quest ❗/❓ marker above the quest
+  // giver, published via the same window-global convention as
+  // window.__kq_companionEgg above (tileEngine.js's renderer has no other
+  // channel back to React state).
+  useEffect(() => {
+    const q = state.sideQuest
+    let char = null
+    if (!q) char = '❗'
+    else if (isQuestComplete(q, state.materials)) char = '❗'
+    else char = '❓'
+    window.__kq_questMarker = { char }
+    return () => { window.__kq_questMarker = null }
+  }, [state.sideQuest, state.materials])
 
   const clearedMaps = state.clearedMaps ?? []
   const allMapsCleared = ['NW', 'NE', 'SW', 'SE'].every(s => clearedMaps.includes(s))
@@ -225,7 +264,10 @@ export default function WorldScreen({ navigate }) {
     const wLevel = stateRef.current.worldLevel ?? 0
     let tileMap, startPos
 
-    if (id === 'BOSS') {
+    if (id === 'GLADE') {
+      tileMap = generateGladeMap()
+      startPos = forcedStart ?? GLADE_START
+    } else if (id === 'BOSS') {
       tileMap = generateBossMap(wLevel)
       startPos = forcedStart ?? (fromExitType !== undefined
         ? getEntryPosition(tileMap, fromExitType)
@@ -283,6 +325,27 @@ export default function WorldScreen({ navigate }) {
   useEffect(() => {
     const wLevel = stateRef.current.worldLevel ?? 0
     const worldDef = WORLD_LEVELS[wLevel] ?? WORLD_LEVELS[0]
+
+    // SPEC GAME-B §B.3 (2026-07-11) — persistent per-world fog memory (unlike
+    // discoveredScreens, MARK_SCREEN_EXPLORED never resets on world-level
+    // change) + hidden-passage bush setup/teardown for this screen.
+    if (VALID_DYNAMIC.has(screenId)) {
+      dispatch({ type: ACTIONS.MARK_SCREEN_EXPLORED, payload: { worldLevel: wLevel, screenSlot: screenId } })
+    }
+    if (screenId === 'NW' && !stateRef.current.secretsFound?.[String(wLevel)]) {
+      const cfg = SECRET_CONFIG[wLevel] ?? SECRET_CONFIG[0]
+      secretBushRef.current = { col: cfg.col, row: cfg.row, hits: 0 }
+    } else {
+      secretBushRef.current = null
+    }
+
+    if (screenId === 'GLADE') {
+      mazePortalPosRef.current = null
+      collectiblesRef.current = []
+      enemiesRef.current = []
+      chestsRef.current = [{ col: GLADE_CHEST.col, row: GLADE_CHEST.row, id: 'glade_chest', opened: false }]
+      return
+    }
 
     if (screenId === 'BOSS') {
       mazePortalPosRef.current = null
@@ -353,6 +416,14 @@ export default function WorldScreen({ navigate }) {
           }
           return e
         })
+        // SPEC GAME-B §B.3 (2026-07-11) — "defeat" side-quest progress. Reuses
+        // this same battle-outcome signal (screenId + enemyType) rather than
+        // touching the core battle-resolution flow — same reasoning as the
+        // death-animation re-application right above.
+        const sq = stateRef.current.sideQuest
+        if (applied && sq?.template === 'defeat' && sq.screenId === lb.screenId && sq.enemyType === lb.enemyType) {
+          dispatch({ type: ACTIONS.UPDATE_SIDE_QUEST, payload: { progress: Math.min(sq.count, (sq.progress ?? 0) + 1) } })
+        }
       }
     } catch {}
     // Roaming boss: after defeating boss, it respawns as a rare encounter on normal maps
@@ -458,10 +529,12 @@ export default function WorldScreen({ navigate }) {
       dispatch({ type: ACTIONS.MAP_CLEARED, payload: sid })
     }
 
-    // Dynamic screen routing
+    // Dynamic screen routing. SPEC GAME-B §B.3 (2026-07-11) — the secret
+    // glade isn't part of DYNAMIC_SCREENS' connects graph (it's only ever
+    // entered from NW's hidden bush, never from the normal exit-tile
+    // network), so its one EXIT_S tile is hardcoded straight back to NW.
     const connects = { ...(DYNAMIC_SCREENS[sid]?.connects ?? {}) }
-
-    const targetId = connects[dirName]
+    const targetId = sid === 'GLADE' ? 'NW' : connects[dirName]
     if (!targetId) return
 
     // Block BOSS entry if boss already defeated or unlock conditions not met
@@ -478,7 +551,7 @@ export default function WorldScreen({ navigate }) {
     setTransOverlay(1)
 
     transTimer.current = setTimeout(() => {
-      initScreen(targetId, exitType, undefined)
+      initScreen(targetId, sid === 'GLADE' ? undefined : exitType, undefined)
       setScreenId(targetId)
       dispatch({ type: ACTIONS.MOVE_SCREEN, payload: targetId })
       dispatch({ type: ACTIONS.DISCOVER_SCREEN, payload: targetId })
@@ -534,7 +607,12 @@ export default function WorldScreen({ navigate }) {
 
     g.dir = dir
     const shoesActive = (stateRef.current.activeBoosts?.shoes?.endsAt ?? 0) > Date.now()
-    window.__kq_moveSpeedMult = shoesActive ? 4.0 : 1.0
+    // SPEC GAME-B §B.3 (2026-07-11) — Run: hold-second-finger or double-tap-
+    // hold-D-pad → 1.6×. Composes with (doesn't override) the pre-existing
+    // shoes 4× boost via max(), per the shoes-boost precedent noted in the
+    // useWorldGameLoop.js/tryMove research.
+    const runActive = twoFingerRef.current || dpadHoldRef.current
+    window.__kq_moveSpeedMult = Math.max(shoesActive ? 4.0 : 1.0, runActive ? 1.6 : 1.0)
     const newCol = g.col + dCol
     const newRow = g.row + dRow
 
@@ -574,7 +652,21 @@ export default function WorldScreen({ navigate }) {
     if (hitChest) {
       chestsRef.current = chestsRef.current.map(c => c.id === hitChest.id ? { ...c, opened: true } : c)
       playTone('cardOpen')
-      setSlotMachineOpen(true)
+      // SPEC GAME-B §B.3 (2026-07-11) — the secret glade's chest grants a
+      // deterministic once-only unique collectible, not the normal random
+      // slot-machine reward (TreasureSlot only knows home/battle items).
+      if (screenIdRef.current === 'GLADE') {
+        const wLevel = stateRef.current.worldLevel ?? 0
+        const item = SECRET_COLLECTIBLE_BY_WORLD[wLevel]
+        if (item) {
+          dispatch({ type: ACTIONS.MARK_SECRET_FOUND, payload: { worldLevel: wLevel, itemId: item.id } })
+          playSFX('stage_up')
+          setSecretRewardBanner(item)
+          setTimeout(() => setSecretRewardBanner(null), 4000)
+        }
+      } else {
+        setSlotMachineOpen(true)
+      }
       return
     }
 
@@ -582,6 +674,30 @@ export default function WorldScreen({ navigate }) {
     const portalPos = mazePortalPosRef.current
     if (portalPos && portalPos.col === newCol && portalPos.row === newRow) {
       setMazeConfirm(true)
+      return
+    }
+
+    // SPEC GAME-B §B.3 (2026-07-11) — hidden-passage secret bush. Not a real
+    // tile (tileMaps.js/canMove untouched) — treated as a manual collision
+    // target, same pattern as the chest/portal checks above. 3rd bump opens
+    // the glade.
+    const bush = secretBushRef.current
+    if (bush && bush.col === newCol && bush.row === newRow) {
+      bush.hits = (bush.hits || 0) + 1
+      playSFX('tall_grass')
+      showMaterialToast(bush.hits >= 3 ? '✨ พบทางลับ!' : `🌿 ${bush.hits}/3`)
+      if (bush.hits >= 3) {
+        playSFX('screen_enter')
+        setTransitioning(true)
+        setTransOverlay(1)
+        transTimer.current = setTimeout(() => {
+          initScreen('GLADE', undefined, undefined)
+          setScreenId('GLADE')
+          dispatch({ type: ACTIONS.MOVE_SCREEN, payload: 'GLADE' })
+          setTransOverlay(0)
+          transTimer.current = setTimeout(() => setTransitioning(false), 310)
+        }, 300)
+      }
       return
     }
 
@@ -595,8 +711,17 @@ export default function WorldScreen({ navigate }) {
     g.moveStartTime = performance.now()
     g.walkFrame = (g.walkFrame + 1) % 2
 
-    playSFX('footstep')
+    playSFX(FOOTSTEP_BY_GROUND[getGroundStyle()] || 'footstep')
     tryCollectNode(newCol, newRow)
+
+    // SPEC GAME-B §B.3 (2026-07-11) — "find" side-quest sparkle.
+    const sq = stateRef.current.sideQuest
+    if (sq?.template === 'find' && !sq.found && sq.screenId === screenIdRef.current &&
+        sq.col === newCol && sq.row === newRow) {
+      dispatch({ type: ACTIONS.UPDATE_SIDE_QUEST, payload: { found: true } })
+      playSFX('item_collect')
+      showMaterialToast('✨ เจอแล้ว! กลับไปหา NPC นะ')
+    }
 
     const exitType = getExitAt(tileMap, newCol, newRow)
     if (exitType !== null) {
@@ -615,7 +740,7 @@ export default function WorldScreen({ navigate }) {
     }
 
     checkProximity(newCol, newRow)
-  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle, tryCollectNode])
+  }, [dispatch, handleExit, checkProximity, navigate, triggerBattle, tryCollectNode, initScreen, showMaterialToast])
 
   const confirmEnterMaze = () => {
     setMazeConfirm(false)
@@ -641,7 +766,48 @@ export default function WorldScreen({ navigate }) {
 
   // ── Dialogue ─────────────────────────────────────────────────────────────────
 
-  const openNPC  = () => { setDialogue({ lines: getOwlLines(state.name || 'เพื่อน'),  index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
+  // SPEC GAME-B §B.3 (2026-07-11) — quest-giver dialogue: offer a new quest,
+  // report progress, or turn in a completed one. Owl NPC (legacy BM_MAP,
+  // currently unreachable — see tileMaps.js's judgment-call comment) keeps
+  // its original lines untouched.
+  const openQuestGiver = () => {
+    const wLevel = stateRef.current.worldLevel ?? 0
+    const q = stateRef.current.sideQuest
+    if (!q) {
+      const template = pickQuestTemplate()
+      let quest
+      if (template === 'fetch') quest = buildFetchQuest(wLevel, screenIdRef.current)
+      else if (template === 'defeat') quest = buildDefeatQuest(wLevel, screenIdRef.current)
+      else {
+        const tm = tileMapRef.current
+        const candidates = []
+        if (tm) {
+          for (let r = 2; r < tm.length - 2; r++) {
+            for (let c = 2; c < (tm[r]?.length ?? 0) - 2; c++) {
+              const raw = tm[r][c]
+              const t = typeof raw === 'object' ? raw.type : raw
+              if (t === T.GRASS || t === T.FLOWER) candidates.push({ col: c, row: r })
+            }
+          }
+        }
+        const pos = candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : { col: 10, row: 10 }
+        quest = buildFindQuest(wLevel, screenIdRef.current, pos)
+      }
+      dispatch({ type: ACTIONS.START_SIDE_QUEST, payload: quest })
+      setDialogue({ lines: questOfferLines(quest), index: 0 })
+    } else if (isQuestComplete(q, stateRef.current.materials)) {
+      setDialogue({ lines: questCompleteLines(q), index: 0 })
+      dispatch({ type: ACTIONS.COMPLETE_SIDE_QUEST })
+      playSFX('item_collect')
+    } else {
+      setDialogue({ lines: questProgressLines(q, stateRef.current.materials), index: 0 })
+    }
+    playSFX('npc_talk'); playTone('cardOpen')
+  }
+  const openNPC  = () => {
+    if (nearNPC?.data?.npc_type === 'quest_giver') { openQuestGiver(); return }
+    setDialogue({ lines: getOwlLines(state.name || 'เพื่อน'),  index: 0 }); playSFX('npc_talk'); playTone('cardOpen')
+  }
   const openSign = () => { setDialogue({ lines: SIGN_LINES, index: 0 }); playSFX('npc_talk'); playTone('cardOpen') }
   const advance  = () => {
     if (!dialogue) return
@@ -657,7 +823,37 @@ export default function WorldScreen({ navigate }) {
     eggColorRef, HUD_CONTENT_H, screenIdRef, mazePortalPosRef,
     fogOverlayRef, torchRingRef, mazeExitPosRef,
     collectiblesRef, materialsLeftRef,
+    secretBushRef,
   })
+
+  // ── SPEC GAME-B §B.3 (2026-07-11) — ambient life (butterflies/seagulls/
+  // snow gusts). Own overlay canvas + own rAF loop, same pattern as the
+  // world-unlock confetti below — never touches the main map render loop.
+  // lowFx reads window.__kq_lowFx: this codebase's lowFx precedent
+  // (eggAuraLayer.js) is a React-prop chain, but WorldScreen's render loop is
+  // ref/RAF-driven with no such prop today, so — like __kq_moveSpeedMult/
+  // __kq_companionEgg right above — a window global is the consistent choice
+  // here (documented judgment call, CHATBOT_NOTES).
+  useEffect(() => {
+    const cv = ambientCanvasRef.current
+    if (!cv) return
+    cv.width = viewSize.w
+    cv.height = viewSize.h
+    const ctx = cv.getContext('2d')
+    const theme = WORLD_LEVELS[state.worldLevel ?? 0]?.theme ?? 'grassland'
+    ambientListRef.current = spawnAmbientLife(theme, cv.width, cv.height, !!window.__kq_lowFx)
+    let last = performance.now()
+    const step = (now) => {
+      const dt = (now - last) / 16.67
+      last = now
+      ctx.clearRect(0, 0, cv.width, cv.height)
+      ambientListRef.current = tickAmbientLife(ambientListRef.current, dt, cv.width, cv.height)
+      drawAmbientLife(ctx, ambientListRef.current)
+      ambientRafRef.current = requestAnimationFrame(step)
+    }
+    ambientRafRef.current = requestAnimationFrame(step)
+    return () => { if (ambientRafRef.current) cancelAnimationFrame(ambientRafRef.current) }
+  }, [state.worldLevel, viewSize.w, viewSize.h])
 
   // ── World-unlock confetti ────────────────────────────────────────────────────
   // Reuses the EXISTING battle particle system (mkSparks + tickEffects) on a
@@ -746,8 +942,28 @@ export default function WorldScreen({ navigate }) {
     playSFX('stage_up')
   }
 
+  // SPEC GAME-B §B.3 (2026-07-11) — Run trigger 1/2: hold a second finger
+  // anywhere on screen while moving. Tracked at the root-container level (not
+  // per-D-pad-button) so it works regardless of which direction is pressed.
+  // pointerleave/cancel don't bubble from children (non-bubbling per spec),
+  // so attaching here only fires for the pointer actually leaving the root.
+  const onRootPointerDown = (e) => {
+    activePointersRef.current.add(e.pointerId)
+    twoFingerRef.current = activePointersRef.current.size >= 2
+  }
+  const onRootPointerUp = (e) => {
+    activePointersRef.current.delete(e.pointerId)
+    twoFingerRef.current = activePointersRef.current.size >= 2
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#0a1a0a' }}>
+    <div
+      style={{ position: 'fixed', inset: 0, background: '#0a1a0a' }}
+      onPointerDown={onRootPointerDown}
+      onPointerUp={onRootPointerUp}
+      onPointerCancel={onRootPointerUp}
+      onPointerLeave={onRootPointerUp}
+    >
 
       {/* Canvas — fills full viewport */}
       <canvas
@@ -813,6 +1029,10 @@ export default function WorldScreen({ navigate }) {
         background: 'rgba(255,220,100,0.04)',
       }} />
 
+      {/* SPEC GAME-B §B.3 (2026-07-11) — ambient life (butterflies/seagulls/
+          snow gusts). Own canvas, own rAF loop (see the useEffect above). */}
+      <canvas ref={ambientCanvasRef} style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }} />
+
       {/* Fade-to-black map transition (Round 2 Fix 1, 2026-07-02) — smooth
           cinematic 300ms fade out / 300ms fade back, tuned from the
           pre-existing 160ms near-black fade (see handleExit/confirmEnterMaze
@@ -839,6 +1059,20 @@ export default function WorldScreen({ navigate }) {
         onGoHome={goHome}
         onOpenItemBag={() => setItemBagOpen(true)}
         bossMapActive={bossMapActive}
+      />
+
+      {/* SPEC GAME-B §B.3 (2026-07-11) — dedicated tap-to-toggle minimap
+          (persistent exploredScreens fog, exits, boss icon) — see
+          WorldMiniMap.jsx's header comment for why it's separate from the
+          52px screen-status strip already inside WorldHUD above. */}
+      <WorldMiniMap
+        worldLevel={state.worldLevel ?? 0}
+        screenId={screenId}
+        exploredScreens={state.exploredScreens}
+        clearedMaps={clearedMaps}
+        bossMapActive={bossMapActive}
+        mazeActive={state.mazeActive}
+        top={HUD_CONTENT_H + 8}
       />
 
       {/* Mission Progress Panel */}
@@ -909,9 +1143,18 @@ export default function WorldScreen({ navigate }) {
           <button
             key={dir}
             className="px-world-round"
-            onPointerDown={() => { setPressedDir(dir); move() }}
-            onPointerUp={() => setPressedDir(d => d === dir ? null : d)}
-            onPointerLeave={() => setPressedDir(d => d === dir ? null : d)}
+            onPointerDown={() => {
+              setPressedDir(dir)
+              // SPEC GAME-B §B.3 (2026-07-11) — Run trigger 2/2: double-tap
+              // the same D-pad direction within 350ms, then hold, → run
+              // until that finger releases.
+              const now = performance.now()
+              if (now - (lastDirTapRef.current[dir] || 0) < 350) dpadHoldRef.current = true
+              lastDirTapRef.current[dir] = now
+              move()
+            }}
+            onPointerUp={() => { setPressedDir(d => d === dir ? null : d); dpadHoldRef.current = false }}
+            onPointerLeave={() => { setPressedDir(d => d === dir ? null : d); dpadHoldRef.current = false }}
             style={DPAD_BTN(pos, pressedDir === dir)}
           >
             <DpadArrow dir={dir} />
@@ -1097,6 +1340,28 @@ export default function WorldScreen({ navigate }) {
             </div>
             <div style={{ color: worldUnlockBanner.accent, fontSize: 16, fontWeight: 700 }}>
               {WORLD_THEME_ICON[worldUnlockBanner.theme] ?? '🗺️'} {worldUnlockBanner.name}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SPEC GAME-B §B.3 (2026-07-11) — secret glade reward banner. */}
+      {secretRewardBanner && (
+        <div style={{
+          position: 'absolute', top: HUD_CONTENT_H + 12, left: 0, right: 0, zIndex: 35,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+          <div style={{
+            background: 'rgba(0,0,0,0.88)', border: '2px solid #ffd700',
+            borderRadius: 12, padding: '12px 22px',
+            fontFamily: 'Mitr,sans-serif', textAlign: 'center',
+            boxShadow: '0 0 22px rgba(255,215,0,0.4)',
+          }}>
+            <div style={{ color: '#ffe060', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+              🎁 พบของสะสมลับ!
+            </div>
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+              {secretRewardBanner.icon} {secretRewardBanner.nameTh}
             </div>
           </div>
         </div>

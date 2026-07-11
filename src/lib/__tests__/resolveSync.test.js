@@ -452,6 +452,38 @@ test('§B.2: validateState backfills/repairs rooms wallpaper/flooring without di
   assert.equal(s.rooms[1].flooring, 'wood_planks', 'a legitimate string flooring must survive untouched')
 })
 
+// SPEC GAME-B §B.3 (2026-07-11) — World Map: exploredScreens/sideQuest/secretsFound
+test('regression: exploredScreens/sideQuest/secretsFound progress is never wiped by a stale blank remote', () => {
+  const localExplored = { ...defaultState(), lastSavedAt: 1000, exploredScreens: { 0: { NW: true, NE: true } } }
+  const remoteBlank = { ...defaultState(), lastSavedAt: 9000 }
+  assert.equal(hasRealProgress(localExplored), true, 'persistent fog memory counts as real progress')
+  assert.equal(resolveSync(localExplored, remoteBlank).remoteWon, false)
+
+  const localQuest = { ...defaultState(), lastSavedAt: 1000, sideQuest: { npcId: 'quest_giver', template: 'fetch', material: 'wood', amount: 3 } }
+  assert.equal(hasRealProgress(localQuest), true, 'an active side quest counts as real progress')
+  assert.equal(resolveSync(localQuest, remoteBlank).remoteWon, false)
+
+  const localSecret = { ...defaultState(), lastSavedAt: 1000, secretsFound: { 0: true } }
+  assert.equal(hasRealProgress(localSecret), true, 'a found secret counts as real progress')
+  assert.equal(resolveSync(localSecret, remoteBlank).remoteWon, false)
+
+  // An untouched default (nothing explored, no quest, no secrets) must NOT read as real progress.
+  assert.equal(hasRealProgress({ ...defaultState() }), false)
+})
+
+test('§B.3: validateState coerces malformed exploredScreens/secretsFound to {} and a garbage sideQuest to null', () => {
+  const dirty = { ...defaultState(), xpThai: 10, exploredScreens: 'nope', secretsFound: ['bad'], sideQuest: 'not-an-object' }
+  const { state: s } = validateState(dirty)
+  assert.deepEqual(s.exploredScreens, {})
+  assert.deepEqual(s.secretsFound, {})
+  assert.equal(s.sideQuest, null)
+
+  // A legitimate sideQuest object must survive untouched.
+  const legit = { ...defaultState(), xpThai: 10, sideQuest: { npcId: 'quest_giver', template: 'find', col: 4, row: 5 } }
+  const { state: s2 } = validateState(legit)
+  assert.deepEqual(s2.sideQuest, legit.sideQuest)
+})
+
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()
   const pid = 'ring-profile'

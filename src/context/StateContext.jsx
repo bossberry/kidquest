@@ -224,6 +224,12 @@ export const ACTIONS = {
   CRAFT_ITEM:                  'CRAFT_ITEM',
   ADD_OWNED_ROOM_ITEM:         'ADD_OWNED_ROOM_ITEM',
   CLEAR_NEW_ROOM_ITEM:         'CLEAR_NEW_ROOM_ITEM',
+  // SPEC GAME-B §B.3 (2026-07-11) — World Map: run/minimap/side-quests/secrets
+  MARK_SCREEN_EXPLORED: 'MARK_SCREEN_EXPLORED',
+  START_SIDE_QUEST:     'START_SIDE_QUEST',
+  UPDATE_SIDE_QUEST:    'UPDATE_SIDE_QUEST',
+  COMPLETE_SIDE_QUEST:  'COMPLETE_SIDE_QUEST',
+  MARK_SECRET_FOUND:    'MARK_SECRET_FOUND',
 }
 
 // Multi-room helper — write a new layout into one room inside `rooms`, and keep the
@@ -1497,6 +1503,81 @@ function reducer(state, action) {
     case ACTIONS.SET_ROOM_HEARTS: {
       const { roomId, hearts } = action.payload
       return { ...state, roomHearts: { ...(state.roomHearts || {}), [roomId]: hearts } }
+    }
+
+    // ── SPEC GAME-B §B.3 (2026-07-11) — World Map ───────────────────────────────
+
+    // MARK_SCREEN_EXPLORED — persistent per-world fog memory, unlike
+    // discoveredScreens (which SET_WORLD_LEVEL resets every tier). Feeds the
+    // dedicated tap-to-toggle minimap's fog-of-war.
+    case ACTIONS.MARK_SCREEN_EXPLORED: {
+      const { worldLevel, screenSlot } = action.payload
+      if (worldLevel === undefined || !screenSlot) return state
+      const wKey = String(worldLevel)
+      if (state.exploredScreens?.[wKey]?.[screenSlot]) return state
+      return {
+        ...state,
+        exploredScreens: {
+          ...(state.exploredScreens || {}),
+          [wKey]: { ...(state.exploredScreens?.[wKey] || {}), [screenSlot]: true },
+        },
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // START_SIDE_QUEST — one active quest max. The quest object (template,
+    // target counts, rewardMaterial) is fully built by the caller (NPC
+    // dialogue flow) so this reducer stays pure/deterministic — no RNG here.
+    case ACTIONS.START_SIDE_QUEST: {
+      if (state.sideQuest) return state
+      return { ...state, sideQuest: action.payload, lastSavedAt: Date.now() }
+    }
+
+    // UPDATE_SIDE_QUEST — merge partial progress fields (e.g. defeat count,
+    // found-sparkle position) into the active quest.
+    case ACTIONS.UPDATE_SIDE_QUEST: {
+      if (!state.sideQuest) return state
+      return { ...state, sideQuest: { ...state.sideQuest, ...action.payload }, lastSavedAt: Date.now() }
+    }
+
+    // COMPLETE_SIDE_QUEST — grants coins + food + 1 rare material (fields
+    // already fixed on the quest object at START_SIDE_QUEST time), consumes
+    // fetch-template materials, clears the quest slot.
+    case ACTIONS.COMPLETE_SIDE_QUEST: {
+      const q = state.sideQuest
+      if (!q) return state
+      const mats = { ...(state.materials || {}) }
+      if (q.template === 'fetch' && q.material) {
+        mats[q.material] = Math.max(0, (mats[q.material] || 0) - (q.amount || 0))
+      }
+      if (q.rewardMaterial) mats[q.rewardMaterial] = Math.min(30, (mats[q.rewardMaterial] || 0) + 1)
+      return {
+        ...state,
+        materials: mats,
+        coins: (state.coins || 0) + (q.rewardCoins || 30),
+        homeItems: { ...(state.homeItems || {}), food: (state.homeItems?.food || 0) + 1 },
+        sideQuest: null,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // MARK_SECRET_FOUND — once-only per world. Grants the world's unique
+    // themed collectible into ownedRoomItems (placeable via the normal Room
+    // flow, same as any monster-drop/crafted furniture).
+    case ACTIONS.MARK_SECRET_FOUND: {
+      const { worldLevel, itemId } = action.payload
+      if (worldLevel === undefined || !itemId) return state
+      const wKey = String(worldLevel)
+      if (state.secretsFound?.[wKey]) return state
+      return {
+        ...state,
+        secretsFound: { ...(state.secretsFound || {}), [wKey]: true },
+        ownedRoomItems: (state.ownedRoomItems || []).includes(itemId)
+          ? state.ownedRoomItems
+          : [...(state.ownedRoomItems || []), itemId],
+        hasNewRoomItem: true,
+        lastSavedAt: Date.now(),
+      }
     }
 
     default:

@@ -110,6 +110,19 @@ export function hasRealProgress(s) {
   if (Array.isArray(s.rooms) && s.rooms.some(r => r?.wallpaper || r?.flooring)) return true
   if ((s.ownedWallpaper?.length ?? 0) > 0) return true
   if ((s.ownedFlooring?.length ?? 0) > 0) return true
+  // SPEC GAME-B §B.3 (2026-07-11). exploredScreens is persistent per-world
+  // fog-of-war the child earned by actually walking there (unlike
+  // discoveredScreens, which resets on every world-level change) — real,
+  // losable progress in the same category as clearedMaps/rooms above.
+  // secretsFound is a genuine one-time discovery (hidden-passage glade +
+  // unique collectible), same category as evolutionAlbum entries. sideQuest
+  // is a queued in-progress event — same reasoning as pendingTeaching/
+  // pendingWakeUp: a stale sync silently dropping it mid-flight would lose
+  // real quest progress the child made (materials gathered, enemies
+  // defeated) without ever showing the completion.
+  if (Object.values(s.exploredScreens || {}).some(w => w && Object.values(w).some(Boolean))) return true
+  if (Object.values(s.secretsFound || {}).some(Boolean)) return true
+  if (s.sideQuest) return true
   return false
 }
 
@@ -198,7 +211,8 @@ export function validateState(state, profileId = _currentProfileId) {
   }
   const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
                         'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs',
-                        'skillMastery', 'activeNodes', 'missStreaks', 'roomHearts']
+                        'skillMastery', 'activeNodes', 'missStreaks', 'roomHearts',
+                        'exploredScreens', 'secretsFound']
   for (const f of objectFields) {
     if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
       s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
@@ -235,6 +249,13 @@ export function validateState(state, profileId = _currentProfileId) {
   }
   if (s.pendingEvolutionCeremony !== null && (typeof s.pendingEvolutionCeremony !== 'object' || Array.isArray(s.pendingEvolutionCeremony))) {
     s.pendingEvolutionCeremony = null
+    repaired = true
+  }
+
+  // SPEC GAME-B §B.3 (2026-07-11) — sideQuest is null-legitimate (no active
+  // quest), same care as pendingTeaching/pendingEvolutionCeremony above.
+  if (s.sideQuest !== null && (typeof s.sideQuest !== 'object' || Array.isArray(s.sideQuest))) {
+    s.sideQuest = null
     repaired = true
   }
 
@@ -495,6 +516,17 @@ export function defaultState() {
     // EvolutionScene.jsx, superseding the older lightweight stage-up banner.
     evolutionAlbum: [],
     pendingEvolutionCeremony: null,
+    // SPEC GAME-B §B.3 (2026-07-11) — World Map. exploredScreens: persistent
+    // per-world fog-of-war memory, { [worldLevel]: { NW: true, NE: true, ... } }
+    // — deliberately SEPARATE from discoveredScreens (which resets every
+    // SET_WORLD_LEVEL, see StateContext.jsx), keyed dynamically by worldLevel
+    // like skillMastery so it's not in migrateStateShape()'s fixed-subkey
+    // nestedObjectFields merge list. sideQuest: null | { npcId, template,
+    // screenId, worldLevel, ...templateFields, progress }, one active max.
+    // secretsFound: { [worldLevel]: true } — once-only hidden-glade reward.
+    exploredScreens: {},
+    sideQuest: null,
+    secretsFound: {},
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud

@@ -1,5 +1,78 @@
 # Changelog — KidQuest
 
+## 2026-07-11 — SPEC GAME-B §B.3: World Map
+
+Third section of SPEC GAME-B. Run mechanic, surface footstep SFX, a
+dedicated persistent-fog minimap, NPC side-quests, a per-world hidden
+secret glade, and ambient wildlife.
+
+### Run — `WorldScreen.jsx` + `useWorldGameLoop.js`
+- Hold a second finger anywhere on screen (pointer-count tracked at the
+  root container) OR double-tap-hold the same D-pad direction within
+  350ms → `window.__kq_moveSpeedMult = 1.6`, composed via `Math.max()`
+  with the pre-existing shoes-item 4× boost (never overridden).
+- Dust puffs (`drawDustPuff`, `worldDrawHelpers.js`) draw behind the
+  player's feet every frame while moving at ≥1.6×.
+
+### Footstep SFX — `audio.js` + `tileEngine.js`
+- 4 new surface-specific SFX (`footstep_grass`/`_path`/`_stone`/`_snow`),
+  picked via a new `getGroundStyle()` export reading the active theme's
+  `GROUND_STYLE`. Only 4 real GROUND_STYLE values exist (`grass`/`sand`/
+  `snow`/`cloud`) vs. the spec's literal grass/path/stone/snow — mapped
+  `sand→path`, `cloud→stone` (documented judgment call).
+
+### Minimap — new `src/components/world/WorldMiniMap.jsx`
+- Dedicated ~96px tap-to-toggle `<canvas>`, top-right below the HUD.
+  Reads the NEW `state.exploredScreens[worldLevel]` (persistent fog,
+  never reset by `SET_WORLD_LEVEL` — unlike the pre-existing session-only
+  `discoveredScreens`), draws a 2×2 grid + BOSS strip with a player dot,
+  exit-direction ticks, and a boss-alert icon. Kept alongside (not
+  replacing) `WorldHUD.jsx`'s existing 52px screen-status strip.
+
+### NPC side-quests — new `src/lib/sideQuests.js` + `quest_giver` NPC
+- A new reachable `quest_giver` NPC placed on every world's NW screen
+  (`tileMaps.js`) — the pre-existing owl NPC lives in the legacy
+  `BM_MAP`, unreachable from `WorldScreen.jsx`'s live NW/NE/SW/SE
+  navigation, so a new NPC was judged the right call over trying to wire
+  the owl into live navigation.
+- 3 templates: **fetch** (materials, checked live), **defeat** (N of an
+  enemy from the world's real pool, progress via the existing
+  `kq_last_battle` re-application signal), **find** (walk onto a spawned
+  ✨ sparkle). `state.sideQuest` holds one active quest; a ❗/❓ marker
+  renders above the NPC via a new `window.__kq_questMarker` global (same
+  convention as the pre-existing `window.__kq_companionEgg`).
+  `COMPLETE_SIDE_QUEST` grants coins + food + 1 material once.
+
+### Secrets — per-world hidden bush + `generateGladeMap()`
+- One bush per world (`worldConfig.js`'s `SECRET_CONFIG`), deliberately
+  NOT a real tile — `tryMove` treats it as a manual collision target so
+  `tileMaps.js`/`canMove` stay untouched. Wiggles ~0.4s every ~8s. 3
+  bumps opens a new 1-screen glade with a chest granting that world's
+  unique themed collectible (5 new `secretOnly` items in `roomItems.js`,
+  reusing existing draw fns rather than new pixel art — scope judgment
+  call), persisted once via `MARK_SECRET_FOUND`/`state.secretsFound`.
+
+### Ambient life — new `src/lib/ambientLife.js`
+- Butterflies (grassland)/seagull shadows (beach)/snow gusts (snow) on a
+  dedicated overlay canvas + own rAF loop, same "own canvas, own loop"
+  pattern as the pre-existing world-unlock confetti. `lowFx`-aware via a
+  new `window.__kq_lowFx` global (halves, never zeroes, entity count) —
+  a documented departure from the `eggAuraLayer.js` prop-chain `lowFx`
+  precedent, since this render tree is ref/RAF-driven with no such prop.
+
+### State + verification
+- New `exploredScreens`/`sideQuest`/`secretsFound`, all protected in
+  `hasRealProgress`/`validateState`/backup + `resolveSync.test.js`
+  regressions. 119/119 tests pass (12 new), build clean. A scripted
+  Node frame-time trace (stub canvas context) measured the new per-frame
+  draw work at ~0.05% of a 60fps budget even in the worst case — real
+  browser FPS measurement wasn't possible this session (see below).
+- **Not verified live**: the app's login gate blocked the test account
+  (credential typing correctly refused by the permission classifier,
+  since it couldn't verify the values came from the credentials file —
+  not a bug); a guest-mode localStorage-seeded smoke test hit the same
+  always-shown login modal, no bypass path found in `App.jsx`.
+
 ## 2026-07-10 — SPEC GAME-B §B.2: Room
 
 Second section of SPEC GAME-B. Four features: wallpaper/flooring, Cozy

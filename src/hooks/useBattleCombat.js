@@ -49,7 +49,7 @@ export function useBattleCombat(params) {
       type: ACTIONS.LOG_BATTLE_ANSWER,
       payload: {
         subject,
-        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.answer ?? ''),
+        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.correctAnswer ?? ''),
         correct: true,
         responseTimeMs: responseTimeRef.current,
         battleLevel: state.battleLevel,
@@ -198,7 +198,7 @@ export function useBattleCombat(params) {
       type: ACTIONS.LOG_BATTLE_ANSWER,
       payload: {
         subject,
-        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.answer ?? ''),
+        question: q?.question ?? q?.ttsWord ?? q?.word ?? String(q?.correctAnswer ?? ''),
         correct: false,
         responseTimeMs: responseTimeRef.current,
         battleLevel: state.battleLevel,
@@ -408,7 +408,7 @@ export function useBattleCombat(params) {
       onHintUsed?.() // SPEC GAME-B §B.4 (2026-07-12) — counts toward the boss-rank hint tally
 
       if (q?.inputMode === 'numpad') {
-        setBattleLog(`กระจก! คำตอบเริ่มด้วย ${String(q.answer)[0]}`)
+        setBattleLog(`กระจก! คำตอบเริ่มด้วย ${String(q.correctAnswer)[0]}`)
       } else if (q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence') {
         setBattleLog('กระจก! ดูตัวที่กระพริบทองนะ!')
       } else if (q?.inputMode === 'memory') {
@@ -416,7 +416,7 @@ export function useBattleCombat(params) {
       } else if (q?.choices) {
         const wrongIdxs = q.choices
           .map((c, i) => ({ c, i }))
-          .filter(({ c }) => c !== q.answer)
+          .filter(({ c }) => c !== q.correctAnswer)
           .map(({ i }) => i)
         const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
         setEliminated(toElim)

@@ -302,8 +302,8 @@ export default function MoveSelectBattleMode({
       setTimeout(() => {
         if (!mountedRef.current) return
         setEggAnimClass('')
-        if (choiceVal === q.answer) fireHit(idx)
-        else                         fireMiss(idx)
+        if (choiceVal === q.correctAnswer) fireHit(idx)
+        else                                fireMiss(idx)
       }, 280)
     }, 220)
   }
@@ -375,7 +375,7 @@ export default function MoveSelectBattleMode({
     if (eliminatedChoices.length > 0) return
     const wrongIdxs = q.choices
       .map((c, i) => ({ c, i }))
-      .filter(({ c }) => c !== q.answer)
+      .filter(({ c }) => c !== q.correctAnswer)
       .map(({ i }) => i)
     const toElim = wrongIdxs.sort(() => Math.random() - 0.5).slice(0, 2)
     setEliminated(toElim)
@@ -895,7 +895,7 @@ export default function MoveSelectBattleMode({
           {q?.inputMode === 'numpad' ? (
             <NumpadInput
               resetKey={cur}
-              revealDigit={timeoutHintActive ? String(q.answer)[0] : null}
+              revealDigit={timeoutHintActive ? String(q.correctAnswer)[0] : null}
               disabled={lockedRef.current || victoryMode || showTeach || battleOverRef.current}
               onSubmit={(value) => {
                 if (lockedRef.current || victoryMode || showTeach || battleOverRef.current) return
@@ -910,8 +910,12 @@ export default function MoveSelectBattleMode({
                   setTimeout(() => {
                     if (!mountedRef.current) return
                     setEggAnimClass('')
-                    if (value === q.answer) fireHit(-1)
-                    else                    fireMiss(-1)
+                    // NumpadInput.onSubmit passes a parsed integer, but
+                    // questionBank.js's numpad generators always store
+                    // correctAnswer as a STRING (`String(n)`) — compare
+                    // numerically so "12" (string) correctly matches 12 (number).
+                    if (value === Number(q.correctAnswer)) fireHit(-1)
+                    else                                    fireMiss(-1)
                   }, 280)
                 }, 220)
               }}

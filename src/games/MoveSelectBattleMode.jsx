@@ -202,9 +202,21 @@ export default function MoveSelectBattleMode({
   // reuses existing timing windows or runs non-blocking. See
   // docs/CHATBOT_NOTES.md's §B.4 entry for the full added-time ledger.
   useEffect(() => {
-    const t = setTimeout(() => mountedRef.current && setShowVsSplash(false), 600)
+    const t = setTimeout(() => {
+      if (!mountedRef.current) return
+      setShowVsSplash(false)
+      // URGENT FIX (2026-07-13) — consolidate to ONE intro presentation.
+      // The vs-splash just announced the enemy (name plate + VS + subject
+      // icon); the dialogue box underneath was still showing its OWN
+      // initial "${enemy.name} ปรากฏตัว!" text (set at mount, before the
+      // splash even existed) the whole time it was hidden behind the
+      // splash — a redundant second "X has appeared!" message once the
+      // splash clears. Switch straight to the ready-to-fight prompt here
+      // instead of leaving that stale announcement to linger.
+      setBattleLog('⚔️ เลือกท่าโจมตี!')
+    }, 600)
     return () => clearTimeout(t)
-  }, [])
+  }, []) // eslint-disable-line
   useEffect(() => {
     const times = [680, 800, 880, 1000, 1080, 1130]
     const fns   = [
@@ -464,8 +476,14 @@ export default function MoveSelectBattleMode({
       )}
 
       {/* ── BATTLE FIELD ─────────────────────────────────────────────────── */}
+      {/* URGENT FIX (2026-07-13) — the canvas is now the ONLY zone allowed to
+          shrink on a short viewport (minHeight dropped 200->180, still
+          flex:1). Every zone below (dialogue/question/item-bar/input) stays
+          flexShrink:0 and is never clipped — see the move-panel fix further
+          down for the other half of this (its old fixed height:168 could
+          overflow ABOVE its own box and visually cover the item-bar row). */}
       <div ref={battleFieldRef} style={{
-        flex:1, minHeight:200, position:'relative',
+        flex:1, minHeight:180, position:'relative',
         background:'linear-gradient(180deg, #1a2a1a 0%, #1e3020 40%, #2a4020 100%)',
         overflow:'hidden', borderBottom:'2px solid #3a6a3a',
         // SPEC GAME-B §B.4 (2026-07-12) — element-blast screen shake, <=250ms.
@@ -537,7 +555,18 @@ export default function MoveSelectBattleMode({
             animation: enemyLunge ? `enemy-atk-${attackVariant} 0.3s ease` : 'none',
           }}>
             {/* Boss phase 2 costume shift — palette hue-rotate on the sprite. */}
+            {/* URGENT FIX (2026-07-13) — added `position:'relative'` here so
+                dmgFloat's `position:absolute` anchors DIRECTLY to this box
+                (the enemy sprite itself) instead of skipping past it to an
+                ancestor 2 levels up (the outer slide-in wrapper, whose own
+                width/position depends on the `entered` slide-in transform).
+                Also gave dmgFloat an explicit zIndex so its stacking is
+                deterministic rather than implicit/paint-order-dependent —
+                both are hardening against the reported stray floating
+                number, on top of battleField's own overflow:hidden already
+                guaranteeing it can never escape the canvas area. */}
             <div ref={enemyDivRef} style={{
+              position:'relative',
               filter: bossPhase2 ? 'hue-rotate(140deg) saturate(1.4)' : 'none',
               transition: 'filter 0.4s ease',
             }}>
@@ -545,7 +574,7 @@ export default function MoveSelectBattleMode({
               {dmgFloat && (
                 <div style={{
                   position:'absolute', top:'-24px', left:'50%', transform:'translateX(-50%)',
-                  fontFamily:"'Fredoka One',cursive",
+                  zIndex:21, fontFamily:"'Fredoka One',cursive",
                   fontSize: dmgFloat.isUlt ? 28 : dmgFloat.isCrit ? 24 : 18,
                   color: dmgFloat.isUlt ? '#FFD700' : dmgFloat.isCrit ? '#FFD700' : '#ff9090',
                   animation:'dmg-float 1s ease-out forwards',
@@ -769,6 +798,18 @@ export default function MoveSelectBattleMode({
       })()}
 
       {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
+      {/* URGENT FIX (2026-07-13) — this is the row reported as "icon/badge
+          row that looks like it might be materials HUD leaking in". It is
+          NOT the world-map materials HUD (that lives entirely in
+          WorldHUD.jsx/WorldScreen.jsx and never renders here) — it's this
+          battle screen's own pre-existing BATTLE ITEMS bar: scroll (gold
+          #e8c040) / thunder (blue #66aaff) / gem (pink #cc44cc) / mirror
+          (teal #44cccc) / clover (green #44cc44), each with a small red
+          count badge — an exact color match to the reported "yellow/blue/
+          pink/teal/green" row. It's battle-relevant and correctly scoped
+          here (hidden entirely during boss battles, per isBossBattle
+          above) — the actual bug was Zone 3 overflowing onto it, fixed
+          above, not this row's own identity or placement. */}
       {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.battleItems?.[k] || 0) > 0) && (
         <div style={{ display:'flex', gap:6, padding:'0 10px 4px', flexShrink:0, alignItems:'center' }}>
           {Object.keys(BATTLE_ITEMS).map(key => {
@@ -887,10 +928,25 @@ export default function MoveSelectBattleMode({
       })()}
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
+      {/* URGENT FIX (2026-07-13) — ROOT CAUSE of the reported "hint text
+          overlaps the item-bar icon row": this container used a FIXED
+          `height:168` with `justifyContent:'center'` and no overflow
+          containment. NumpadInput's own column (display + a hint line +
+          digit grid + confirm/backspace) is naturally TALLER than 168px
+          once the "💡 ตัวแรกคือ X" hint line appears — flexbox still only
+          RESERVES 168px of space for this zone in the column layout, so
+          the extra height rendered outside that reserved box, centered,
+          spilled symmetrically both up AND down — the "up" half visually
+          landed on top of the ITEM BAR (Zone 2.5) row directly above it.
+          Fixed by switching height->minHeight (lets the box genuinely grow
+          to fit its content instead of overflowing it) and, for the
+          flex-row branch (numpad/wordbuild/sequence/memory), center->
+          flex-start (so any remaining growth pushes DOWN from a stable top
+          edge, never back up into Zone 2.5). */}
       {!victoryMode && (
         <div style={(q?.inputMode === 'numpad' || q?.inputMode === 'wordbuild' || q?.inputMode === 'sequence' || q?.inputMode === 'memory')
-          ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'center', height:168, flexShrink:0 }
-          : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, height:168, flexShrink:0 }
+          ? { padding:'4px 10px 10px', display:'flex', alignItems:'center', justifyContent:'flex-start', minHeight:168, flexShrink:0 }
+          : { padding:'4px 10px 10px', display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:8, minHeight:168, flexShrink:0 }
         }>
           {q?.inputMode === 'numpad' ? (
             <NumpadInput

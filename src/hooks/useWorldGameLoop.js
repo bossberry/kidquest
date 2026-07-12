@@ -9,6 +9,7 @@ import {
   drawPandoraSecretBush, drawSideQuestSparkle, drawDustPuff,
 } from '../lib/worldDrawHelpers.js'
 import { playSFX } from '../lib/audio.js'
+import { computeCameraY } from '../lib/worldCamera.js'
 
 const DIRS4 = [[0,-1],[0,1],[-1,0],[1,0]]
 
@@ -305,11 +306,26 @@ export function useWorldGameLoop({
       const mapPixW = MAP_COLS * PANDORA_TILE
       const mapPixH = MAP_ROWS * PANDORA_TILE
       const rawCamX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - vw / 2
-      const rawCamY = g.displayY * PANDORA_TILE + PANDORA_TILE / 2 - vh / 2
       const camX = mapPixW <= vw ? -(vw - mapPixW) / 2 : Math.max(0, Math.min(rawCamX, mapPixW - vw))
-      const camYBase = mapPixH <= vh ? -(vh - mapPixH) / 2 : Math.max(0, Math.min(rawCamY, mapPixH - vh))
+
+      // URGENT FIX (2026-07-13) — bottom control-cluster safe area. This used
+      // to only reserve space at the TOP (HUD_CONTENT_H + PANEL_H, split in
+      // half below), with nothing reserved at the bottom — so the camera
+      // could clamp all the way to the map's raw bottom edge, rendering the
+      // player sprite AND the south exit arrow underneath the D-pad, with no
+      // way for a child to discover that walking down changes screens.
+      // TOP_SAFE_H/BOTTOM_SAFE_H now define a genuine safe PLAYABLE band
+      // (WorldScreen.jsx's D-pad box is 168px tall + a 24px bottom offset +
+      // env(safe-area-inset-bottom) on notched phones — 220 covers that with
+      // a little breathing room) and the camera clamps so neither the top
+      // nor the bottom of the map can ever scroll past that band's edges.
       const PANEL_H = 72 // approximate height of MissionPanel
-      const camY = camYBase - Math.round((HUD_CONTENT_H + PANEL_H) / 2)
+      const TOP_SAFE_H = HUD_CONTENT_H + PANEL_H
+      const BOTTOM_SAFE_H = 220
+      const camY = computeCameraY({
+        playerWorldY: g.displayY * PANDORA_TILE + PANDORA_TILE / 2,
+        vh, mapPixH, topSafeH: TOP_SAFE_H, bottomSafeH: BOTTOM_SAFE_H,
+      })
 
       const inMaze = screenIdRef?.current === 'MAZE'
       const playerGroundX = g.displayX * PANDORA_TILE + PANDORA_TILE / 2 - camX

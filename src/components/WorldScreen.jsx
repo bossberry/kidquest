@@ -81,9 +81,16 @@ function DpadArrow({ dir }) {
 // mounted (opacity/pointerEvents toggle on `visible`, not conditional
 // render) so the 200ms opacity transition can actually animate instead of
 // popping in/out.
+// URGENT FIX (2026-07-13) — both N and S used to sit INSIDE the top HUD/
+// MissionPanel zone and the bottom D-pad zone respectively (N at top:76 vs.
+// the HUD+panel's ~136px footprint; S at bottom:100 vs. the D-pad's own
+// 24-192px footprint), so a child could never actually see the exit arrow
+// telling them a screen edge leads somewhere. Both now clear their
+// respective safe zones (see useWorldGameLoop.js's TOP_SAFE_H/BOTTOM_SAFE_H,
+// which this mirrors) with a small margin, still with the same pulse anim.
 const EXIT_ARROW_POS = {
-  N: { top: 76, left: '50%', transform: 'translateX(-50%)' },
-  S: { bottom: 100, left: '50%', transform: 'translateX(-50%)' },
+  N: { top: 144, left: '50%', transform: 'translateX(-50%)' },
+  S: { bottom: 'calc(200px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)' },
   W: { left: 12, top: '50%', transform: 'translateY(-50%)' },
   E: { right: 12, top: '50%', transform: 'translateY(-50%)' },
 }
@@ -1115,6 +1122,10 @@ export default function WorldScreen({ navigate }) {
       {/* D-pad — bottom center, overlays on canvas. Fix 4: circular tactile
           buttons on a translucent blurred backing circle, replacing the old
           flat rounded-square arrows. */}
+      {/* URGENT FIX (2026-07-13) — slight transparency so the world is never
+          fully occluded under the D-pad; secondary to the real fix (the
+          camera/exit-arrow safe-area reservations above), not a substitute
+          for it — a see-through D-pad still blocks taps either way. */}
       <div style={{
         position: 'absolute',
         bottom: 'calc(24px + env(safe-area-inset-bottom))',
@@ -1123,6 +1134,7 @@ export default function WorldScreen({ navigate }) {
         width: 168,
         height: 168,
         zIndex: 30,
+        opacity: 0.85,
       }}>
         <div style={{
           position: 'absolute', left: '50%', top: '50%',

@@ -59,7 +59,14 @@ test('the screen-shake duration is <=250ms per spec', () => {
 })
 
 test('the vs-splash is the one genuinely new serial timer, exactly 600ms as specced', () => {
-  assert.match(battleModeSrc, /setShowVsSplash\(false\), 600\)/)
+  // 2026-07-13: the splash's setTimeout body grew a mountedRef guard + a
+  // battleLog consolidation (see MoveSelectBattleMode.jsx's urgent-fix
+  // comment) — match on the timer's declaration + duration and the
+  // dismissal call appearing somewhere in its body, not an exact adjacent
+  // literal, so this doesn't re-break on unrelated body changes.
+  assert.match(battleModeSrc, /setTimeout\(\(\) => \{/)
+  assert.match(battleModeSrc, /setShowVsSplash\(false\)/)
+  assert.match(battleModeSrc, /\}, 600\)/)
 })
 
 test('the pre-existing entry flash sequence is delayed +600ms (chained after the splash, not overlapping it)', () => {

@@ -1,5 +1,68 @@
 # Changelog — KidQuest
 
+## 2026-07-12 — SPEC GAME-B §B.4: Battle
+
+Fourth section of SPEC GAME-B. Enemy attack telegraphs, an element charge
+meter, a boss mid-fight phase 2, victory ranks, and a battle-intro polish.
+
+### Enemy attack animations — `enemyAttackVariants.js` + `styles.css`
+- New `src/lib/enemyAttackVariants.js`: `getAttackVariant(enemyType)` maps
+  each of the 9 normal-battle enemy body types to one of 3 telegraphed
+  attack variants (lunge/spin/bounce, 3/3/3 split; `ghost_wisp` excluded —
+  maze-only, never in a real battle).
+- `MoveSelectBattleMode.jsx`'s render now picks the matching CSS keyframe
+  (`enemy-atk-lunge`/`-spin`/`-bounce`) instead of a flat translateX nudge,
+  driven by the SAME pre-existing `enemyLunge` boolean/300ms window
+  `fireMiss` already toggles — `useBattleCombat.js` itself is untouched.
+- Egg reaction upgraded from a static shake to an oscillating `egg-wobble`
+  keyframe, same pre-existing 400ms window.
+
+### Element skills charge meter — `useBattleCombat.js` + `elementAnimations.js`
+- `fireHit` increments a 3-segment `chargeRef` on every correct answer;
+  `fireMiss` never touches it — a wrong answer PAUSES progress instead of
+  resetting it (gentler than the pre-existing combo counter, which does
+  reset on a miss).
+- A full meter doubles that hit's damage, fires new `playElementBlast()`
+  (reuses SPEC GAME-A §A.3's `drawAuraLayer` aura-particle system via the
+  same `animate()` helper `playElementAttack`'s tiers use) + a <=250ms
+  `battle-shake` screen shake.
+- New `AURA_ELEMENT_MAP` translates the battle screen's own 6-element set
+  (lightning/fire/ice/wind/laser/water) onto A.3's aura element set
+  (fire/water/nature/thunder/shadow/light) — documented judgment-call remap.
+
+### Boss phase 2 — `MoveSelectBattleMode.jsx` + `questionBank.js`
+- New effect fires once at <=50% boss HP: CSS hue-rotate costume shift +
+  a playful battleLog bubble line + notifies `WorldBattle.jsx` via a new
+  `onBossPhase2` callback.
+- `selectBattleQuestion(subject, state, opts)` gained `opts.reviewBoost`
+  (active-question band 0.70->0.40, review's share grows ~20%->~50%) —
+  statistically verified in new `questionBank.test.js`.
+
+### Victory ranks — new `src/lib/battleRanks.js`
+- `computeBossRank(accuracy, hintsUsed)`: S = 100% accuracy AND 0 hints,
+  A = >=80% accuracy, B = the always-positive floor rank.
+- New `hintsUsedRef` in `WorldBattle.jsx` counts both the auto-timeout hint
+  reveal and the manual hint battle item (new `onHintUsed` callback).
+- Best-ever rank persists per world in new `state.bossRanks`, via a new
+  `RECORD_BOSS_RANK` reducer (only improves, never regresses). S-rank +10
+  coin bonus folds into the existing single boss coin dispatch.
+- `RewardChest.jsx` gained a rank-stamp badge in its existing reveal/
+  collected phases — no new screen, phase, or delay.
+
+### Battle intro — 600ms vs-splash
+- New overlay (enemy slide-in + name plate + subject icon + "VS"), own
+  600ms timer, replacing the old hard cut. The pre-existing entry
+  flash+slide-in sequence is delayed +600ms to chain after it.
+
+### Added-time budget + verification
+- The vs-splash's 600ms is the one genuinely new serial delay — everything
+  else reuses existing timing windows or runs non-blocking. Verified via a
+  new source-level regression-guard test (`battleTiming.test.js`) plus a
+  scripted stub-canvas frame-time trace for the blast draw (~0.03ms/frame).
+- 147/147 tests pass (18 new), build clean. **Not verified live** — same
+  login-gate/no-guest-bypass limitation as the §B.3 session; no existing
+  dev harness covers `MoveSelectBattleMode.jsx`'s full prop surface.
+
 ## 2026-07-12 — SPEC GAME-B §B.3 cleanup: consolidate to one minimap
 
 Per explicit user feedback: removed `WorldHUD.jsx`'s old session-only

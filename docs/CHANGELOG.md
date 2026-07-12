@@ -1,5 +1,23 @@
 # Changelog — KidQuest
 
+## 2026-07-12 — SPEC GAME-B §B.3 cleanup: consolidate to one minimap
+
+Per explicit user feedback: removed `WorldHUD.jsx`'s old session-only
+2×2+BOSS mini-map and its theme-icon/cleared-count "world badge" readout
+entirely. `WorldMiniMap.jsx` (persistent `exploredScreens` fog, tap-toggle,
+added in §B.3 below) is now the only minimap. `WorldHUD` no longer accepts
+`screenId`/`discoveredScreens`/`bossMapActive` props — verified nothing
+else depended on them (the `discoveredScreens` state field/reducers are
+untouched; `MissionPanel.jsx` only imports the unrelated `HUD_CONTENT_H`
+constant from the same file). 119/119 tests pass, build clean.
+
+Also added a TASKS.md follow-up to remove the unreachable legacy owl NPC
+(and, pending a scope decision, the entire unreachable legacy 9-screen
+Green Meadow region it lives in — found `Home.jsx` still dispatches
+`ENTER_WORLD` toward it, but that dispatch appears to be dead-in-effect
+too since `WorldScreen.jsx`'s `VALID_DYNAMIC` coerces any non-dynamic
+screen back to `'NW'` on mount).
+
 ## 2026-07-11 — SPEC GAME-B §B.3: World Map
 
 Third section of SPEC GAME-B. Run mechanic, surface footstep SFX, a

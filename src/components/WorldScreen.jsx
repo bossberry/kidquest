@@ -1053,12 +1053,9 @@ export default function WorldScreen({ navigate }) {
 
       {/* World HUD */}
       <WorldHUD
-        screenId={screenId}
-        discoveredScreens={state.discoveredScreens}
         state={state}
         onGoHome={goHome}
         onOpenItemBag={() => setItemBagOpen(true)}
-        bossMapActive={bossMapActive}
       />
 
       {/* SPEC GAME-B §B.3 (2026-07-11) — dedicated tap-to-toggle minimap

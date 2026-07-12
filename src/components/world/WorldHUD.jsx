@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { MAP_THEMES, todayStr } from '../../config/gameConfig.js'
-import { WORLD_LEVELS, WORLD_THEME_ICON } from '../../config/worldConfig.js'
+import { todayStr } from '../../config/gameConfig.js'
 import { MATERIALS } from '../../lib/roomItems.js'
 import PixelItemIcon from '../PixelItemIcon.jsx'
 
@@ -29,16 +28,17 @@ const HOME_ITEM_LABELS = { food: 'อาหาร', ribbon: 'ริบบิ้�
 // eslint-disable-next-line no-unused-vars
 const HOME_ITEM_EFFECTS = { food: 'ฟื้น HP', ribbon: 'SPD+10', shoes: 'วิ่ง×4', rainbow_star: 'หลบศัตรูตาม!' }
 
-export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome, onOpenItemBag, bossMapActive }) {
+// SPEC GAME-B §B.3 (2026-07-12) — the old session-only 2×2+BOSS mini-map (and
+// its "world badge" theme-icon/cleared-count readout) that used to live here
+// was removed and consolidated into WorldMiniMap.jsx, which reads the newer
+// persistent exploredScreens fog instead of this file's discoveredScreens.
+// `screenId`/`discoveredScreens`/`bossMapActive` props were only ever read by
+// that removed block — dropped along with it, don't re-add them without
+// re-adding the block they served.
+export default function WorldHUD({ state, onGoHome, onOpenItemBag }) {
   const [matOpen, setMatOpen] = useState(true)
   const ownedMats = MATERIALS.filter(m => (state.materials?.[m.id] ?? 0) > 0)
   const materialsUsedToday = (state.lastMaterialDate === todayStr()) ? (state.dailyMaterialsCollected || 0) : 0
-  const discovered = new Set(discoveredScreens ?? [])
-  const MINI_TILE = 11
-  const MINI_GAP  = 1
-  const worldLevel = state.worldLevel ?? 0
-  const mazeActive = state.mazeActive ?? false
-  const clearedMaps = state.clearedMaps ?? []
 
   const eggs     = state.hatchedEggs ?? []
   const partyId  = (state.party ?? [])[0]
@@ -55,21 +55,6 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
   const { level: xpLevel, fraction: xpFrac } = xpProgress(creature)
   const homeItems   = state.homeItems   ?? {}
   const battleItems = state.battleItems ?? {}
-
-  // Mini-map: 2×2 regular slots + BOSS row
-  const groundColor = WORLD_LEVELS[worldLevel]?.bgColors?.ground ?? '#2a4a2a'
-  const swSlot = mazeActive ? 'MAZE' : 'SW'
-  const miniRows = [
-    ['NW', 'NE'],
-    [swSlot, 'SE'],
-  ]
-
-  function miniTileColor(id, isDisc) {
-    if (!isDisc) return '#080e08'
-    if (id === 'BOSS') return bossMapActive ? '#380000' : '#1a1a1a'
-    if (id === 'MAZE') return '#180830'
-    return groundColor
-  }
 
   const homeItemCount = HOME_ITEM_KEYS.reduce((n, k) => n + (homeItems[k] ?? 0), 0)
 
@@ -88,100 +73,6 @@ export default function WorldHUD({ screenId, discoveredScreens, state, onGoHome,
         height: HUD_CONTENT_H,
         display: 'flex', alignItems: 'stretch',
       }}>
-
-        {/* Mini-map: 2×2 + BOSS */}
-        <div style={{
-          width: 52, flexShrink: 0,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '4px 2px', gap: 2,
-        }}>
-          {miniRows.map((row, ri) => (
-            <div key={ri} style={{ display: 'flex', gap: MINI_GAP }}>
-              {row.map(id => {
-                const realId = id === 'MAZE' ? 'SW' : id
-                const isCurrent = id === screenId
-                const isDisc    = discovered.has(id)
-                const isCleared = clearedMaps.includes(realId)
-                const theme     = MAP_THEMES[realId]
-                return (
-                  <div key={id} title={theme?.name} style={{
-                    width: MINI_TILE, height: MINI_TILE,
-                    background: miniTileColor(id, isDisc),
-                    outline: isCurrent ? '1px solid #e0e040' : '1px solid #182018',
-                    outlineOffset: -1, position: 'relative',
-                  }}>
-                    {isCurrent && (
-                      <div style={{
-                        position: 'absolute', inset: 0, background: 'rgba(255,255,140,0.72)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 8, color: '#333',
-                      }}>•</div>
-                    )}
-                    {!isCurrent && isCleared && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 7, color: '#80ff80',
-                      }}>✓</div>
-                    )}
-                    {!isCurrent && id === 'MAZE' && mazeActive && (
-                      <div style={{
-                        position: 'absolute', inset: 0, background: 'rgba(120,40,200,0.4)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 7, color: '#d090ff',
-                      }}>?</div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-          {/* BOSS tile — single centered */}
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            {(() => {
-              const isCurrent = screenId === 'BOSS'
-              const isDisc    = discovered.has('BOSS')
-              return (
-                <div style={{
-                  width: MINI_TILE * 2 + MINI_GAP, height: MINI_TILE,
-                  background: miniTileColor('BOSS', isDisc),
-                  outline: isCurrent ? '1px solid #ff4040' : (bossMapActive ? '1px solid #aa1010' : '1px solid #182018'),
-                  outlineOffset: -1, position: 'relative',
-                }}>
-                  {isCurrent && (
-                    <div style={{
-                      position: 'absolute', inset: 0, background: 'rgba(255,80,80,0.5)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 7, color: '#fff',
-                    }}>★</div>
-                  )}
-                  {!isCurrent && bossMapActive && (
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 7, color: '#ff8080',
-                    }}>!</div>
-                  )}
-                </div>
-              )
-            })()}
-          </div>
-          {/* World badge — theme emoji (icon-first: a pre-reader IDs the
-              current world by icon) + cleared-map count + short name. */}
-          <div style={{
-            fontFamily: 'var(--font-pixel)', fontSize: 6,
-            color: 'rgba(130,190,130,0.55)', lineHeight: 1, textAlign: 'center',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
-          }}>
-            <span style={{ fontSize: 11, lineHeight: 1 }}>
-              {WORLD_THEME_ICON[WORLD_LEVELS[worldLevel]?.theme] ?? '🗺️'}
-            </span>
-            <span>{clearedMaps.length}/4</span>
-          </div>
-        </div>
-
-        {HUD_SEP}
 
         {/* Creature + HP */}
         <div style={{

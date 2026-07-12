@@ -1,5 +1,60 @@
 # Changelog — KidQuest
 
+## 2026-07-14 — URGENT FIX #2: battle question prompt blank, competing banner, item bar still visible
+
+Direct follow-up to yesterday's fix, from a fresh live report: the answer
+was fixed, but the question PROMPT display had the exact same class of bug.
+
+### CRITICAL: the question prompt never rendered — same bug class, different field
+`MoveSelectBattleMode.jsx`'s Zone 2 branched on pre-Phase-1.1 fields
+(`q.question`/`q.word`/`q.letter`/`q.a`+`q.op`/`q.isCount`/`q.isPattern`/
+`q.isFillGap`/`q.isVisualDiscrim`/`q.isSequence`) that no real generator has
+ever set. Confirmed empirically across all 43 curriculum nodes × 3
+difficulties: 100% set `q.prompt`, 0% set any old field. Effect: the prompt
+area rendered nothing; `NumpadInput.jsx`'s own internal "?" digit-placeholder
+was the only "?" left on screen, which is what the report described as "the
+question is blank ?". Fixed: read `q.prompt` directly (uniform across
+subjects, no branching needed) + `q.promptTh` as an optional line; removed 3
+dead early-return branches no generator has ever triggered. Font size scales
+by prompt length (22px floor for long prompts, per the min-readable-size
+requirement — a `20px` value was caught and corrected during this session).
+
+### Removed the "เลือกท่าโจมตี!" banner
+Leftover static instruction text set on vs-splash dismissal and every
+question reset, with no real attack-selection mechanic behind it (answer
+choices ARE the attack moves). It permanently competed with the actual
+question for attention. Zone 1 (`battleLog`) now starts empty and only ever
+shows real feedback text.
+
+### Removed the battle-items bar from the battle screen (feature-scope cut)
+Confirmed as the same icon row (scroll/thunder/gem/mirror/clover) flagged
+in yesterday's fix, now seen with real accumulated inventory counts
+(12/11/14/7/18) instead of the harness's forced count of 1. Per explicit
+instruction, removed entirely from the battle UI — a real scope cut, not a
+bug fix: items are unusable mid-battle now, with no other in-battle entry
+point. `useBattleCombat.js`'s item machinery (`useBattleItem`/
+`shieldActive`/`xpBoostActive`) is left fully intact for a possible future
+pre-battle loadout screen.
+
+### New regression test
+`src/lib/__tests__/questionPromptField.test.js` — every `generateQuestion()`
+output (all 43 nodes × 3 difficulties) and every `selectBattleQuestion()`
+path (active/review/preview, reviewBoost on/off, fresh-account, all 3
+subjects) has a non-empty `prompt` + registered `inputMode`; `correctAnswer`
+required non-null except for legitimate `inputMode:'memory'` questions
+(pair-matching has no single correct answer by design — pre-existing,
+confirmed not a bug).
+
+**Verification**: 163/163 tests pass (5 new), build clean. Live-verified on
+`?battleharness=1` across all 4 scripted scenarios plus ~10 re-rolled
+samples (numpad/choice modes) — zero blank prompts, zero banners, zero icon
+rows; clicked an actual answer through to confirm Zone 1 shows only feedback
+text afterward. Same `resize_window` viewport-emulation limitation as
+yesterday (doesn't change this environment's real `window.innerWidth/
+innerHeight`) — screenshots at the real available viewport; the regression
+test's data-shape coverage of review/boss-eligible paths (not separately
+click-reachable in the harness) compensates for that gap.
+
 ## 2026-07-13 — URGENT FIX: battle answer-checking broken + UI overlap/blocking bugs
 
 Real bugs reported from live iPhone Safari play. Four fixes, in order of

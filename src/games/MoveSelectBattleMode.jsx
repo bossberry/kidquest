@@ -13,7 +13,7 @@ import GBHPBar from '../components/battle/GBHPBar.jsx'
 import BattleBackground from '../components/battle/BattleBackground.jsx'
 import EnemyCanvas from '../components/battle/EnemyCanvas.jsx'
 import MoveCard from '../components/battle/MoveCard.jsx'
-import HintBar, { numTh, mathToThai } from '../components/battle/HintBar.jsx'
+import { numTh, mathToThai } from '../components/battle/HintBar.jsx'
 import NumpadInput from '../components/battle/NumpadInput.jsx'
 import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from '../components/battle/WordBuildInput.jsx'
 import SequenceInput from '../components/battle/SequenceInput.jsx'
@@ -66,13 +66,9 @@ const ELEMENT_ICONS = {
   water:     '💧',
 }
 
-const ITEM_DESCRIPTIONS = {
-  skip:        'เปลี่ยนคำถามใหม่ทันที\nถ้าไม่รู้คำตอบ ใช้ได้เลย!',
-  free_attack: 'โจมตีมอนสเตอร์ฟรี 1 ครั้ง\nไม่ต้องตอบคำถาม!',
-  hint:        'ตัดตัวเลือกผิดออก 2 อัน\nเหลือแค่ 2 ตัวเลือก ง่ายขึ้น!',
-  block:       'ป้องกันการโจมตีครั้งต่อไป\nตอบผิดก็ไม่โดนตี 1 ครั้ง',
-  double_xp:   'คำถามถัดไปถ้าตอบถูก\nได้ XP เพิ่มเป็น 2 เท่า!',
-}
+// ITEM_DESCRIPTIONS removed (2026-07-14) — only ever used by the item-bar
+// tooltip popup, which no longer renders in this screen (see the Zone 2.5
+// removal comment further down).
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -211,9 +207,18 @@ export default function MoveSelectBattleMode({
       // initial "${enemy.name} ปรากฏตัว!" text (set at mount, before the
       // splash even existed) the whole time it was hidden behind the
       // splash — a redundant second "X has appeared!" message once the
-      // splash clears. Switch straight to the ready-to-fight prompt here
-      // instead of leaving that stale announcement to linger.
-      setBattleLog('⚔️ เลือกท่าโจมตี!')
+      // splash clears.
+      // URGENT FIX (2026-07-14) — "⚔️ เลือกท่าโจมตี!" (a legacy "choose
+      // your attack move" instruction from before this was a question-
+      // driven battle screen) was reported as a confusing banner competing
+      // with the actual question for the child's attention, especially
+      // since it has no real accompanying "attack move" affordance in any
+      // input mode besides the 4-choice grid. Per the required flow, the
+      // ONLY strings a child should see during battle are the question
+      // itself, real-time feedback, or a hint — clear to empty instead of
+      // a static instruction; real feedback text still overwrites this on
+      // every hit/miss via fireHit/fireMiss's own setBattleLog calls.
+      setBattleLog('')
     }, 600)
     return () => clearTimeout(t)
   }, []) // eslint-disable-line
@@ -266,7 +271,9 @@ export default function MoveSelectBattleMode({
     setItemUsed(false)
     lockedRef.current = false
     memoryMatchedRef.current = 0
-    if (cur > 0) setBattleLog('⚔️ เลือกท่าโจมตี!')
+    // URGENT FIX (2026-07-14) — see the vs-splash effect above for why this
+    // is now empty instead of the old "⚔️ เลือกท่าโจมตี!" instruction.
+    if (cur > 0) setBattleLog('')
   }, [cur])
 
   // Time-based auto-hint — declared here so setTimeoutHintActive is in scope
@@ -684,99 +691,77 @@ export default function MoveSelectBattleMode({
         )}
       </div>
 
-      {/* ── DIALOGUE BOX (Zone 1) ────────────────────────────────────────── */}
-      {/* Math arithmetic: dot groups. All other cases: battle log text. */}
+      {/* ── DIALOGUE BOX (Zone 1) — real-time feedback only ─────────────────── */}
+      {/* URGENT FIX (2026-07-14) — removed the HintBar branch: it checked
+          q.isCount/q.isPattern/q.isWord/q.a, none of which any real
+          questionBank.js generator has ever set (they're pre-Phase-1.1
+          fields; math prompts are pre-formatted strings like "3 + 1 = ?"
+          in q.prompt, not separate a/op/b fields) — the condition could
+          never be true, so this branch was dead code. Reviving HintBar's
+          dot-visualization would need either questionBank.js to grow back
+          structured a/op/b fields or HintBar to parse them out of the
+          prompt string — out of scope for this fix; flagged in
+          CHATBOT_NOTES.md as a possible future enhancement, not attempted
+          here. This box now purely shows transient feedback text (set by
+          fireHit/fireMiss) — empty between questions, per the required
+          flow's "only question/feedback/hint" rule. */}
       <div className="px-dialogue" style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        {!victoryMode && q && subject === 'math' && !q.isCount && !q.isPattern && !q.isWord && q.a !== undefined
-          ? <HintBar q={q} subject={subject} />
-          : <div style={{ fontFamily:'var(--font-thai)', fontSize:13, color:'var(--px-white)', lineHeight:1.6 }}>{shownText}</div>
-        }
+        <div style={{ fontFamily:'var(--font-thai)', fontSize:13, color:'var(--px-white)', lineHeight:1.6 }}>{shownText}</div>
       </div>
 
       {/* ── QUESTION DISPLAY (Zone 2) ─────────────────────────────────────── */}
-      {!victoryMode && q && (() => {
-        // Custom display for structural question types (early return, no tts button)
-        const zoneWrap = (children) => (
-          <div style={{
-            textAlign: 'center', padding: '12px 16px 8px',
-            background: 'var(--px-darkest, #0a0a12)',
-            borderBottom: '1px solid rgba(255,255,255,0.10)',
-            flexShrink: 0,
-          }}>
-            {children}
-          </div>
-        )
-        if (q.isFillGap) {
-          return zoneWrap(
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:10, fontWeight:600 }}>
-                {q.instructionTh || 'แตะตัวอักษรที่หายไป'}
-              </div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, fontFamily:'var(--font-pixel)', fontSize:32, color:'#fff' }}>
-                <span>{q.gapBefore}</span>
-                <span style={{ color:'#FFD700', border:'2px dashed rgba(255,215,0,0.5)', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8 }}>?</span>
-                <span>{q.gapAfter}</span>
-              </div>
-            </div>
-          )
-        }
-        if (q.isVisualDiscrim) {
-          return zoneWrap(
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:6, fontWeight:600 }}>
-                {q.instructionTh || 'แตะตัวที่เหมือนกัน'}
-              </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:48, color:'#FFD700', textShadow:'0 0 16px rgba(255,215,0,0.5)' }}>
-                {q.targetChar}
-              </div>
-            </div>
-          )
-        }
-        if (q.isSequence) {
-          return zoneWrap(
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:'var(--font-thai)', fontSize:16, color:'#FFD700', marginBottom:8, fontWeight:600 }}>
-                {q.instructionTh || 'แตะตัวอักษรให้เรียงตามลำดับ'}
-              </div>
-              <div style={{ fontFamily:'var(--font-pixel)', fontSize:32, color:'#f0d020' }}>🔤</div>
-            </div>
-          )
-        }
-
-        // Compute display text per question type
-        let display = null
-        if (subject === 'math') {
-          if (q.isCount)                                display = (q.objects || []).join(' ') + ' = ?'
-          else if (q.isPattern)                         display = (q.seq || []).join(' ') + ' ?'
-          else if (q.question)                          display = q.question
-          else if (q.a !== undefined && q.op != null)  display = `${q.a} ${q.op} ${q.b} = ?`
-          else if (q.story)                             display = q.story
-        } else if (subject === 'thai') {
-          display = q.word ?? q.question
-        } else {
-          display = q.word ?? q.letter ?? q.question
-        }
-        if (!display) return null
-
-        const ttsText = q.ttsWord || q.question || q.word || q.letter || ''
+      {/* URGENT FIX (2026-07-14) — ROOT CAUSE of the reported blank "?":
+          this block used to branch on q.isFillGap/q.isVisualDiscrim/
+          q.isSequence (early returns) and, for the generic case, checked
+          q.question/q.word/q.letter/q.a+q.op/q.isCount/q.isPattern/
+          q.story — ALL fields/flags from the pre-Phase-1.1 (before
+          2026-07-09) battle engine. Sampled every real generator across
+          all 43 curriculum nodes: NONE of them has EVER set any of those
+          fields — every real question instead carries a single uniform
+          `prompt` string (confirmed non-empty for all 43 nodes) plus an
+          optional `promptTh` secondary line for some Thai nodes. So
+          `display` was ALWAYS null here, this whole block ALWAYS returned
+          null, and the only "?" glyph left on screen was NumpadInput's own
+          internal digit-placeholder box — mistaken for "the question" in
+          the bug report, since there was genuinely no real question text
+          anywhere. QuestionRenderer.jsx/PlacementQuest.jsx/
+          TeachingMoment.jsx (the newer Phase 1.2/1.3 components) already
+          read q.prompt correctly — this was the one place never migrated.
+          Fixed by reading q.prompt directly: no subject-specific branching
+          needed at all (prompt is uniform across thai/math/eng), and the
+          3 structural early-return branches above are removed as dead
+          code (no generator sets isFillGap/isVisualDiscrim/isSequence —
+          sequence-mode questions use inputMode:'sequence' + this same
+          generic prompt display instead). Font size now scales down for
+          longer prompts (reading-comprehension passages can run 2-3
+          sentences) while staying >=22px; a maxHeight+scroll fallback
+          guards against the rare very-long passage overflowing the layout. */}
+      {!victoryMode && q && q.prompt && (() => {
+        const display = q.prompt
+        const fontSize = display.length > 60 ? 22 : display.length > 30 ? 24 : (subject === 'thai' ? 34 : 26)
+        const ttsText = q.ttsWord || q.prompt || ''
         return (
           <div style={{
             textAlign: 'center',
             padding: '12px 16px 8px',
             background: 'var(--px-darkest, #0a0a12)',
             borderBottom: '1px solid rgba(255,255,255,0.10)',
-            flexShrink: 0,
+            flexShrink: 0, maxHeight: 150, overflowY: 'auto',
           }}>
             <span style={{
               fontFamily: subject === 'thai'
                 ? 'Sarabun, sans-serif'
                 : 'var(--font-pixel, "Press Start 2P"), monospace',
-              fontSize: subject === 'thai' ? 34 : 26,
-              fontWeight: 'bold',
-              color: '#f0d020',
+              fontSize, fontWeight: 'bold', color: '#f0d020',
+              lineHeight: 1.4, whiteSpace: 'pre-wrap',
             }}>
               {display}
             </span>
+            {q.promptTh && (
+              <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
+                {q.promptTh}
+              </div>
+            )}
             {' '}
             <button
               onClick={() => {
@@ -797,135 +782,26 @@ export default function MoveSelectBattleMode({
         )
       })()}
 
-      {/* ── ITEM BAR (Zone 2.5) ──────────────────────────────────────────── */}
-      {/* URGENT FIX (2026-07-13) — this is the row reported as "icon/badge
-          row that looks like it might be materials HUD leaking in". It is
-          NOT the world-map materials HUD (that lives entirely in
-          WorldHUD.jsx/WorldScreen.jsx and never renders here) — it's this
-          battle screen's own pre-existing BATTLE ITEMS bar: scroll (gold
-          #e8c040) / thunder (blue #66aaff) / gem (pink #cc44cc) / mirror
-          (teal #44cccc) / clover (green #44cc44), each with a small red
-          count badge — an exact color match to the reported "yellow/blue/
-          pink/teal/green" row. It's battle-relevant and correctly scoped
-          here (hidden entirely during boss battles, per isBossBattle
-          above) — the actual bug was Zone 3 overflowing onto it, fixed
-          above, not this row's own identity or placement. */}
-      {!victoryMode && !isBossBattle && Object.keys(BATTLE_ITEMS).some(k => (state.battleItems?.[k] || 0) > 0) && (
-        <div style={{ display:'flex', gap:6, padding:'0 10px 4px', flexShrink:0, alignItems:'center' }}>
-          {Object.keys(BATTLE_ITEMS).map(key => {
-            const count = state.battleItems?.[key] || 0
-            if (count <= 0) return null
-            const item = BATTLE_ITEMS[key]
-            return (
-              <button
-                key={key}
-                onClick={() => !itemUsed && setPendingItem(key)}
-                disabled={itemUsed}
-                title={item.name_th}
-                style={{
-                  position: 'relative',
-                  background: itemUsed ? 'rgba(60,60,60,0.5)' : `${item.color}22`,
-                  border: `2px solid ${itemUsed ? '#555' : item.color}`,
-                  borderRadius: 4, padding: 4, cursor: itemUsed ? 'default' : 'pointer',
-                  opacity: itemUsed ? 0.45 : 1,
-                  touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <PixelItemIcon type={key} size={24} />
-                <div style={{
-                  position: 'absolute', top: -5, right: -5,
-                  background: '#ff4444', color: '#fff',
-                  fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold',
-                  borderRadius: '50%', width: 14, height: 14,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {count}
-                </div>
-              </button>
-            )
-          })}
-          {shieldActive && (
-            <span style={{ fontSize:10, color:'#44cc44', fontFamily:'var(--font-thai)', marginLeft:2 }}>โล่</span>
-          )}
-          {xpBoostActive && (
-            <span style={{ fontSize:10, color:'#ffcc00', fontFamily:'var(--font-thai)', marginLeft:2 }}>XP×2</span>
-          )}
-        </div>
-      )}
-
-      {/* ── ITEM TOOLTIP POPUP ───────────────────────────────────────────── */}
-      {pendingItem && !victoryMode && (() => {
-        const key = pendingItem
-        const item = BATTLE_ITEMS[key]
-        const count = state.battleItems?.[key] || 0
-        const descLines = (ITEM_DESCRIPTIONS[item.effect] || '').split('\n')
-        return (
-          <div
-            style={{
-              position: 'absolute', inset: 0, zIndex: 85,
-              background: 'rgba(0,0,0,0.82)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-            onClick={() => setPendingItem(null)}
-          >
-            <div
-              onClick={e => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                border: `2px solid ${item.color}`,
-                borderRadius: 12, padding: '20px 24px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                minWidth: 200, maxWidth: 260,
-                boxShadow: `0 0 20px ${item.color}44`,
-              }}
-            >
-              <PixelItemIcon type={key} size={40} />
-              <div style={{ fontFamily: 'var(--font-thai)', fontSize: 17, color: 'var(--px-yellow)', fontWeight: 'bold' }}>
-                {item.name_th}
-              </div>
-              <div style={{ fontFamily: 'var(--font-thai)', fontSize: 12, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 1.6 }}>
-                {descLines.map((line, i) => <div key={i}>{line}</div>)}
-              </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>
-                มี {count} ชิ้น
-              </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
-                <button
-                  onClick={() => { setPendingItem(null); useBattleItem(key) }}
-                  aria-label="ใช้เลย"
-                  style={{
-                    background: item.color, color: '#fff',
-                    border: 'none', borderRadius: 6,
-                    padding: '8px 18px', minHeight: 44,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-                    fontFamily: 'var(--font-thai)', cursor: 'pointer',
-                    touchAction: 'manipulation',
-                  }}
-                >
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>⚡</span>
-                  <span style={{ fontSize: 11 }}>ใช้</span>
-                </button>
-                <button
-                  onClick={() => setPendingItem(null)}
-                  aria-label="ยกเลิก"
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.65)',
-                    border: '1px solid rgba(255,255,255,0.18)',
-                    borderRadius: 6, padding: '8px 18px', minHeight: 44,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-                    fontFamily: 'var(--font-thai)', cursor: 'pointer',
-                    touchAction: 'manipulation',
-                  }}
-                >
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>✖️</span>
-                  <span style={{ fontSize: 11 }}>ยกเลิก</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {/* URGENT FIX (2026-07-14) — the battle-items icon row (Zone 2.5,
+          previously here) and its tap-to-use tooltip popup are REMOVED
+          entirely per explicit instruction: whatever it was, it must not
+          render inside the battle screen. Re-identified definitively this
+          time — it's the SAME pre-existing BATTLE ITEMS bar flagged
+          2026-07-13 (scroll/thunder/gem/mirror/clover), just showing much
+          higher counts (11-18) on a real, heavily-played account than my
+          own harness's forced count of 1 each — not a different feature.
+          Yesterday's fix only addressed the OVERLAP; today's instruction
+          is to remove the row outright, since the required child-facing
+          flow allows only question/feedback/hint on screen, nothing else
+          interactive. This is a real feature-scope cut, not just a bug
+          fix: scroll/thunder/gem/mirror/clover become unusable DURING a
+          battle (no other in-battle entry point exists) — flagged in
+          CHATBOT_NOTES.md/TASKS.md as a judgment call, since it was
+          explicitly instructed rather than something I decided
+          unilaterally. useBattleCombat.js's useBattleItem/shieldActive/
+          xpBoostActive machinery is left fully intact (untouched) in case
+          a different UI — e.g. a pre-battle loadout screen — wants to
+          surface item use later; only this screen's trigger UI is gone. */}
 
       {/* ── MOVE PANEL (Zone 3) ──────────────────────────────────────────── */}
       {/* URGENT FIX (2026-07-13) — ROOT CAUSE of the reported "hint text

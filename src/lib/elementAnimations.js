@@ -1,4 +1,5 @@
 // Element attack canvas animations — 6 elements × 4 tiers
+import { drawAuraLayer } from '../egg/eggAuraLayer.js'
 
 function animate(ctx, w, h, duration, drawFn, onComplete) {
   const start = performance.now()
@@ -578,4 +579,39 @@ export function playElementAttack(canvas, element, tierIndex, fromPos, toPos, on
   if (!fns) { if (onComplete) onComplete(); return }
   const fn = fns[Math.min(tierIndex, fns.length - 1)]
   fn(ctx, canvas.width, canvas.height, fromPos, toPos, onComplete)
+}
+
+// SPEC GAME-B §B.4 (2026-07-12) — element-skill charge-meter blast. This
+// battle screen's own element system (lightning/fire/ice/wind/laser/water,
+// config/elementConfig.js — the ANIMATIONS table above) is a SEPARATE 6-set
+// from SPEC GAME-A §A.3's egg-aura element system (fire/water/nature/
+// thunder/shadow/light, src/egg/eggAuraLayer.js) — the spec asks the blast
+// to reuse the A.3 aura particle system specifically, so this remaps one set
+// onto the other (same style of 1:1 judgment-call remap eggAuraLayer.js's
+// own header comment already documents for ITS spec mismatch): fire/water
+// are shared as-is; lightning->thunder (near-synonyms, both electric);
+// ice->light (already precedented in eggAuraLayer.js's own comment: "ice has
+// no equivalent so light gets a twinkling-glimmer motif"); wind->nature
+// (both natural forces); laser->shadow (the one arbitrary leftover pairing
+// once everything else is assigned).
+export const AURA_ELEMENT_MAP = {
+  fire: 'fire', water: 'water', lightning: 'thunder', ice: 'light', wind: 'nature', laser: 'shadow',
+}
+
+// One-shot "big blast" — drives eggAuraLayer.js's drawAuraLayer (level 3,
+// max particle stage) through a scale-in/fade-out envelope via the same
+// animate() RAF helper playElementAttack's own tiers use, so it's a genuine
+// reuse of the A.3 aura draw routine rather than a new bespoke effect.
+export function playElementBlast(canvas, battleElement, cx, cy, onComplete) {
+  if (!canvas) { if (onComplete) onComplete(); return }
+  const ctx = canvas.getContext('2d')
+  const element = AURA_ELEMENT_MAP[battleElement] ?? 'light'
+  animate(ctx, canvas.width, canvas.height, 450, (ctx2, _w, _h, t) => {
+    const scale = t < 0.3 ? t / 0.3 : 1
+    const fade  = t > 0.7 ? (1 - t) / 0.3 : 1
+    ctx2.save()
+    ctx2.globalAlpha = fade
+    drawAuraLayer(ctx2, { level: 3, element, cx, cy, eggR: 14 + 34 * scale, t: t * 4, stage: 9 })
+    ctx2.restore()
+  }, onComplete)
 }

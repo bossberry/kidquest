@@ -798,7 +798,17 @@ export function generateQuestion(node, difficulty = 1) {
 // deliberately do NOT count toward skillMastery — the child hasn't been taught
 // that content yet, so a "wrong" answer there would be a false signal, not a
 // real mastery failure.
-export function selectBattleQuestion(subject, state) {
+// SPEC GAME-B §B.4 (2026-07-12) — boss phase 2 (<=50% HP) shifts the mix
+// toward spaced-repetition review. ACTIVE_THRESHOLD is the only thing that
+// moves: REVIEW_THRESHOLD stays fixed at 0.90, so shrinking the active band
+// grows the review band at the active band's expense (preview's tail slice
+// is untouched either way) — a verifiable, traceable weight shift rather
+// than a vague "more review sometimes".
+const ACTIVE_THRESHOLD = 0.70
+const ACTIVE_THRESHOLD_REVIEW_BOOST = 0.40
+const REVIEW_THRESHOLD = 0.90
+
+export function selectBattleQuestion(subject, state, opts = {}) {
   const skillMastery = state?.skillMastery || {}
   const activeId = state?.activeNodes?.[subject] || getFirstNodeId(subject)
   const activeNode = getNode(subject, activeId) || getNode(subject, getFirstNodeId(subject))
@@ -806,11 +816,12 @@ export function selectBattleQuestion(subject, state) {
 
   const activeDifficulty = clampDifficulty(1 + Math.floor((skillMastery[activeNode.id]?.ema ?? 0) * 9))
 
+  const activeThreshold = opts.reviewBoost ? ACTIVE_THRESHOLD_REVIEW_BOOST : ACTIVE_THRESHOLD
   const roll = Math.random()
-  if (roll < 0.70 || masteredIds.length === 0) {
+  if (roll < activeThreshold || masteredIds.length === 0) {
     return { ...generateQuestion(activeNode, activeDifficulty), countsForMastery: true }
   }
-  if (roll < 0.90) {
+  if (roll < REVIEW_THRESHOLD) {
     const reviewId = masteredIds[Math.floor(Math.random() * masteredIds.length)]
     const reviewNode = getNode(subject, reviewId)
     const reviewDifficulty = clampDifficulty(activeDifficulty - 2)

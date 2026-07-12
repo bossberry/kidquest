@@ -484,6 +484,27 @@ test('§B.3: validateState coerces malformed exploredScreens/secretsFound to {} 
   assert.deepEqual(s2.sideQuest, legit.sideQuest)
 })
 
+// SPEC GAME-B §B.4 (2026-07-12) — Battle: bossRanks
+test('regression: a per-boss rank is never wiped by a stale blank remote', () => {
+  const localRanked = { ...defaultState(), lastSavedAt: 1000, bossRanks: { 0: 'S' } }
+  const remoteBlank = { ...defaultState(), lastSavedAt: 9000 }
+  assert.equal(hasRealProgress(localRanked), true, 'an earned boss rank counts as real progress')
+  assert.equal(resolveSync(localRanked, remoteBlank).remoteWon, false)
+
+  // An untouched default (no boss ranks earned) must NOT read as real progress.
+  assert.equal(hasRealProgress({ ...defaultState() }), false)
+})
+
+test('§B.4: validateState coerces a malformed bossRanks to {}, leaves a legitimate one untouched', () => {
+  const dirty = { ...defaultState(), xpThai: 10, bossRanks: 'nope' }
+  const { state: s } = validateState(dirty)
+  assert.deepEqual(s.bossRanks, {})
+
+  const legit = { ...defaultState(), xpThai: 10, bossRanks: { 0: 'A', 2: 'S' } }
+  const { state: s2 } = validateState(legit)
+  assert.deepEqual(s2.bossRanks, { 0: 'A', 2: 'S' })
+})
+
 test('C.1: backup ring caps at 3 newest entries', () => {
   _store.clear()
   const pid = 'ring-profile'

@@ -14,6 +14,7 @@ import { applyAnswerToMastery } from '../lib/curriculum.js'
 import { recordMissForTeaching, clearTeaching } from '../lib/teachingMoments.js'
 import { computeCareTick, applyFeed, applyPetEgg, applyPlayTouch, FOOD_CATALOG } from '../lib/eggCare.js'
 import { computeDisplayStage, computeAffinity, countMasteredNodes, AFFINITY_LINES } from '../lib/eggEvolution.js'
+import { isBetterRank } from '../lib/battleRanks.js'
 
 export const StateContext = createContext(null)
 
@@ -230,6 +231,8 @@ export const ACTIONS = {
   UPDATE_SIDE_QUEST:    'UPDATE_SIDE_QUEST',
   COMPLETE_SIDE_QUEST:  'COMPLETE_SIDE_QUEST',
   MARK_SECRET_FOUND:    'MARK_SECRET_FOUND',
+  // SPEC GAME-B §B.4 (2026-07-12) — Battle: charge meter/boss phase 2/ranks
+  RECORD_BOSS_RANK: 'RECORD_BOSS_RANK',
 }
 
 // Multi-room helper — write a new layout into one room inside `rooms`, and keep the
@@ -1576,6 +1579,21 @@ function reducer(state, action) {
           ? state.ownedRoomItems
           : [...(state.ownedRoomItems || []), itemId],
         hasNewRoomItem: true,
+        lastSavedAt: Date.now(),
+      }
+    }
+
+    // RECORD_BOSS_RANK — SPEC GAME-B §B.4 (2026-07-12). Stores the BEST rank
+    // ever earned per boss; no-op if the new rank doesn't beat the stored
+    // one (a rank can only ever improve for a given world).
+    case ACTIONS.RECORD_BOSS_RANK: {
+      const { worldLevel, rank } = action.payload
+      if (worldLevel === undefined || !rank) return state
+      const wKey = String(worldLevel)
+      if (!isBetterRank(rank, state.bossRanks?.[wKey])) return state
+      return {
+        ...state,
+        bossRanks: { ...(state.bossRanks || {}), [wKey]: rank },
         lastSavedAt: Date.now(),
       }
     }

@@ -123,6 +123,10 @@ export function hasRealProgress(s) {
   if (Object.values(s.exploredScreens || {}).some(w => w && Object.values(w).some(Boolean))) return true
   if (Object.values(s.secretsFound || {}).some(Boolean)) return true
   if (s.sideQuest) return true
+  // SPEC GAME-B §B.4 (2026-07-12). A per-boss S/A/B rank is a real, earned
+  // result the child fought for (accuracy + no-hints performance) — same
+  // category as evolutionAlbum/secretsFound above, not a fluctuating gauge.
+  if (Object.keys(s.bossRanks || {}).length > 0) return true
   return false
 }
 
@@ -212,7 +216,7 @@ export function validateState(state, profileId = _currentProfileId) {
   const objectFields = ['homeItems', 'battleItems', 'activeBoosts', 'equipped', 'materials',
                         'subjectLevels', 'levelMastery', 'thaiMastery', 'responseTimeLogs',
                         'skillMastery', 'activeNodes', 'missStreaks', 'roomHearts',
-                        'exploredScreens', 'secretsFound']
+                        'exploredScreens', 'secretsFound', 'bossRanks']
   for (const f of objectFields) {
     if (!s[f] || typeof s[f] !== 'object' || Array.isArray(s[f])) {
       s[f] = (base[f] && typeof base[f] === 'object') ? { ...base[f] } : {}
@@ -527,6 +531,13 @@ export function defaultState() {
     exploredScreens: {},
     sideQuest: null,
     secretsFound: {},
+    // SPEC GAME-B §B.4 (2026-07-12) — Battle. bossRanks: best-ever S/A/B rank
+    // per boss, { [worldLevel]: 'S'|'A'|'B' }, keyed dynamically by worldLevel
+    // like exploredScreens/skillMastery above (not in migrateStateShape()'s
+    // fixed-subkey nestedObjectFields list). Only ever improves — see
+    // isBetterRank() in src/lib/battleRanks.js, never overwritten with a
+    // worse rank.
+    bossRanks: {},
     // 0 means "never actually saved". Real saves always stamp Date.now() via
     // saveState(). A pristine defaultState() must be distinguishable from a real
     // recent save so resolveSync() never lets an empty new device beat real cloud

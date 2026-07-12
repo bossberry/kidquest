@@ -1,6 +1,24 @@
 # Changelog — KidQuest
 
-## 2026-07-14 — URGENT FIX #2: battle question prompt blank, competing banner, item bar still visible
+## 2026-07-12 — Placement test gate: explicit `placementDone === false` reset always wins
+
+Small fix requested after a report that Chopin's account, which had
+`placementDone` manually reset to `false` via SQL, wasn't showing the
+placement test on refresh. Root cause: the old gate was
+`state.placementDone !== true && totalAnswersRecorded < 20` — an
+established account with 20+ logged battle answers was skipped even with
+`placementDone` explicitly `false`.
+
+Extracted the gate into a pure, testable `needsPlacementTest()` in
+`src/lib/placementTest.js`: `placementDone === false` now always shows
+placement (an explicit reset — SQL today, a future parent dashboard later —
+must always win); `placementDone === true` never shows it; any other value
+(only reachable pre-migration, since `migrateStateShape`/`validateState`
+always coerce to a real boolean) falls back to the existing legacy
+`<20 answers` heuristic. `App.jsx` now calls `needsPlacementTest()` instead
+of inlining the condition. Added 3 new tests covering all three cases
+(`src/lib/__tests__/placementTest.test.js`) — 166/166 tests pass, build
+clean.
 
 Direct follow-up to yesterday's fix, from a fresh live report: the answer
 was fixed, but the question PROMPT display had the exact same class of bug.

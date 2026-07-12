@@ -27,6 +27,7 @@ import CompanionCreation from './components/CompanionCreation.jsx'
 import Room from './components/Room.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import PlacementQuest from './components/PlacementQuest.jsx'
+import { needsPlacementTest } from './lib/placementTest.js'
 import SpeechTestHarness from './components/SpeechTestHarness.jsx'
 import EggPoseHarness from './components/EggPoseHarness.jsx'
 import RoomHarness from './components/RoomHarness.jsx'
@@ -155,14 +156,14 @@ export default function App() {
   }
 
   // Phase 1.2 placement test ("ด่านทดสอบพลัง") — shown once, before the child can
-  // reach a battle, for genuinely new accounts only. Trigger: placementDone !== true
-  // AND fewer than 20 total battle answers recorded so far (an existing account that
-  // predates this field gets placementDone defaulted correctly by migrateStateShape's
-  // skip-rule, so this check only ever fires live for a real first-launch case).
+  // reach a battle. placementDone === false always shows it (an explicit reset,
+  // e.g. via SQL or a future parent dashboard, must always win). Anything else
+  // falls back to needsPlacementTest's legacy <20-answers heuristic — see
+  // src/lib/placementTest.js for the full gate logic and rationale.
   // Blocking, same pattern as CompanionCreation above.
   const totalAnswersRecorded = Object.values(state.responseTimeLogs || {})
     .reduce((sum, arr) => sum + (arr?.length || 0), 0)
-  const needsPlacement = state.placementDone !== true && totalAnswersRecorded < 20
+  const needsPlacement = needsPlacementTest({ placementDone: state.placementDone, totalAnswersRecorded })
   if (needsPlacement) {
     // No onDone handler needed here: PlacementQuest dispatches COMPLETE_PLACEMENT
     // itself, which flips placementDone to true — this gate then simply stops

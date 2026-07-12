@@ -104,3 +104,22 @@ export function placementResultNodeId(session) {
   const idx = session.highestCorrectIdx >= 0 ? session.highestCorrectIdx : 0
   return list[idx].id
 }
+
+// Answer-count heuristic used only for legacy saves where placementDone isn't
+// a real boolean yet (see the App.jsx gate below) — an account that already
+// has a real battle history gets skipped rather than forced through
+// placement on the very save that introduced this field.
+export const AUTO_SKIP_ANSWER_THRESHOLD = 20
+
+// Gate used by App.jsx to decide whether to show PlacementQuest.
+// placementDone === false is treated as an explicit reset (e.g. a SQL/
+// parent-dashboard-initiated re-test) and always wins, independent of prior
+// answer count. placementDone === true never shows it. Any other value
+// (only possible for state that hasn't been through migrateStateShape/
+// validateState yet, which always coerce to a boolean) falls back to the
+// legacy <20-answers heuristic.
+export function needsPlacementTest({ placementDone, totalAnswersRecorded }) {
+  if (placementDone === false) return true
+  if (placementDone === true) return false
+  return totalAnswersRecorded < AUTO_SKIP_ANSWER_THRESHOLD
+}

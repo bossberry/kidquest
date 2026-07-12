@@ -9,7 +9,7 @@ import { CURRICULUM } from '../curriculum.js'
 import {
   PLACEMENT_SUBJECTS, createPlacementSession, currentPlacementQuestion,
   recordPlacementAnswer, isPlacementSubjectDone, placementResultNodeId,
-  QUESTIONS_PER_SUBJECT,
+  QUESTIONS_PER_SUBJECT, needsPlacementTest, AUTO_SKIP_ANSWER_THRESHOLD,
 } from '../placementTest.js'
 
 function generateNonMemoryQuestion(session) {
@@ -89,4 +89,30 @@ test('regression: mixed and alternating answer patterns always resolve to a vali
       assert.ok(node, `${subject}: result node id "${resultId}" must exist in CURRICULUM`)
     }
   }
+})
+
+// App.jsx gate: placementDone === false is an explicit reset (SQL / future
+// parent dashboard) and must always win, regardless of how much battle
+// history the account already has.
+test('needsPlacementTest: placementDone === false always shows placement, even with lots of answer history', () => {
+  assert.equal(needsPlacementTest({ placementDone: false, totalAnswersRecorded: 0 }), true)
+  assert.equal(needsPlacementTest({ placementDone: false, totalAnswersRecorded: AUTO_SKIP_ANSWER_THRESHOLD }), true)
+  assert.equal(needsPlacementTest({ placementDone: false, totalAnswersRecorded: 999 }), true)
+})
+
+// placementDone === true must never show placement again, no matter the
+// answer count (a completed placement is permanent).
+test('needsPlacementTest: placementDone === true never shows placement', () => {
+  assert.equal(needsPlacementTest({ placementDone: true, totalAnswersRecorded: 0 }), false)
+  assert.equal(needsPlacementTest({ placementDone: true, totalAnswersRecorded: 999 }), false)
+})
+
+// Anything else (only reachable pre-migration, since migrateStateShape/
+// validateState always coerce to a real boolean) falls back to the legacy
+// <20-answers heuristic.
+test('needsPlacementTest: non-boolean placementDone falls back to the <20-answers heuristic', () => {
+  assert.equal(needsPlacementTest({ placementDone: undefined, totalAnswersRecorded: 0 }), true)
+  assert.equal(needsPlacementTest({ placementDone: undefined, totalAnswersRecorded: AUTO_SKIP_ANSWER_THRESHOLD - 1 }), true)
+  assert.equal(needsPlacementTest({ placementDone: undefined, totalAnswersRecorded: AUTO_SKIP_ANSWER_THRESHOLD }), false)
+  assert.equal(needsPlacementTest({ placementDone: null, totalAnswersRecorded: 999 }), false)
 })

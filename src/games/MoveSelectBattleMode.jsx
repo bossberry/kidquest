@@ -18,6 +18,7 @@ import NumpadInput from '../components/battle/NumpadInput.jsx'
 import WordBuildInput, { DEFAULT_ENG_DISTRACTORS } from '../components/battle/WordBuildInput.jsx'
 import SequenceInput from '../components/battle/SequenceInput.jsx'
 import MemoryCardInput from '../components/battle/MemoryCardInput.jsx'
+import { getAttackVariant } from '../lib/enemyAttackVariants.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,9 @@ const TEACH_INTRO = {
 }
 
 const MAX_PLAYER_HP = 60
+
+// SPEC GAME-B §B.4 (2026-07-12) — 600ms vs-splash subject icon.
+const SUBJECT_ICON = { thai: '📖', math: '🔢', eng: '🔤' }
 
 const ELEMENT_ICONS = {
   lightning: '⚡',
@@ -89,6 +93,8 @@ export default function MoveSelectBattleMode({
   onCreatureHeal,
   onBattleXP,
   onFaint,
+  onHintUsed,
+  onBossPhase2,
 }) {
   const bg = BG[subject] || '#1a1040'
   const nearHatch = readyToHatch || (eggProgress?.stage ?? 0) >= 5
@@ -106,6 +112,8 @@ export default function MoveSelectBattleMode({
   const enemyType = enemy.type || 'bunny'
   const maxHP     = isWorldBattle ? (enemyData?.hp ?? 200) : (isBoss ? total * 14 : total * 9)
   const dmgBase   = isWorldBattle ? 1 : Math.ceil(maxHP / total)
+  // SPEC GAME-B §B.4 (2026-07-12) — chosen once per battle, like battleElement below.
+  const [attackVariant] = useState(() => getAttackVariant(enemyType))
 
   // Core refs
   const lockedRef          = useRef(false)
@@ -115,6 +123,9 @@ export default function MoveSelectBattleMode({
   const enemyHPRef         = useRef(maxHP)
   const mountedRef         = useRef(true)
   const typeTimerRef       = useRef(null)
+  // SPEC GAME-B §B.4 (2026-07-12)
+  const chargeRef          = useRef(0)
+  const bossPhase2FiredRef = useRef(false)
 
   // Effect system refs
   const battleFieldRef  = useRef(null)
@@ -162,6 +173,11 @@ export default function MoveSelectBattleMode({
   const [showTeach, setShowTeach]         = useState(() => !!isFirstLevel && cur === 0)
   const [flashVisible, setFlashVisible]   = useState(true)
   const [entered, setEntered]             = useState(false)
+  // SPEC GAME-B §B.4 (2026-07-12)
+  const [chargeMeter, setChargeMeter]     = useState(0)
+  const [screenShake, setScreenShake]     = useState(false)
+  const [bossPhase2, setBossPhase2]       = useState(false)
+  const [showVsSplash, setShowVsSplash]   = useState(true)
 
   // Battle item state
   const { state, dispatch } = useAppState()
@@ -176,9 +192,21 @@ export default function MoveSelectBattleMode({
   const shieldActiveRef  = useRef(false)
   const xpBoostActiveRef = useRef(false)
 
-  // ── Entry: 3 white flashes + slide-in ──────────────────────────────────────
+  // ── Entry: 600ms vs-splash, THEN 3 white flashes + slide-in ─────────────────
+  // SPEC GAME-B §B.4 (2026-07-12) — the vs-splash (enemy slide-in + name
+  // plate + subject icon, see the render block below) plays first and owns
+  // its own single 600ms timer; the pre-existing flash+slide-in sequence is
+  // simply shifted +600ms later so the two chain rather than overlap. This
+  // is the one genuinely ADDED serial delay in this whole spec section —
+  // everything else (attack variants, wobble, charge blast, phase 2, ranks)
+  // reuses existing timing windows or runs non-blocking. See
+  // docs/CHATBOT_NOTES.md's §B.4 entry for the full added-time ledger.
   useEffect(() => {
-    const times = [80,  200, 280, 400, 480, 530]
+    const t = setTimeout(() => mountedRef.current && setShowVsSplash(false), 600)
+    return () => clearTimeout(t)
+  }, [])
+  useEffect(() => {
+    const times = [680, 800, 880, 1000, 1080, 1130]
     const fns   = [
       () => mountedRef.current && setFlashVisible(false),
       () => { mountedRef.current && setFlashVisible(true); playSFX('battle_start') },
@@ -255,6 +283,7 @@ export default function MoveSelectBattleMode({
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
     setTimeoutHintActive,
+    chargeRef, setChargeMeter, setScreenShake, onHintUsed,
     localCreatureHP, itemUsed, victoryMode,
   })
 
@@ -316,10 +345,26 @@ export default function MoveSelectBattleMode({
     timeoutHintTimerRef.current = setTimeout(() => {
       if (mountedRef.current && !lockedRef.current && !victoryMode && !battleOverRef.current) {
         setTimeoutHintActive(true)
+        onHintUsed?.() // SPEC GAME-B §B.4 (2026-07-12) — counts toward the boss-rank hint tally
       }
     }, delay)
     return () => clearTimeout(timeoutHintTimerRef.current)
   }, [cur]) // eslint-disable-line
+
+  // SPEC GAME-B §B.4 (2026-07-12) — boss phase 2 at <=50% HP: costume shift
+  // (CSS filter on the enemy sprite wrapper, render block below) + a
+  // playful bubble line via the existing battleLog mechanism + notifies
+  // WorldBattle.jsx (onBossPhase2) so its NEXT selectBattleQuestion call
+  // gets opts.reviewBoost. Ref-guarded so it only ever fires once per battle
+  // (enemyHP only decreases, but this is cheap insurance either way).
+  useEffect(() => {
+    if (isBoss && !bossPhase2FiredRef.current && enemyHP > 0 && enemyHP <= maxHP / 2) {
+      bossPhase2FiredRef.current = true
+      setBossPhase2(true)
+      setBattleLog(`${enemy.name}: ยังไม่ยอมง่ายๆ นะ! 😤✨`)
+      onBossPhase2?.()
+    }
+  }, [enemyHP]) // eslint-disable-line
 
   // Auto-eliminate 2 wrong choices on timeout (choice/fillgap/visualdiscrim modes)
   useEffect(() => {
@@ -379,6 +424,35 @@ export default function MoveSelectBattleMode({
       fontFamily:'Mitr,sans-serif', position:'relative', overflow:'hidden',
     }}>
 
+      {/* SPEC GAME-B §B.4 (2026-07-12) — 600ms vs-splash, replacing the old
+          hard cut straight into the flash+slide-in sequence below. Own
+          overlay, own single timer (see the effect above) — the pre-existing
+          entry sequence is simply delayed +600ms so the two chain cleanly. */}
+      {showVsSplash && (
+        <div style={{
+          position:'absolute', inset:0, zIndex:110, background:'#0a0a12',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:18,
+          pointerEvents:'none', overflow:'hidden',
+        }}>
+          <div style={{
+            fontSize:44, animation:'vs-slide-left 0.5s ease-out both',
+          }}>{SUBJECT_ICON[subject] ?? '❓'}</div>
+          <div style={{
+            fontFamily:"'Fredoka One',cursive", fontSize:26, color:'#FFD700',
+            textShadow:'0 0 12px rgba(255,215,0,.6)', animation:'fadeInOut 0.6s ease both',
+          }}>VS</div>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, animation:'vs-slide-right 0.5s ease-out both' }}>
+            <div style={{ fontSize:44 }}>{enemy.emoji ?? (isBoss ? '👑' : '👾')}</div>
+            <div className="px-name-badge" style={{
+              fontFamily:'var(--font-thai)', fontSize:12, color:'#fff',
+              background:'rgba(0,0,0,0.6)', padding:'2px 10px',
+            }}>
+              {isBoss ? 'BOSS: ' : ''}{enemy.name}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Entry flash */}
       {flashVisible && (
         <div style={{ position:'absolute', inset:0, background:'#fff', zIndex:100, pointerEvents:'none' }} />
@@ -394,6 +468,8 @@ export default function MoveSelectBattleMode({
         flex:1, minHeight:200, position:'relative',
         background:'linear-gradient(180deg, #1a2a1a 0%, #1e3020 40%, #2a4020 100%)',
         overflow:'hidden', borderBottom:'2px solid #3a6a3a',
+        // SPEC GAME-B §B.4 (2026-07-12) — element-blast screen shake, <=250ms.
+        animation: screenShake ? 'battle-shake 0.25s ease' : 'none',
       }}>
 
         {/* Painted atmospheric scene (behind everything) */}
@@ -452,11 +528,19 @@ export default function MoveSelectBattleMode({
           transform: `translateX(${entered ? 0 : 120}px)`,
           transition: 'transform 300ms ease-out',
         }}>
+          {/* SPEC GAME-B §B.4 (2026-07-12) — telegraphed attack-variant
+              animation on a wrong answer, driven by the SAME enemyLunge
+              boolean/timing fireMiss already toggles (300ms window) — just
+              richer motion than the old flat translateX, picked once per
+              battle by enemy body type (getAttackVariant). */}
           <div style={{
-            transform: `translateX(${enemyLunge ? -34 : 0}px)`,
-            transition: 'transform 130ms ease',
+            animation: enemyLunge ? `enemy-atk-${attackVariant} 0.3s ease` : 'none',
           }}>
-            <div ref={enemyDivRef}>
+            {/* Boss phase 2 costume shift — palette hue-rotate on the sprite. */}
+            <div ref={enemyDivRef} style={{
+              filter: bossPhase2 ? 'hue-rotate(140deg) saturate(1.4)' : 'none',
+              transition: 'filter 0.4s ease',
+            }}>
               <EnemyCanvas enemyType={enemyType} size={120} hitFlash={hitFlash} enemyDefeating={enemyDefeating} enemyHurt={enemyHurt} />
               {dmgFloat && (
                 <div style={{
@@ -503,8 +587,13 @@ export default function MoveSelectBattleMode({
                   style={{
                     display:'block',
                     filter: eggHitFlash ? 'brightness(8) saturate(0)' : eggFilter,
-                    transform: eggAnimClass === 'shake' ? 'translateX(-8px)' : 'none',
-                    transition:'filter .2s, transform .1s',
+                    // SPEC GAME-B §B.4 (2026-07-12) — egg "wobbles" on a wrong
+                    // answer: an oscillating keyframe instead of the old
+                    // single static translateX nudge, same 400ms window
+                    // fireMiss's setEggAnimClass('shake')...setTimeout(...,400)
+                    // already drives.
+                    animation: eggAnimClass === 'shake' ? 'egg-wobble 0.4s ease' : 'none',
+                    transition:'filter .2s',
                   }}
                 />
               </div>
@@ -542,6 +631,26 @@ export default function MoveSelectBattleMode({
             animation:'streak-bounce .55s ease', textShadow:'0 0 8px gold',
           }}>
             🌟 ท่าพิเศษ
+          </div>
+        )}
+
+        {/* SPEC GAME-B §B.4 (2026-07-12) — element charge meter, 3 segments.
+            Only shown once charging has started, so an untouched battle
+            doesn't clutter the field with an empty meter. */}
+        {chargeMeter > 0 && !victoryMode && (
+          <div style={{
+            position:'absolute', left:114, bottom:74, zIndex:10,
+            display:'flex', alignItems:'center', gap:3,
+            background:'rgba(0,0,0,.25)', borderRadius:8, padding:'3px 6px',
+          }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{
+                width:9, height:9, borderRadius:'50%',
+                background: i < chargeMeter ? ELEMENTS[battleElement].color : 'rgba(255,255,255,.15)',
+                boxShadow: i < chargeMeter ? `0 0 6px ${ELEMENTS[battleElement].color}` : 'none',
+                transition:'background .2s, box-shadow .2s',
+              }} />
+            ))}
           </div>
         )}
       </div>

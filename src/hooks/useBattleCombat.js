@@ -2,7 +2,7 @@ import { useAppState, ACTIONS, dispatchAddCoins } from '../context/StateContext.
 import { playTone, playSFX, playElementSFX, playBGM } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import { getElementTier } from '../config/elementConfig.js'
-import { playElementAttack } from '../lib/elementAnimations.js'
+import { playElementAttack, playElementBlast } from '../lib/elementAnimations.js'
 import { BATTLE_ITEMS, rollBattleItem } from '../config/itemConfig.js'
 import { MONSTER_DROPS, ROOM_ITEMS } from '../lib/roomItems.js'
 import { COSMETIC_ITEMS } from '../egg/eggCosmeticLayer.js'
@@ -36,6 +36,8 @@ export function useBattleCombat(params) {
     setItemUsed, setEliminated, setShieldActive,
     setPlayerHP, setEnemyLunge,
     setTimeoutHintActive,
+    // SPEC GAME-B §B.4 (2026-07-12) — element charge meter + screen shake
+    chargeRef, setChargeMeter, setScreenShake, onHintUsed,
     // values needed for read-only checks
     localCreatureHP, itemUsed, victoryMode,
   } = params
@@ -104,12 +106,45 @@ export function useBattleCombat(params) {
       )
     }
 
-    const dmg   = isWorldBattle
+    // SPEC GAME-B §B.4 (2026-07-12) — element skills charge meter. Consecutive
+    // CORRECT answers charge a 3-segment meter (fireMiss never touches
+    // chargeRef at all — a wrong answer PAUSES progress rather than
+    // resetting it, "teaches streak value without punishing errors" per the
+    // spec, deliberately gentler than the existing comboRef above which DOES
+    // reset on a miss). Full meter = this hit lands as a big blast (bonus
+    // damage + a reused-A.3-aura particle burst + a <=250ms screen shake),
+    // then resets to 0.
+    chargeRef.current = Math.min(3, chargeRef.current + 1)
+    const chargeFull = chargeRef.current >= 3
+    if (mountedRef.current) setChargeMeter(chargeRef.current)
+
+    const baseDmg = isWorldBattle
       ? Math.round(Math.max(1, (creatureStats?.ATK ?? 20) - (enemy?.def ?? 0)) * mult)
       : Math.ceil(dmgBase * mult)
+    const dmg   = chargeFull ? baseDmg * 2 : baseDmg
     const newHP = Math.max(0, enemyHPRef.current - dmg)
     enemyHPRef.current = newHP
     if (mountedRef.current) setEnemyHP(newHP)
+
+    if (chargeFull) {
+      chargeRef.current = 0
+      if (mountedRef.current) {
+        setChargeMeter(0)
+        setScreenShake(true)
+        setTimeout(() => mountedRef.current && setScreenShake(false), 250)
+      }
+      playSFX('powerup')
+      const field2 = battleFieldRef.current
+      const enemyEl2 = enemyDivRef.current
+      if (field2 && enemyEl2 && overlayCanvasRef.current) {
+        const fr2 = field2.getBoundingClientRect()
+        const nr2 = enemyEl2.getBoundingClientRect()
+        playElementBlast(
+          overlayCanvasRef.current, battleElement,
+          nr2.left + nr2.width / 2 - fr2.left, nr2.top + nr2.height / 2 - fr2.top,
+        )
+      }
+    }
     if (mountedRef.current) {
       setSelectedCard(-1)
       setHitFlash(true)
@@ -370,6 +405,7 @@ export function useBattleCombat(params) {
     } else if (effect === 'hint') {
       // Force the same visible hint UI the time-based system uses
       setTimeoutHintActive?.(true)
+      onHintUsed?.() // SPEC GAME-B §B.4 (2026-07-12) — counts toward the boss-rank hint tally
 
       if (q?.inputMode === 'numpad') {
         setBattleLog(`กระจก! คำตอบเริ่มด้วย ${String(q.answer)[0]}`)

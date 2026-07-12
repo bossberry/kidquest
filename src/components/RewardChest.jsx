@@ -12,7 +12,10 @@ const ITEM_COLORS = {
 }
 const SPARKLE_POSITIONS = [12, 28, 46, 64, 80]  // fixed % positions to avoid per-render random
 
-export default function RewardChest({ rewards, coins, onDone }) {
+// SPEC GAME-B §B.4 (2026-07-12) — victory rank stamp colors, gold/silver/bronze-ish.
+const RANK_COLOR = { S: '#FFD700', A: '#66ccff', B: '#a8d878' }
+
+export default function RewardChest({ rewards, coins, rank, rankCopy, onDone }) {
   const [phase, setPhase] = useState('closed')  // closed | shaking | opening | reveal | collected
   const t1Ref = useRef(null)
   const t2Ref = useRef(null)
@@ -72,6 +75,33 @@ export default function RewardChest({ rewards, coins, onDone }) {
       }}>
         REWARD!
       </div>
+
+      {/* SPEC GAME-B §B.4 (2026-07-12) — boss victory rank stamp. Only shown
+          for boss battles (rank is null for regular encounters, see
+          WorldBattle.jsx's onComplete). Copy is always positive per the
+          spec, even at the floor rank B (see battleRanks.js's RANK_COPY). */}
+      {rank && (phase === 'reveal' || phase === 'collected') && (
+        <div style={{
+          marginBottom: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          transform: phase === 'collected' ? 'translateY(-30px) scale(0.7)' : 'translateY(0) scale(1)',
+          opacity: phase === 'collected' ? 0 : 1,
+          transition: 'transform 0.6s ease, opacity 0.6s ease',
+          animation: phase === 'reveal' ? 'scale-pop 0.5s ease both' : 'none',
+        }}>
+          <div style={{
+            fontFamily: "'Fredoka One',cursive", fontSize: 48, lineHeight: 1,
+            color: RANK_COLOR[rank] ?? '#fff',
+            textShadow: `0 0 20px ${RANK_COLOR[rank] ?? '#fff'}`,
+          }}>
+            {rank}
+          </div>
+          {rankCopy && (
+            <div style={{ fontFamily: 'var(--font-thai)', fontSize: 13, color: '#fff', textAlign: 'center', maxWidth: 240 }}>
+              {rankCopy}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Chest */}
       <div style={{

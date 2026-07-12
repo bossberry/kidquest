@@ -6,6 +6,7 @@ import RewardChest from '../components/RewardChest.jsx'
 import { rollBattleItem } from '../config/itemConfig.js'
 import { selectBattleQuestion } from '../lib/questionBank.js'
 import TeachingMoment from './TeachingMoment.jsx'
+import { computeBossRank, isBetterRank, RANK_COPY, RANK_BONUS_COINS } from '../lib/battleRanks.js'
 
 const HOME_DROP_TABLE = [
   { key: 'food',         weight: 50 },
@@ -108,15 +109,22 @@ export default function WorldBattle({ navigate }) {
 
   const subject     = enemy?.subject || 'thai'
 
+  // SPEC GAME-B §B.4 (2026-07-12) — boss phase 2 (<=50% HP) review-question
+  // weight boost + per-battle hint-use tally (feeds the boss victory rank).
+  // Declared before `qs` below since its initializer reads bossPhaseRef.
+  const bossPhaseRef   = useRef(false)
+  const hintsUsedRef   = useRef(0)
+
   // Generate initial question bank (loops continuously). Node-driven per Phase
   // 1.1 — selectBattleQuestion reads state.activeNodes/skillMastery directly,
   // so the old per-enemy `level` config is no longer consulted here.
   const [qs, setQs] = useState(() =>
-    Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state))
+    Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state, { reviewBoost: bossPhaseRef.current }))
   )
   const [cur, setCur]          = useState(0)
   const [pendingRewards, setPendingRewards] = useState(null)
   const [pendingBattleCoins, setPendingBattleCoins] = useState(0)
+  const [pendingRank, setPendingRank] = useState(null)
   const streakRef      = useRef(0)
   const scoreRef       = useRef(0)
   const accuracyRef    = useRef({ correct: 0, total: 0 })
@@ -166,10 +174,14 @@ export default function WorldBattle({ navigate }) {
       setCur(nextIdx)
     } else {
       // Regenerate fresh bank and restart from 0
-      setQs(Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state)))
+      setQs(Array.from({ length: TOTAL_QS }, () => selectBattleQuestion(subject, state, { reviewBoost: bossPhaseRef.current })))
       setCur(0)
     }
   }
+
+  // SPEC GAME-B §B.4 (2026-07-12)
+  function onHintUsedHandler() { hintsUsedRef.current += 1 }
+  function onBossPhase2() { bossPhaseRef.current = true }
 
   function handleCreatureTakeDamage(damage) {
     if (!creatureId) return
@@ -241,8 +253,24 @@ export default function WorldBattle({ navigate }) {
       dispatch({ type: ACTIONS.DEFEAT_BOSS })
     }
 
-    // Coin reward: boss = 15, regular = 10
-    const battleCoins = isBossBattle ? 15 : 10
+    // SPEC GAME-B §B.4 (2026-07-12) — victory rank (boss battles only, per
+    // the spec's "Store per-boss best" — regular encounters don't rank).
+    // S bonus is folded into the single coin dispatch below rather than a
+    // second dispatchAddCoins call, so the "ting-ting" SFX doesn't double-fire.
+    let rank = null
+    let rankBonusCoins = 0
+    if (isBossBattle) {
+      rank = computeBossRank(accuracy, hintsUsedRef.current)
+      const wKey = String(state.worldLevel ?? 0)
+      if (isBetterRank(rank, state.bossRanks?.[wKey])) {
+        dispatch({ type: ACTIONS.RECORD_BOSS_RANK, payload: { worldLevel: state.worldLevel ?? 0, rank } })
+      }
+      rankBonusCoins = RANK_BONUS_COINS[rank] ?? 0
+      setPendingRank(rank)
+    }
+
+    // Coin reward: boss = 15, regular = 10 (+ rank bonus on a boss S-rank)
+    const battleCoins = (isBossBattle ? 15 : 10) + rankBonusCoins
     setPendingBattleCoins(battleCoins)
     dispatchAddCoins(dispatch, battleCoins)
 
@@ -286,8 +314,11 @@ export default function WorldBattle({ navigate }) {
         <RewardChest
           rewards={pendingRewards}
           coins={pendingBattleCoins}
+          rank={pendingRank}
+          rankCopy={pendingRank ? RANK_COPY[pendingRank] : null}
           onDone={() => {
             setPendingRewards(null)
+            setPendingRank(null)
             dispatch({ type: ACTIONS.CLEAR_PENDING_REWARDS })
             dispatch({ type: ACTIONS.RETURN_FROM_WORLD_BATTLE })
             navigate('world')
@@ -326,6 +357,8 @@ export default function WorldBattle({ navigate }) {
         onCreatureTakeDamage={handleCreatureTakeDamage}
         onCreatureHeal={() => {}}
         onBattleXP={handleBattleXP}
+        onHintUsed={onHintUsedHandler}
+        onBossPhase2={onBossPhase2}
       />
     </div>
   )

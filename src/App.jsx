@@ -30,6 +30,8 @@ import PlacementQuest from './components/PlacementQuest.jsx'
 import SpeechTestHarness from './components/SpeechTestHarness.jsx'
 import EggPoseHarness from './components/EggPoseHarness.jsx'
 import RoomHarness from './components/RoomHarness.jsx'
+import BattleHarness from './components/BattleHarness.jsx'
+import MapHarness from './components/MapHarness.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -105,6 +107,16 @@ export default function App() {
   // Never linked from the normal UI; opened directly via ?roomharness=1.
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('roomharness') === '1') {
     return <RoomHarness />
+  }
+
+  // Dev-only battle/world-map test harnesses (2026-07-13 urgent bugfix
+  // session) — same pattern as above. Never linked from the normal UI;
+  // opened directly via ?battleharness=1 / ?mapharness=1.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('battleharness') === '1') {
+    return <BattleHarness />
+  }
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mapharness') === '1') {
+    return <MapHarness />
   }
 
   if (!authChecked || (isLoggedIn && companionLoading)) {

@@ -1,5 +1,64 @@
 # Changelog — KidQuest
 
+## 2026-07-13 — URGENT FIX: battle answer-checking broken + UI overlap/blocking bugs
+
+Real bugs reported from live iPhone Safari play. Four fixes, in order of
+severity.
+
+### CRITICAL: world battles compared answers against a field that never existed
+Phase 1.1 (2026-07-09) introduced questionBank.js's node-driven generators,
+which return `correctAnswer`. `MoveSelectBattleMode.jsx`/`useBattleCombat.js`
+predate that (2026-06-04) and have compared every tap/numpad-submit/hint-
+eliminate against `q.answer` ever since — a field no generator has ever set.
+Confirmed empirically: `q.answer` is `undefined` for every question, every
+subject, always. Effect: every world-battle answer, right or wrong, silently
+registered as a miss. The hint-eliminate filter could also eliminate the
+correct choice. Fixed: read `q.correctAnswer` everywhere; also fixed a second
+type-mismatch layer (numpad's correctAnswer is a string, NumpadInput.onSubmit
+passes a parsed integer — `value === Number(q.correctAnswer)`). New
+`battleAnswerField.test.js`: source-level regression guard + a data-shape
+check that every generated question is actually winnable.
+
+### Battle screen overlap on short viewports
+Root cause of "hint text overlaps the item-bar icon row": the move panel
+(numpad/wordbuild/sequence/memory) used a fixed `height:168` with
+`justifyContent:'center'` and no overflow containment — NumpadInput's content
+is naturally taller than 168px once its hint line appears, so the excess
+rendered outside the reserved flex slot, spilling symmetrically up AND down;
+the "up" half landed on the item bar above it. Fixed: `height`->`minHeight` +
+`center`->`flex-start`. The icon row itself is confirmed as this screen's own
+pre-existing BATTLE ITEMS bar (color-matched to scroll/thunder/gem/mirror/
+clover), not the world-map materials HUD. The canvas (battleField) is now the
+sole flex-shrink absorber (minHeight 200->180). Hardened the stray-floating-
+number report: dmgFloat now anchors via `position:relative` on its direct
+parent instead of an ancestor 2 levels up, plus an explicit zIndex.
+Consolidated the vs-splash + the old "X ปรากฏตัว!" dialogue text into one
+intro presentation (splash dismissal now sets the ready-to-fight prompt
+directly).
+
+### World map: D-pad/exit-arrow blocking
+The camera only ever reserved space at the TOP (HUD + mission panel) —
+nothing at the bottom — so it could clamp to the map's raw bottom edge,
+rendering the player AND the south exit arrow underneath the D-pad. New
+`src/lib/worldCamera.js`: `computeCameraY()` reserves a genuine top+bottom
+safe playable band, extracted from `useWorldGameLoop.js`'s inline math so
+it's unit-testable (`worldCamera.test.js`, 5 tests across viewport heights).
+The north exit arrow had the same problem in reverse (sat inside the HUD/
+panel footprint) — both N and S repositioned to clear their zones. D-pad
+given secondary 0.85 opacity.
+
+### New dev harnesses
+`?battleharness=1` / `?mapharness=1` — same pattern as `?eggharness=1`/
+`?roomharness=1`. Live-verified via Chrome at the available viewport (device-
+emulation via resize_window didn't actually change this environment's
+rendering viewport — verified `window.innerWidth/innerHeight` stayed fixed
+regardless of the resize call; relied on the exhaustive unit tests for
+viewport-height coverage instead): the reported numpad+item-bar scenario now
+shows a real digit hint with zero overlap; the map harness shows the player
+and the exit-arrow indicator both fully clear of the controls.
+
+158/158 tests pass (18 new), build clean.
+
 ## 2026-07-12 — SPEC GAME-B §B.4: Battle
 
 Fourth section of SPEC GAME-B. Enemy attack telegraphs, an element charge

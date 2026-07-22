@@ -1,9 +1,14 @@
 # Tasks — KidQuest
-_Last updated: 2026-07-14 (URGENT FIX #2 — battle question prompt blank, competing banner, item bar)_
+_Last updated: 2026-07-22 (Word Factory — new isolated mini-game)_
 
 ---
 
 ## Now
+
+### Word Factory follow-ups
+- [x] **New isolated mini-game — "โรงงานประกอบคำ" (Word Factory), consonant+vowel blending, Level 1 only** — `src/wordfactory/` (data.js/storage.js/WordFactoryScreen.jsx), new 🧩 BottomNav tab + `wordfactory` App.jsx route, zero dependency on main game state. Found+fixed a real bug live (bare combining Thai vowel marks rendering anchor-less as distractor tiles). Verified live end-to-end in Chrome, 166/166 tests pass, build clean — see `CURRENT_STATE.md`/`CHATBOT_NOTES.md` 2026-07-22 entries for full detail ✅ (2026-07-22)
+- [ ] **Needs Chatbot decision**: whether to proceed with Levels 2-4 (data already written in `data.js` but not wired in) — vowel-swap, listen-and-assemble, single-piece-swap — and whether the "ป๊าอ่านผิด" catch-the-mistake mode (mentioned in the request but outside its own stated v1 scope) should be built next.
+- [ ] **Follow-up (nice to have, not a decision)**: a real-device pass to confirm the browser TTS pronounces the isolated phonetic-step fragments ("มอ", "อา") acceptably — only whole-word playback was verified this session.
 
 ### Phase 4 Refactor — MoveSelectBattleMode.jsx split
 `MoveSelectBattleMode.jsx` was ~1190 lines. Goal: extract logical modules without changing behavior.

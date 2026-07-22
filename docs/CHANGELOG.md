@@ -1,5 +1,38 @@
 # Changelog — KidQuest
 
+## 2026-07-22 — New isolated mini-game: "โรงงานประกอบคำ" (Word Factory)
+
+A fully separate consonant+vowel-blending mini-game, requested to teach the
+specific pre-reading gap where a child hasn't yet connected that a
+consonant + a vowel blend into a word's sound — as opposed to memorizing
+whole words. Built as a new, isolated `src/wordfactory/` module: its own
+data (`data.js`), its own localStorage progress key
+(`kq_wordfactory_stats_v1`, separate from `kq_state`), and its own single
+screen (`WordFactoryScreen.jsx`). Reuses only shared audio (`playTone`/
+`speakTh`) and the shared confetti overlay — no dependency on
+`StateContext.jsx`, `curriculum.js`, or `questionBank.js`.
+
+New entry point: a 🧩 "ประกอบคำ" tab in `BottomNav.jsx` + a new
+`wordfactory` route in `App.jsx`. Game loop: hear the target word + see its
+picture → tap the correct consonant (wrong taps bounce back gently, no
+❌/buzzer) → tap the correct vowel → watch the pieces assemble with a
+phonetic slow-readout ("มอ...อา...มา") then the full word → small star
+reward, 5 rounds → celebration screen. v1 ships Level 1 only (สระอา, 6
+words: กา/มา/นา/ตา/ปา/ลา) per the spec's own explicit first-version scope;
+data for a future vowel-swap/listen/single-piece-swap level is already
+written but not yet wired in.
+
+Found and fixed a real rendering bug during live verification: bare
+combining Thai vowel marks (ิ ี ุ ู) shown alone as distractor tiles
+rendered with no visible anchor — fixed by pairing them with อ (the
+standard Thai vowel-carrier letter) for display only, never for the
+composed word itself.
+
+Verified live end-to-end in Chrome (full 5-round session, correct/wrong
+paths, reward screen, confetti, isolated localStorage write confirmed,
+zero console errors, main game state confirmed untouched on return to
+Home). `npm run build` clean, `npm test` 166/166 pass.
+
 ## 2026-07-12 — Placement test gate: explicit `placementDone === false` reset always wins
 
 Small fix requested after a report that Chopin's account, which had

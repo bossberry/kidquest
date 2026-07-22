@@ -33,6 +33,7 @@ import EggPoseHarness from './components/EggPoseHarness.jsx'
 import RoomHarness from './components/RoomHarness.jsx'
 import BattleHarness from './components/BattleHarness.jsx'
 import MapHarness from './components/MapHarness.jsx'
+import WordFactoryScreen from './wordfactory/WordFactoryScreen.jsx'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
@@ -215,6 +216,7 @@ export default function App() {
         {screen === 'world' && <WorldScreen navigate={navigate} />}
         {screen === 'world-battle' && <WorldBattle navigate={navigate} />}
         {screen === 'friends' && <FriendsScreen />}
+        {screen === 'wordfactory' && <WordFactoryScreen navigate={navigate} />}
       </ErrorBoundary>
 
       {/* Party select overlay — shown when a battle is pending but no creature chosen yet */}
@@ -232,7 +234,7 @@ export default function App() {
       )}
 
       {/* Bottom nav (hidden during game, world, and world battle) */}
-      {screen !== 'game' && screen !== 'world' && screen !== 'world-battle' && <BottomNav current={screen} navigate={navigate} hasNewRoomItem={state.hasNewRoomItem} hasNewItem={state.hasNewItem} />}
+      {screen !== 'game' && screen !== 'world' && screen !== 'world-battle' && screen !== 'wordfactory' && <BottomNav current={screen} navigate={navigate} hasNewRoomItem={state.hasNewRoomItem} hasNewItem={state.hasNewItem} />}
     </>
   )
 }

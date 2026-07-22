@@ -5,6 +5,7 @@ export default function BottomNav({ current, navigate, hasNewRoomItem, hasNewIte
     { key: 'home',       label: 'หน้าหลัก', icon: '🏠' },
     { key: 'collection', label: 'แต่งตัว',   icon: '🛒' },
     { key: 'room',       label: 'ห้อง',      icon: '🏡' },
+    { key: 'wordfactory', label: 'ประกอบคำ', icon: '🧩' },
     { key: 'report',     label: 'รีพอร์ต',   icon: '📊' },
     { key: 'friends',    label: 'เพื่อน',    icon: '👥' },
   ]

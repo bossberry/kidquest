@@ -6,13 +6,19 @@
 // to this file/folder. No dependency on src/context/StateContext.jsx,
 // src/lib/state.js, or any main-game save data.
 //
-// v1 scope: Level 1 only (สระอา, 6 words) — see data.js's header comment.
+// Two difficulty pools (2026-07-22 update, after real playtesting showed the
+// single-vowel-only version had gotten too easy): "ง่าย" (single/leading
+// vowels) and "ยาก" (compound vowels ัว/เ-ีย/เ-ือ). Hard is selectable
+// immediately from the intro screen — not gated behind easy — since the
+// point is to drill exactly the sound pattern the child is still stuck on.
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { playTone, speakTh } from '../lib/audio.js'
 import { spawnConfetti } from '../components/Toasts.jsx'
 import {
-  WORDS, LEVEL_1_WORD_IDS, ALL_CONSONANTS, ALL_VOWELS,
-  ROUNDS_PER_SESSION, MAX_REQUEUE_PER_WORD, shuffle, pickChoices, vowelGlyph,
+  WORDS, EASY_WORD_IDS, HARD_WORD_IDS,
+  ALL_CONSONANTS, ALL_CONSONANTS_HARD, SINGLE_VOWEL_KEYS, COMPOUND_VOWEL_KEYS,
+  ROUNDS_PER_SESSION, MAX_REQUEUE_PER_WORD, shuffle, pickChoices,
+  vowelGlyph, vowelPartGlyph, getVowelLayout,
 } from './data.js'
 import { recordMiss, recordListenReplay, recordSessionComplete } from './storage.js'
 
@@ -20,18 +26,19 @@ const INK = '#4a2f0e'
 const WOOD = '#F2B838'
 const WOOD_D = '#c98f1e'
 const TEAL = '#2A9D8F'
+const ORANGE = '#E07A2C'
 const CARD = '#FFF7E6'
 
-function LetterTile({ char, displayChar, onTap, shaking, disabled }) {
+function LetterTile({ char, displayChar, onTap, shaking, disabled, wide }) {
   return (
     <button
       onClick={() => !disabled && onTap(char)}
       disabled={disabled}
       style={{
-        width: 68, height: 68, borderRadius: 16,
+        minWidth: wide ? 84 : 68, height: 68, borderRadius: 16, padding: '0 10px',
         background: '#fff', border: `3px solid ${WOOD_D}`,
         boxShadow: '0 3px 0 rgba(0,0,0,0.15)',
-        fontFamily: 'var(--font-thai)', fontSize: 34, fontWeight: 700, color: INK,
+        fontFamily: 'var(--font-thai)', fontSize: wide ? 26 : 34, fontWeight: 700, color: INK,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: disabled ? 'default' : 'pointer',
         animation: shaking ? 'wf-shake 0.4s ease' : 'none',
@@ -43,16 +50,18 @@ function LetterTile({ char, displayChar, onTap, shaking, disabled }) {
   )
 }
 
-function SlotBox({ label, value, placeholder, filled }) {
+function SlotBox({ value, placeholder, filled, small }) {
+  const w = small ? 76 : 92
   return (
     <div style={{
-      width: 92, height: 112, borderRadius: 18,
+      width: w, height: 112, borderRadius: 18,
       background: filled ? '#fff' : 'rgba(255,255,255,0.35)',
       border: filled ? `3px solid ${TEAL}` : `3px dashed ${WOOD_D}`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--font-thai)', fontSize: 52, fontWeight: 700, color: INK,
+      fontFamily: 'var(--font-thai)', fontSize: small ? 38 : 52, fontWeight: 700, color: INK,
       animation: filled ? 'wf-pop-in 0.4s ease' : 'none',
       boxShadow: filled ? '0 4px 0 rgba(0,0,0,0.1)' : 'none',
+      flexShrink: 0,
     }}>
       {value || <span style={{ fontSize: 30, opacity: 0.35 }}>{placeholder}</span>}
     </div>
@@ -60,20 +69,34 @@ function SlotBox({ label, value, placeholder, filled }) {
 }
 
 function Mascot({ mood }) {
-  const emoji = mood === 'happy' ? '🤖' : mood === 'thinking' ? '🤖' : '🤖'
   return (
     <div style={{
       fontSize: 52, lineHeight: 1,
       animation: mood === 'happy' ? 'wf-mascot-bounce 0.6s ease' : 'wf-mascot-idle 2.4s ease-in-out infinite',
       filter: mood === 'happy' ? 'drop-shadow(0 0 8px rgba(255,210,63,0.8))' : 'none',
     }}>
-      {emoji}
+      🤖
     </div>
+  )
+}
+
+function DifficultyCard({ color, icon, label, sample, onTap }) {
+  return (
+    <button onClick={onTap} style={{
+      width: 140, padding: '20px 10px', borderRadius: 22,
+      background: '#fff', border: `3px solid ${color}`, boxShadow: `0 4px 0 ${color}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer',
+    }}>
+      <div style={{ fontSize: 34 }}>{icon}</div>
+      <div style={{ fontFamily: 'var(--font-thai)', fontWeight: 800, fontSize: 17, color }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-thai)', fontSize: 22, fontWeight: 700, color: INK }}>{sample}</div>
+    </button>
   )
 }
 
 export default function WordFactoryScreen({ navigate }) {
   const [phase, setPhase] = useState('intro') // intro | playing | reward
+  const [difficulty, setDifficulty] = useState('easy') // 'easy' | 'hard'
   const [currentWordId, setCurrentWordId] = useState(null)
   const [piecePhase, setPiecePhase] = useState('consonant') // consonant | vowel | assembled
   const [lockedConsonant, setLockedConsonant] = useState(null)
@@ -102,16 +125,19 @@ export default function WordFactoryScreen({ navigate }) {
   useEffect(() => () => clearTimers(), [clearTimers])
 
   const currentWord = currentWordId ? WORDS[currentWordId] : null
+  const vowelLayout = currentWord ? getVowelLayout(currentWord.vowel) : 'trailing'
 
   const consonantChoices = useMemo(() => {
     if (!currentWord) return []
-    return pickChoices(currentWord.consonant, ALL_CONSONANTS, 4)
-  }, [currentWordId]) // eslint-disable-line
+    const pool = difficulty === 'hard' ? ALL_CONSONANTS_HARD : ALL_CONSONANTS
+    return pickChoices(currentWord.consonant, pool, 4)
+  }, [currentWordId, difficulty]) // eslint-disable-line
 
   const vowelChoices = useMemo(() => {
     if (!currentWord) return []
-    return pickChoices(currentWord.vowel, ALL_VOWELS, 3)
-  }, [currentWordId]) // eslint-disable-line
+    const pool = difficulty === 'hard' ? COMPOUND_VOWEL_KEYS : SINGLE_VOWEL_KEYS
+    return pickChoices(currentWord.vowel, pool, 3)
+  }, [currentWordId, difficulty]) // eslint-disable-line
 
   function startRoundFor(wordId) {
     clearTimers()
@@ -127,15 +153,24 @@ export default function WordFactoryScreen({ navigate }) {
     after(() => speakTh(w.displayWord), 400)
   }
 
-  function startSession() {
-    const queue = shuffle(LEVEL_1_WORD_IDS).slice(0, ROUNDS_PER_SESSION)
+  function startSession(diff) {
+    const pool = diff === 'hard' ? HARD_WORD_IDS : EASY_WORD_IDS
+    const queue = shuffle(pool).slice(0, ROUNDS_PER_SESSION)
     sessionRef.current = { queue, idx: 0, requeued: {} }
     starsRef.current = 0
+    setDifficulty(diff)
     setStarsThisSession(0)
     setRoundDisplayNum(1)
     setPhase('playing')
     playTone('start')
     startRoundFor(queue[0])
+  }
+
+  function backToDifficultySelect() {
+    clearTimers()
+    if (window.speechSynthesis) window.speechSynthesis.cancel()
+    setStarsThisSession(0)
+    setPhase('intro')
   }
 
   function replayCurrent() {
@@ -177,6 +212,10 @@ export default function WordFactoryScreen({ navigate }) {
     }
   }
 
+  // The vowel is always ONE atomic choice, even for a 2-piece compound vowel
+  // (เ-ีย/เ-ือ) — the child taps a single tile showing the whole vowel
+  // (e.g. "เอีย"), never 2 separate taps for the front/back pieces. Only the
+  // ASSEMBLY STAGE display splits into front/back slots after this fires.
   function handleVowelTap(char) {
     if (!currentWord) return
     clearTimers()
@@ -189,7 +228,7 @@ export default function WordFactoryScreen({ navigate }) {
     } else {
       playTone('next')
       roundHadMissRef.current = true
-      recordMiss(currentWord.id, 'vowel', char)
+      recordMiss(currentWord.id, 'vowel', char, currentWord.vowelType)
       setShakeChar(char)
       setFeedbackMsg('ยังไม่ใช่ ลองฟังอีกทีนะ')
       after(() => setShakeChar(null), 420)
@@ -227,7 +266,7 @@ export default function WordFactoryScreen({ navigate }) {
     }
 
     if (sess.idx + 1 >= sess.queue.length) {
-      recordSessionComplete(starsRef.current)
+      recordSessionComplete(starsRef.current, difficulty)
       playTone('complete')
       spawnConfetti(28)
       setPhase('reward')
@@ -239,6 +278,26 @@ export default function WordFactoryScreen({ navigate }) {
   }
 
   const goHome = () => { clearTimers(); if (window.speechSynthesis) window.speechSynthesis.cancel(); navigate('home') }
+
+  // ── Assembly stage slots, built left-to-right in real Thai script order.
+  // 'trailing' (า ิ ี ุ ู, ัว) → [consonant, vowel]
+  // 'leading'  (เ แ โ)        → [vowel, consonant]
+  // 'split'    (เ-ีย, เ-ือ)   → [vowelFront, consonant, vowelBack] — both
+  //   flanking slots fill AT THE SAME TIME the single vowel tap resolves
+  //   (never 2 separate taps), matching "ล้อมพยัญชนะ...แต่เป็นเสียงเดียว".
+  let assemblySlots = null
+  if (currentWord) {
+    const parts = currentWord.vowelParts
+    const consonantSlot = <SlotBox key="c" placeholder="?" value={lockedConsonant} filled={!!lockedConsonant} />
+    if (vowelLayout === 'split') {
+      const front = <SlotBox key="vf" placeholder="?" value={lockedVowel ? vowelPartGlyph(parts[0]) : null} filled={!!lockedVowel} small />
+      const back = <SlotBox key="vb" placeholder="?" value={lockedVowel ? vowelPartGlyph(parts[1]) : null} filled={!!lockedVowel} small />
+      assemblySlots = [front, consonantSlot, back]
+    } else {
+      const vowelSlot = <SlotBox key="v" placeholder="?" value={lockedVowel ? vowelGlyph(lockedVowel) : null} filled={!!lockedVowel} />
+      assemblySlots = vowelLayout === 'leading' ? [vowelSlot, consonantSlot] : [consonantSlot, vowelSlot]
+    }
+  }
 
   return (
     <div style={{
@@ -272,6 +331,7 @@ export default function WordFactoryScreen({ navigate }) {
           background: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', gap: 4,
           fontFamily: 'var(--font-thai)', fontWeight: 700, fontSize: 14, color: INK,
         }}>
+          {phase !== 'intro' && <span>{difficulty === 'hard' ? '🟠' : '🟢'}</span>}
           ⭐ {starsThisSession}
         </div>
       </div>
@@ -288,13 +348,10 @@ export default function WordFactoryScreen({ navigate }) {
           <div style={{ fontFamily: 'var(--font-thai)', fontSize: 14, color: INK, opacity: 0.8, lineHeight: 1.6 }}>
             แตะพยัญชนะ แล้วแตะสระ<br />ให้ประกอบกันเป็นคำ 🔤
           </div>
-          <button onClick={startSession} style={{
-            fontFamily: 'var(--font-thai)', fontWeight: 700, fontSize: 18,
-            background: TEAL, color: '#fff', border: 'none', borderRadius: 30,
-            padding: '14px 40px', boxShadow: '0 4px 0 #1c6f65', cursor: 'pointer',
-          }}>
-            เริ่มเล่น ▶
-          </button>
+          <div style={{ display: 'flex', gap: 14, marginTop: 4 }}>
+            <DifficultyCard color={TEAL} icon="🟢" label="ง่าย" sample="กา" onTap={() => startSession('easy')} />
+            <DifficultyCard color={ORANGE} icon="🟠" label="ยาก" sample="ตัว" onTap={() => startSession('hard')} />
+          </div>
         </div>
       )}
 
@@ -338,10 +395,9 @@ export default function WordFactoryScreen({ navigate }) {
             {feedbackMsg}
           </div>
 
-          {/* assembly stage */}
-          <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
-            <SlotBox placeholder="?" value={lockedConsonant} filled={!!lockedConsonant} label="พยัญชนะ" />
-            <SlotBox placeholder="?" value={lockedVowel ? vowelGlyph(lockedVowel) : null} filled={!!lockedVowel} label="สระ" />
+          {/* assembly stage — dynamic left-to-right slot order, see assemblySlots above */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
+            {assemblySlots}
           </div>
 
           {/* choices */}
@@ -355,7 +411,7 @@ export default function WordFactoryScreen({ navigate }) {
           {piecePhase === 'vowel' && (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
               {vowelChoices.map(v => (
-                <LetterTile key={v} char={v} displayChar={vowelGlyph(v)} onTap={handleVowelTap} shaking={shakeChar === v} />
+                <LetterTile key={v} char={v} displayChar={vowelGlyph(v)} onTap={handleVowelTap} shaking={shakeChar === v} wide={difficulty === 'hard'} />
               ))}
             </div>
           )}
@@ -388,7 +444,7 @@ export default function WordFactoryScreen({ navigate }) {
             ได้ดาว {starsThisSession} ดวง ⭐
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <button onClick={startSession} style={{
+            <button onClick={() => startSession(difficulty)} style={{
               fontFamily: 'var(--font-thai)', fontWeight: 700, fontSize: 15,
               background: TEAL, color: '#fff', border: 'none', borderRadius: 24,
               padding: '12px 22px', boxShadow: '0 4px 0 #1c6f65', cursor: 'pointer',
@@ -403,6 +459,12 @@ export default function WordFactoryScreen({ navigate }) {
               กลับหน้าหลัก 🏠
             </button>
           </div>
+          <button onClick={backToDifficultySelect} style={{
+            fontFamily: 'var(--font-thai)', fontWeight: 600, fontSize: 13, color: INK, opacity: 0.7,
+            background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer', marginTop: 4,
+          }}>
+            🔄 เปลี่ยนระดับ
+          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,42 @@
 # Changelog — KidQuest
 
+## 2026-07-22 — Word Factory: difficulty modes + compound vowels (ัว/เ-ีย/เ-ือ)
+
+Same-day follow-up after real playtesting: the single-vowel-only Word
+Factory had gotten too easy — the actual gap is compound vowels (2 written
+pieces, 1 sound: -ัว, เ-ีย, เ-ือ). Added a "ง่าย"/"ยาก" difficulty picker on
+the intro screen (ยาก unlockable immediately, not gated) and 3 new
+compound-vowel levels (10 words: ตัว/หัว/มัว/วัว/บัว, เสีย/เมีย/เปีย,
+เสือ/เรือ), plus widened the easy pool to cover the remaining single/leading
+vowels (ิ ี ุ ู เ แ โ, 12 more words).
+
+Data model gained a `VOWEL_DEFS` positioning table so `composeWord()`
+correctly handles all 4 vowel shapes uniformly (single-after, leading,
+wrap-after, true split-around) — word entries now carry `vowelType`/
+`vowelParts` per the original spec's requested shape, always derived rather
+than hand-duplicated.
+
+The interaction model deliberately did NOT change for compound vowels: the
+child still taps ONE vowel tile, never 2 separate taps for a compound's
+front/back pieces — only the assembly-stage animation changed, splitting
+into a 3-box `[vowelFront, consonant, vowelBack]` layout that fills all at
+once the instant the single tap resolves, confirmed live in Chrome to read
+correctly in real Thai script order.
+
+Found and fixed a second rendering edge case (same root cause class as the
+original session's): a lone split-vowel fragment shown in its own slot has
+the same floating-combining-mark problem as a whole vowel shown alone —
+fixed with the same อ-anchoring technique, applied per-fragment.
+
+Adaptive-learning tracking now separates single-vowel confusion from
+compound-vowel confusion (a different signal, per direct instruction) via a
+new `compoundVowelMisses` bucket.
+
+Verified live end-to-end in Chrome: full 5-round sessions in both
+difficulties, deliberate wrong-tap paths, the split-layout animation, and
+direct localStorage inspection confirming the new tracking buckets recorded
+correctly. `npm run build` clean, `npm test` 166/166 pass.
+
 ## 2026-07-22 — New isolated mini-game: "โรงงานประกอบคำ" (Word Factory)
 
 A fully separate consonant+vowel-blending mini-game, requested to teach the
